@@ -3,103 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Aida Mobile V5.1</title>
+    <title>Aida Mobile V5.2</title>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
     <style>
         :root { --aida-gold: #d3af37; --aida-bg: #fdf6e3; --aida-dark: #222; }
         body { margin: 0; background: var(--aida-bg); display: flex; flex-direction: column; height: 100vh; font-family: 'Courier New', Courier, monospace; overflow: hidden; }
-        #airlock { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: var(--aida-dark); color: var(--aida-gold); padding: 30px; text-align: center; z-index: 100; position: absolute; width: 100%; top: 0; }
+        #airlock { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: var(--aida-dark); color: var(--aida-gold); padding: 30px; text-align: center; z-index: 100; position: absolute; width: 100%; top: 0; transition: opacity 0.5s; }
         .setup-box { background: #333; padding: 20px; border: 1px solid var(--aida-gold); border-radius: 8px; width: 90%; max-width: 400px; }
-        input { width: 90%; padding: 10px; margin: 10px 0; background: #222; border: 1px solid var(--aida-gold); color: white; border-radius: 4px; }
-        .hidden { display: none !important; }
-        #main-engine { flex: 1; display: flex; flex-direction: column; padding: 10px; }
-        #monitor { flex: 1; background: #000; color: #0f0; padding: 10px; font-size: 0.8rem; overflow-y: auto; margin-bottom: 10px; border-radius: 5px; }
-        #display { height: 200px; background: #eee; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--aida-gold); }
+        input { width: 90%; padding: 10px; margin: 10px 0; background: #222; border: 1px solid var(--aida-gold); color: white; border-radius: 4px; font-size: 16px; }
+        .hidden { display: none !important; opacity: 0; pointer-events: none; }
+        #main-engine { flex: 1; display: flex; flex-direction: column; padding: 10px; height: 100vh; box-sizing: border-box; }
+        #monitor { height: 120px; background: #000; color: #0f0; padding: 10px; font-size: 0.8rem; overflow-y: auto; margin-bottom: 10px; border-radius: 5px; border: 1px solid #333; }
+        #display { height: 200px; background: #eee; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--aida-gold); overflow: hidden; }
+        #aida-portrait { max-height: 100%; max-width: 100%; }
+        #user-in { width: 100%; padding: 15px; border: 1px solid #ccc; border-radius: 25px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
     <div id="airlock">
         <div class="setup-box">
-            <h2>AIDA MOBILE</h2>
-            <p>Environmental Sync Required</p>
-            <input type="password" id="openai-key" placeholder="OpenAI API Key">
-            <input type="password" id="google-key" placeholder="Google Drive API Key">
-            <p style="font-size: 0.7rem;">Upload Soul File (.json) to initiate</p>
+            <h2 style="letter-spacing: 4px;">AIDA</h2>
+            <input type="password" id="openai-key" placeholder="OpenAI Key">
+            <input type="password" id="google-key" placeholder="Google API Key">
+            <p style="font-size: 0.7rem; color: #888;">Select Soul File (.json)</p>
             <input type="file" id="soul-upload" accept=".json">
         </div>
     </div>
 
     <div id="main-engine" class="hidden">
         <div id="display">
-            <div id="aida-portrait">[ AIDA ACTIVE ]</div>
+            <img id="aida-portrait" src="" alt="[ AIDA ACTIVE ]">
         </div>
-        <div id="monitor">SYSTEM: Ready for input...</div>
-        <input type="text" id="user-in" placeholder="Speak to Aida...">
-        <button id="send-btn" py-click="main_loop_step">SEND</button>
+        <div id="monitor">SYSTEM: Online...</div>
+        <input type="text" id="user-in" placeholder="Message Aida...">
+        <button id="send-btn" py-click="main_loop_step" style="width:100%; padding:12px; background:var(--aida-gold); border:none; border-radius:5px; font-weight:bold;">SEND</button>
     </div>
 
     <script type="py">
-        from pyscript import document, window
-        from pyodide.http import pyfetch
-        import json
+from pyscript import document, window
+from pyodide.http import pyfetch
+import json
 
-        class AidaEngine:
-            def __init__(self):
-                self.token = ""
-                self.facts = ""
-                self.journal = ""
+class AidaChassis:
+    def __init__(self):
+        self.token = ""
+        self.facts = ""
+        self.journal = ""
+
+    def log(self, text):
+        mon = document.getElementById("monitor")
+        mon.innerHTML += f"<br>> {text}"
+        mon.scrollTop = mon.scrollHeight
+
+aida = AidaChassis()
+
+async def sync_soul(event):
+    file_list = event.target.files
+    if not file_list: return
+    
+    file = file_list.item(0)
+    content = await file.text()
+    
+    # 1. Immediate UI Transition
+    document.getElementById("airlock").classList.add("hidden")
+    document.getElementById("main-engine").classList.remove("hidden")
+    
+    try:
+        # 2. Extract Token and Keys
+        token_data = json.loads(content)
+        aida.token = str(token_data.get('token') or token_data.get('access_token')).strip()
+        g_key = document.getElementById("google-key").value.strip()
+        
+        aida.log("Soul Uploaded. Syncing with Drive...")
+
+        # 3. Google Drive Fetch
+        headers = {"Authorization": f"Bearer {aida.token}"}
+        # Fixed URL format for Vibe Coding safety
+        url = f"https://www.googleapis.com/drive/v3/files?q=trashed=false&orderBy=nameDesc&key={g_key}"
+        
+        resp = await pyfetch(url=url, method="GET", headers=headers)
+        
+        if resp.status == 200:
+            data = await resp.json()
+            files = data.get('files', [])
+            aida.log(f"Drive Connected. {len(files)} files found.")
             
-            def log(self, text):
-                mon = document.getElementById("monitor")
-                mon.innerHTML += f"<br>> {text}"
-                mon.scrollTop = mon.scrollHeight
+            # Auto-load files
+            for f in files:
+                fname = f['name']
+                fid = f['id']
+                if fname == 'hello-goobye.png':
+                    f_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{fid}?alt=media", method="GET", headers=headers)
+                    img_bytes = await f_resp.bytes()
+                    blob = window.Blob.new([window.Uint8Array.new(img_bytes)], {type: "image/png"})
+                    document.getElementById("aida-portrait").src = window.URL.createObjectURL(blob)
+                    aida.log("Portrait Rendered.")
+        else:
+            aida.log(f"DRIVE ERROR: {resp.status}")
+            if resp.status == 400:
+                aida.log("Hint: Token likely expired or URL malformed.")
 
-        aida = AidaEngine()
+    except Exception as e:
+        aida.log(f"CRITICAL ERROR: {str(e)}")
 
-        async def sync_soul(event):
-            file_list = event.target.files
-            if not file_list: return
-            
-            file = file_list.item(0)
-            content = await file.text()
-            
-            try:
-                # 1. Parse Token
-                token_data = json.loads(content)
-                aida.token = str(token_data.get('token') or token_data.get('access_token')).strip()
-                g_key = document.getElementById("google-key").value.strip()
-                
-                # 2. Reveal UI immediately so we can see the logs
-                document.getElementById("airlock").classList.add("hidden")
-                document.getElementById("main-engine").classList.remove("hidden")
-                
-                aida.log("Soul detected. Handshaking with Google...")
+# Bind the listener
+document.getElementById("soul-upload").onchange = sync_soul
 
-                # 3. Fetch from Google Drive
-                headers = {"Authorization": f"Bearer {aida.token}"}
-                drive_url = f"https://www.googleapis.com/drive/v3/files?q=trashed=false&orderBy=nameDesc&key={g_key}"
-                
-                resp = await pyfetch(url=drive_url, method="GET", headers=headers)
-                
-                if resp.status == 200:
-                    data = await resp.json()
-                    files = data.get('files', [])
-                    aida.log(f"Found {len(files)} files in Drive.")
-                else:
-                    aida.log(f"DRIVE ERROR: {resp.status}")
-
-            except Exception as e:
-                aida.log(f"CRITICAL SYNC ERROR: {str(e)}")
-
-        # Bind the file upload to the sync function
-        upload_el = document.getElementById("soul-upload")
-        upload_el.onchange = sync_soul
-
-        async def main_loop_step(event):
-            # Normal chat logic goes here...
-            aida.log("Processing input...")
+async def main_loop_step(event):
+    aida.log("Processing thinking cycle...")
 
     </script>
 </body>
