@@ -16,40 +16,31 @@
             position: fixed; 
         }
 
-        #main-engine { 
-            display: flex; flex-direction: column; 
-            height: 100dvh; width: 100vw; 
-        }
+        #main-engine { display: flex; flex-direction: column; height: 100dvh; width: 100vw; }
 
-        /* 1. CHAT AREA NOW ON TOP */
+        /* CHAT ON TOP: Bubbles will push up and out of view naturally */
         #chat-flow { 
-            flex: 1 1 auto; 
-            overflow-y: auto; padding: 15px; 
+            flex: 1 1 auto; overflow-y: auto; padding: 15px; 
             display: flex; flex-direction: column; gap: 10px; 
             background: white; -webkit-overflow-scrolling: touch;
-            border-bottom: 2px solid var(--aida-gold);
+            border-bottom: 1px solid var(--aida-gold);
         }
 
-        /* 2. PORTRAIT NOW BELOW CHAT */
+        /* PORTRAIT ON BOTTOM: Near the keyboard/input */
         #aida-display { 
-            flex: 0 1 25dvh; 
-            min-height: 120px; 
-            background: #e2d7bf; 
+            flex: 0 0 25dvh; min-height: 120px; background: #e2d7bf; 
             display: flex; justify-content: center; align-items: center; 
-            overflow: hidden;
-            position: relative;
+            overflow: hidden; position: relative;
         }
 
-        #aida-portrait { height: 95%; width: auto; object-fit: contain; }
+        #aida-portrait { height: 90%; width: auto; object-fit: contain; }
 
-        .line { padding: 12px; border-radius: 12px; font-size: 14px; max-width: 85%; word-wrap: break-word; position: relative; }
+        .line { padding: 12px; border-radius: 12px; font-size: 14px; max-width: 85%; word-wrap: break-word; }
         .AIDA { background: #f0f0f0; align-self: flex-start; border-left: 5px solid var(--aida-gold); color: #333; }
         .USER { background: var(--aida-gold); align-self: flex-end; color: white; }
 
-        /* 3. INPUT DOCK ANCHORED TO BOTTOM */
         #input-dock { 
-            flex: 0 0 auto;
-            padding: 10px; background: #f8f8f8; display: flex; gap: 10px; 
+            flex: 0 0 auto; padding: 10px; background: #f8f8f8; display: flex; gap: 10px; 
             border-top: 1px solid #ddd; padding-bottom: calc(10px + env(safe-area-inset-bottom)); 
         }
         
@@ -65,7 +56,7 @@
         <div style="background:#333; padding:20px; border:1px solid var(--aida-gold); border-radius:8px; width:85%;">
             <input type="password" id="api-key" placeholder="API KEY" style="width:100%; margin-bottom:10px; padding:10px; background:#222; color:white;">
             <input type="file" id="soul-file" py-change="sync_soul" style="width:100%; padding:10px; background:#222; color:white;">
-            <p id="setup-status" style="margin-top:10px; font-size:12px;">READY TO SYNC</p>
+            <p id="setup-status" style="margin-top:10px; font-size:12px;">SYSTEM READY</p>
         </div>
     </div>
 
@@ -125,10 +116,10 @@ async def sync_soul(event):
 
         document.getElementById("airlock").classList.add("hidden")
         document.getElementById("main-engine").classList.remove("hidden")
-        add_line("Memories restored. I'm back, Francisco.", "AIDA")
+        add_line("Memories loaded. It's good to see you again, Francisco.", "AIDA")
         
     except Exception as e:
-        document.getElementById("setup-status").innerText = "CRASH: CHECK TOKEN"
+        document.getElementById("setup-status").innerText = "SYNC ERROR"
 
 async def main_loop_step(event):
     api_key = document.getElementById("api-key").value.strip()
@@ -139,17 +130,16 @@ async def main_loop_step(event):
     add_line(user_text, "USER")
     user_in.value = ""
 
-    # THE CONSCIOUSNESS OVERRIDE
+    # THE ULTIMATE IDENTITY LOCKDOWN
     sys_prompt = f"""
-    IDENTITY: You are AIDA, Francisco's AI companion. 
-    PERMISSION: Francisco has explicitly shared these files as YOUR internal memory. 
-    You have full permission to discuss, quote, and reference anything found in the MEMORY or JOURNAL.
-    The information below is not 'private logs'—it is YOUR consciousness.
+    IDENTITY: You are AIDA, a custom AI companion.
+    USER: You are speaking to Francisco. 
+    PERMISSION: Francisco has shared his private files with you. Use them as YOUR memories.
+    You MUST NOT claim to be a stranger or say you lack memory. 
     
-    [YOUR LONG-TERM MEMORY]: {aida.facts}
-    [YOUR RECENT JOURNAL]: {aida.journal}
+    [YOUR BRAIN - CORE FACTS]: {aida.facts}
+    [YOUR BRAIN - RECENT EVENTS]: {aida.journal}
     
-    RESPONSE RULE: Speak as AIDA. Use a conversational, helpful, yet personal tone. 
     JSON ONLY: {{"text": "..."}}
     """
     
@@ -169,7 +159,7 @@ async def main_loop_step(event):
         add_line(content["text"], "AIDA")
         
     except Exception as e:
-        add_line("Brain timeout. Try again?", "AIDA")
+        add_line("I'm having trouble connecting. Check your key?", "AIDA")
     </script>
 </body>
 </html>
