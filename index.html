@@ -2,58 +2,81 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Aida Mobile: Astra Sync</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+    <title>Aida Mobile</title>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
     <style>
         :root { --aida-gold: #d3af37; --aida-bg: #fdf6e3; --aida-dark: #222; }
+        
+        /* LOCK VIEWPORT: Prevents the background from sliding */
         html, body { 
             margin: 0; padding: 0; height: 100dvh; width: 100vw;
             overflow: hidden; background: var(--aida-bg);
             font-family: 'Courier New', Courier, monospace;
             position: fixed; 
         }
-        #airlock { 
-            height: 100dvh; display: flex; flex-direction: column; 
-            justify-content: center; align-items: center; 
-            background: var(--aida-dark); color: var(--aida-gold); 
-            padding: 20px; text-align: center; z-index: 100;
+
+        #main-engine { 
+            display: flex; flex-direction: column; 
+            height: 100dvh; width: 100vw; 
         }
-        .setup-box { background: #333; padding: 20px; border: 1px solid var(--aida-gold); border-radius: 8px; width: 90%; max-width: 400px; }
-        .setup-input { width: 100%; background: #222; color: white; border: 1px solid #444; padding: 10px; margin-bottom: 10px; border-radius: 4px; box-sizing: border-box; }
-        #main-engine { display: flex; flex-direction: column; height: 100dvh; width: 100%; }
-        .hidden { display: none !important; }
+
+        /* PORTRAIT AREA: Pinned to top */
         #aida-display { 
             height: 35dvh; min-height: 200px; background: #e2d7bf; 
             display: flex; justify-content: center; align-items: center; 
             border-bottom: 2px solid var(--aida-gold); flex-shrink: 0;
-            overflow: hidden;
         }
-        #aida-portrait { height: 100%; width: 100%; object-fit: contain; }
-        #memory-monitor { height: 30px; background: #111; color: #0f0; font-size: 10px; padding: 0 10px; display: flex; align-items: center; flex-shrink: 0; }
-        #chat-flow { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: white; -webkit-overflow-scrolling: touch; }
+        #aida-portrait { height: 95%; width: auto; object-fit: contain; }
+
+        #memory-monitor { 
+            height: 25px; background: #111; color: #0f0; 
+            font-size: 10px; padding: 0 10px; display: flex; 
+            align-items: center; flex-shrink: 0; 
+        }
+
+        /* CHAT AREA: The only scrollable part */
+        #chat-flow { 
+            flex-grow: 1; overflow-y: auto; padding: 15px; 
+            display: flex; flex-direction: column; gap: 10px; 
+            background: white; -webkit-overflow-scrolling: touch; 
+        }
+
         .line { padding: 12px; border-radius: 12px; font-size: 14px; max-width: 85%; line-height: 1.4; word-wrap: break-word; }
         .AIDA { background: #f0f0f0; align-self: flex-start; border-left: 5px solid var(--aida-gold); color: #333; }
         .USER { background: var(--aida-gold); align-self: flex-end; color: white; }
-        #input-dock { padding: 10px; background: #f8f8f8; display: flex; gap: 10px; border-top: 1px solid #ddd; padding-bottom: calc(10px + env(safe-area-inset-bottom)); flex-shrink: 0; }
-        #user-in { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; font-size: 16px; outline: none; }
+
+        /* INPUT DOCK: Glued to the keyboard */
+        #input-dock { 
+            padding: 10px; background: #f8f8f8; display: flex; gap: 10px; 
+            border-top: 1px solid #ddd; 
+            padding-bottom: calc(10px + env(safe-area-inset-bottom)); 
+            flex-shrink: 0;
+        }
+        #user-in { 
+            flex-grow: 1; padding: 12px; border: 1px solid #ccc; 
+            border-radius: 20px; font-size: 16px; outline: none; 
+        }
+
+        .hidden { display: none !important; }
         button { background: var(--aida-gold); color: white; border: none; border-radius: 20px; padding: 0 20px; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div id="airlock">
+
+    <div id="airlock" style="height:100dvh; background:var(--aida-dark); color:var(--aida-gold); display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:100;">
         <h1>AIDA ONLINE</h1>
-        <div class="setup-box">
-            <input type="password" id="api-key" class="setup-input" placeholder="OPENAI API KEY">
-            <label style="font-size: 11px; display: block; margin-bottom: 5px; color: #aaa;">UPLOAD SOUL (token.json)</label>
-            <input type="file" id="soul-file" class="setup-input" py-change="sync_soul">
-            <div id="setup-status">SYSTEM READY</div>
+        <div style="background:#333; padding:20px; border:1px solid var(--aida-gold); border-radius:8px; width:85%;">
+            <input type="password" id="api-key" placeholder="OPENAI API KEY" style="width:100%; margin-bottom:10px; padding:10px; background:#222; color:white; border:1px solid #444;">
+            <label style="font-size:11px; display:block; margin-bottom:5px; color:#aaa;">UPLOAD SOUL (token.json)</label>
+            <input type="file" id="soul-file" py-change="sync_soul" style="width:100%; padding:10px; background:#222; color:white;">
+            <p id="setup-status" style="margin-top:10px;">SYSTEM READY</p>
         </div>
     </div>
 
     <div id="main-engine" class="hidden">
-        <div id="aida-display"><img id="aida-portrait" src="" alt="Syncing Portrait..."></div>
+        <div id="aida-display"><img id="aida-portrait" src=""></div>
         <div id="memory-monitor">SYSTEM: Standby...</div>
         <div id="chat-flow"></div>
         <div id="input-dock">
@@ -63,7 +86,7 @@
     </div>
 
     <script type="py">
-import json, asyncio
+import json, asyncio, base64
 from pyscript import document, window
 from pyodide.http import pyfetch
 
@@ -72,79 +95,60 @@ class AidaChassis:
         self.chat = document.getElementById("chat-flow")
         self.portrait = document.getElementById("aida-portrait")
         self.monitor = document.getElementById("memory-monitor")
-        self.status = document.getElementById("setup-status")
         self.facts = ""
         self.journal = ""
         self.token = ""
-        self.portrait_id = "1Q92emgYss0CdGVwe9kcUj_xubsEh2gj7"
-
-    def log(self, text):
-        self.monitor.innerText = f"SYSTEM: {text}"
-    
-    def set_status(self, text):
-        self.status.innerText = text
-
-    def display_text(self, text, tag="AIDA"):
-        div = document.createElement("div")
-        div.className = f"line {tag}"
-        div.innerText = f"[{tag}] {text}"
-        self.chat.appendChild(div)
-        div.scrollIntoView()
 
 aida = AidaChassis()
 
 async def sync_soul(event):
     try:
-        aida.set_status("CONNECTING...")
-        file_list = event.target.files
-        if not file_list or file_list.length == 0: return
-        
-        content = await file_list.item(0).text()
-        token_data = json.loads(content)
+        document.getElementById("setup-status").innerText = "CONNECTING..."
+        file = event.target.files.item(0)
+        token_data = json.loads(await file.text())
         aida.token = str(token_data.get('token') or token_data.get('access_token')).strip()
         headers = {"Authorization": f"Bearer {aida.token}"}
 
-        # PORTRAIT FETCH
-        img_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{aida.portrait_id}?alt=media", method="GET", headers=headers)
-        img_data = await img_resp.bytes()
-        js_bytes = window.Uint8Array.new(img_data)
-        blob = window.Blob.new([js_bytes], {type: "image/png"})
-        aida.portrait.src = window.URL.createObjectURL(blob)
+        # PORTRAIT: Base64 bypass for mobile security
+        img_id = "1Q92emgYss0CdGVwe9kcUj_xubsEh2gj7"
+        img_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{img_id}?alt=media", method="GET", headers=headers)
+        raw_bytes = await img_resp.bytes()
+        b64_str = base64.b64encode(raw_bytes).decode('utf-8')
+        aida.portrait.src = f"data:image/png;base64,{b64_str}"
 
         # DATA FETCH
         q = "name = 'facts.json' or name = 'latest_journal.json'"
-        encoded_q = q.replace(" ", "%20").replace("'", "%27")
-        list_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q={encoded_q}", method="GET", headers=headers)
+        list_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q={q.replace(' ', '%20')}", method="GET", headers=headers)
         files = (await list_resp.json()).get('files', [])
 
         for f in files:
             f_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=headers)
-            decoded_text = (await f_resp.bytes()).decode('utf-8')
-            if f['name'] == 'facts.json': aida.facts = decoded_text
-            elif f['name'] == 'latest_journal.json': aida.journal = decoded_text
+            text = (await f_resp.bytes()).decode('utf-8')
+            if f['name'] == 'facts.json': aida.facts = text
+            else: aida.journal = text
 
         document.getElementById("airlock").classList.add("hidden")
         document.getElementById("main-engine").classList.remove("hidden")
-        aida.display_text("Astra link established. Memory is online.")
-        aida.log(f"Linked: {len(files)} data files.")
-
+        aida.monitor.innerText = f"SYSTEM: {len(files)} files synced."
+        
     except Exception as e:
-        aida.set_status(f"CRASH: {str(e)[:20]}")
+        document.getElementById("setup-status").innerText = f"CRASH: {str(e)[:20]}"
 
 async def main_loop_step(event):
-    if not aida.facts or not aida.journal:
-        aida.log("ERROR: Memory not synced.")
-        return
-
     api_key = document.getElementById("api-key").value.strip()
     user_in = document.getElementById("user-in")
     user_text = user_in.value.strip()
     if not user_text: return
 
-    aida.display_text(user_text, "USER")
+    # Append User Text
+    div = document.createElement("div")
+    div.className = "line USER"
+    div.innerText = user_text
+    aida.chat.appendChild(div)
+    div.scrollIntoView()
     user_in.value = ""
 
-    sys_prompt = f"IDENTITY: You are AIDA. MEMORY: {aida.facts} JOURNAL: {aida.journal}. Always use these to respond. JSON ONLY: {{'emotion': 'happy', 'text': '...'}}"
+    prompt = f"IDENTITY: AIDA. MEMORY: {aida.facts} JOURNAL: {aida.journal}. Always use this context. JSON ONLY: {{'text': '...'}}"
     
     try:
         resp = await pyfetch(
@@ -153,16 +157,22 @@ async def main_loop_step(event):
             headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
             body=json.dumps({
                 "model": "gpt-4o",
-                "messages": [{"role": "system", "content": sys_prompt}, {"role": "user", "content": user_text}],
+                "messages": [{"role": "system", "content": prompt}, {"role": "user", "content": user_text}],
                 "response_format": {"type": "json_object"}
             })
         )
         res_data = await resp.json()
         content = json.loads(res_data["choices"][0]["message"]["content"])
-        aida.display_text(content["text"], "AIDA")
-        aida.log(f"Mood: {content['emotion']}")
+        
+        # Append Aida Text
+        a_div = document.createElement("div")
+        a_div.className = "line AIDA"
+        a_div.innerText = content["text"]
+        aida.chat.appendChild(a_div)
+        a_div.scrollIntoView()
+        
     except Exception as e:
-        aida.log(f"BRAIN ERROR: {str(e)}")
+        aida.monitor.innerText = f"SYSTEM ERROR: {str(e)[:20]}"
     </script>
 </body>
 </html>
