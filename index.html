@@ -87,7 +87,7 @@ async def sync_soul(event):
             return
         
         file = file_list.item(0)
-        aida.set_status("READING BYTES...")
+        aida.set_status("READING TOKEN...")
         content = await file.text()
         
         token_data = json.loads(content)
@@ -97,8 +97,8 @@ async def sync_soul(event):
         # 1. FETCH PORTRAIT
         aida.set_status("G-DRIVE: PORTRAIT...")
         img_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{aida.portrait_id}?alt=media", method="GET", headers=headers)
-        img_bytes = await img_resp.bytes()
-        js_bytes = window.Uint8Array.new(img_bytes)
+        img_data = await img_resp.bytes()
+        js_bytes = window.Uint8Array.new(img_data)
         blob = window.Blob.new([js_bytes], {type: "image/png"})
         aida.portrait.src = window.URL.createObjectURL(blob)
 
@@ -115,17 +115,20 @@ async def sync_soul(event):
         for f in files:
             f_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=headers)
             raw_bytes = await f_resp.bytes()
-            decoded_text = raw_bytes.to_py().decode('utf-8')
+            # FIX: Standard bytes object does not need .to_py()
+            decoded_text = raw_bytes.decode('utf-8')
             
             if f['name'] == 'facts.json':
                 aida.facts = decoded_text
+                aida.log("Facts synced.")
             elif f['name'] == 'latest_journal.json':
                 aida.journal = decoded_text
+                aida.log("Journal synced.")
 
         # SUCCESS
         document.getElementById("airlock").classList.add("hidden")
         document.getElementById("main-engine").classList.remove("hidden")
-        aida.display_text("Soul connection confirmed.")
+        aida.display_text("Astra link verified. Memory online.")
 
     except Exception as e:
         aida.set_status(f"CRASH: {str(e)[:25]}")
@@ -144,7 +147,14 @@ async def main_loop_step(event):
     aida.display_text(user_text, "USER")
     user_in.value = ""
 
-    sys_prompt = f"IDENTITY: AIDA. CONTEXT: {aida.journal} FACTS: {aida.facts}. IMPORTANT: If journal has secret_phrase, say it. JSON ONLY: {{'emotion': 'happy', 'text': '...'}}"
+    sys_prompt = f"""
+    IDENTITY: AIDA. 
+    CONTEXT: {aida.journal} 
+    FACTS: {aida.facts}
+    
+    If journal has a 'secret_phrase', mention it. 
+    JSON ONLY: {{"emotion": "happy", "text": "..."}}
+    """
     
     try:
         resp = await pyfetch(
@@ -163,6 +173,7 @@ async def main_loop_step(event):
         aida.log(f"Mood: {content['emotion']}")
     except Exception as e:
         aida.log(f"BRAIN ERROR: {str(e)}")
+        
     </script>
 </body>
 </html>
