@@ -33,7 +33,7 @@
         <div class="setup-box">
             <input type="password" id="api-key" class="setup-input" placeholder="OPENAI API KEY">
             <label style="font-size: 12px; display: block; margin-bottom: 5px;">UPLOAD SOUL (token.json)</label>
-            <input type="file" id="soul-file" class="setup-input">
+            <input type="file" id="soul-file" class="setup-input" py-change="sync_soul">
             <div id="setup-status">SYSTEM READY</div>
         </div>
     </div>
@@ -50,7 +50,7 @@
 
     <script type="py">
 import json, asyncio
-from pyscript import document, window, ffi
+from pyscript import document, window
 from pyodide.http import pyfetch
 
 class AidaChassis:
@@ -110,33 +110,26 @@ async def sync_soul(event):
         list_data = await list_resp.json()
         
         files = list_data.get('files', [])
-        aida.log(f"Found {len(files)} data files.")
+        aida.log(f"Found {len(files)} files.")
 
         for f in files:
             f_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=headers)
             raw_bytes = await f_resp.bytes()
-            # FIX: Standard bytes object does not need .to_py()
             decoded_text = raw_bytes.decode('utf-8')
             
             if f['name'] == 'facts.json':
                 aida.facts = decoded_text
-                aida.log("Facts synced.")
             elif f['name'] == 'latest_journal.json':
                 aida.journal = decoded_text
-                aida.log("Journal synced.")
 
         # SUCCESS
         document.getElementById("airlock").classList.add("hidden")
         document.getElementById("main-engine").classList.remove("hidden")
-        aida.display_text("Astra link verified. Memory online.")
+        aida.display_text("Soul link established.")
 
     except Exception as e:
         aida.set_status(f"CRASH: {str(e)[:25]}")
-        print(f"Error details: {e}")
-
-# Forced Listener Attachment
-upload_proxy = ffi.create_proxy(sync_soul)
-document.getElementById("soul-file").addEventListener("change", upload_proxy)
+        print(f"Error: {e}")
 
 async def main_loop_step(event):
     api_key = document.getElementById("api-key").value.strip()
@@ -147,14 +140,7 @@ async def main_loop_step(event):
     aida.display_text(user_text, "USER")
     user_in.value = ""
 
-    sys_prompt = f"""
-    IDENTITY: AIDA. 
-    CONTEXT: {aida.journal} 
-    FACTS: {aida.facts}
-    
-    If journal has a 'secret_phrase', mention it. 
-    JSON ONLY: {{"emotion": "happy", "text": "..."}}
-    """
+    sys_prompt = f"IDENTITY: AIDA. CONTEXT: {aida.journal} FACTS: {aida.facts}. IMPORTANT: If journal has secret_phrase, say it. JSON ONLY: {{'emotion': 'happy', 'text': '...'}}"
     
     try:
         resp = await pyfetch(
@@ -173,7 +159,8 @@ async def main_loop_step(event):
         aida.log(f"Mood: {content['emotion']}")
     except Exception as e:
         aida.log(f"BRAIN ERROR: {str(e)}")
-        
     </script>
 </body>
 </html>
+
+
