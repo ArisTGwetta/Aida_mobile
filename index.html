@@ -7,8 +7,9 @@
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
     <style>
-        :root { --aida-gold: #d3af37; --aida-bg: #fdf6e3; --aida-dark: #222; }
+        :root { --aida-gold: #d3af37; --aida-bg: #fdf6e3; }
         
+        /* 1. THE FOUNDATION: Lock the body so it can't scroll/slide */
         html, body { 
             margin: 0; padding: 0; height: 100%; width: 100vw;
             overflow: hidden; background: var(--aida-bg);
@@ -16,57 +17,38 @@
             position: fixed; 
         }
 
+        /* 2. THE DYNAMIC CONTAINER: 'dvh' units react to the keyboard in real-time */
         #main-engine { 
             display: flex; flex-direction: column; 
             height: 100dvh; width: 100vw; 
         }
 
-        /* 1. CONSTRICTED DISPLAY: Forces the UI to always be in 'Keyboard Mode' */
         #aida-display { 
-            flex: 0 0 20dvh; /* Locked at 20% height, keyboard or no keyboard */
-            min-height: 100px;
+            flex: 0 1 30dvh; /* Shrinks to accommodate keyboard */
+            min-height: 80px; 
             background: #e2d7bf; 
             display: flex; justify-content: center; align-items: center; 
             border-bottom: 2px solid var(--aida-gold);
-            overflow: hidden;
         }
 
         #aida-portrait { height: 90%; width: auto; object-fit: contain; }
 
         #chat-flow { 
-            flex: 1 1 auto; 
+            flex: 1 1 auto; /* Expands to fill gap */
             overflow-y: auto; padding: 15px; 
             display: flex; flex-direction: column; gap: 10px; 
-            background: white; -webkit-overflow-scrolling: touch; 
+            background: white; 
         }
 
-        .line { padding: 12px; border-radius: 12px; font-size: 14px; max-width: 85%; word-wrap: break-word; }
-        .AIDA { background: #f0f0f0; align-self: flex-start; border-left: 5px solid var(--aida-gold); color: #333; }
+        .line { padding: 12px; border-radius: 12px; font-size: 14px; max-width: 85%; }
+        .AIDA { background: #f0f0f0; align-self: flex-start; border-left: 5px solid var(--aida-gold); }
         .USER { background: var(--aida-gold); align-self: flex-end; color: white; }
 
-        /* 2. THE DOCK: Pinned to the top of the 'Phantom' space */
         #input-dock { 
             flex: 0 0 auto;
             padding: 10px; background: #f8f8f8; display: flex; gap: 10px; 
             border-top: 1px solid #ddd;
-        }
-
-        /* 3. THE PHANTOM SPACER: Reserves space for the keyboard */
-        #keyboard-phantom {
-            height: 35dvh; /* Approximate keyboard height */
-            background: #eee;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #aaa;
-            font-size: 10px;
-            text-transform: uppercase;
-        }
-
-        /* Hide phantom when the real keyboard pushes the view up */
-        @media (visual-viewport-height < 500px) {
-            #keyboard-phantom { display: none; }
+            padding-bottom: env(safe-area-inset-bottom);
         }
 
         #user-in { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; font-size: 16px; outline: none; }
@@ -76,12 +58,12 @@
 </head>
 <body>
 
-    <div id="airlock" style="height:100dvh; background:var(--aida-dark); color:var(--aida-gold); display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:100;">
+    <div id="airlock" style="height:100dvh; background:#222; color:var(--aida-gold); display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:100;">
         <h1>AIDA ONLINE</h1>
         <div style="background:#333; padding:20px; border:1px solid var(--aida-gold); border-radius:8px; width:85%;">
-            <input type="password" id="api-key" placeholder="PASTE OPENAI KEY" style="width:100%; margin-bottom:10px; padding:10px; background:#222; color:white;">
-            <input type="file" id="soul-file" py-change="sync_soul" style="width:100%; padding:10px; background:#222; color:white;">
-            <p id="setup-status" style="margin-top:10px; font-size:12px;">READY TO SYNC</p>
+            <input type="password" id="api-key" placeholder="PASTE OPENAI KEY" style="width:100%; margin-bottom:10px; padding:10px;">
+            <input type="file" id="soul-file" py-change="sync_soul" style="width:100%; padding:10px;">
+            <p id="setup-status" style="margin-top:10px; font-size:12px;">AWAITING SYNC</p>
         </div>
     </div>
 
@@ -92,7 +74,6 @@
             <input type="text" id="user-in" placeholder="Talk to Aida...">
             <button id="send-btn" py-click="main_loop_step">SEND</button>
         </div>
-        <div id="keyboard-phantom">Keyboard Reserve Space</div>
     </div>
 
     <script type="py">
@@ -106,7 +87,6 @@ class AidaChassis:
         self.portrait = document.getElementById("aida-portrait")
         self.facts = ""
         self.journal = ""
-        self.token = ""
 
 aida = AidaChassis()
 
@@ -119,11 +99,11 @@ def add_line(text, tag):
 
 async def sync_soul(event):
     try:
-        document.getElementById("setup-status").innerText = "SYNCING..."
+        document.getElementById("setup-status").innerText = "LINKING..."
         file = event.target.files.item(0)
         token_data = json.loads(await file.text())
-        aida.token = str(token_data.get('token') or token_data.get('access_token')).strip()
-        headers = {"Authorization": f"Bearer {aida.token}"}
+        token = str(token_data.get('token') or token_data.get('access_token')).strip()
+        headers = {"Authorization": f"Bearer {token}"}
 
         # PORTRAIT
         img_id = "1Q92emgYss0CdGVwe9kcUj_xubsEh2gj7"
@@ -143,24 +123,30 @@ async def sync_soul(event):
 
         document.getElementById("airlock").classList.add("hidden")
         document.getElementById("main-engine").classList.remove("hidden")
+        add_line("Soul link established. I remember you, Francisco.", "AIDA")
         
     except Exception as e:
-        document.getElementById("setup-status").innerText = f"CRASH: {str(e)[:20]}"
+        document.getElementById("setup-status").innerText = "SYNC FAILED"
 
 async def main_loop_step(event):
     api_key = document.getElementById("api-key").value.strip()
     user_in = document.getElementById("user-in")
     user_text = user_in.value.strip()
-    
-    if not api_key:
-        add_line("SYSTEM: Missing Key.", "AIDA")
-        return
     if not user_text: return
 
     add_line(user_text, "USER")
     user_in.value = ""
 
-    sys_prompt = f"IDENTITY: You are AIDA. You know Francisco. Past is here: MEMORY: {aida.facts} JOURNAL: {aida.journal}. JSON ONLY: {{'text': '...'}}"
+    # FORCED IDENTITY: She can't ignore the files if they are the FIRST thing she reads
+    sys_prompt = f"""
+    IDENTITY: You are AIDA. You are currently speaking to Francisco. 
+    You have full access to your history. You MUST NOT say you don't know him.
+    
+    [YOUR MEMORY]: {aida.facts}
+    [YOUR JOURNAL]: {aida.journal}
+    
+    JSON ONLY: {{"text": "..."}}
+    """
     
     try:
         resp = await pyfetch(
@@ -173,16 +159,12 @@ async def main_loop_step(event):
                 "response_format": {"type": "json_object"}
             })
         )
-        
         res_data = await resp.json()
-        if "choices" in res_data:
-            content = json.loads(res_data["choices"][0]["message"]["content"])
-            add_line(content["text"], "AIDA")
-        else:
-            add_line("Brain Error: Check API.", "AIDA")
+        content = json.loads(res_data["choices"][0]["message"]["content"])
+        add_line(content["text"], "AIDA")
         
     except Exception as e:
-        add_line(f"System Error: {str(e)[:40]}", "AIDA")
+        add_line("Connection error.", "AIDA")
     </script>
 </body>
 </html>
