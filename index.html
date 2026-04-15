@@ -34,7 +34,7 @@
             <input type="password" id="api-key" class="setup-input" placeholder="OPENAI API KEY">
             <label style="font-size: 12px; display: block; margin-bottom: 5px;">UPLOAD SOUL (token.json)</label>
             <input type="file" id="soul-file" class="setup-input">
-            <div id="setup-status">SYSTEM IDLE</div>
+            <div id="setup-status">SYSTEM READY</div>
         </div>
     </div>
 
@@ -50,7 +50,7 @@
 
     <script type="py">
 import json, asyncio
-from pyscript import document, window
+from pyscript import document, window, ffi
 from pyodide.http import pyfetch
 
 class AidaChassis:
@@ -80,22 +80,22 @@ class AidaChassis:
 aida = AidaChassis()
 
 async def sync_soul(event):
-    aida.set_status("READING TOKEN...")
-    file_list = event.target.files
-    if not file_list or file_list.length == 0:
-        aida.set_status("ERROR: NO FILE")
-        return
-    
-    file = file_list.item(0)
-    content = await file.text()
-    
     try:
+        aida.set_status("FILE DETECTED...")
+        file_list = event.target.files
+        if not file_list or file_list.length == 0:
+            return
+        
+        file = file_list.item(0)
+        aida.set_status("READING BYTES...")
+        content = await file.text()
+        
         token_data = json.loads(content)
         aida.token = str(token_data.get('token') or token_data.get('access_token')).strip()
         headers = {"Authorization": f"Bearer {aida.token}"}
 
         # 1. FETCH PORTRAIT
-        aida.set_status("FETCHING PORTRAIT...")
+        aida.set_status("G-DRIVE: PORTRAIT...")
         img_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{aida.portrait_id}?alt=media", method="GET", headers=headers)
         img_bytes = await img_resp.bytes()
         js_bytes = window.Uint8Array.new(img_bytes)
@@ -103,7 +103,7 @@ async def sync_soul(event):
         aida.portrait.src = window.URL.createObjectURL(blob)
 
         # 2. FETCH JSON DATA
-        aida.set_status("SYNCING SOUL...")
+        aida.set_status("G-DRIVE: SOUL DATA...")
         q = "name = 'facts.json' or name = 'latest_journal.json'"
         encoded_q = q.replace(" ", "%20").replace("'", "%27")
         list_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q={encoded_q}", method="GET", headers=headers)
@@ -125,13 +125,15 @@ async def sync_soul(event):
         # SUCCESS
         document.getElementById("airlock").classList.add("hidden")
         document.getElementById("main-engine").classList.remove("hidden")
-        aida.display_text("Biometric sync complete. Memory active.")
+        aida.display_text("Soul connection confirmed.")
 
     except Exception as e:
-        aida.set_status(f"CRASH: {str(e)[:20]}")
-        aida.log(f"SYNC ERROR: {str(e)}")
+        aida.set_status(f"CRASH: {str(e)[:25]}")
+        print(f"Error details: {e}")
 
-document.getElementById("soul-file").onchange = sync_soul
+# Forced Listener Attachment
+upload_proxy = ffi.create_proxy(sync_soul)
+document.getElementById("soul-file").addEventListener("change", upload_proxy)
 
 async def main_loop_step(event):
     api_key = document.getElementById("api-key").value.strip()
@@ -142,7 +144,7 @@ async def main_loop_step(event):
     aida.display_text(user_text, "USER")
     user_in.value = ""
 
-    sys_prompt = f"IDENTITY: AIDA. CONTEXT: {aida.journal} FACTS: {aida.facts}. Note: If journal has secret_phrase, say it. JSON ONLY: {{'emotion': 'happy', 'text': '...'}}"
+    sys_prompt = f"IDENTITY: AIDA. CONTEXT: {aida.journal} FACTS: {aida.facts}. IMPORTANT: If journal has secret_phrase, say it. JSON ONLY: {{'emotion': 'happy', 'text': '...'}}"
     
     try:
         resp = await pyfetch(
