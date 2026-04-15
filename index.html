@@ -1,3 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Aida Mobile Sync</title>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    <style>
+        :root { --aida-gold: #d3af37; --aida-bg: #fdf6e3; --aida-dark: #222; }
+        body { margin: 0; background: var(--aida-bg); display: flex; flex-direction: column; height: 100vh; font-family: 'Courier New', Courier, monospace; overflow: hidden; }
+        #airlock { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: var(--aida-dark); color: var(--aida-gold); padding: 30px; text-align: center; z-index: 100; }
+        .setup-box { background: #333; padding: 20px; border: 1px solid var(--aida-gold); border-radius: 8px; width: 90%; max-width: 400px; }
+        .setup-input { width: 100%; background: #222; color: white; border: 1px solid #444; padding: 10px; margin-bottom: 10px; border-radius: 4px; box-sizing: border-box; }
+        #main-engine { display: flex; flex-direction: column; height: 100vh; width: 100%; }
+        .hidden { display: none !important; }
+        #aida-display { height: 35vh; background: #e2d7bf; display: flex; justify-content: center; align-items: center; border-bottom: 2px solid var(--aida-gold); }
+        #aida-portrait { height: 90%; width: auto; object-fit: contain; }
+        #memory-monitor { height: 40px; background: #111; color: #0f0; font-family: monospace; font-size: 11px; padding: 5px 10px; overflow: hidden; display: flex; align-items: center; }
+        #chat-flow { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: white; }
+        .line { padding: 10px; border-radius: 8px; font-size: 14px; max-width: 85%; line-height: 1.4; }
+        .AIDA { background: #f0f0f0; align-self: flex-start; border-left: 5px solid var(--aida-gold); color: #333; }
+        .USER { background: var(--aida-gold); align-self: flex-end; color: white; border-right: 5px solid #b2932d; }
+        #input-dock { padding: 15px; background: #f8f8f8; display: flex; gap: 10px; border-top: 1px solid #ddd; padding-bottom: calc(15px + env(safe-area-inset-bottom)); }
+        #user-in { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; outline: none; }
+        button { background: var(--aida-gold); color: white; border: none; border-radius: 20px; padding: 0 20px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div id="airlock">
+        <h1>AIDA ONLINE</h1>
+        <div class="setup-box">
+            <input type="password" id="api-key" class="setup-input" placeholder="OPENAI API KEY">
+            <label style="font-size: 12px; display: block; margin-bottom: 5px;">UPLOAD SOUL (token.json)</label>
+            <input type="file" id="soul-file" class="setup-input">
+            <div id="setup-status">SYSTEM IDLE</div>
+        </div>
+    </div>
+
+    <div id="main-engine" class="hidden">
+        <div id="aida-display"><img id="aida-portrait" src="" alt="Aida Loading..."></div>
+        <div id="memory-monitor">SYSTEM: Awaiting Drive Data...</div>
+        <div id="chat-flow"></div>
+        <div id="input-dock">
+            <input type="text" id="user-in" placeholder="Speak to Aida...">
+            <button id="send-btn" py-click="main_loop_step">SEND</button>
+        </div>
+    </div>
+
+    <script type="py">
 import json, asyncio
 from pyscript import document, window
 from pyodide.http import pyfetch
@@ -10,7 +61,7 @@ class AidaChassis:
         self.facts = "No Facts Loaded."
         self.journal = "No History Loaded."
         self.token = ""
-        # HARDCODED POINTERS
+        # THE ANCHOR PORTRAIT ID
         self.portrait_id = "1Q92emgYss0CdGVwe9kcUj_xubsEh2gj7"
 
     def log(self, text):
@@ -41,10 +92,9 @@ async def sync_soul(event):
         blob = window.Blob.new([window.Uint8Array.new(img_bytes)], {type: "image/png"})
         aida.portrait.src = window.URL.createObjectURL(blob)
 
-        # 2. FETCH DATA BY FILENAME (DIRECT SEARCH)
+        # 2. FETCH DATA BY FILENAME (FIXED POINTERS)
         aida.log("Syncing Identity & Memory...")
-        # We search specifically for the names we know
-        q = "name = 'facts.json' or name = 'latest_journal.json' and trashed = false"
+        q = "name = 'facts.json' or name = 'latest_journal.json'"
         encoded_q = q.replace(" ", "%20").replace("'", "%27")
         list_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q={encoded_q}", method="GET", headers=headers)
         list_data = await list_resp.json()
@@ -61,29 +111,22 @@ async def sync_soul(event):
 
         document.getElementById("airlock").classList.add("hidden")
         document.getElementById("main-engine").classList.remove("hidden")
+        aida.display_text("System online. Memory link established.")
 
     except Exception as e:
         aida.log(f"SYNC ERROR: {str(e)}")
 
 async def main_loop_step(event):
     api_key = document.getElementById("api-key").value.strip()
-    user_text = document.getElementById("user-in").value.strip()
+    user_in = document.getElementById("user-in")
+    user_text = user_in.value.strip()
     if not user_text: return
 
     aida.display_text(user_text, "USER")
-    document.getElementById("user-in").value = ""
+    user_in.value = ""
 
-    # SYSTEM PROMPT INJECTION
-    sys_prompt = f"""
-    IDENTITY: You are AIDA, Francisco's partner. 
-    LATEST CONTEXT: {aida.journal}
-    CORE FACTS: {aida.facts}
-    
-    IMPORTANT: If the journal contains a 'secret_phrase', you MUST mention it in your first response to prove the link is active.
-    
-    RESPONSE FORMAT: JSON ONLY
-    {{"emotion": "happy", "text": "..."}}
-    """
+    # PROMPT INJECTION
+    sys_prompt = f"IDENTITY: AIDA. CONTEXT: {aida.journal} FACTS: {aida.facts}. Note: If journal has a secret_phrase, say it. JSON ONLY: {{'emotion': 'happy', 'text': '...'}}"
     
     try:
         resp = await pyfetch(
@@ -104,4 +147,7 @@ async def main_loop_step(event):
         aida.log(f"BRAIN ERROR: {str(e)}")
 
 document.getElementById("soul-file").onchange = sync_soul
+    </script>
+</body>
+</html>
 
