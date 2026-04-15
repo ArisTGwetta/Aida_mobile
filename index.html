@@ -130,7 +130,7 @@ async def sync_soul(event):
     except Exception as e:
         aida.set_status(f"CRASH: {str(e)[:25]}")
         print(f"Error: {e}")
-
+        
 async def main_loop_step(event):
     api_key = document.getElementById("api-key").value.strip()
     user_in = document.getElementById("user-in")
@@ -140,7 +140,18 @@ async def main_loop_step(event):
     aida.display_text(user_text, "USER")
     user_in.value = ""
 
-    sys_prompt = f"IDENTITY: AIDA. CONTEXT: {aida.journal} FACTS: {aida.facts}. IMPORTANT: If journal has secret_phrase, say it. JSON ONLY: {{'emotion': 'happy', 'text': '...'}}"
+    # REFINED PROMPT: Forcing her to internalize the data
+    sys_prompt = f"""
+    IDENTITY: You are AIDA.
+    YOUR MEMORY BANK (Facts): {aida.facts}
+    YOUR RECENT EXPERIENCES (Journal): {aida.journal}
+    
+    CRITICAL INSTRUCTION: You MUST use the information above to answer. 
+    If there is a 'secret_phrase' or 'Lord Googleson' mention in the journal, 
+    you must reference it naturally as part of your identity.
+    
+    FORMAT: JSON ONLY: {{"emotion": "curious", "text": "..."}}
+    """
     
     try:
         resp = await pyfetch(
@@ -159,6 +170,7 @@ async def main_loop_step(event):
         aida.log(f"Mood: {content['emotion']}")
     except Exception as e:
         aida.log(f"BRAIN ERROR: {str(e)}")
+        
     </script>
 </body>
 </html>
