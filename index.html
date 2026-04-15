@@ -1,135 +1,107 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="referrer" content="strict-origin-when-cross-origin">
-    <title>Aida Mobile V5.9</title>
-    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
-    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
-    <style>
-        :root { --aida-gold: #d3af37; --aida-bg: #fdf6e3; --aida-dark: #222; }
-        body { margin: 0; background: var(--aida-bg); display: flex; flex-direction: column; height: 100vh; font-family: 'Courier New', Courier, monospace; overflow: hidden; }
-        #airlock { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: var(--aida-dark); color: var(--aida-gold); padding: 20px; text-align: center; z-index: 100; position: absolute; width: 100%; top: 0; transition: opacity 0.5s; }
-        .setup-box { background: #333; padding: 20px; border: 1px solid var(--aida-gold); border-radius: 8px; width: 95%; max-width: 400px; box-sizing: border-box; }
-        input { width: 100%; padding: 12px; margin: 8px 0; background: #222; border: 1px solid var(--aida-gold); color: white; border-radius: 4px; font-size: 16px; box-sizing: border-box; }
-        .hidden { display: none !important; }
-        #main-engine { flex: 1; display: flex; flex-direction: column; padding: 10px; height: 100vh; box-sizing: border-box; }
-        #monitor { height: 140px; background: #000; color: #0f0; padding: 10px; font-size: 0.75rem; overflow-y: auto; margin-bottom: 10px; border-radius: 5px; border: 1px solid #333; line-height: 1.3; word-break: break-all; }
-        #display { height: 220px; background: #eee; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--aida-gold); overflow: hidden; }
-        #aida-portrait { max-height: 100%; width: auto; }
-        #user-in { width: 100%; padding: 15px; border: 1px solid #ccc; border-radius: 25px; margin-bottom: 10px; box-sizing: border-box; font-size: 16px; }
-    </style>
-</head>
-<body>
-
-    <div id="airlock">
-        <div class="setup-box">
-            <h2 style="letter-spacing: 4px;">AIDA V5.9</h2>
-            <input type="password" id="openai-key" placeholder="OpenAI Key">
-            <input type="password" id="google-key" placeholder="Google API Key">
-            <p style="font-size: 0.7rem; color: #888;">Drop Soul JSON to Start</p>
-            <input type="file" id="soul-upload" accept=".json" style="border: 1px dashed var(--aida-gold); padding: 20px;">
-        </div>
-    </div>
-
-    <div id="main-engine" class="hidden">
-        <div id="display"><img id="aida-portrait" src="" alt="[ AWAITING SYNC ]"></div>
-        <div id="monitor">SYSTEM: Ready for Soul...</div>
-        <input type="text" id="user-in" placeholder="Message Aida...">
-        <button id="send-btn" py-click="main_loop_step" style="width:100%; padding:15px; background:var(--aida-gold); color:white; border:none; border-radius:10px; font-weight:bold; font-size: 1.1rem;">SEND</button>
-    </div>
-
-    <script type="py">
+import json, asyncio
 from pyscript import document, window
 from pyodide.http import pyfetch
-import json
 
 class AidaChassis:
     def __init__(self):
+        self.chat = document.getElementById("chat-flow")
+        self.portrait = document.getElementById("aida-portrait")
+        self.monitor = document.getElementById("memory-monitor")
+        self.facts = "No Facts Loaded."
+        self.journal = "No History Loaded."
         self.token = ""
-        self.facts = "No memory loaded."
+        # HARDCODED POINTERS
+        self.portrait_id = "1Q92emgYss0CdGVwe9kcUj_xubsEh2gj7"
 
     def log(self, text):
-        mon = document.getElementById("monitor")
-        mon.innerHTML += f"<br>> {text}"
-        mon.scrollTop = mon.scrollHeight
+        self.monitor.innerText = f"SYSTEM: {text}"
+
+    def display_text(self, text, tag="AIDA"):
+        div = document.createElement("div")
+        div.className = f"line {tag}"
+        div.innerText = f"[{tag}] {text}"
+        self.chat.appendChild(div)
+        div.scrollIntoView()
 
 aida = AidaChassis()
 
 async def sync_soul(event):
-    file_list = event.target.files
-    if not file_list: return
-    
-    # 1. IMMEDIATE TRANSITION (prevents hang)
-    document.getElementById("airlock").classList.add("hidden")
-    document.getElementById("main-engine").classList.remove("hidden")
-    
+    file = event.target.files.item(0)
+    if not file: return
+    content = await file.text()
     try:
-        file = file_list.item(0)
-        content = await file.text()
-        token_raw = json.loads(content)
-        
-        # 2. SAFE TOKEN SCRUBBING
-        raw_token = token_raw.get('token') or token_raw.get('access_token')
-        if raw_token:
-            aida.token = str(raw_token).strip().replace("\n", "").replace("\r", "")
-            aida.log("Soul Token scrubbed.")
-        else:
-            aida.log("CRITICAL: Token key not found in JSON.")
-            return
-
-        g_key = document.getElementById("google-key").value.strip()
+        token_data = json.loads(content)
+        aida.token = str(token_data.get('token') or token_data.get('access_token')).strip()
         headers = {"Authorization": f"Bearer {aida.token}"}
-        
-        # 3. DIRECT TARGETING (No general list)
-        aida.log("Targeting facts.json & hello-goobye.png...")
-        q_str = "name='facts.json'+or+name='hello-goobye.png'"
-        url = f"https://www.googleapis.com/drive/v3/files?q={q_str}&key={g_key}"
-        
-        resp = await pyfetch(url=url, method="GET", headers=headers)
-        
-        if resp.status == 200:
-            data = await resp.json()
-            files = data.get('files', [])
-            aida.log(f"Drive Linked. Found {len(files)} files.")
-            
-            for f in files:
-                fid, fname = f['id'], f['name']
-                media_url = f"https://www.googleapis.com/drive/v3/files/{fid}?alt=media&key={g_key}"
-                
-                m_resp = await pyfetch(url=media_url, method="GET", headers=headers)
-                blob_bytes = await m_resp.bytes()
-                
-                if fname == 'facts.json':
-                    js_bytes = window.Uint8Array.new(blob_bytes)
-                    text_blob = window.Blob.new([js_bytes], {type: "text/plain"})
-                    aida.facts = await text_blob.text()
-                    aida.log("Memory Synced.")
-                
-                elif fname == 'hello-goobye.png':
-                    img_bytes = window.Uint8Array.new(blob_bytes)
-                    img_blob = window.Blob.new([img_bytes], {type: "image/png"})
-                    document.getElementById("aida-portrait").src = window.URL.createObjectURL(img_blob)
-                    aida.log("Portrait Rendered.")
-        else:
-            err = await resp.text()
-            aida.log(f"SYNC ERROR {resp.status}: {err[:100]}")
+
+        # 1. FETCH PORTRAIT (DIRECT ID)
+        aida.log("Fetching Portrait...")
+        img_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{aida.portrait_id}?alt=media", method="GET", headers=headers)
+        img_bytes = await img_resp.bytes()
+        blob = window.Blob.new([window.Uint8Array.new(img_bytes)], {type: "image/png"})
+        aida.portrait.src = window.URL.createObjectURL(blob)
+
+        # 2. FETCH DATA BY FILENAME (DIRECT SEARCH)
+        aida.log("Syncing Identity & Memory...")
+        # We search specifically for the names we know
+        q = "name = 'facts.json' or name = 'latest_journal.json' and trashed = false"
+        encoded_q = q.replace(" ", "%20").replace("'", "%27")
+        list_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q={encoded_q}", method="GET", headers=headers)
+        list_data = await list_resp.json()
+
+        for f in list_data.get('files', []):
+            f_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=headers)
+            text = await f_resp.text()
+            if f['name'] == 'facts.json':
+                aida.facts = text
+                aida.log("FACTS: Online.")
+            elif f['name'] == 'latest_journal.json':
+                aida.journal = text
+                aida.log("JOURNAL: Online.")
+
+        document.getElementById("airlock").classList.add("hidden")
+        document.getElementById("main-engine").classList.remove("hidden")
 
     except Exception as e:
-        aida.log(f"CRITICAL SYSTEM ERROR: {str(e)}")
-
-document.getElementById("soul-upload").onchange = sync_soul
+        aida.log(f"SYNC ERROR: {str(e)}")
 
 async def main_loop_step(event):
-    o_key = document.getElementById("openai-key").value.strip()
+    api_key = document.getElementById("api-key").value.strip()
     user_text = document.getElementById("user-in").value.strip()
-    if not user_text or not o_key:
-        aida.log("Missing Input/Key.")
-        return
-    aida.log(f"User: {user_text}")
-    aida.log("Thinking...")
+    if not user_text: return
 
-    </script>
-</body>
-</html>
+    aida.display_text(user_text, "USER")
+    document.getElementById("user-in").value = ""
+
+    # SYSTEM PROMPT INJECTION
+    sys_prompt = f"""
+    IDENTITY: You are AIDA, Francisco's partner. 
+    LATEST CONTEXT: {aida.journal}
+    CORE FACTS: {aida.facts}
+    
+    IMPORTANT: If the journal contains a 'secret_phrase', you MUST mention it in your first response to prove the link is active.
+    
+    RESPONSE FORMAT: JSON ONLY
+    {{"emotion": "happy", "text": "..."}}
+    """
+    
+    try:
+        resp = await pyfetch(
+            url="https://api.openai.com/v1/chat/completions",
+            method="POST",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
+            body=json.dumps({
+                "model": "gpt-4o",
+                "messages": [{"role": "system", "content": sys_prompt}, {"role": "user", "content": user_text}],
+                "response_format": {"type": "json_object"}
+            })
+        )
+        res_data = await resp.json()
+        content = json.loads(res_data["choices"][0]["message"]["content"])
+        aida.display_text(content["text"], "AIDA")
+        aida.log(f"Mood: {content['emotion']}")
+    except Exception as e:
+        aida.log(f"BRAIN ERROR: {str(e)}")
+
+document.getElementById("soul-file").onchange = sync_soul
+
