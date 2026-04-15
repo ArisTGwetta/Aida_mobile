@@ -4,40 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="referrer" content="strict-origin-when-cross-origin">
-    <title>Aida Mobile V5.5</title>
+    <title>Aida Mobile V5.6</title>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
     <style>
         :root { --aida-gold: #d3af37; --aida-bg: #fdf6e3; --aida-dark: #222; }
         body { margin: 0; background: var(--aida-bg); display: flex; flex-direction: column; height: 100vh; font-family: 'Courier New', Courier, monospace; overflow: hidden; }
-        #airlock { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: var(--aida-dark); color: var(--aida-gold); padding: 30px; text-align: center; z-index: 100; position: absolute; width: 100%; top: 0; }
-        .setup-box { background: #333; padding: 20px; border: 1px solid var(--aida-gold); border-radius: 8px; width: 90%; max-width: 400px; }
-        input { width: 100%; padding: 12px; margin: 10px 0; background: #222; border: 1px solid var(--aida-gold); color: white; border-radius: 4px; font-size: 16px; box-sizing: border-box; }
+        #airlock { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: var(--aida-dark); color: var(--aida-gold); padding: 20px; text-align: center; z-index: 100; position: absolute; width: 100%; top: 0; }
+        .setup-box { background: #333; padding: 20px; border: 1px solid var(--aida-gold); border-radius: 8px; width: 90%; max-width: 400px; box-sizing: border-box; }
+        input { width: 100%; padding: 12px; margin: 8px 0; background: #222; border: 1px solid var(--aida-gold); color: white; border-radius: 4px; font-size: 16px; box-sizing: border-box; }
         .hidden { display: none !important; }
         #main-engine { flex: 1; display: flex; flex-direction: column; padding: 10px; height: 100vh; box-sizing: border-box; }
-        #monitor { height: 150px; background: #000; color: #0f0; padding: 10px; font-size: 0.7rem; overflow-y: auto; margin-bottom: 10px; border-radius: 5px; border: 1px solid #333; line-height: 1.2; word-break: break-all; }
-        #display { height: 200px; background: #eee; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--aida-gold); overflow: hidden; }
+        #monitor { height: 140px; background: #000; color: #0f0; padding: 10px; font-size: 0.7rem; overflow-y: auto; margin-bottom: 10px; border-radius: 5px; border: 1px solid #333; line-height: 1.2; word-break: break-all; }
+        #display { height: 220px; background: #eee; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--aida-gold); overflow: hidden; }
         #aida-portrait { max-height: 100%; width: auto; }
-        #user-in { width: 100%; padding: 15px; border: 1px solid #ccc; border-radius: 25px; margin-bottom: 10px; box-sizing: border-box; }
+        #user-in { width: 100%; padding: 15px; border: 1px solid #ccc; border-radius: 25px; margin-bottom: 10px; box-sizing: border-box; font-size: 16px; }
     </style>
 </head>
 <body>
 
     <div id="airlock">
         <div class="setup-box">
-            <h2>AIDA V5.5</h2>
+            <h2>AIDA V5.6</h2>
             <input type="password" id="openai-key" placeholder="OpenAI Key">
             <input type="password" id="google-key" placeholder="Google API Key">
-            <p style="font-size: 0.7rem; color: #888;">Upload Soul File (.json)</p>
+            <p style="font-size: 0.7rem; color: #888;">Select Soul JSON</p>
             <input type="file" id="soul-upload" accept=".json">
         </div>
     </div>
 
     <div id="main-engine" class="hidden">
-        <div id="display"><img id="aida-portrait" src="" alt="[ AIDA PORTRAIT ]"></div>
-        <div id="monitor">SYSTEM: Diagnostic Mode...</div>
+        <div id="display"><img id="aida-portrait" src="" alt="[ PORTRAIT ]"></div>
+        <div id="monitor">SYSTEM: Ready...</div>
         <input type="text" id="user-in" placeholder="Message Aida...">
-        <button id="send-btn" py-click="main_loop_step" style="width:100%; padding:12px; background:var(--aida-gold); border:none; border-radius:10px; font-weight:bold;">SEND</button>
+        <button id="send-btn" py-click="main_loop_step" style="width:100%; padding:15px; background:var(--aida-gold); color:white; border:none; border-radius:10px; font-weight:bold;">SEND</button>
     </div>
 
     <script type="py">
@@ -71,36 +71,44 @@ async def sync_soul(event):
         aida.token = str(token_data.get('token') or token_data.get('access_token')).strip()
         g_key = document.getElementById("google-key").value.strip()
         
-        aida.log("Soul Verified. Handshaking...")
+        aida.log("Soul Verified. Syncing...")
 
-        # Updated URL construction to avoid 'Invalid Value' 400 errors
-        # Note: We are using a very simple query string first to test the connection
-        url = f"https://www.googleapis.com/drive/v3/files?orderBy=nameDesc&key={g_key}"
+        # 1. LIST FETCH (JSON)
+        list_url = f"https://www.googleapis.com/drive/v3/files?orderBy=nameDesc&key={g_key}"
+        headers = {"Authorization": f"Bearer {aida.token}"}
         
-        headers = {
-            "Authorization": f"Bearer {aida.token}",
-            "Accept": "application/json"
-        }
-        
-        resp = await pyfetch(url=url, method="GET", headers=headers)
+        resp = await pyfetch(url=list_url, method="GET", headers=headers)
         
         if resp.status == 200:
             data = await resp.json()
             files = data.get('files', [])
-            aida.log(f"SUCCESS: Found {len(files)} files.")
+            aida.log(f"Drive Linked: {len(files)} files.")
+            
+            for f in files:
+                if f['name'] == 'hello-goobye.png':
+                    # 2. MEDIA FETCH (BLOB)
+                    aida.log("Pulling Portrait...")
+                    img_id = f['id']
+                    media_url = f"https://www.googleapis.com/drive/v3/files/{img_id}?alt=media&key={g_key}"
+                    
+                    m_resp = await pyfetch(url=media_url, method="GET", headers=headers)
+                    img_bytes = await m_resp.bytes()
+                    
+                    blob = window.Blob.new([window.Uint8Array.new(img_bytes)], {type: "image/png"})
+                    document.getElementById("aida-portrait").src = window.URL.createObjectURL(blob)
+                    aida.log("Aida is visible.")
         else:
-            # We fetch more of the error message to see the "reason" field
-            err_body = await resp.text()
-            aida.log(f"DRIVE ERROR {resp.status}")
-            aida.log(f"DEBUG: {err_body[:500]}")
+            err = await resp.text()
+            aida.log(f"DRIVE ERROR {resp.status}: {err[:150]}")
 
     except Exception as e:
-        aida.log(f"CRITICAL FAILURE: {str(e)}")
+        aida.log(f"CRITICAL: {str(e)}")
 
 document.getElementById("soul-upload").onchange = sync_soul
 
 async def main_loop_step(event):
-    aida.log("Cycle initiated.")
+    aida.log("Cognition cycle active.")
+
     </script>
 </body>
 </html>
