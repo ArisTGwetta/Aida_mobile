@@ -40,6 +40,22 @@
         </div>
     </div>
 
+    <div id="input-dock" style="padding: 10px; display: flex; flex-direction: column; gap: 5px; background: #f8f8f8; border-top: 1px solid #ddd;">
+    <div style="display: flex; gap: 5px; align-items: center;">
+        <label style="font-size: 9px; color: var(--aida-gold); font-weight: bold;">REALM:</label>
+        <select id="chat-realm-switch" py-change="pivot_realm" style="flex: 1; font-size: 11px; background: white; border: 1px solid #ccc; border-radius: 5px;">
+            <option value="CORE">CORE</option>
+            <option value="ASTRA">ASTRA</option>
+            <option value="MONAMOUR">MONAMOUR</option>
+            <option value="DEBUG">DEBUG</option>
+        </select>
+    </div>
+    <div style="display: flex; gap: 5px;">
+        <input type="text" id="user-in" placeholder="Pivot context..." style="flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ccc;">
+        <button py-click="main_loop_step" style="background:var(--aida-gold); color:white; border:none; padding:10px 15px; border-radius:15px;">SEND</button>
+    </div>
+</div>
+    
     <div id="main-engine" class="hidden">
         <div id="chat-flow"></div>
         <div id="aida-display">
@@ -86,6 +102,47 @@ def add_line(text, role):
     aida.chat.appendChild(div)
     aida.chat.scrollTop = aida.chat.scrollHeight
 
+        
+async def pivot_realm(event):
+    new_realm = event.target.value
+    pulse(f"Pivoting to {new_realm}...")
+    
+    # Update the global project tag
+    aida.project = new_realm
+    
+    # We need the headers (token) again. 
+    # (Note: We'll need to store the 'headers' in the aida class during initial sync)
+    try:
+        folder_id = aida.manifest['projects'].get(aida.project)
+        
+        # Re-fetch the Project-Specific Journal
+        q = f"'{folder_id}' in parents and name = 'latest_journal.json'"
+        j_search = await pyfetch(
+            url=f"https://www.googleapis.com/drive/v3/files?q={q.replace(' ', '%20')}", 
+            method="GET", 
+            headers=aida.current_headers
+        )
+        j_list = (await j_search.json()).get('files', [])
+        
+        if j_list:
+            # Re-fetch blob logic
+            r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{j_list[0]['id']}?alt=media", method="GET", headers=aida.current_headers)
+            aida.prior_summary = (await r.bytes()).decode('utf-8')
+            pulse(f"{new_realm} Journal Loaded.")
+        else:
+            aida.prior_summary = f"New context for {new_realm}."
+            pulse("No Journal found for this Realm.")
+
+        add_line(f"SYSTEM: Switched focus to {new_realm}. What are we working on here?", "AIDA")
+        
+        # Optional: Trigger a new greeting for the new realm
+        await trigger_greeting(aida.current_headers)
+        
+    except Exception as e:
+        pulse(f"Pivot Fail: {str(e)}")
+        
+
+        
 # --- BLOCK 4: SOUL SYNC ---
 async def sync_soul(event):
     try:
