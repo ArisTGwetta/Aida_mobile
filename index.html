@@ -204,6 +204,22 @@ def build_master_prompt(user_text):
     prompt += f"\nFRANCISCO: {user_text}\nJSON ONLY: {{'text': '...'}}"
     return prompt
 
+# Updated section inside main_loop_step
+# This "tags" the memory as it happens
+aida.recent_buffer.append({
+    "role": "user", 
+    "content": user_text, 
+    "realm": aida.project  # <--- THE TAG
+})
+
+# ... after AI responds ...
+aida.recent_buffer.append({
+    "role": "assistant", 
+    "content": ai_text, 
+    "realm": aida.project # <--- THE TAG
+})
+        
+        
 async def main_loop_step(event):
     api_key = document.getElementById("api-key").value.strip()
     user_in = document.getElementById("user-in")
@@ -229,6 +245,22 @@ async def main_loop_step(event):
         aida.recent_buffer.append({"role": "assistant", "content": ai_text})
     except Exception as e: add_line(f"ERR: {str(e)}", "AIDA")
 
+
+        async def push_to_drive():
+    # Identify all realms touched during this session
+    realms_used = set(turn['realm'] for turn in aida.recent_buffer)
+    
+    for realm in realms_used:
+        # Filter the buffer for only this realm's conversations
+        realm_content = [t for t in aida.recent_buffer if t['realm'] == realm]
+        
+        # 1. Create the summary for THIS realm
+        # 2. Find the folder ID for THIS realm via the manifest
+        # 3. PUSH 'latest_journal.json' to that specific folder
+        pulse(f"Archiving {realm} memories...")
+        
+
+        
 # --- BLOCK 6: INIT ---
 async def initialization():
     status = document.getElementById("setup-status")
