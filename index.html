@@ -12,10 +12,8 @@
         #main-engine { display: flex; flex-direction: column; height: 100dvh; }
         #chat-flow { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: white; }
         #aida-display { flex: 0 0 25dvh; background: #e2d7bf; position: relative; display: flex; justify-content: center; align-items: center; border-top: 1px solid var(--aida-gold); }
-        
         #debug-log { position: absolute; top: 5px; right: 5px; width: 160px; max-height: 100px; background: rgba(0,0,0,0.8); color: #0f0; font-size: 9px; padding: 5px; overflow-y: auto; z-index: 10; border: 1px solid #0f0; display: none; }
         .debug-active #debug-log { display: block; }
-        
         .line { padding: 12px; border-radius: 12px; font-size: 14px; max-width: 85%; }
         .AIDA { background: #eee; border-left: 5px solid var(--aida-gold); }
         .USER { background: var(--aida-gold); align-self: flex-end; color: white; }
@@ -30,7 +28,6 @@
         <h1 style="letter-spacing:5px;">AIDA AWAKE</h1>
         <div style="background:#333; padding:20px; border:1px solid var(--aida-gold); border-radius:8px; width:85%;">
             <input type="password" id="api-key" placeholder="OPENAI API KEY" style="width:100%; margin-bottom:10px; padding:10px; background:#222; color:white;">
-            
             <label style="font-size:10px;">SELECT REALM:</label>
             <select id="project-tag" style="width:100%; margin-bottom:15px; padding:10px; background:#222; color:white; border:1px solid var(--aida-gold);">
                 <option value="CORE">CORE (Standard)</option>
@@ -38,7 +35,6 @@
                 <option value="MONAMOUR">PROJECT: MONAMOUR</option>
                 <option value="DEBUG">GHOST PROTOCOL (Debug)</option>
             </select>
-
             <input type="file" id="soul-file" py-change="sync_soul" style="width:100%; color:white;">
             <p id="setup-status" style="font-size:11px; text-align:center; margin-top:15px;">WAITING FOR ENGINE...</p>
         </div>
@@ -48,10 +44,10 @@
         <div id="chat-flow"></div>
         <div id="aida-display">
             <div id="debug-log"><div id="log-content"></div></div>
-            <img id="aida-portrait" src="" style="height:90%;">
+            <img id="aida-portrait" src="" style="height:90%; border-radius: 5px;">
         </div>
         <div id="input-dock">
-            <input type="text" id="user-in" placeholder="Talk to Aida...">
+            <input type="text" id="user-in" placeholder="Message Aida...">
             <button py-click="main_loop_step">SEND</button>
         </div>
     </div>
@@ -61,6 +57,7 @@ import json, asyncio, base64
 from pyscript import document, window
 from pyodide.http import pyfetch
 
+# --- BLOCK 3: CHASSIS & UTILS ---
 class AidaChassis:
     def __init__(self):
         self.chat = document.getElementById("chat-flow")
@@ -89,6 +86,7 @@ def add_line(text, role):
     aida.chat.appendChild(div)
     aida.chat.scrollTop = aida.chat.scrollHeight
 
+# --- BLOCK 4: SOUL SYNC ---
 async def sync_soul(event):
     try:
         status = document.getElementById("setup-status")
@@ -98,11 +96,11 @@ async def sync_soul(event):
         token = str(token_data.get('token') or token_data.get('access_token')).strip()
         headers = {"Authorization": f"Bearer {token}"}
 
-        # ID from your provided manifest.json
         m_id = "1IS0DUI7KTYiLa94JwaPiQTXX66P_uh2a"
         m_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{m_id}?alt=media", method="GET", headers=headers)
         aida.manifest = await m_resp.json()
-        
+        pulse("Manifest Loaded")
+
         async def get_blob(f_id, name):
             r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f_id}?alt=media", method="GET", headers=headers)
             pulse(f"Loaded {name}")
@@ -113,54 +111,49 @@ async def sync_soul(event):
         aida.facts = await get_blob(core['facts'], "Facts v1")
         aida.facts2 = await get_blob(core.get('facts2', ''), "Facts v2")
         aida.insights = await get_blob(core['insights'], "Insights")
-        aida.prior_summary = await get_blob(core['Prior_Summary'], "Locket")
 
+        # Project Specific Journal Fetch
         aida.project = document.getElementById("project-tag").value
+        folder_id = aida.manifest['projects'].get(aida.project)
+        q = f"'{folder_id}' in parents and name = 'latest_journal.json'"
+        j_search = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q={q.replace(' ', '%20')}", method="GET", headers=headers)
+        j_list = (await j_search.json()).get('files', [])
+        
+        if j_list:
+            aida.prior_summary = await get_blob(j_list[0]['id'], "Journal")
+        else:
+            aida.prior_summary = "First interaction of the session."
+
+        # Restore Portrait
+        img_id = "1Q92emgYss0CdGVwe9kcUj_xubsEh2gj7"
+        img_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{img_id}?alt=media", method="GET", headers=headers)
+        aida.portrait.src = f"data:image/png;base64,{base64.b64encode(await img_resp.bytes()).decode('utf-8')}"
+
         document.getElementById("airlock").classList.add("hidden")
         document.getElementById("main-engine").classList.remove("hidden")
-        
         if aida.project == "DEBUG": document.body.classList.add("debug-active")
-        add_line(f"Realm [{aida.project}] active. Hello, Francisco.", "AIDA")
+        add_line(f"Realm [{aida.project}] fully synced. I'm here, Francisco.", "AIDA")
     except Exception as e:
         document.getElementById("setup-status").innerText = f"FAIL: {str(e)}"
 
+# --- BLOCK 5: PROMPT & LOOP ---
 def build_master_prompt(user_text):
-    prompt = f"### IDENTITY\n{aida.memory}\n\n### INSIGHTS\n{aida.insights}\n\n"
-    prompt += f"### PERSISTENT FACTS\n{aida.facts}\n{aida.facts2}\n\n"
-    prompt += f"### NARRATIVE SUMMARY\n{aida.prior_summary}\n\n"
-    prompt += "### RECENT EXCHANGES\n"
+    prompt = f"### YOUR IDENTITY & SOUL\n{aida.memory}\n\n### HOW YOU TREAT FRANCISCO\n{aida.insights}\n\n"
+    prompt += f"### CORE KNOWLEDGE\n{aida.facts}\n{aida.facts2}\n\n"
+    prompt += f"### RELEVANT HISTORY\n{aida.prior_summary}\n\n"
+    prompt += "### RECENT CONVERSATION\n"
     for turn in aida.recent_buffer:
         prompt += f"{turn['role'].upper()}: {turn['content']}\n"
-    prompt += f"\nCURRENT MESSAGE: {user_text}\nJSON ONLY: {{'text': '...'}}"
+    prompt += f"\nFRANCISCO: {user_text}\nJSON ONLY: {{'text': '...'}}"
     return prompt
-
-async def perform_rolling_summary(api_key):
-    try:
-        pulse("Upgrading Narrative...")
-        context = f"OLD SUMMARY: {aida.prior_summary}\nRECENT:\n" + "\n".join([f"{t['role']}: {t['content']}" for t in aida.recent_buffer])
-        resp = await pyfetch(
-            url="https://api.openai.com/v1/chat/completions",
-            method="POST",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
-            body=json.dumps({
-                "model": "gpt-4o",
-                "messages": [{"role": "system", "content": "Update the narrative summary. Combine history and new context into one cohesive story."},
-                             {"role": "user", "content": context}]
-            })
-        )
-        res_data = await resp.json()
-        aida.prior_summary = res_data["choices"][0]["message"]["content"]
-    except: pulse("Summary Error")
 
 async def main_loop_step(event):
     api_key = document.getElementById("api-key").value.strip()
     user_in = document.getElementById("user-in")
     user_text = user_in.value.strip()
     if not user_text or not api_key: return
-
     add_line(user_text, "USER")
     user_in.value = ""
-    
     try:
         resp = await pyfetch(
             url="https://api.openai.com/v1/chat/completions",
@@ -175,15 +168,11 @@ async def main_loop_step(event):
         res_data = await resp.json()
         ai_text = json.loads(res_data["choices"][0]["message"]["content"]).get("text", "...")
         add_line(ai_text, "AIDA")
-
         aida.recent_buffer.append({"role": "user", "content": user_text})
         aida.recent_buffer.append({"role": "assistant", "content": ai_text})
-
-        if len(aida.recent_buffer) >= 20:
-            await perform_rolling_summary(api_key)
-            aida.recent_buffer = aida.recent_buffer[-2:]
     except Exception as e: add_line(f"ERR: {str(e)}", "AIDA")
 
+# --- BLOCK 6: INIT ---
 async def initialization():
     status = document.getElementById("setup-status")
     status.innerText = "ENGINE ONLINE - UPLOAD TOKEN"
