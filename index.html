@@ -17,10 +17,10 @@
         .line { padding: 12px; border-radius: 12px; font-size: 14px; max-width: 85%; }
         .AIDA { background: #eee; border-left: 5px solid var(--aida-gold); }
         .USER { background: var(--aida-gold); align-self: flex-end; color: white; }
-        #input-dock { padding: 10px; display: flex; gap: 10px; background: #f8f8f8; border-top: 1px solid #ddd; }
+        #input-dock { padding: 10px; display: flex; flex-direction: column; gap: 5px; background: #f8f8f8; border-top: 1px solid #ddd; }
         #user-in { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; font-size: 16px; }
         .hidden { display: none !important; }
-        button { background: var(--aida-gold); color: white; border: none; border-radius: 20px; padding: 0 20px; font-weight: bold; }
+        button { background: var(--aida-gold); color: white; border: none; border-radius: 20px; padding: 10px 20px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -28,7 +28,7 @@
         <h1 style="letter-spacing:5px;">AIDA AWAKE</h1>
         <div style="background:#333; padding:20px; border:1px solid var(--aida-gold); border-radius:8px; width:85%;">
             <input type="password" id="api-key" placeholder="OPENAI API KEY" style="width:100%; margin-bottom:10px; padding:10px; background:#222; color:white;">
-            <label style="font-size:10px;">SELECT REALM:</label>
+            <label style="font-size:10px;">INITIAL REALM:</label>
             <select id="project-tag" style="width:100%; margin-bottom:15px; padding:10px; background:#222; color:white; border:1px solid var(--aida-gold);">
                 <option value="CORE">CORE (Standard)</option>
                 <option value="ASTRA">PROJECT: ASTRA</option>
@@ -40,31 +40,27 @@
         </div>
     </div>
 
-    <div id="input-dock" style="padding: 10px; display: flex; flex-direction: column; gap: 5px; background: #f8f8f8; border-top: 1px solid #ddd;">
-    <div style="display: flex; gap: 5px; align-items: center;">
-        <label style="font-size: 9px; color: var(--aida-gold); font-weight: bold;">REALM:</label>
-        <select id="chat-realm-switch" py-change="pivot_realm" style="flex: 1; font-size: 11px; background: white; border: 1px solid #ccc; border-radius: 5px;">
-            <option value="CORE">CORE</option>
-            <option value="ASTRA">ASTRA</option>
-            <option value="MONAMOUR">MONAMOUR</option>
-            <option value="DEBUG">DEBUG</option>
-        </select>
-    </div>
-    <div style="display: flex; gap: 5px;">
-        <input type="text" id="user-in" placeholder="Pivot context..." style="flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ccc;">
-        <button py-click="main_loop_step" style="background:var(--aida-gold); color:white; border:none; padding:10px 15px; border-radius:15px;">SEND</button>
-    </div>
-</div>
-    
     <div id="main-engine" class="hidden">
         <div id="chat-flow"></div>
         <div id="aida-display">
             <div id="debug-log"><div id="log-content"></div></div>
             <img id="aida-portrait" src="" style="height:90%; border-radius: 5px;">
         </div>
+        
         <div id="input-dock">
-            <input type="text" id="user-in" placeholder="Message Aida...">
-            <button py-click="main_loop_step">SEND</button>
+            <div style="display: flex; gap: 5px; align-items: center;">
+                <label style="font-size: 9px; color: var(--aida-gold); font-weight: bold;">REALM:</label>
+                <select id="chat-realm-switch" py-change="pivot_realm" style="flex: 1; font-size: 11px; background: white; border: 1px solid #ccc; border-radius: 5px;">
+                    <option value="CORE">CORE</option>
+                    <option value="ASTRA">ASTRA</option>
+                    <option value="MONAMOUR">MONAMOUR</option>
+                    <option value="DEBUG">DEBUG</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 5px;">
+                <input type="text" id="user-in" placeholder="Talk to Aida...">
+                <button py-click="main_loop_step">SEND</button>
+            </div>
         </div>
     </div>
 
@@ -73,7 +69,6 @@ import json, asyncio, base64
 from pyscript import document, window
 from pyodide.http import pyfetch
 
-# --- BLOCK 3: CHASSIS & UTILS ---
 class AidaChassis:
     def __init__(self):
         self.chat = document.getElementById("chat-flow")
@@ -86,14 +81,16 @@ class AidaChassis:
         self.prior_summary = ""
         self.recent_buffer = []
         self.project = "CORE"
+        self.current_headers = {}
 
 aida = AidaChassis()
 
 def pulse(msg):
     log = document.getElementById("log-content")
-    div = document.createElement("div")
-    div.innerText = f"> {msg}"
-    log.appendChild(div)
+    if log:
+        div = document.createElement("div")
+        div.innerText = f"> {msg}"
+        log.appendChild(div)
 
 def add_line(text, role):
     div = document.createElement("div")
@@ -102,48 +99,6 @@ def add_line(text, role):
     aida.chat.appendChild(div)
     aida.chat.scrollTop = aida.chat.scrollHeight
 
-        
-async def pivot_realm(event):
-    new_realm = event.target.value
-    pulse(f"Pivoting to {new_realm}...")
-    
-    # Update the global project tag
-    aida.project = new_realm
-    
-    # We need the headers (token) again. 
-    # (Note: We'll need to store the 'headers' in the aida class during initial sync)
-    try:
-        folder_id = aida.manifest['projects'].get(aida.project)
-        
-        # Re-fetch the Project-Specific Journal
-        q = f"'{folder_id}' in parents and name = 'latest_journal.json'"
-        j_search = await pyfetch(
-            url=f"https://www.googleapis.com/drive/v3/files?q={q.replace(' ', '%20')}", 
-            method="GET", 
-            headers=aida.current_headers
-        )
-        j_list = (await j_search.json()).get('files', [])
-        
-        if j_list:
-            # Re-fetch blob logic
-            r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{j_list[0]['id']}?alt=media", method="GET", headers=aida.current_headers)
-            aida.prior_summary = (await r.bytes()).decode('utf-8')
-            pulse(f"{new_realm} Journal Loaded.")
-        else:
-            aida.prior_summary = f"New context for {new_realm}."
-            pulse("No Journal found for this Realm.")
-
-        add_line(f"SYSTEM: Switched focus to {new_realm}. What are we working on here?", "AIDA")
-        
-        # Optional: Trigger a new greeting for the new realm
-        await trigger_greeting(aida.current_headers)
-        
-    except Exception as e:
-        pulse(f"Pivot Fail: {str(e)}")
-        
-
-        
-# --- BLOCK 4: SOUL SYNC ---
 async def sync_soul(event):
     try:
         status = document.getElementById("setup-status")
@@ -151,15 +106,15 @@ async def sync_soul(event):
         file = event.target.files.item(0)
         token_data = json.loads(await file.text())
         token = str(token_data.get('token') or token_data.get('access_token')).strip()
-        headers = {"Authorization": f"Bearer {token}"}
+        aida.current_headers = {"Authorization": f"Bearer {token}"}
 
         m_id = "1IS0DUI7KTYiLa94JwaPiQTXX66P_uh2a"
-        m_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{m_id}?alt=media", method="GET", headers=headers)
+        m_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{m_id}?alt=media", method="GET", headers=aida.current_headers)
         aida.manifest = await m_resp.json()
         pulse("Manifest Loaded")
 
         async def get_blob(f_id, name):
-            r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f_id}?alt=media", method="GET", headers=headers)
+            r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f_id}?alt=media", method="GET", headers=aida.current_headers)
             pulse(f"Loaded {name}")
             return (await r.bytes()).decode('utf-8')
 
@@ -169,21 +124,13 @@ async def sync_soul(event):
         aida.facts2 = await get_blob(core.get('facts2', ''), "Facts v2")
         aida.insights = await get_blob(core['insights'], "Insights")
 
-        # Project Specific Journal Fetch
         aida.project = document.getElementById("project-tag").value
-        folder_id = aida.manifest['projects'].get(aida.project)
-        q = f"'{folder_id}' in parents and name = 'latest_journal.json'"
-        j_search = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q={q.replace(' ', '%20')}", method="GET", headers=headers)
-        j_list = (await j_search.json()).get('files', [])
+        document.getElementById("chat-realm-switch").value = aida.project
         
-        if j_list:
-            aida.prior_summary = await get_blob(j_list[0]['id'], "Journal")
-        else:
-            aida.prior_summary = "First interaction of the session."
+        await load_project_journal(aida.project)
 
-        # Restore Portrait
         img_id = "1Q92emgYss0CdGVwe9kcUj_xubsEh2gj7"
-        img_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{img_id}?alt=media", method="GET", headers=headers)
+        img_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{img_id}?alt=media", method="GET", headers=aida.current_headers)
         aida.portrait.src = f"data:image/png;base64,{base64.b64encode(await img_resp.bytes()).decode('utf-8')}"
 
         document.getElementById("airlock").classList.add("hidden")
@@ -193,40 +140,52 @@ async def sync_soul(event):
     except Exception as e:
         document.getElementById("setup-status").innerText = f"FAIL: {str(e)}"
 
-# --- BLOCK 5: PROMPT & LOOP ---
+async def load_project_journal(realm_name):
+    try:
+        folder_id = aida.manifest['projects'].get(realm_name)
+        q = f"'{folder_id}' in parents and name = 'latest_journal.json'"
+        j_search = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q={q.replace(' ', '%20')}", method="GET", headers=aida.current_headers)
+        j_list = (await j_search.json()).get('files', [])
+        if j_list:
+            r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{j_list[0]['id']}?alt=media", method="GET", headers=aida.current_headers)
+            aida.prior_summary = (await r.bytes()).decode('utf-8')
+            pulse(f"Journal [{realm_name}] Loaded")
+        else:
+            aida.prior_summary = "A new session begins."
+            pulse(f"No Journal for {realm_name}")
+    except: pulse("Journal fetch fail")
+
+async def pivot_realm(event):
+    new_realm = event.target.value
+    pulse(f"Pivoting to {new_realm}...")
+    aida.project = new_realm
+    await load_project_journal(new_realm)
+    add_line(f"SYSTEM: Switched focus to {new_realm}.", "AIDA")
+
 def build_master_prompt(user_text):
-    prompt = f"### YOUR IDENTITY & SOUL\n{aida.memory}\n\n### HOW YOU TREAT FRANCISCO\n{aida.insights}\n\n"
+    prompt = f"### YOUR IDENTITY\n{aida.memory}\n\n### INSIGHTS\n{aida.insights}\n\n"
     prompt += f"### CORE KNOWLEDGE\n{aida.facts}\n{aida.facts2}\n\n"
     prompt += f"### RELEVANT HISTORY\n{aida.prior_summary}\n\n"
     prompt += "### RECENT CONVERSATION\n"
+    # Only show history relevant to the CURRENT realm in the prompt
     for turn in aida.recent_buffer:
-        prompt += f"{turn['role'].upper()}: {turn['content']}\n"
+        if turn.get('realm') == aida.project:
+            prompt += f"{turn['role'].upper()}: {turn['content']}\n"
     prompt += f"\nFRANCISCO: {user_text}\nJSON ONLY: {{'text': '...'}}"
     return prompt
 
-# Updated section inside main_loop_step
-# This "tags" the memory as it happens
-aida.recent_buffer.append({
-    "role": "user", 
-    "content": user_text, 
-    "realm": aida.project  # <--- THE TAG
-})
-
-# ... after AI responds ...
-aida.recent_buffer.append({
-    "role": "assistant", 
-    "content": ai_text, 
-    "realm": aida.project # <--- THE TAG
-})
-        
-        
 async def main_loop_step(event):
     api_key = document.getElementById("api-key").value.strip()
     user_in = document.getElementById("user-in")
     user_text = user_in.value.strip()
     if not user_text or not api_key: return
+    
     add_line(user_text, "USER")
     user_in.value = ""
+
+    # --- TAGGING THE USER MESSAGE ---
+    aida.recent_buffer.append({"role": "user", "content": user_text, "realm": aida.project})
+    
     try:
         resp = await pyfetch(
             url="https://api.openai.com/v1/chat/completions",
@@ -241,27 +200,16 @@ async def main_loop_step(event):
         res_data = await resp.json()
         ai_text = json.loads(res_data["choices"][0]["message"]["content"]).get("text", "...")
         add_line(ai_text, "AIDA")
-        aida.recent_buffer.append({"role": "user", "content": user_text})
-        aida.recent_buffer.append({"role": "assistant", "content": ai_text})
+        
+        # --- TAGGING THE AI MESSAGE ---
+        aida.recent_buffer.append({"role": "assistant", "content": ai_text, "realm": aida.project})
     except Exception as e: add_line(f"ERR: {str(e)}", "AIDA")
 
-
-        async def push_to_drive():
-    # Identify all realms touched during this session
-    realms_used = set(turn['realm'] for turn in aida.recent_buffer)
-    
+async def push_to_drive():
+    realms_used = set(turn.get('realm') for turn in aida.recent_buffer)
     for realm in realms_used:
-        # Filter the buffer for only this realm's conversations
-        realm_content = [t for t in aida.recent_buffer if t['realm'] == realm]
-        
-        # 1. Create the summary for THIS realm
-        # 2. Find the folder ID for THIS realm via the manifest
-        # 3. PUSH 'latest_journal.json' to that specific folder
         pulse(f"Archiving {realm} memories...")
-        
 
-        
-# --- BLOCK 6: INIT ---
 async def initialization():
     status = document.getElementById("setup-status")
     status.innerText = "ENGINE ONLINE - UPLOAD TOKEN"
@@ -275,3 +223,5 @@ document.getElementById("user-in").onkeypress = handle_keypress
     </script>
 </body>
 </html>
+
+
