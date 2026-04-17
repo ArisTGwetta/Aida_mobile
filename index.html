@@ -90,7 +90,9 @@
     </script>
 
     <script type="py">
-import json, asyncio, base64
+
+
+        import json, asyncio, base64
 from pyscript import document, window
 from pyodide.http import pyfetch
 from pyodide.ffi import create_proxy
@@ -104,8 +106,12 @@ class AidaChassis:
         self.facts = ""
         self.facts2 = ""
         self.insights = ""
-        self.prior_summary = ""
-        self.recent_buffer = []
+        
+        # --- ROLLING CONTEXT ENGINE ---
+        self.old_summary = ""       # Starts as the Seed (Latest Journal)
+        self.new_summary = ""       # The last compressed 20-line block
+        self.living_buffer = []     # The active 1-20 "Living Lines"
+        
         self.project = "CORE"
         self.current_headers = {}
 
@@ -134,9 +140,9 @@ async def py_sync_soul(token):
         m_id = "1IS0DUI7KTYiLa94JwaPiQTXX66P_uh2a"
         m_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{m_id}?alt=media", method="GET", headers=aida.current_headers)
         aida.manifest = await m_resp.json()
-        pulse("Manifest Loaded")
-
+        
         async def get_blob(f_id, name):
+            if not f_id: return ""
             r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f_id}?alt=media", method="GET", headers=aida.current_headers)
             pulse(f"Loaded {name}")
             return (await r.bytes()).decode('utf-8')
@@ -150,6 +156,7 @@ async def py_sync_soul(token):
         aida.project = document.getElementById("project-tag").value
         document.getElementById("chat-realm-switch").value = aida.project
         
+        # LOAD THE SEED (Latest Journal becomes Old Summary)
         await load_project_journal(aida.project)
 
         img_id = "1Q92emgYss0CdGVwe9kcUj_xubsEh2gj7"
@@ -158,12 +165,10 @@ async def py_sync_soul(token):
 
         document.getElementById("airlock").classList.add("hidden")
         document.getElementById("main-engine").classList.remove("hidden")
-        if aida.project == "DEBUG": document.body.classList.add("debug-active")
         add_line(f"Identity Verified. Realm [{aida.project}] active. Hello, Francisco.", "AIDA")
     except Exception as e:
         document.getElementById("setup-status").innerText = f"SYNC FAIL: {str(e)}"
 
-# Expose the Python function to JavaScript
 window.py_sync_soul = create_proxy(py_sync_soul)
 
 async def load_project_journal(realm_name):
@@ -174,30 +179,98 @@ async def load_project_journal(realm_name):
         j_list = (await j_search.json()).get('files', [])
         if j_list:
             r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{j_list[0]['id']}?alt=media", method="GET", headers=aida.current_headers)
-            aida.prior_summary = (await r.bytes()).decode('utf-8')
-            pulse(f"Journal [{realm_name}] Loaded")
+            # SEEDING THE ENGINE
+            aida.old_summary = (await r.bytes()).decode('utf-8')
+            pulse(f"Seed Memory [{realm_name}] Planted")
         else:
-            aida.prior_summary = "First interaction of the session."
-            pulse(f"No Journal for {realm_name}")
+            aida.old_summary = "A fresh session begins."
+            pulse(f"No Seed for {realm_name}")
     except: pulse("Journal fetch fail")
 
-async def pivot_realm(event):
-    new_realm = event.target.value
-    pulse(f"Pivoting to {new_realm}...")
-    aida.project = new_realm
-    await load_project_journal(new_realm)
-    add_line(f"SYSTEM: Switched focus to {new_realm}.", "AIDA")
-
 def build_master_prompt(user_text):
-    prompt = f"### YOUR IDENTITY\n{aida.memory}\n\n### INSIGHTS\n{aida.insights}\n\n"
-    prompt += f"### CORE KNOWLEDGE\n{aida.facts}\n{aida.facts2}\n\n"
-    prompt += f"### RELEVANT HISTORY\n{aida.prior_summary}\n\n"
-    prompt += "### RECENT CONVERSATION\n"
-    for turn in aida.recent_buffer:
-        if turn.get('realm') == aida.project:
-            prompt += f"{turn['role'].upper()}: {turn['content']}\n"
+    # LAYER 1: IMMUTABLE (Identity, Facts, Insights)
+    prompt = f"### YOUR IDENTITY & KNOWLEDGE\n{aida.memory}\n\nCORE FACTS:\n{aida.facts}\n{aida.facts2}\n\nINSIGHTS:\n{aida.insights}\n\n"
+    
+    # LAYER 2: SESSION COMPRESSION (Rolling summaries)
+    prompt += "### SESSION CONTEXT (DISTILLED)\n"
+    if aida.old_summary: prompt += f"PRIOR HISTORY: {aida.old_summary}\n"
+    if aida.new_summary: prompt += f"RECENTLY DISCUSSED: {aida.new_summary}\n"
+    prompt += "\n"
+    
+    # LAYER 3: LIVING BUFFER (Raw interactions)
+    prompt += "### ACTIVE CONVERSATION\n"
+    for turn in aida.living_buffer:
+        prompt += f"{turn['role'].upper()}: {turn['content']}\n"
+    
     prompt += f"\nFRANCISCO: {user_text}\nJSON ONLY: {{'text': '...'}}"
     return prompt
+
+async def perform_grand_swap():
+    """Consolidates buffer into summaries to keep context light."""
+    api_key = document.getElementById("api-key").value.strip()
+    pulse("Distilling 20 lines into summaries...")
+    
+    # Pack the current state for distillation
+    distill_prompt = f"### TASK\nYou are condensing your session memory. Merge the following 'Old Summary', 'New Summary', and 'Living Buffer' into TWO updated summaries.\n\n"
+    distill_prompt += f"OLD_SUMM: {aida.old_summary}\n"
+    distill_prompt += f"NEW_SUMM: {aida.new_summary}\n"
+    distill_prompt += "LIVING_BUFFER:\n"
+    for t in aida.living_buffer: distill_prompt += f"{t['role']}: {t['content']}\n"
+    distill_prompt += "\nJSON ONLY: {'new_old_summary': 'merged history of everything before', 'new_new_summary': 'distillation of the living buffer'}"
+
+    try:
+        resp = await pyfetch(
+            url="https://api.openai.com/v1/chat/completions",
+            method="POST",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
+            body=json.dumps({
+                "model": "gpt-4o-mini",
+                "messages": [{"role": "system", "content": distill_prompt}],
+                "response_format": {"type": "json_object"}
+            })
+        )
+        res_data = await resp.json()
+        comp = json.loads(res_data["choices"][0]["message"]["content"])
+        
+        # APPLY THE SWAP
+        aida.old_summary = comp.get('new_old_summary', aida.old_summary)
+        aida.new_summary = comp.get('new_new_summary', "...")
+        
+        # --- THE BLACK BOX LOG ---
+        await drop_raw_session(is_auto=True)
+        
+        # RESET BUFFER
+        aida.living_buffer = []
+        pulse("Grand Swap Complete. RAM cleared.")
+    except Exception as e: pulse(f"Swap Fail: {str(e)}")
+
+async def drop_raw_session(is_auto=False):
+    """The 'Black Box' recorder. Drops session logs into Drive."""
+    try:
+        timestamp = str(window.Date.new().toISOString()).replace(':', '-').replace('.', '-')
+        mode = "AUTO" if is_auto else "SLEEP"
+        filename = f"{mode}_session_{timestamp}.json"
+        folder_id = aida.manifest['projects'].get(aida.project)
+        
+        payload = {
+            "timestamp": timestamp,
+            "realm": aida.project,
+            "summaries": {"old": aida.old_summary, "new": aida.new_summary},
+            "raw_interactions": aida.living_buffer
+        }
+        file_content = json.dumps(payload)
+
+        boundary = "-------AidaBoundary"
+        metadata = json.dumps({"name": filename, "parents": [folder_id]})
+        body = f"--{boundary}\nContent-Type: application/json; charset=UTF-8\n\n{metadata}\n--{boundary}\nContent-Type: application/json\n\n{file_content}\n--{boundary}--"
+
+        headers = aida.current_headers.copy()
+        headers["Content-Type"] = f"multipart/related; boundary={boundary}"
+
+        await pyfetch(url="https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", method="POST", headers=headers, body=body)
+        pulse(f"Log {mode} pushed.")
+        if not is_auto: window.location.reload()
+    except Exception as e: pulse(f"Drop Fail: {str(e)}")
 
 async def main_loop_step(event):
     api_key = document.getElementById("api-key").value.strip()
@@ -207,7 +280,7 @@ async def main_loop_step(event):
     
     add_line(user_text, "USER")
     user_in.value = ""
-    aida.recent_buffer.append({"role": "user", "content": user_text, "realm": aida.project})
+    aida.living_buffer.append({"role": "user", "content": user_text})
     
     try:
         resp = await pyfetch(
@@ -223,7 +296,12 @@ async def main_loop_step(event):
         res_data = await resp.json()
         ai_text = json.loads(res_data["choices"][0]["message"]["content"]).get("text", "...")
         add_line(ai_text, "AIDA")
-        aida.recent_buffer.append({"role": "assistant", "content": ai_text, "realm": aida.project})
+        aida.living_buffer.append({"role": "assistant", "content": ai_text})
+        
+        # THE TRIGGER: CHECK FOR THE 20 LINE LIMIT
+        if len(aida.living_buffer) >= 20:
+            await perform_grand_swap()
+
     except Exception as e: add_line(f"ERR: {str(e)}", "AIDA")
 
 async def initialization():
@@ -236,6 +314,8 @@ asyncio.ensure_future(initialization())
 async def handle_keypress(event):
     if event.key == "Enter": await main_loop_step(None)
 document.getElementById("user-in").onkeypress = handle_keypress
+
+        
     </script>
 </body>
 </html>
