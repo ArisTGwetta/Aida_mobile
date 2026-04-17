@@ -1,89 +1,5 @@
 
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AIDA: Mobile Awake</title>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
-    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
-    <style>
-        :root { --aida-gold: #d3af37; --aida-bg: #fdf6e3; --aida-dark: #222; }
-        html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--aida-bg); font-family: 'Courier New', monospace; }
-        #main-engine { display: flex; flex-direction: column; height: 100dvh; }
-        #chat-flow { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: white; }
-        #aida-display { flex: 0 0 25dvh; background: #e2d7bf; position: relative; display: flex; justify-content: center; align-items: center; border-top: 1px solid var(--aida-gold); }
-        #debug-log { position: absolute; top: 5px; right: 5px; width: 160px; max-height: 100px; background: rgba(0,0,0,0.8); color: #0f0; font-size: 9px; padding: 5px; overflow-y: auto; z-index: 10; border: 1px solid #0f0; display: none; }
-        .debug-active #debug-log { display: block; }
-        .line { padding: 12px; border-radius: 12px; font-size: 14px; max-width: 85%; }
-        .AIDA { background: #eee; border-left: 5px solid var(--aida-gold); }
-        .USER { background: var(--aida-gold); align-self: flex-end; color: white; }
-        #input-dock { padding: 10px; display: flex; flex-direction: column; gap: 5px; background: #f8f8f8; border-top: 1px solid #ddd; }
-        #user-in { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; font-size: 16px; }
-        .hidden { display: none !important; }
-        button { background: var(--aida-gold); color: white; border: none; border-radius: 20px; padding: 10px 20px; font-weight: bold; }
-    </style>
-</head>
-<body>
-    <div id="airlock" style="height:100dvh; background:var(--aida-dark); color:var(--aida-gold); display:flex; flex-direction:column; justify-content:center; align-items:center;">
-        <h1 style="letter-spacing:5px;">AIDA AWAKE</h1>
-        <div style="background:#333; padding:20px; border:1px solid var(--aida-gold); border-radius:8px; width:85%; display: flex; flex-direction: column; align-items: center;">
-            <input type="password" id="api-key" placeholder="OPENAI API KEY" style="width:100%; margin-bottom:10px; padding:10px; background:#222; color:white;">
-            
-            <label style="font-size:10px; align-self: flex-start;">INITIAL REALM:</label>
-            <select id="project-tag" style="width:100%; margin-bottom:15px; padding:10px; background:#222; color:white; border:1px solid var(--aida-gold);">
-                <option value="CORE">CORE (Standard)</option>
-                <option value="ASTRA">PROJECT: ASTRA</option>
-                <option value="MONAMOUR">PROJECT: MONAMOUR</option>
-                <option value="DEBUG">GHOST PROTOCOL (Debug)</option>
-            </select>
-
-            <button id="sign-in-btn" onclick="requestToken()" style="width: 100%; padding: 15px;">SIGN IN WITH GOOGLE</button>
-            
-            <p id="setup-status" style="font-size:11px; text-align:center; margin-top:15px;">WAITING FOR ENGINE...</p>
-        </div>
-    </div>
-
-    <div id="main-engine" class="hidden">
-        <div id="chat-flow"></div>
-        <div id="aida-display">
-            <div id="debug-log"><div id="log-content"></div></div>
-            <img id="aida-portrait" src="" style="height:90%; border-radius: 5px;">
-        </div>
-        
-        <div id="input-dock">
-            <div style="display: flex; gap: 5px; align-items: center;">
-                <label style="font-size: 9px; color: var(--aida-gold); font-weight: bold;">REALM:</label>
-                <select id="chat-realm-switch" py-change="pivot_realm" style="flex: 1; font-size: 11px; background: white; border: 1px solid #ccc; border-radius: 5px;">
-                    <option value="CORE">CORE</option>
-                    <option value="ASTRA">ASTRA</option>
-                    <option value="MONAMOUR">MONAMOUR</option>
-                    <option value="DEBUG">DEBUG</option>
-                </select>
-            </div>
-            <div style="display: flex; gap: 5px;">
-                <input type="text" id="user-in" placeholder="Talk to Aida...">
-                <button py-click="main_loop_step">SEND</button>
-                <button py-click="drop_raw_session" style="background:#555; font-size: 10px;">SLEEP</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let tokenClient;
-        function requestToken() { tokenClient.requestAccessToken(); }
-        window.onload = function () {
-            tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
-                scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
-                callback: (response) => { if (response.access_token) window.py_sync_soul(response.access_token); },
-            });
-        }
-    </script>
-
-    <script type="py">
 import json, asyncio, base64
 from pyscript import document, window
 from pyodide.http import pyfetch
@@ -98,10 +14,13 @@ class AidaChassis:
         self.facts = ""
         self.facts2 = ""
         self.insights = ""
+        
+        # ROLLING CONTEXT ENGINE
         self.old_summary = ""
         self.new_summary = ""
-        self.living_buffer = []
-        self.project = "CORE"
+        self.living_buffer = [] # Holds the last 20 tagged interactions
+        
+        self.project = "CORE" # Starting project
         self.current_headers = {}
 
 aida = AidaChassis()
@@ -125,6 +44,8 @@ async def py_sync_soul(token):
         status = document.getElementById("setup-status")
         status.innerText = "AUTHENTICATED. SYNCING..."
         aida.current_headers = {"Authorization": f"Bearer {token}"}
+        
+        # Manifest Load
         m_id = "1IS0DUI7KTYiLa94JwaPiQTXX66P_uh2a"
         m_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{m_id}?alt=media", method="GET", headers=aida.current_headers)
         aida.manifest = await m_resp.json()
@@ -143,6 +64,8 @@ async def py_sync_soul(token):
 
         aida.project = document.getElementById("project-tag").value
         document.getElementById("chat-realm-switch").value = aida.project
+        
+        # Load the initial Seed for the selected Realm
         await load_project_journal(aida.project)
 
         img_id = "1Q92emgYss0CdGVwe9kcUj_xubsEh2gj7"
@@ -151,8 +74,8 @@ async def py_sync_soul(token):
 
         document.getElementById("airlock").classList.add("hidden")
         document.getElementById("main-engine").classList.remove("hidden")
-        add_line(f"Identity Verified. Realm [{aida.project}] active. Hello, Francisco.", "AIDA")
-    except Exception as e: status.getElementById("setup-status").innerText = f"SYNC FAIL: {str(e)}"
+        add_line(f"Identity Verified. Realm [{aida.project}] active.", "AIDA")
+    except Exception as e: document.getElementById("setup-status").innerText = f"SYNC FAIL: {str(e)}"
 
 window.py_sync_soul = create_proxy(py_sync_soul)
 
@@ -165,25 +88,28 @@ async def load_project_journal(realm_name):
         if j_list:
             r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{j_list[0]['id']}?alt=media", method="GET", headers=aida.current_headers)
             aida.old_summary = (await r.bytes()).decode('utf-8')
-            pulse("Seed Memory Planted.")
-        else: aida.old_summary = "A fresh session begins."
-    except: pulse("Journal fetch fail")
+            pulse(f"Seeded from {realm_name}")
+        else:
+            aida.old_summary = "Starting fresh."
+            pulse("No seed journal found.")
+    except: pulse("Journal error.")
 
 def build_master_prompt(user_text):
-    prompt = f"### IDENTITY & KNOWLEDGE\n{aida.memory}\n\nCORE FACTS:\n{aida.facts}\n{aida.facts2}\n\nINSIGHTS:\n{aida.insights}\n\n"
-    prompt += "### SESSION CONTEXT (DISTILLED)\n"
-    if aida.old_summary: prompt += f"PRIOR HISTORY: {aida.old_summary}\n"
-    if aida.new_summary: prompt += f"RECENTLY DISCUSSED: {aida.new_summary}\n"
+    prompt = f"### IDENTITY\n{aida.memory}\n\nCORE KNOWLEDGE:\n{aida.facts}\n{aida.insights}\n\n"
+    prompt += "### SESSION CONTEXT\n"
+    if aida.old_summary: prompt += f"OLD HISTORY: {aida.old_summary}\n"
+    if aida.new_summary: prompt += f"NEW HISTORY: {aida.new_summary}\n"
     prompt += "\n### ACTIVE CONVERSATION\n"
     for turn in aida.living_buffer:
-        prompt += f"{turn['role'].upper()}: {turn['content']}\n"
+        prompt += f"{turn['role'].upper()} [{turn['realm']}]: {turn['content']}\n"
     prompt += f"\nFRANCISCO: {user_text}\nJSON ONLY: {{'text': '...'}}"
     return prompt
 
 async def perform_grand_swap():
+    """Distills buffer and prepares for sorting by Laptop Asleep."""
     api_key = document.getElementById("api-key").value.strip()
     pulse("Distilling context...")
-    distill_prompt = f"Merge the following into two updated summaries: OLD_SUMM: {aida.old_summary}, NEW_SUMM: {aida.new_summary}. Buffer: {json.dumps(aida.living_buffer)}. Output JSON: {{'new_old_summary': '...', 'new_new_summary': '...'}}"
+    distill_prompt = f"Merge the following into two summaries. OLD_SUMM: {aida.old_summary}. NEW_SUMM: {aida.new_summary}. Living Buffer: {json.dumps(aida.living_buffer)}. Output JSON: {{'new_old_summary': '...', 'new_new_summary': '...'}}"
     try:
         resp = await pyfetch(url="https://api.openai.com/v1/chat/completions", method="POST",
                              headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
@@ -192,26 +118,40 @@ async def perform_grand_swap():
         comp = json.loads(res_data["choices"][0]["message"]["content"])
         aida.old_summary = comp.get('new_old_summary', aida.old_summary)
         aida.new_summary = comp.get('new_new_summary', "...")
+        
+        # AUTO-PULSE TO INBOX
         await drop_raw_session(is_auto=True)
         aida.living_buffer = []
-        pulse("Grand Swap Complete.")
-    except Exception as e: pulse(f"Swap Fail: {str(e)}")
+        pulse("Context Distilled.")
+    except Exception as e: pulse(f"Swap Error: {str(e)}")
 
 async def drop_raw_session(event=None, is_auto=False):
+    """Mails the fully-tagged log to the AIDA_INBOX."""
     try:
         timestamp = str(window.Date.new().toISOString()).replace(':', '-').replace('.', '-')
         mode = "AUTO" if is_auto else "SLEEP"
-        filename = f"{mode}_session_{timestamp}.json"
-        folder_id = aida.manifest['projects'].get(aida.project)
-        payload = {"timestamp": timestamp, "realm": aida.project, "summaries": {"old": aida.old_summary, "new": aida.new_summary}, "raw_interactions": aida.living_buffer}
+        
+        # Filename shows the CURRENT realm for easy skimming
+        filename = f"{aida.project}_{mode}_{timestamp}.json"
+        inbox_id = "1lvGV7MjaMtSJUUnYjQSSe-VwKgGZSWg7" 
+        
+        payload = {
+            "source": "Aida_Mobile_Awake",
+            "timestamp": timestamp,
+            "summaries": {"old": aida.old_summary, "new": aida.new_summary},
+            "raw_interactions": aida.living_buffer # Every dict here has its own 'realm' tag
+        }
+        
         file_content = json.dumps(payload)
         boundary = "-------AidaBoundary"
-        metadata = json.dumps({"name": filename, "parents": [folder_id]})
+        metadata = json.dumps({"name": filename, "parents": [inbox_id]})
         body = f"--{boundary}\nContent-Type: application/json; charset=UTF-8\n\n{metadata}\n--{boundary}\nContent-Type: application/json\n\n{file_content}\n--{boundary}--"
+        
         headers = aida.current_headers.copy()
         headers["Content-Type"] = f"multipart/related; boundary={boundary}"
+        
         await pyfetch(url="https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", method="POST", headers=headers, body=body)
-        pulse(f"Log {mode} pushed.")
+        pulse(f"Log {mode} sent to Inbox.")
         if not is_auto: window.location.reload()
     except Exception as e: pulse(f"Drop Fail: {str(e)}")
 
@@ -220,9 +160,17 @@ async def main_loop_step(event):
     user_in = document.getElementById("user-in")
     user_text = user_in.value.strip()
     if not user_text or not api_key: return
+    
+    # 🧬 CAPTURE THE REALM DNA FOR THIS LINE
+    current_realm = document.getElementById("chat-realm-switch").value
+    aida.project = current_realm # Sync chassis with dropdown
+    
     add_line(user_text, "USER")
     user_in.value = ""
-    aida.living_buffer.append({"role": "user", "content": user_text})
+    
+    # TAG USER LINE
+    aida.living_buffer.append({"role": "user", "content": user_text, "realm": current_realm})
+    
     try:
         resp = await pyfetch(url="https://api.openai.com/v1/chat/completions", method="POST",
                              headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
@@ -230,7 +178,10 @@ async def main_loop_step(event):
         res_data = await resp.json()
         ai_text = json.loads(res_data["choices"][0]["message"]["content"]).get("text", "...")
         add_line(ai_text, "AIDA")
-        aida.living_buffer.append({"role": "assistant", "content": ai_text})
+        
+        # TAG ASSISTANT RESPONSE
+        aida.living_buffer.append({"role": "assistant", "content": ai_text, "realm": current_realm})
+        
         if len(aida.living_buffer) >= 20: await perform_grand_swap()
     except Exception as e: add_line(f"ERR: {str(e)}", "AIDA")
 
@@ -241,7 +192,4 @@ asyncio.ensure_future(initialization())
 async def handle_keypress(event):
     if event.key == "Enter": await main_loop_step(None)
 document.getElementById("user-in").onkeypress = handle_keypress
-    </script>
-</body>
-</html>
 
