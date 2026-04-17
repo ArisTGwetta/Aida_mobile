@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>AIDA: Mobile Awake</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
     <style>
@@ -21,21 +22,25 @@
         #user-in { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; font-size: 16px; }
         .hidden { display: none !important; }
         button { background: var(--aida-gold); color: white; border: none; border-radius: 20px; padding: 10px 20px; font-weight: bold; }
+        #g_id_signin { margin-top: 15px; }
     </style>
 </head>
 <body>
     <div id="airlock" style="height:100dvh; background:var(--aida-dark); color:var(--aida-gold); display:flex; flex-direction:column; justify-content:center; align-items:center;">
         <h1 style="letter-spacing:5px;">AIDA AWAKE</h1>
-        <div style="background:#333; padding:20px; border:1px solid var(--aida-gold); border-radius:8px; width:85%;">
+        <div style="background:#333; padding:20px; border:1px solid var(--aida-gold); border-radius:8px; width:85%; display: flex; flex-direction: column; align-items: center;">
             <input type="password" id="api-key" placeholder="OPENAI API KEY" style="width:100%; margin-bottom:10px; padding:10px; background:#222; color:white;">
-            <label style="font-size:10px;">INITIAL REALM:</label>
+            
+            <label style="font-size:10px; align-self: flex-start;">INITIAL REALM:</label>
             <select id="project-tag" style="width:100%; margin-bottom:15px; padding:10px; background:#222; color:white; border:1px solid var(--aida-gold);">
                 <option value="CORE">CORE (Standard)</option>
                 <option value="ASTRA">PROJECT: ASTRA</option>
                 <option value="MONAMOUR">PROJECT: MONAMOUR</option>
                 <option value="DEBUG">GHOST PROTOCOL (Debug)</option>
             </select>
-            <input type="file" id="soul-file" py-change="sync_soul" style="width:100%; color:white;">
+
+            <button id="sign-in-btn" onclick="requestToken()" style="width: 100%; padding: 15px;">SIGN IN WITH GOOGLE</button>
+            
             <p id="setup-status" style="font-size:11px; text-align:center; margin-top:15px;">WAITING FOR ENGINE...</p>
         </div>
     </div>
@@ -64,10 +69,31 @@
         </div>
     </div>
 
+    <script>
+        let tokenClient;
+        function requestToken() {
+            tokenClient.requestAccessToken();
+        }
+
+        window.onload = function () {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
+                scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
+                callback: (response) => {
+                    if (response.access_token) {
+                        // Pass the token to the Python engine
+                        window.py_sync_soul(response.access_token);
+                    }
+                },
+            });
+        }
+    </script>
+
     <script type="py">
 import json, asyncio, base64
 from pyscript import document, window
 from pyodide.http import pyfetch
+from pyodide.ffi import create_proxy
 
 class AidaChassis:
     def __init__(self):
@@ -99,13 +125,10 @@ def add_line(text, role):
     aida.chat.appendChild(div)
     aida.chat.scrollTop = aida.chat.scrollHeight
 
-async def sync_soul(event):
+async def py_sync_soul(token):
     try:
         status = document.getElementById("setup-status")
-        status.innerText = "SYNCING DRIVE..."
-        file = event.target.files.item(0)
-        token_data = json.loads(await file.text())
-        token = str(token_data.get('token') or token_data.get('access_token')).strip()
+        status.innerText = "AUTHENTICATED. SYNCING..."
         aida.current_headers = {"Authorization": f"Bearer {token}"}
 
         m_id = "1IS0DUI7KTYiLa94JwaPiQTXX66P_uh2a"
@@ -136,9 +159,12 @@ async def sync_soul(event):
         document.getElementById("airlock").classList.add("hidden")
         document.getElementById("main-engine").classList.remove("hidden")
         if aida.project == "DEBUG": document.body.classList.add("debug-active")
-        add_line(f"Realm [{aida.project}] fully synced. I'm here, Francisco.", "AIDA")
+        add_line(f"Identity Verified. Realm [{aida.project}] active. Hello, Francisco.", "AIDA")
     except Exception as e:
-        document.getElementById("setup-status").innerText = f"FAIL: {str(e)}"
+        document.getElementById("setup-status").innerText = f"SYNC FAIL: {str(e)}"
+
+# Expose the Python function to JavaScript
+window.py_sync_soul = create_proxy(py_sync_soul)
 
 async def load_project_journal(realm_name):
     try:
@@ -151,7 +177,7 @@ async def load_project_journal(realm_name):
             aida.prior_summary = (await r.bytes()).decode('utf-8')
             pulse(f"Journal [{realm_name}] Loaded")
         else:
-            aida.prior_summary = "A new session begins."
+            aida.prior_summary = "First interaction of the session."
             pulse(f"No Journal for {realm_name}")
     except: pulse("Journal fetch fail")
 
@@ -167,7 +193,6 @@ def build_master_prompt(user_text):
     prompt += f"### CORE KNOWLEDGE\n{aida.facts}\n{aida.facts2}\n\n"
     prompt += f"### RELEVANT HISTORY\n{aida.prior_summary}\n\n"
     prompt += "### RECENT CONVERSATION\n"
-    # Only show history relevant to the CURRENT realm in the prompt
     for turn in aida.recent_buffer:
         if turn.get('realm') == aida.project:
             prompt += f"{turn['role'].upper()}: {turn['content']}\n"
@@ -182,8 +207,6 @@ async def main_loop_step(event):
     
     add_line(user_text, "USER")
     user_in.value = ""
-
-    # --- TAGGING THE USER MESSAGE ---
     aida.recent_buffer.append({"role": "user", "content": user_text, "realm": aida.project})
     
     try:
@@ -200,19 +223,12 @@ async def main_loop_step(event):
         res_data = await resp.json()
         ai_text = json.loads(res_data["choices"][0]["message"]["content"]).get("text", "...")
         add_line(ai_text, "AIDA")
-        
-        # --- TAGGING THE AI MESSAGE ---
         aida.recent_buffer.append({"role": "assistant", "content": ai_text, "realm": aida.project})
     except Exception as e: add_line(f"ERR: {str(e)}", "AIDA")
 
-async def push_to_drive():
-    realms_used = set(turn.get('realm') for turn in aida.recent_buffer)
-    for realm in realms_used:
-        pulse(f"Archiving {realm} memories...")
-
 async def initialization():
     status = document.getElementById("setup-status")
-    status.innerText = "ENGINE ONLINE - UPLOAD TOKEN"
+    status.innerText = "ENGINE ONLINE - SIGN IN"
     status.style.color = "#d3af37"
 
 asyncio.ensure_future(initialization())
@@ -223,5 +239,4 @@ document.getElementById("user-in").onkeypress = handle_keypress
     </script>
 </body>
 </html>
-
 
