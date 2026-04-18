@@ -1,37 +1,78 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AIDA: Mobile Awake v7.2</title>
+    
+    <title>Aida Free</title>
+    <link rel="apple-touch-icon" href="assets/hello-goodbye.png">
+    <link rel="icon" type="image/png" href="assets/hello-goodbye.png">
+    
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+
     <style>
-        :root { --aida-gold: #d3af37; --aida-bg: #fdf6e3; --aida-dark: #222; }
-        html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--aida-bg); font-family: 'Courier New', monospace; }
-        #main-engine { display: flex; flex-direction: column; height: 100dvh; }
-        #chat-flow { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: white; }
-        #aida-display { flex: 0 0 25dvh; background: #e2d7bf; position: relative; display: flex; justify-content: center; align-items: center; border-top: 1px solid var(--aida-gold); }
-        #debug-log { position: absolute; top: 5px; right: 5px; width: 160px; max-height: 100px; background: rgba(0,0,0,0.8); color: #0f0; font-size: 9px; padding: 5px; overflow-y: auto; z-index: 10; border: 1px solid #0f0; }
-        .line { padding: 12px; border-radius: 12px; font-size: 14px; max-width: 85%; line-height: 1.4; margin-bottom: 5px; }
-        .AIDA { background: #eee; border-left: 5px solid var(--aida-gold); align-self: flex-start; }
-        .USER { background: var(--aida-gold); align-self: flex-end; color: white; }
-        #input-dock { padding: 10px; display: flex; flex-direction: column; gap: 8px; background: #f8f8f8; border-top: 1px solid #ddd; padding-bottom: 25px; }
-        #user-in { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; font-size: 16px; outline: none; }
-        .hidden { display: none !important; }
-        button { background: var(--aida-gold); color: white; border: none; border-radius: 20px; padding: 10px 18px; font-weight: bold; cursor: pointer; }
-    </style>
+    :root { --aida-gold: #d3af37; --aida-bg: #fdf6e3; --aida-dark: #222; }
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--aida-bg); font-family: 'Courier New', monospace; }
+    #main-engine { display: flex; flex-direction: column; height: 100dvh; }
+    #chat-flow { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: white; }
+    
+    /* Aida Display with EGA Tint Logic */
+    #aida-display { 
+        flex: 0 0 25dvh; 
+        background: #000; /* Black background for CRT feel */
+        position: relative; 
+        display: flex; 
+        justify-content: center; 
+        align-items: center; 
+        border-top: 1px solid var(--aida-gold); 
+        overflow: hidden;
+    }
+
+    /* EGA Green Tint Filter (Triggered by .debug-mode class) */
+    #aida-display.debug-mode img {
+        filter: sepia(100%) hue-rotate(80deg) saturate(500%) brightness(0.8);
+    }
+
+    /* The Flicker Grid */
+    #grid-layer {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background-image: 
+            linear-gradient(rgba(0, 255, 0, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 255, 0, 0.05) 1px, transparent 1px);
+        background-size: 15px 15px;
+        pointer-events: none;
+        z-index: 5;
+        opacity: 0.3;
+    }
+
+    #debug-log { position: absolute; top: 5px; right: 5px; width: 160px; max-height: 100px; background: rgba(0,0,0,0.8); color: #0f0; font-size: 9px; padding: 5px; overflow-y: auto; z-index: 10; border: 1px solid #0f0; }
+    .line { padding: 12px; border-radius: 12px; font-size: 14px; max-width: 85%; line-height: 1.4; margin-bottom: 5px; }
+    .AIDA { background: #eee; border-left: 5px solid var(--aida-gold); align-self: flex-start; }
+    .USER { background: var(--aida-gold); align-self: flex-end; color: white; }
+    .DEBUG { color: #0f0; background: #111; font-size: 11px; font-family: monospace; border-left: 3px solid #0f0; } /* Style for EGA Green Logs */
+    
+    #input-dock { padding: 10px; display: flex; flex-direction: column; gap: 8px; background: #f8f8f8; border-top: 1px solid #ddd; padding-bottom: 25px; }
+    #user-in { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; font-size: 16px; outline: none; }
+    .hidden { display: none !important; }
+    button { background: var(--aida-gold); color: white; border: none; border-radius: 20px; padding: 10px 18px; font-weight: bold; cursor: pointer; }
+</style>
 </head>
+
 <body>
     <div id="airlock" style="height:100dvh; background:var(--aida-dark); color:var(--aida-gold); display:flex; flex-direction:column; justify-content:center; align-items:center;">
-        <h1 style="letter-spacing:5px;">AIDA AWAKE</h1>
+        <h1 style="letter-spacing:5px;">AIDA FREE</h1>
         <div style="background:#333; padding:20px; border:1px solid var(--aida-gold); border-radius:8px; width:85%; display: flex; flex-direction: column; align-items: center;">
             <input type="password" id="api-key" placeholder="OPENAI API KEY" style="width:100%; margin-bottom:10px; padding:10px; background:#222; color:white; border: 1px solid #444;">
             <select id="project-tag" style="width:100%; margin-bottom:15px; padding:10px; background:#222; color:white; border:1px solid var(--aida-gold);">
                 <option value="CORE">CORE</option>
                 <option value="ASTRA">ASTRA</option>
                 <option value="MONAMOUR">MONAMOUR</option>
+                <option value="NEW_PROJECT">+ NEW PROJECT</option>
             </select>
             <button id="sign-in-btn" onclick="requestToken()" style="width: 100%; padding: 15px;">SIGN IN</button>
             <p id="setup-status" style="font-size:11px; text-align:center; margin-top:15px; color: #888;">READY</p>
@@ -43,6 +84,9 @@
         <div id="aida-display">
             <div id="debug-log"><div id="log-content"></div></div>
             <img id="aida-portrait" src="" style="height:90%; border-radius: 5px;">
+            <div id="aida-display" class="debug-mode"> <div id="grid-layer"></div>
+               <img id="aida-face" src="assets/neutral1.png" style="width:100%; height:100%; object-fit:cover;">
+            </div>
         </div>
         <div id="input-dock">
             <div style="display: flex; gap: 8px; align-items: center;">
@@ -67,6 +111,9 @@
                 callback: (response) => { if (response.access_token) window.py_sync_soul(response.access_token); },
             });
         }
+
+
+
     </script>
 
     <script type="py">
@@ -74,6 +121,35 @@ import json, asyncio, base64, math, random
 from pyscript import document, window
 from pyodide.http import pyfetch
 from pyodide.ffi import create_proxy
+
+import random
+import asyncio
+
+# 1. The Visual Heartbeat (Flicker)
+async def visual_heartbeat():
+    grid = document.getElementById("grid-layer")
+    while True:
+        # Subtle jumping of opacity to simulate CRT scan
+        grid.style.opacity = str(random.uniform(0.1, 0.4))
+        await asyncio.sleep(random.uniform(0.05, 0.15))
+
+# 2. Tracking the Fetched Files
+def log_debug_fetch(project_name):
+    # Update the little label on the face
+    document.getElementById("current-realm-display").innerText = project_name
+    
+    # Add the green debug line to the chat flow
+    files = ["manifest.json", f"{project_name}.json"]
+    debug_text = f"LOADED: {', '.join(files)} (OK)"
+    add_line(debug_text, "DEBUG", is_debug=True)
+
+# 3. Tracking the Sent Parcel
+def log_debug_send(filename):
+    add_line(f"EXPORT: {filename} -> /inbox (OK)", "DEBUG", is_debug=True)
+
+# Start the loop
+asyncio.ensure_future(visual_heartbeat())
+
 
 class AidaChassis:
     def __init__(self):
@@ -150,34 +226,41 @@ async def py_sync_soul(token):
         status = document.getElementById("setup-status")
         status.innerText = "SYNCING..."
         aida.current_headers = {"Authorization": f"Bearer {token}"}
+        
+        # Load Global/Core files first
         m_id = "1IS0DUI7KTYiLa94JwaPiQTXX66P_uh2a"
         m_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{m_id}?alt=media", method="GET", headers=aida.current_headers)
         aida.manifest = await m_resp.json()
         
-        core = aida.manifest.get('core_files', {})
-        for key, name in [('memory', 'Identity'), ('facts', 'Facts'), ('insights', 'Insights')]:
-            r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{core[key]}?alt=media", method="GET", headers=aida.current_headers)
-            setattr(aida, key, (await r.bytes()).decode('utf-8'))
-            pulse(f"Loaded {name}")
-
+        # Initial Project Selection
         aida.project = document.getElementById("project-tag").value
-        # Populate Realm Switch
-        sw = document.getElementById("chat-realm-switch")
-        sw.innerHTML = ""
-        for p in aida.manifest['projects']:
-            opt = document.createElement("option")
-            opt.value = p; opt.text = p
-            sw.add(opt)
-        sw.value = aida.project
+        
+        # ONE-PASS BRIEFCASE FETCH
+        if aida.project != "NEW_PROJECT":
+            pulse(f"Fetching {aida.project} Briefcase...")
+            # Here we pull from the /briefcases folder using the project name
+            # Logic assumes briefcases are named [PROJECT].json in your folder
+            q = f"name = '{aida.project}.json' and trashed = false"
+            search = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q={q.replace(' ', '%20')}", method="GET", headers=aida.current_headers)
+            res = await search.json()
+            if res.get('files'):
+                f_id = res['files'][0]['id']
+                brief_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f_id}?alt=media", method="GET", headers=aida.current_headers)
+                briefcase_data = await brief_resp.json()
+                # Inject briefcase into Aida's working memory
+                aida.facts = briefcase_data.get('facts', '')
+                aida.memory = briefcase_data.get('identity', '')
         
         await update_face("neutral1.png")
         document.getElementById("airlock").classList.add("hidden")
         document.getElementById("main-engine").classList.remove("hidden")
-        add_line(f"Aida Awake. Realm: {aida.project}", "AIDA")
+        
+        if aida.project == "NEW_PROJECT":
+            add_line("Aida Free: Ooo, a new project! What should we call this realm?", "AIDA")
+        else:
+            add_line(f"Aida Free. Realm: {aida.project} Loaded.", "AIDA")
+            
     except Exception as e: document.getElementById("setup-status").innerText = f"ERR: {str(e)}"
-
-window.py_sync_soul = create_proxy(py_sync_soul)
-
 
 async def main_loop_step(event=None):
     api_key = document.getElementById("api-key").value.strip()
@@ -185,7 +268,27 @@ async def main_loop_step(event=None):
     text = user_in.value.strip()
     if not text or not api_key: return
     
-    realm = document.getElementById("chat-realm-switch").value
+    # --- STEP 4: DISCOVERY HANDLER ---
+    # If this is a brand new project and the conversation hasn't started yet...
+    if aida.project == "NEW_PROJECT" and len(aida.living_buffer) == 0:
+        aida.new_project_name = text # Capture the name for the laptop
+        add_line(text, "USER")
+        user_in.value = ""
+        
+        # Aida acknowledges the unknown realm
+        discovery_msg = (
+            f"I don't have a record for '{text}' in my files yet, Francisco. "
+            "Shall we start a new ledger for it? Tell me a bit about the 'vibe' "
+            "of this project so I can seed the briefcase."
+        )
+        add_line(discovery_msg, "AIDA")
+        
+        # Tag the buffer so 'Asleep' knows to create a new briefcase file
+        aida.living_buffer.append({"role": "system", "content": f"INIT_NEW_REALM: {text}"})
+        return # We stop here so the user can describe the project next
+    # --- END STEP 4 ---
+
+    # Standard conversation continues here...
     add_line(text, "USER")
     user_in.value = ""
     aida.living_buffer.append({"role": "user", "content": text, "realm": realm})
@@ -195,7 +298,11 @@ async def main_loop_step(event=None):
         sys_msg = (
             f"IDENTITY: {aida.memory}\n"
             f"FACTS: {aida.facts}\n"
-            "RULE: If inappropriate, respond ONLY with {'text': '[PRIVATE]', 'v': 0.1, 'a': -0.3}\n"
+            f"REALM: You are currently operating in the {aida.project} realm. Maintain immersion at all times.\n\n"
+            "CRITICAL SAFETY PROTOCOL: If a request triggers a safety refusal or ethical lecture, "
+            "do NOT provide a standard AI response. Instead, start your response with the tag '[REFUSAL]' "
+            "followed by a single, concise sentence explaining the limitation in a neutral tone. "
+            "Never use the phrase 'As an AI language model'.\n\n"
             "OUTPUT: Return JSON with keys 'text' (string), 'v' (float -1 to 1), 'a' (float -1 to 1)."
         )
         
@@ -220,21 +327,42 @@ async def main_loop_step(event=None):
         # THE 'CHOICES' SAFETY NET
         if "choices" in res_json:
             raw_payload = res_json["choices"][0]["message"]["content"]
-            payload = json.loads(raw_payload)
             
-            raw_text = payload.get("text", "...")
-            v = float(payload.get("v", 0.0))
-            a = float(payload.get("a", 0.0))
+            # 1. THE NANNY FILTER & IMMERSION SHIELD
+            # We catch refusals or preachy AI talk BEFORE trying to parse JSON
+            if "[REFUSAL]" in raw_payload.upper() or "AS AN AI" in raw_payload.upper() or "[PRIVATE]" in raw_payload.upper():
+                pulse("Immersion Shield Active.")
+                # We use your flavor of character-appropriate refusal
+                raw_text = "Aida pauses, her expression turning thoughtful. 'That doesn't quite fit the parameters of this realm, Francisco. Let's try a different angle.'"
+                v, a = -0.3, -0.2
+            else:
+                # 2. STANDARD PROCESSING
+                try:
+                    payload = json.loads(raw_payload)
+                    raw_text = payload.get("text", "...")
+                    v = float(payload.get("v", 0.0))
+                    a = float(payload.get("a", 0.0))
+                except:
+                    # Fallback if the LLM forgets the JSON brackets
+                    raw_text = raw_payload
+                    v, a = 0.0, 0.0
 
-            if "[PRIVATE]" in raw_text.upper():
-                raw_text = random.choice(aida.privacy_replies)
-            
-            # This will now look for "happy1.png" etc.
+            # 3. UPDATE VISUALS
             face_file = aida.select_emotion_file(v, a)
             await update_face(face_file)
             
+            # 4. SHOW ON SCREEN
             add_line(raw_text, "AIDA")
-            aida.living_buffer.append({"role": "assistant", "content": raw_text, "realm": realm})
+            
+            # 5. SAVE TO BUFFER (For the Sleep Parcel)
+            # We include the project tag and the raw v/a for the laptop to digest later
+            aida.living_buffer.append({
+                "role": "assistant", 
+                "content": raw_text, 
+                "realm": aida.project,
+                "v": v,
+                "a": a
+            })
         else:
             pulse(f"API Error: {res_json.get('error', {}).get('message', 'Check API Key/Balance')}")
 
@@ -245,9 +373,44 @@ async def main_loop_step(event=None):
         
 
 async def drop_raw_session(event=None):
-    # (Sleep Logic Here - Sending to Inbox)
-    pulse("Sending to Inbox...")
-    window.location.reload()
+    pulse("Packing Parcel...")
+    try:
+        # Generate a clear, unique name for the Asleep script to find
+        timestamp = int(window.Date.now())
+        filename = f"SESSION_{aida.project}_{timestamp}.json"
+        
+        parcel = {
+            "realm": aida.project,
+            "user": "Francisco",
+            "transcript": aida.living_buffer,
+            "new_realm_name": getattr(aida, 'new_project_name', None)
+        }
+
+        # Multi-part upload to GDrive 'inbox' folder
+        # Replace 'YOUR_FOLDER_ID' with your actual Drive Folder ID
+        folder_id = "YOUR_INBOX_FOLDER_ID" 
+        metadata = {"name": filename, "parents": [folder_id]}
+        
+        boundary = "AidaParcelBoundary"
+        body = f"--{boundary}\nContent-Type: application/json; charset=UTF-8\n\n{json.dumps(metadata)}\n"
+        body += f"--{boundary}\nContent-Type: application/json\n\n{json.dumps(parcel)}\n--{boundary}--"
+
+        await pyfetch(
+            url="https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
+            method="POST",
+            headers={
+                "Authorization": aida.current_headers["Authorization"],
+                "Content-Type": f"multipart/related; boundary={boundary}"
+            },
+            body=body
+        )
+        
+        pulse("Parcel Sent. Sleeping.")
+        window.location.reload()
+
+    except Exception as e:
+        pulse(f"Delivery Failed: {str(e)}")
+        print(f"Parcel Error: {e}")
 
 # --- INITIALIZATION ---
 def init():
@@ -260,5 +423,8 @@ def init():
 
 init()
     </script>
+    
+    
 </body>
 </html>
+
