@@ -178,6 +178,7 @@ async def py_sync_soul(token):
 
 window.py_sync_soul = create_proxy(py_sync_soul)
 
+
 async def main_loop_step(event=None):
     api_key = document.getElementById("api-key").value.strip()
     user_in = document.getElementById("user-in")
@@ -190,23 +191,58 @@ async def main_loop_step(event=None):
     aida.living_buffer.append({"role": "user", "content": text, "realm": realm})
     
     try:
-        prompt = f"IDENTITY: {aida.memory}\nFACTS: {aida.facts}\nNANNY: If inappropriate say only [PRIVATE]\nEMOTION: Provide v (-1,1) and a (-1,1)\n\n"
-        for turn in aida.living_buffer[-5:]: prompt += f"{turn['role']}: {turn['content']}\n"
+        # CLEANER, STRICTER PROMPT
+        sys_msg = (
+            f"IDENTITY: {aida.memory}\n"
+            f"FACTS: {aida.facts}\n"
+            "RULE: If inappropriate, respond ONLY with {'text': '[PRIVATE]', 'v': 0.1, 'a': -0.3}\n"
+            "OUTPUT: Return JSON with keys 'text' (string), 'v' (float -1 to 1), 'a' (float -1 to 1)."
+        )
         
-        resp = await pyfetch(url="https://api.openai.com/v1/chat/completions", method="POST",
-                             headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
-                             body=json.dumps({"model": "gpt-4o", "messages": [{"role": "system", "content": prompt}], "response_format": {"type": "json_object"}}))
-        payload = json.loads((await resp.json())["choices"][0]["message"]["content"])
+        # WE ONLY SEND THE LAST 6 TURNS TO KEEP IT FAST
+        history = [{"role": "system", "content": sys_msg}]
+        for turn in aida.living_buffer[-6:]:
+            history.append({"role": turn["role"], "content": turn["content"]})
+
+        resp = await pyfetch(
+            url="https://api.openai.com/v1/chat/completions", 
+            method="POST",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
+            body=json.dumps({
+                "model": "gpt-4o", 
+                "messages": history, 
+                "response_format": {"type": "json_object"}
+            })
+        )
         
-        raw, v, a = payload.get("text", "..."), payload.get("v", 0.0), payload.get("a", 0.0)
+        res_json = await resp.json()
         
-        if "[PRIVATE]" in raw.upper():
-            raw = random.choice(aida.privacy_replies); v, a = 0.1, -0.3
+        # THE 'CHOICES' SAFETY NET
+        if "choices" in res_json:
+            raw_payload = res_json["choices"][0]["message"]["content"]
+            payload = json.loads(raw_payload)
             
-        await update_face(aida.select_emotion_file(v, a))
-        add_line(raw, "AIDA")
-        aida.living_buffer.append({"role": "assistant", "content": raw, "realm": realm})
-    except Exception as e: add_line(f"CHAT ERR: {str(e)}", "AIDA")
+            raw_text = payload.get("text", "...")
+            v = float(payload.get("v", 0.0))
+            a = float(payload.get("a", 0.0))
+
+            if "[PRIVATE]" in raw_text.upper():
+                raw_text = random.choice(aida.privacy_replies)
+            
+            # This will now look for "happy1.png" etc.
+            face_file = aida.select_emotion_file(v, a)
+            await update_face(face_file)
+            
+            add_line(raw_text, "AIDA")
+            aida.living_buffer.append({"role": "assistant", "content": raw_text, "realm": realm})
+        else:
+            pulse(f"API Error: {res_json.get('error', {}).get('message', 'Check API Key/Balance')}")
+
+    except Exception as e: 
+        add_line(f"ENGINE ERR: {str(e)}", "AIDA")
+        pulse(f"Trace: {e}")
+        
+        
 
 async def drop_raw_session(event=None):
     # (Sleep Logic Here - Sending to Inbox)
