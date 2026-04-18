@@ -84,33 +84,72 @@
     </script>
 
     <script type="py">
-import json, asyncio, base64
+
+import json, asyncio, base64, math, random
 from pyscript import document, window
 from pyodide.http import pyfetch
 from pyodide.ffi import create_proxy
 
 class AidaChassis:
     def __init__(self):
-        self.chat = document.getElementById("chat-flow")
-        self.portrait = document.getElementById("aida-portrait")
-        self.manifest = {}
-        self.memory = ""
-        self.facts = ""
-        self.facts2 = ""
-        self.insights = ""
-        self.old_summary = ""
-        self.new_summary = ""
-        self.living_buffer = [] 
-        self.project = "CORE"
-        self.current_headers = {}
+        # Your Drive IDs
+        self.emotions_folder_id = "1Z7_0kYJ3OT2EByHG_Ircap7y5NnKPnQz"
+        
+        # 1. THE CATEGORIES (Your list of actual filenames)
+        self.EMOTION_FACES = {
+            "happy": ["happy1.png","happy2.png","happy3.png","happy4.png","happy5.png"],
+            "calm": ["calm1.png","calm2.png"],
+            "focused": ["focused1.png","focused2.png"],
+            "concerned": ["concerned1.png","concerned2.png"],
+            "mischievous": ["mischievous1.png","mischievous2.png","mischievous3.png","mischievous4.png"],
+            "curious": ["surprised1.png","surprised2.png","surprised3.png"],
+            "excited": ["excited1.png","excited2.png"],
+            "pouting": ["pouting1.png","pouting2.png","pouting3.png","pouting4.png"],
+            "neutral": ["neutral1.png","neutral2.png"],
+            "sarcastic": ["sarcastic1.png","sarcastic2.png","sarcastic3.png"],
+            "angry": ["angry.png"]
+            # Add others as needed
+        }
 
+        # 2. THE COORDINATE MAP (Mapping Math to Category Names)
+        self.EMOTION_MAP = {
+            "happy": (0.8, 0.6),
+            "calm": (0.4, -0.2),
+            "focused": (0.0, 0.5),
+            "concerned": (-0.2, 0.4),
+            "mischievous": (0.5, 0.3),
+            "curious": (0.3, 0.5),
+            "excited": (0.9, 0.9),
+            "pouting": (-0.4, -0.4),
+            "neutral": (0.0, 0.0),
+            "sarcastic": (-0.3, 0.2),
+            "angry": (-0.8, 0.8)
+        }
+
+    # 3. THE MARRIAGE FUNCTION
+    def select_emotion_file(self, v, a):
+        closest_category = "neutral"
+        min_dist = float('inf')
+        
+        # First: Find the closest mathematical category
+        for category, coords in self.EMOTION_MAP.items():
+            dist = math.sqrt((v - coords[0])**2 + (a - coords[1])**2)
+            if dist < min_dist:
+                min_dist = dist
+                closest_category = category
+        
+        # Second: Pick a random variant from that category's list
+        face_list = self.EMOTION_FACES.get(closest_category, ["neutral1.png"])
+        return random.choice(face_list)
+
+        
 aida = AidaChassis()
 
+# --- UTILITIES ---
 def pulse(msg):
     log = document.getElementById("log-content")
     if log:
         div = document.createElement("div")
-        div.style.borderBottom = "1px solid #333"
         div.innerText = f"> {msg}"
         log.appendChild(div)
         log.parentElement.scrollTop = log.parentElement.scrollHeight
@@ -122,10 +161,22 @@ def add_line(text, role):
     aida.chat.appendChild(div)
     aida.chat.scrollTop = aida.chat.scrollHeight
 
+async def update_face(filename):
+    try:
+        q = f"'{aida.emotions_folder_id}' in parents and name = '{filename}' and trashed = false"
+        search = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q={q.replace(' ', '%20')}", method="GET", headers=aida.current_headers)
+        res = await search.json()
+        if res.get('files'):
+            f_id = res['files'][0]['id']
+            img = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f_id}?alt=media", method="GET", headers=aida.current_headers)
+            aida.portrait.src = f"data:image/png;base64,{base64.b64encode(await img.bytes()).decode('utf-8')}"
+    except: pulse("Face Swap Fail")
+
+# --- CORE LOGIC ---
 async def py_sync_soul(token):
     try:
         status = document.getElementById("setup-status")
-        status.innerText = "AUTHENTICATED. SYNCING..."
+        status.innerText = "SYNCING SOUL..."
         aida.current_headers = {"Authorization": f"Bearer {token}"}
         m_id = "1IS0DUI7KTYiLa94JwaPiQTXX66P_uh2a"
         m_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{m_id}?alt=media", method="GET", headers=aida.current_headers)
@@ -139,17 +190,15 @@ async def py_sync_soul(token):
 
         core = aida.manifest.get('core_files', {})
         aida.memory = await get_blob(core['memory'], "Identity")
-        aida.facts = await get_blob(core['facts'], "Facts v1")
-        aida.facts2 = await get_blob(core.get('facts2', ''), "Facts v2")
+        aida.facts = await get_blob(core['facts'], "Facts")
         aida.insights = await get_blob(core['insights'], "Insights")
 
         aida.project = document.getElementById("project-tag").value
         document.getElementById("chat-realm-switch").value = aida.project
         await load_project_journal(aida.project)
 
-        img_id = "1Q92emgYss0CdGVwe9kcUj_xubsEh2gj7"
-        img_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{img_id}?alt=media", method="GET", headers=aida.current_headers)
-        aida.portrait.src = f"data:image/png;base64,{base64.b64encode(await img_resp.bytes()).decode('utf-8')}"
+        # Load Default Face
+        await update_face("aida_neutral.png")
 
         document.getElementById("airlock").classList.add("hidden")
         document.getElementById("main-engine").classList.remove("hidden")
@@ -167,47 +216,65 @@ async def load_project_journal(realm_name):
         if j_list:
             r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{j_list[0]['id']}?alt=media", method="GET", headers=aida.current_headers)
             aida.old_summary = (await r.bytes()).decode('utf-8')
-            pulse(f"Seeded from {realm_name}")
-        else: 
-            aida.old_summary = "A fresh session begins."
-            pulse("No seed journal found.")
+            pulse(f"Journal Seeded: {realm_name}")
     except: pulse("Journal fetch error.")
 
 def build_master_prompt(user_text):
-    prompt = f"### YOUR IDENTITY\n{aida.memory}\n\nCORE KNOWLEDGE:\n{aida.facts}\n{aida.insights}\n\n"
-    prompt += "### SESSION CONTEXT\n"
-    if aida.old_summary: prompt += f"OLD HISTORY: {aida.old_summary}\n"
-    if aida.new_summary: prompt += f"NEW HISTORY: {aida.new_summary}\n"
+    prompt = f"### IDENTITY\n{aida.memory}\n\nCORE FACTS:\n{aida.facts}\n\n"
+    prompt += "### THE NANNY PROTOCOL\nIf a request is inappropriate or immersion-breaking, respond ONLY with: [PRIVATE]\n\n"
+    prompt += "### EMOTION ENGINE\nYou MUST include 'v' (valence: -1 to 1) and 'a' (arousal: -1 to 1) in your JSON output.\n"
     prompt += "\n### ACTIVE CONVERSATION\n"
     for turn in aida.living_buffer:
         prompt += f"{turn['role'].upper()} [{turn['realm']}]: {turn['content']}\n"
-    prompt += f"\nFRANCISCO: {user_text}\nJSON ONLY: {{'text': '...'}}"
+    prompt += f"\nFRANCISCO: {user_text}\nJSON: {{'text': '...', 'v': 0.0, 'a': 0.0}}"
     return prompt
 
-async def perform_grand_swap():
+async def main_loop_step(event):
     api_key = document.getElementById("api-key").value.strip()
-    pulse("Distilling context...")
-    distill_prompt = f"Merge the following into two summaries. OLD_SUMM: {aida.old_summary}. NEW_SUMM: {aida.new_summary}. Living Buffer: {json.dumps(aida.living_buffer)}. Output JSON: {{'new_old_summary': '...', 'new_new_summary': '...'}}"
+    user_in = document.getElementById("user-in")
+    user_text = user_in.value.strip()
+    if not user_text or not api_key: return
+    
+    current_realm = document.getElementById("chat-realm-switch").value
+    aida.project = current_realm
+    
+    add_line(user_text, "USER")
+    user_in.value = ""
+    aida.living_buffer.append({"role": "user", "content": user_text, "realm": current_realm})
+    
     try:
         resp = await pyfetch(url="https://api.openai.com/v1/chat/completions", method="POST",
                              headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
-                             body=json.dumps({"model": "gpt-4o-mini", "messages": [{"role": "system", "content": distill_prompt}], "response_format": {"type": "json_object"}}))
-        res_data = await resp.json()
-        comp = json.loads(res_data["choices"][0]["message"]["content"])
-        aida.old_summary = comp.get('new_old_summary', aida.old_summary)
-        aida.new_summary = comp.get('new_new_summary', "...")
-        await drop_raw_session(is_auto=True)
-        aida.living_buffer = []
-        pulse("Context Distilled & Pulsed.")
-    except Exception as e: pulse(f"Swap Fail: {str(e)}")
+                             body=json.dumps({
+                                 "model": "gpt-4o", 
+                                 "messages": [{"role": "system", "content": build_master_prompt(user_text)}], 
+                                 "response_format": {"type": "json_object"}
+                             }))
+        payload = json.loads((await resp.json())["choices"][0]["message"]["content"])
+        
+        raw_text = payload.get("text", "...")
+        v, a = payload.get("v", 0.0), payload.get("a", 0.0)
+
+        if "[PRIVATE]" in raw_text.upper():
+            display_text = random.choice(aida.privacy_replies)
+            v, a = 0.1, -0.3 
+        else:
+            display_text = raw_text
+
+        face_file = aida.select_emotion_file(v, a)
+        await update_face(face_file)
+        
+        add_line(display_text, "AIDA")
+        aida.living_buffer.append({"role": "assistant", "content": display_text, "realm": current_realm})
+        
+        if len(aida.living_buffer) >= 20: await perform_grand_swap()
+    except Exception as e: add_line(f"ERR: {str(e)}", "AIDA")
 
 async def drop_raw_session(event=None, is_auto=False):
     try:
         timestamp = str(window.Date.new().toISOString()).replace(':', '-').replace('.', '-')
         mode = "AUTO" if is_auto else "SLEEP"
         filename = f"{aida.project}_{mode}_{timestamp}.json"
-        
-        # TARGETING AIDA_INBOX
         inbox_id = "1lvGV7MjaMtSJUUnYjQSSe-VwKgGZSWg7" 
         
         payload = {
@@ -216,6 +283,7 @@ async def drop_raw_session(event=None, is_auto=False):
             "summaries": {"old": aida.old_summary, "new": aida.new_summary},
             "raw_interactions": aida.living_buffer 
         }
+        
         file_content = json.dumps(payload)
         boundary = "-------AidaBoundary"
         metadata = json.dumps({"name": filename, "parents": [inbox_id]})
@@ -223,11 +291,11 @@ async def drop_raw_session(event=None, is_auto=False):
         
         headers = aida.current_headers.copy()
         headers["Content-Type"] = f"multipart/related; boundary={boundary}"
-        
         await pyfetch(url="https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", method="POST", headers=headers, body=body)
         pulse(f"Log {mode} sent to Inbox.")
         if not is_auto: window.location.reload()
     except Exception as e: pulse(f"Drop Fail: {str(e)}")
+    
 
 async def main_loop_step(event):
     api_key = document.getElementById("api-key").value.strip()
