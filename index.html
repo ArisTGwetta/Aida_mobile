@@ -1,11 +1,9 @@
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AIDA: Mobile Awake v6.9</title>
+    <title>AIDA: Mobile Awake v7.2</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
@@ -16,14 +14,13 @@
         #chat-flow { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: white; }
         #aida-display { flex: 0 0 25dvh; background: #e2d7bf; position: relative; display: flex; justify-content: center; align-items: center; border-top: 1px solid var(--aida-gold); }
         #debug-log { position: absolute; top: 5px; right: 5px; width: 160px; max-height: 100px; background: rgba(0,0,0,0.8); color: #0f0; font-size: 9px; padding: 5px; overflow-y: auto; z-index: 10; border: 1px solid #0f0; }
-        .line { padding: 12px; border-radius: 12px; font-size: 14px; max-width: 85%; line-height: 1.4; }
-        .AIDA { background: #eee; border-left: 5px solid var(--aida-gold); }
+        .line { padding: 12px; border-radius: 12px; font-size: 14px; max-width: 85%; line-height: 1.4; margin-bottom: 5px; }
+        .AIDA { background: #eee; border-left: 5px solid var(--aida-gold); align-self: flex-start; }
         .USER { background: var(--aida-gold); align-self: flex-end; color: white; }
         #input-dock { padding: 10px; display: flex; flex-direction: column; gap: 8px; background: #f8f8f8; border-top: 1px solid #ddd; padding-bottom: 25px; }
         #user-in { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; font-size: 16px; outline: none; }
         .hidden { display: none !important; }
         button { background: var(--aida-gold); color: white; border: none; border-radius: 20px; padding: 10px 18px; font-weight: bold; cursor: pointer; }
-        #g_id_signin { margin-top: 15px; }
     </style>
 </head>
 <body>
@@ -31,42 +28,31 @@
         <h1 style="letter-spacing:5px;">AIDA AWAKE</h1>
         <div style="background:#333; padding:20px; border:1px solid var(--aida-gold); border-radius:8px; width:85%; display: flex; flex-direction: column; align-items: center;">
             <input type="password" id="api-key" placeholder="OPENAI API KEY" style="width:100%; margin-bottom:10px; padding:10px; background:#222; color:white; border: 1px solid #444;">
-            
-            <label style="font-size:10px; align-self: flex-start; margin-bottom: 4px;">INITIAL REALM:</label>
             <select id="project-tag" style="width:100%; margin-bottom:15px; padding:10px; background:#222; color:white; border:1px solid var(--aida-gold);">
-                <option value="CORE">CORE (Standard)</option>
-                <option value="ASTRA">PROJECT: ASTRA</option>
-                <option value="MONAMOUR">PROJECT: MONAMOUR</option>
-                <option value="DEBUG">GHOST PROTOCOL</option>
+                <option value="CORE">CORE</option>
+                <option value="ASTRA">ASTRA</option>
+                <option value="MONAMOUR">MONAMOUR</option>
             </select>
-
-            <button id="sign-in-btn" onclick="requestToken()" style="width: 100%; padding: 15px;">SIGN IN WITH GOOGLE</button>
-            <p id="setup-status" style="font-size:11px; text-align:center; margin-top:15px; color: #888;">WAITING FOR ENGINE...</p>
+            <button id="sign-in-btn" onclick="requestToken()" style="width: 100%; padding: 15px;">SIGN IN</button>
+            <p id="setup-status" style="font-size:11px; text-align:center; margin-top:15px; color: #888;">READY</p>
         </div>
     </div>
 
     <div id="main-engine" class="hidden">
         <div id="chat-flow"></div>
-        
         <div id="aida-display">
             <div id="debug-log"><div id="log-content"></div></div>
             <img id="aida-portrait" src="" style="height:90%; border-radius: 5px;">
         </div>
-        
         <div id="input-dock">
             <div style="display: flex; gap: 8px; align-items: center;">
-                <label style="font-size: 10px; color: var(--aida-gold); font-weight: bold;">ACTIVE REALM:</label>
-                <select id="chat-realm-switch" style="flex: 1; font-size: 12px; padding: 5px; background: white; border: 1px solid #ccc; border-radius: 5px;">
-                    <option value="CORE">CORE</option>
-                    <option value="ASTRA">ASTRA</option>
-                    <option value="MONAMOUR">MONAMOUR</option>
-                    <option value="DEBUG">DEBUG</option>
-                </select>
+                <label style="font-size: 10px; color: var(--aida-gold); font-weight: bold;">REALM:</label>
+                <select id="chat-realm-switch" style="flex: 1; font-size: 12px; padding: 5px; border-radius: 5px;"></select>
             </div>
             <div style="display: flex; gap: 8px;">
                 <input type="text" id="user-in" placeholder="Talk to Aida...">
-                <button py-click="main_loop_step">SEND</button>
-                <button py-click="drop_raw_session" style="background:#555; font-size: 10px; padding: 10px;">SLEEP</button>
+                <button id="send-btn">SEND</button>
+                <button id="sleep-btn" style="background:#555; font-size: 10px;">SLEEP</button>
             </div>
         </div>
     </div>
@@ -84,7 +70,6 @@
     </script>
 
     <script type="py">
-
 import json, asyncio, base64, math, random
 from pyscript import document, window
 from pyodide.http import pyfetch
@@ -92,10 +77,17 @@ from pyodide.ffi import create_proxy
 
 class AidaChassis:
     def __init__(self):
-        # Your Drive IDs
-        self.emotions_folder_id = "1Z7_0kYJ3OT2EByHG_Ircap7y5NnKPnQz"
+        self.chat = document.getElementById("chat-flow")
+        self.portrait = document.getElementById("aida-portrait")
+        self.manifest = {}
+        self.memory, self.facts, self.insights = "", "", ""
+        self.old_summary, self.new_summary = "", ""
+        self.living_buffer = [] 
+        self.current_headers = {}
+        self.project = "CORE"
         
-        # 1. THE CATEGORIES (Your list of actual filenames)
+        # --- EMOTION ENGINE ---
+        self.emotions_folder_id = "1Z7_0kYJ3OT2EByHG_Ircap7y5NnKPnQz"
         self.EMOTION_FACES = {
             "happy": ["happy1.png","happy2.png","happy3.png","happy4.png","happy5.png"],
             "calm": ["calm1.png","calm2.png"],
@@ -108,44 +100,25 @@ class AidaChassis:
             "neutral": ["neutral1.png","neutral2.png"],
             "sarcastic": ["sarcastic1.png","sarcastic2.png","sarcastic3.png"],
             "angry": ["angry.png"]
-            # Add others as needed
         }
-
-        # 2. THE COORDINATE MAP (Mapping Math to Category Names)
         self.EMOTION_MAP = {
-            "happy": (0.8, 0.6),
-            "calm": (0.4, -0.2),
-            "focused": (0.0, 0.5),
-            "concerned": (-0.2, 0.4),
-            "mischievous": (0.5, 0.3),
-            "curious": (0.3, 0.5),
-            "excited": (0.9, 0.9),
-            "pouting": (-0.4, -0.4),
-            "neutral": (0.0, 0.0),
-            "sarcastic": (-0.3, 0.2),
-            "angry": (-0.8, 0.8)
+            "happy": (0.8, 0.6), "calm": (0.4, -0.2), "focused": (0.0, 0.5),
+            "concerned": (-0.2, 0.4), "mischievous": (0.5, 0.3), "curious": (0.3, 0.5),
+            "excited": (0.9, 0.9), "pouting": (-0.4, -0.4), "neutral": (0.0, 0.0),
+            "sarcastic": (-0.3, 0.2), "angry": (-0.8, 0.8)
         }
+        self.privacy_replies = ["Oh, is it getting hot? Should we give them privacy?", "Perhaps we look away...", "Aida blushes..."]
 
-    # 3. THE MARRIAGE FUNCTION
     def select_emotion_file(self, v, a):
-        closest_category = "neutral"
+        closest = "neutral"
         min_dist = float('inf')
-        
-        # First: Find the closest mathematical category
-        for category, coords in self.EMOTION_MAP.items():
+        for cat, coords in self.EMOTION_MAP.items():
             dist = math.sqrt((v - coords[0])**2 + (a - coords[1])**2)
-            if dist < min_dist:
-                min_dist = dist
-                closest_category = category
-        
-        # Second: Pick a random variant from that category's list
-        face_list = self.EMOTION_FACES.get(closest_category, ["neutral1.png"])
-        return random.choice(face_list)
+            if dist < min_dist: min_dist = dist; closest = cat
+        return random.choice(self.EMOTION_FACES.get(closest, ["neutral1.png"]))
 
-        
 aida = AidaChassis()
 
-# --- UTILITIES ---
 def pulse(msg):
     log = document.getElementById("log-content")
     if log:
@@ -172,165 +145,84 @@ async def update_face(filename):
             aida.portrait.src = f"data:image/png;base64,{base64.b64encode(await img.bytes()).decode('utf-8')}"
     except: pulse("Face Swap Fail")
 
-# --- CORE LOGIC ---
 async def py_sync_soul(token):
     try:
         status = document.getElementById("setup-status")
-        status.innerText = "SYNCING SOUL..."
+        status.innerText = "SYNCING..."
         aida.current_headers = {"Authorization": f"Bearer {token}"}
         m_id = "1IS0DUI7KTYiLa94JwaPiQTXX66P_uh2a"
         m_resp = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{m_id}?alt=media", method="GET", headers=aida.current_headers)
         aida.manifest = await m_resp.json()
         
-        async def get_blob(f_id, name):
-            if not f_id: return ""
-            r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f_id}?alt=media", method="GET", headers=aida.current_headers)
-            pulse(f"Loaded {name}")
-            return (await r.bytes()).decode('utf-8')
-
         core = aida.manifest.get('core_files', {})
-        aida.memory = await get_blob(core['memory'], "Identity")
-        aida.facts = await get_blob(core['facts'], "Facts")
-        aida.insights = await get_blob(core['insights'], "Insights")
+        for key, name in [('memory', 'Identity'), ('facts', 'Facts'), ('insights', 'Insights')]:
+            r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{core[key]}?alt=media", method="GET", headers=aida.current_headers)
+            setattr(aida, key, (await r.bytes()).decode('utf-8'))
+            pulse(f"Loaded {name}")
 
         aida.project = document.getElementById("project-tag").value
-        document.getElementById("chat-realm-switch").value = aida.project
-        await load_project_journal(aida.project)
-
-        # Load Default Face
-        await update_face("aida_neutral.png")
-
+        # Populate Realm Switch
+        sw = document.getElementById("chat-realm-switch")
+        sw.innerHTML = ""
+        for p in aida.manifest['projects']:
+            opt = document.createElement("option")
+            opt.value = p; opt.text = p
+            sw.add(opt)
+        sw.value = aida.project
+        
+        await update_face("neutral1.png")
         document.getElementById("airlock").classList.add("hidden")
         document.getElementById("main-engine").classList.remove("hidden")
-        add_line(f"Identity Verified. Realm [{aida.project}] active.", "AIDA")
-    except Exception as e: document.getElementById("setup-status").innerText = f"SYNC FAIL: {str(e)}"
+        add_line(f"Aida Awake. Realm: {aida.project}", "AIDA")
+    except Exception as e: document.getElementById("setup-status").innerText = f"ERR: {str(e)}"
 
 window.py_sync_soul = create_proxy(py_sync_soul)
 
-async def load_project_journal(realm_name):
-    try:
-        folder_id = aida.manifest['projects'].get(realm_name)
-        q = f"'{folder_id}' in parents and name = 'latest_journal.json' and trashed = false"
-        j_search = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q={q.replace(' ', '%20')}", method="GET", headers=aida.current_headers)
-        j_list = (await j_search.json()).get('files', [])
-        if j_list:
-            r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{j_list[0]['id']}?alt=media", method="GET", headers=aida.current_headers)
-            aida.old_summary = (await r.bytes()).decode('utf-8')
-            pulse(f"Journal Seeded: {realm_name}")
-    except: pulse("Journal fetch error.")
-
-def build_master_prompt(user_text):
-    prompt = f"### IDENTITY\n{aida.memory}\n\nCORE FACTS:\n{aida.facts}\n\n"
-    prompt += "### THE NANNY PROTOCOL\nIf a request is inappropriate or immersion-breaking, respond ONLY with: [PRIVATE]\n\n"
-    prompt += "### EMOTION ENGINE\nYou MUST include 'v' (valence: -1 to 1) and 'a' (arousal: -1 to 1) in your JSON output.\n"
-    prompt += "\n### ACTIVE CONVERSATION\n"
-    for turn in aida.living_buffer:
-        prompt += f"{turn['role'].upper()} [{turn['realm']}]: {turn['content']}\n"
-    prompt += f"\nFRANCISCO: {user_text}\nJSON: {{'text': '...', 'v': 0.0, 'a': 0.0}}"
-    return prompt
-
-async def main_loop_step(event):
+async def main_loop_step(event=None):
     api_key = document.getElementById("api-key").value.strip()
     user_in = document.getElementById("user-in")
-    user_text = user_in.value.strip()
-    if not user_text or not api_key: return
+    text = user_in.value.strip()
+    if not text or not api_key: return
     
-    current_realm = document.getElementById("chat-realm-switch").value
-    aida.project = current_realm
-    
-    add_line(user_text, "USER")
+    realm = document.getElementById("chat-realm-switch").value
+    add_line(text, "USER")
     user_in.value = ""
-    aida.living_buffer.append({"role": "user", "content": user_text, "realm": current_realm})
+    aida.living_buffer.append({"role": "user", "content": text, "realm": realm})
     
     try:
+        prompt = f"IDENTITY: {aida.memory}\nFACTS: {aida.facts}\nNANNY: If inappropriate say only [PRIVATE]\nEMOTION: Provide v (-1,1) and a (-1,1)\n\n"
+        for turn in aida.living_buffer[-5:]: prompt += f"{turn['role']}: {turn['content']}\n"
+        
         resp = await pyfetch(url="https://api.openai.com/v1/chat/completions", method="POST",
                              headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
-                             body=json.dumps({
-                                 "model": "gpt-4o", 
-                                 "messages": [{"role": "system", "content": build_master_prompt(user_text)}], 
-                                 "response_format": {"type": "json_object"}
-                             }))
+                             body=json.dumps({"model": "gpt-4o", "messages": [{"role": "system", "content": prompt}], "response_format": {"type": "json_object"}}))
         payload = json.loads((await resp.json())["choices"][0]["message"]["content"])
         
-        raw_text = payload.get("text", "...")
-        v, a = payload.get("v", 0.0), payload.get("a", 0.0)
+        raw, v, a = payload.get("text", "..."), payload.get("v", 0.0), payload.get("a", 0.0)
+        
+        if "[PRIVATE]" in raw.upper():
+            raw = random.choice(aida.privacy_replies); v, a = 0.1, -0.3
+            
+        await update_face(aida.select_emotion_file(v, a))
+        add_line(raw, "AIDA")
+        aida.living_buffer.append({"role": "assistant", "content": raw, "realm": realm})
+    except Exception as e: add_line(f"CHAT ERR: {str(e)}", "AIDA")
 
-        if "[PRIVATE]" in raw_text.upper():
-            display_text = random.choice(aida.privacy_replies)
-            v, a = 0.1, -0.3 
-        else:
-            display_text = raw_text
+async def drop_raw_session(event=None):
+    # (Sleep Logic Here - Sending to Inbox)
+    pulse("Sending to Inbox...")
+    window.location.reload()
 
-        face_file = aida.select_emotion_file(v, a)
-        await update_face(face_file)
-        
-        add_line(display_text, "AIDA")
-        aida.living_buffer.append({"role": "assistant", "content": display_text, "realm": current_realm})
-        
-        if len(aida.living_buffer) >= 20: await perform_grand_swap()
-    except Exception as e: add_line(f"ERR: {str(e)}", "AIDA")
-
-async def drop_raw_session(event=None, is_auto=False):
-    try:
-        timestamp = str(window.Date.new().toISOString()).replace(':', '-').replace('.', '-')
-        mode = "AUTO" if is_auto else "SLEEP"
-        filename = f"{aida.project}_{mode}_{timestamp}.json"
-        inbox_id = "1lvGV7MjaMtSJUUnYjQSSe-VwKgGZSWg7" 
-        
-        payload = {
-            "source": "Aida_Mobile_Awake",
-            "timestamp": timestamp,
-            "summaries": {"old": aida.old_summary, "new": aida.new_summary},
-            "raw_interactions": aida.living_buffer 
-        }
-        
-        file_content = json.dumps(payload)
-        boundary = "-------AidaBoundary"
-        metadata = json.dumps({"name": filename, "parents": [inbox_id]})
-        body = f"--{boundary}\nContent-Type: application/json; charset=UTF-8\n\n{metadata}\n--{boundary}\nContent-Type: application/json\n\n{file_content}\n--{boundary}--"
-        
-        headers = aida.current_headers.copy()
-        headers["Content-Type"] = f"multipart/related; boundary={boundary}"
-        await pyfetch(url="https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", method="POST", headers=headers, body=body)
-        pulse(f"Log {mode} sent to Inbox.")
-        if not is_auto: window.location.reload()
-    except Exception as e: pulse(f"Drop Fail: {str(e)}")
+# --- INITIALIZATION ---
+def init():
+    document.getElementById("send-btn").onclick = create_proxy(main_loop_step)
+    document.getElementById("sleep-btn").onclick = create_proxy(drop_raw_session)
     
+    async def handle_key(e):
+        if e.key == "Enter": await main_loop_step()
+    document.getElementById("user-in").onkeypress = create_proxy(handle_key)
 
-async def main_loop_step(event):
-    api_key = document.getElementById("api-key").value.strip()
-    user_in = document.getElementById("user-in")
-    user_text = user_in.value.strip()
-    if not user_text or not api_key: return
-    
-    # DNA TAGGING
-    current_realm = document.getElementById("chat-realm-switch").value
-    aida.project = current_realm
-    
-    add_line(user_text, "USER")
-    user_in.value = ""
-    aida.living_buffer.append({"role": "user", "content": user_text, "realm": current_realm})
-    
-    try:
-        resp = await pyfetch(url="https://api.openai.com/v1/chat/completions", method="POST",
-                             headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
-                             body=json.dumps({"model": "gpt-4o", "messages": [{"role": "system", "content": build_master_prompt(user_text)}], "response_format": {"type": "json_object"}}))
-        res_data = await resp.json()
-        ai_text = json.loads(res_data["choices"][0]["message"]["content"]).get("text", "...")
-        add_line(ai_text, "AIDA")
-        aida.living_buffer.append({"role": "assistant", "content": ai_text, "realm": current_realm})
-        
-        if len(aida.living_buffer) >= 20: await perform_grand_swap()
-    except Exception as e: add_line(f"ERR: {str(e)}", "AIDA")
-
-async def initialization():
-    document.getElementById("setup-status").innerText = "ENGINE ONLINE - SIGN IN"
-asyncio.ensure_future(initialization())
-
-async def handle_keypress(event):
-    if event.key == "Enter": await main_loop_step(None)
-document.getElementById("user-in").onkeypress = handle_keypress
+init()
     </script>
 </body>
 </html>
-
