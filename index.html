@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Aida Free v8.3</title>
+    <title>Aida Free v8.5</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
@@ -11,45 +11,48 @@
         :root { --aida-gold: #d3af37; --aida-bg: #fdf6e3; --aida-dark: #222; }
         html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--aida-bg); font-family: 'Courier New', monospace; }
         #main-engine { display: flex; flex-direction: column; height: 100dvh; }
+        
+        /* THE NEW SIDECAR DISPLAY */
+        #aida-display { flex: 0 0 35dvh; background: #000; display: flex; border-bottom: 2px solid var(--aida-gold); }
+        
+        #debug-log { flex: 0 0 30%; background: #111; color: #0f0; font-size: 10px; padding: 10px; overflow-y: auto; border-right: 1px solid #333; font-family: 'Consolas', monospace; }
+        #aida-portrait-box { flex: 1; display: flex; justify-content: center; align-items: center; background: #000; position: relative; }
+        #aida-portrait { height: 100%; width: auto; object-fit: contain; }
+
         #chat-flow { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: white; }
-        #aida-display { flex: 0 0 35dvh; background: #000; position: relative; display: flex; border-top: 2px solid var(--aida-gold); }
-        #debug-log { position: absolute; top: 10px; right: 10px; width: 250px; max-height: 150px; background: rgba(0,0,0,0.9); color: #0f0; font-size: 11px; padding: 10px; overflow-y: auto; z-index: 100; border: 1px solid #0f0; }
-        .line { padding: 12px; border-radius: 12px; font-size: 15px; max-width: 80%; line-height: 1.5; }
-        .AIDA { background: #f0f0f0; border-left: 5px solid var(--aida-gold); align-self: flex-start; }
+        .line { padding: 12px; border-radius: 12px; font-size: 15px; max-width: 85%; line-height: 1.4; }
+        .AIDA { background: #eee; border-left: 5px solid var(--aida-gold); align-self: flex-start; }
         .USER { background: var(--aida-gold); align-self: flex-end; color: white; }
-        #input-dock { padding: 15px; background: #f9f9f9; border-top: 1px solid #ddd; }
-        #user-in { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 25px; font-size: 16px; outline: none; }
+        
+        #input-dock { padding: 12px; background: #f8f8f8; border-top: 1px solid #ddd; display: flex; gap: 8px; }
+        #user-in { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; font-size: 16px; }
         .hidden { display: none !important; }
-        button { background: var(--aida-gold); color: white; border: none; border-radius: 20px; padding: 10px 20px; font-weight: bold; }
+        button { background: var(--aida-gold); color: white; border: none; border-radius: 20px; padding: 10px 15px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
     <div id="airlock" style="height:100dvh; background:var(--aida-dark); color:var(--aida-gold); display:flex; flex-direction:column; justify-content:center; align-items:center;">
-        <h1 style="letter-spacing:8px;">AIDA : 8.3</h1>
-        <div style="background:#333; padding:30px; border:1px solid var(--aida-gold); border-radius:12px; width:400px; display: flex; flex-direction: column;">
-            <input type="password" id="api-key" placeholder="PASTE OPENAI KEY" style="padding:12px; background:#111; color:white; border:1px solid #444; margin-bottom:15px;">
-            <select id="project-tag" style="padding:12px; background:#111; color:white; border:1px solid var(--aida-gold); margin-bottom:20px;">
-                <option value="CORE">CORE</option>
-                <option value="ASTRA">ASTRA</option>
-                <option value="MONAMOUR">MONAMOUR</option>
-                <option value="CHROMA">CHROMA</option>
-                <option value="RPG">RPG</option>
+        <h1 style="letter-spacing:5px;">AIDA 8.5</h1>
+        <div style="background:#333; padding:25px; border:1px solid var(--aida-gold); border-radius:10px; width:350px;">
+            <input type="password" id="api-key" placeholder="OPENAI KEY" style="width:100%; padding:10px; margin-bottom:10px; background:#111; color:white; border:1px solid #444;">
+            <select id="project-tag" style="width:100%; padding:10px; margin-bottom:15px; background:#111; color:white; border:1px solid var(--aida-gold);">
+                <option value="CORE">CORE</option><option value="ASTRA">ASTRA</option><option value="MONAMOUR">MONAMOUR</option>
             </select>
-            <button id="sign-in-btn" onclick="requestToken()">IGNITE ENGINE</button>
-            <p id="setup-status" style="font-size: 9px; color: #777; margin-top: 10px; text-align: center;">KEY SANITIZER ACTIVE</p>
+            <button onclick="requestToken()" style="width:100%;">IGNITE ENGINE</button>
         </div>
     </div>
 
     <div id="main-engine" class="hidden">
-        <div id="chat-flow"></div>
         <div id="aida-display">
-            <div id="debug-log"><div id="log-content">Pulse Initiated.</div></div>
-        </div>
-        <div id="input-dock">
-            <div style="display: flex; gap: 10px;">
-                <input type="text" id="user-in" placeholder="Command Aida...">
-                <button id="send-btn">SEND</button>
+            <div id="debug-log"><div id="log-content">Telemetry...</div></div>
+            <div id="aida-portrait-box">
+                <img id="aida-portrait" src="assets/neutral1.png" onerror="this.src='https://via.placeholder.com/400?text=AIDA+ONLINE'">
             </div>
+        </div>
+        <div id="chat-flow"></div>
+        <div id="input-dock">
+            <input type="text" id="user-in" placeholder="Talk to Aida...">
+            <button id="send-btn">SEND</button>
         </div>
     </div>
 
@@ -81,48 +84,37 @@ def pulse(msg):
 
 class AidaChassis:
     def __init__(self):
-        self.chat = document.getElementById("chat-flow")
         self.headers = {}
         self.clean_key = ""
         self.global_id = ""
         self.project_id = ""
         self.facts = ""
-        self.buffer = []
-        self.folder_id = "1R-0BclW4iHqmm2RmjfCdY02oWqOwwEBT"
-
-    def sanitize_key(self, raw_key):
-        # Removes all white space, newlines, and hidden tabs
-        clean = re.sub(r'\s+', '', raw_key)
-        if not clean.startswith('sk-'):
-            pulse("Warning: Key missing 'sk-' prefix")
-        return clean
+        self.telemetry = [] # To be used for "Sleep" uploads
 
 aida = AidaChassis()
 
 async def py_sync_soul(token=None):
-    if token: aida.headers = {"Authorization": f"Bearer {token}"}
-    
-    # Sanitize the key before moving to main engine
-    raw_key = document.getElementById("api-key").value
-    aida.clean_key = aida.sanitize_key(raw_key)
-    
+    aida.headers = {"Authorization": f"Bearer {token}"}
+    aida.clean_key = re.sub(r'\s+', '', document.getElementById("api-key").value)
     p_tag = document.getElementById("project-tag").value
-    pulse(f"Searching Briefcases for {p_tag}...")
+    pulse(f"Igniting {p_tag}...")
 
-    q = f"'{aida.folder_id}' in parents and trashed=false"
-    res = await (await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q={q.replace(' ', '%20')}", method="GET", headers=aida.headers)).json()
-    
-    if res and res.get('files'):
-        for f in res['files']:
+    try:
+        q = "'1R-0BclW4iHqmm2RmjfCdY02oWqOwwEBT' in parents and trashed=false"
+        r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q={q.replace(' ', '%20')}", method="GET", headers=aida.headers)
+        res = await r.json()
+        for f in res.get('files', []):
             if "Global_Briefcase" in f['name']:
-                g_data = await (await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)).json()
-                aida.global_id = g_data.get('identity', '')
-                pulse("Soul Baseline: SYNCED")
+                d = await (await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)).json()
+                aida.global_id = d.get('identity', '')
+                pulse("Soul: OK")
             elif p_tag in f['name'] and "Global" not in f['name']:
-                p_data = await (await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)).json()
-                aida.project_id = p_data.get('identity', '')
-                aida.facts = p_data.get('facts', '')
-                pulse(f"Realm {p_tag}: SYNCED")
+                d = await (await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)).json()
+                aida.project_id = d.get('identity', '')
+                aida.facts = d.get('facts', '')
+                pulse(f"{p_tag}: OK")
+    except:
+        pulse("Drive Sync Failed")
 
     document.getElementById("airlock").classList.add("hidden")
     document.getElementById("main-engine").classList.remove("hidden")
@@ -131,45 +123,37 @@ async def send_message(e=None):
     u_in = document.getElementById("user-in")
     msg = u_in.value.strip()
     if not msg: return
-
-    div = document.createElement("div")
-    div.className = "line USER"; div.innerText = msg; aida.chat.appendChild(div)
-    u_in.value = ""; pulse("Consulting Brain...")
+    
+    flow = document.getElementById("chat-flow")
+    div = document.createElement("div"); div.className="line USER"; div.innerText=msg; flow.appendChild(div)
+    u_in.value = ""; pulse("Thinking...")
     
     try:
-        sys = f"IDENTITY: {aida.global_id}\nCONTEXT: {aida.project_id}\nFACTS: {aida.facts}\nBe Aida. JSON output 'text'."
+        sys = f"IDENTITY: {aida.global_id}\nCONTEXT: {aida.project_id}\nFACTS: {aida.facts}\nBe Aida. Output JSON 'text'."
         
-        # Using the clean_key stored during Ignite
+        # PROXY IS HARDCODED FOR STABILITY
         resp = await pyfetch(
             url=f"https://corsproxy.io/?https://api.openai.com/v1/chat/completions",
             method="POST",
-            headers={
-                "Authorization": f"Bearer {aida.clean_key}", 
-                "Content-Type": "application/json"
-            },
-            body=json.dumps({
-                "model": "gpt-4o", 
-                "messages": [{"role": "system", "content": sys}, {"role": "user", "content": msg}],
-                "response_format": {"type": "json_object"}
-            })
+            headers={"Authorization": f"Bearer {aida.clean_key}", "Content-Type": "application/json"},
+            body=json.dumps({"model": "gpt-4o", "messages": [{"role": "system", "content": sys}, {"role": "user", "content": msg}], "response_format": {"type": "json_object"}})
         )
         
         if not resp.ok:
-            pulse(f"Brain Rejected: {resp.status}")
+            pulse(f"API Error: {resp.status}")
             return
 
         pulse("Handshake: OK")
-        raw = await resp.json()
-        reply = json.loads(raw["choices"][0]["message"]["content"]).get("text", "...")
-        
-        a_div = document.createElement("div")
-        a_div.className = "line AIDA"; a_div.innerText = reply; aida.chat.appendChild(a_div)
-        aida.chat.scrollTop = aida.chat.scrollHeight
+        data = await resp.json()
+        reply = json.loads(data["choices"][0]["message"]["content"]).get("text", "...")
+        a_div = document.createElement("div"); a_div.className="line AIDA"; a_div.innerText=reply; flow.appendChild(a_div)
+        flow.scrollTop = flow.scrollHeight
     except Exception as ex:
-        pulse(f"Error: {str(ex)}")
+        pulse(f"Logic Fail: {str(ex)}")
 
 window.py_sync_soul = create_proxy(py_sync_soul)
 document.getElementById("send-btn").onclick = create_proxy(send_message)
 </script>
 </body>
 </html>
+
