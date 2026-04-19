@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Aida Free v7.6.2</title>
+    <title>Aida Free v7.7</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
@@ -13,7 +13,7 @@
         #main-engine { display: flex; flex-direction: column; height: 100dvh; }
         #chat-flow { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: white; }
         #aida-display { flex: 0 0 25dvh; background: #000; position: relative; display: flex; justify-content: center; border-top: 1px solid var(--aida-gold); overflow: hidden; }
-        #debug-log { position: absolute; top: 5px; right: 5px; width: 180px; max-height: 120px; background: rgba(0,0,0,0.85); color: #0f0; font-size: 9px; padding: 8px; overflow-y: auto; z-index: 20; border: 1px solid #0f0; pointer-events: auto; }
+        #debug-log { position: absolute; top: 5px; right: 5px; width: 180px; max-height: 120px; background: rgba(0,0,0,0.85); color: #0f0; font-size: 9px; padding: 8px; overflow-y: auto; z-index: 20; border: 1px solid #0f0; }
         .line { padding: 12px; border-radius: 12px; font-size: 14px; max-width: 85%; line-height: 1.4; margin-bottom: 5px; }
         .AIDA { background: #eee; border-left: 5px solid var(--aida-gold); align-self: flex-start; }
         .USER { background: var(--aida-gold); align-self: flex-end; color: white; }
@@ -48,11 +48,7 @@
         <div id="input-dock">
             <div style="display: flex; gap: 8px; align-items: center; background: #eee; padding: 5px; border-radius: 10px;">
                 <label style="font-size: 9px; color: var(--aida-gold); font-weight: bold; margin-left: 5px;">REALM:</label>
-                <select id="chat-realm-switch" style="flex: 1; font-size: 12px; border: none; background: transparent;">
-                    <option value="CORE">CORE</option>
-                    <option value="ASTRA">ASTRA</option>
-                    <option value="MONAMOUR">MONAMOUR</option>
-                </select>
+                <select id="chat-realm-switch" style="flex: 1; font-size: 12px; border: none; background: transparent;"></select>
                 <button id="sync-btn" style="padding: 5px 10px; font-size: 10px; background: #555;">RE-SEED</button>
             </div>
             <div style="display: flex; gap: 8px;">
@@ -100,82 +96,67 @@ class AidaChassis:
         self.facts = ""
         self.living_buffer = []
         self.briefcase_folder = "1R-0BclW4iHqmm2RmjfCdY02oWqOwwEBT"
-        self.emotions_folder_id = "1Z7_0kYJ3OT2EByHG_Ircap7y5NnKPnQz"
 
     async def secure_load(self, url, description):
+        """Standardized fetch to handle Blobs locally and convert to JSON"""
         try:
             resp = await pyfetch(url=url, method="GET", headers=self.current_headers)
-            if not resp.ok: return None
-            raw = await resp.string()
-            return json.loads(raw)
+            if not resp.ok: 
+                pulse(f"Fetch failed: {description}")
+                return None
+            
+            # CRITICAL: Read as string (UTF-8) first to handle blob-to-text locally
+            raw_text = await resp.string()
+            return json.loads(raw_text)
         except Exception as e:
-            pulse(f"Error {description}: {str(e)}")
+            pulse(f"Parsing {description} failed: {str(e)}")
             return None
 
 aida = AidaChassis()
-
-async def update_face(filename):
-    try:
-        if "neutral" in filename.lower():
-            pulse("Portrait: Local Asset")
-            aida.portrait.src = f"assets/{filename}"
-            return
-        q = f"'{aida.emotions_folder_id}' in parents and name = '{filename}' and trashed = false"
-        search = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q={q.replace(' ', '%20')}", method="GET", headers=aida.current_headers)
-        res = await search.json()
-        if res.get('files'):
-            f_id = res['files'][0]['id']
-            img = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f_id}?alt=media", method="GET", headers=aida.current_headers)
-            aida.portrait.src = f"data:image/png;base64,{base64.b64encode(await img.bytes()).decode('utf-8')}"
-    except Exception as e:
-        pulse(f"Face Fail: {str(e)}")
 
 async def py_sync_soul(token=None):
     try:
         if token: aida.current_headers = {"Authorization": f"Bearer {token}"}
         
-        selector = document.getElementById("chat-realm-switch")
+        # UI Sync
         airlock_sel = document.getElementById("project-tag")
+        selector = document.getElementById("chat-realm-switch")
         aida.project = airlock_sel.value if not document.getElementById("airlock").classList.contains("hidden") else selector.value
-        selector.value = aida.project
         
-        pulse(f"Seeding {aida.project}...")
+        pulse(f"Seeding Realm: {aida.project}")
 
-        # Immediate Face Load to check for freeze
-        await update_face("neutral1.png")
-
-        # Load Global Briefcase
+        # 1. Load Global Identity (The 'Soul')
         q_global = f"'{aida.briefcase_folder}' in parents and name contains 'Global_Briefcase' and trashed = false"
         search_global = await aida.secure_load(f"https://www.googleapis.com/drive/v3/files?q={q_global.replace(' ', '%20')}", "Global Search")
         if search_global and search_global.get('files'):
             g_id = search_global['files'][0]['id']
-            g_data = await aida.secure_load(f"https://www.googleapis.com/drive/v3/files/{g_id}?alt=media", "Global Load")
-            aida.global_memory = g_data.get('identity', '')
-            pulse("Global Persona Loaded.")
+            g_data = await aida.secure_load(f"https://www.googleapis.com/drive/v3/files/{g_id}?alt=media", "Global Identity")
+            if g_data:
+                aida.global_memory = g_data.get('identity', '')
+                pulse("Global Persona Synced.")
 
-        # Load Project Briefcase
+        # 2. Load Project Context (The 'Knowledge')
         q_proj = f"'{aida.briefcase_folder}' in parents and name contains '{aida.project}' and trashed = false"
         search_proj = await aida.secure_load(f"https://www.googleapis.com/drive/v3/files?q={q_proj.replace(' ', '%20')}", "Project Search")
         if search_proj and search_proj.get('files'):
+            # Filter to avoid double-loading global
             files = [f for f in search_proj['files'] if 'Global' not in f['name']]
             if files:
                 p_id = files[0]['id']
-                pulse(f"Found: {files[0]['name']}")
-                p_data = await aida.secure_load(f"https://www.googleapis.com/drive/v3/files/{p_id}?alt=media", "Project Load")
-                aida.project_memory = p_data.get('identity', '')
-                aida.facts = p_data.get('facts', '')
-                pulse("Context Merged.")
+                pulse(f"Found Knowledge: {files[0]['name']}")
+                p_data = await aida.secure_load(f"https://www.googleapis.com/drive/v3/files/{p_id}?alt=media", "Project Content")
+                if p_data:
+                    aida.project_memory = p_data.get('identity', '')
+                    aida.facts = p_data.get('facts', '')
+                    pulse("Context Merged.")
 
+        # Update Selectors
         document.getElementById("airlock").classList.add("hidden")
         document.getElementById("main-engine").classList.remove("hidden")
-        
-        div = document.createElement("div")
-        div.className = "line AIDA"
-        div.innerText = f"Aida Awakened in Realm: {aida.project}"
-        aida.chat.appendChild(div)
+        pulse("Aida Awakened.")
 
     except Exception as e:
-        pulse(f"CRITICAL ERR: {str(e)}")
+        pulse(f"Critical Sync Failure: {str(e)}")
 
 async def main_loop_step(event=None):
     api_key = document.getElementById("api-key").value.strip()
@@ -183,6 +164,7 @@ async def main_loop_step(event=None):
     text = user_in.value.strip()
     if not text or not api_key: return
 
+    # User Line
     div = document.createElement("div")
     div.className = "line USER"
     div.innerText = text
@@ -190,9 +172,9 @@ async def main_loop_step(event=None):
     user_in.value = ""
     
     try:
-        pulse("Thinking...")
-        combined_id = f"{aida.global_memory}\n\nCURRENT PROJECT: {aida.project_memory}"
-        sys_msg = f"IDENTITY: {combined_id}\nFACTS: {aida.facts}\nOutput JSON with 'text'."
+        pulse("Aida processing...")
+        combined_id = f"{aida.global_memory}\n\nCURRENT REALM CONTEXT: {aida.project_memory}"
+        sys_msg = f"IDENTITY: {combined_id}\nFACTS: {aida.facts}\nREALM: {aida.project}\nOutput JSON with key 'text'."
         
         history = [{"role": "system", "content": sys_msg}]
         for turn in aida.living_buffer[-4:]:
@@ -218,7 +200,7 @@ async def main_loop_step(event=None):
         aida.living_buffer.append({"role": "user", "content": text})
         aida.living_buffer.append({"role": "assistant", "content": reply})
     except Exception as e:
-        pulse(f"API Error: {str(e)}")
+        pulse(f"Intelligence Failure: {str(e)}")
 
 def init():
     document.getElementById("send-btn").onclick = create_proxy(main_loop_step)
@@ -233,3 +215,4 @@ init()
     </script>
 </body>
 </html>
+\
