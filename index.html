@@ -212,6 +212,15 @@ def add_line(text, role):
 
 async def update_face(filename):
     try:
+        
+        # --- NEW GITHUB LOGIC ---
+        if filename == "neutral1.png":
+            # Point directly to your GitHub assets folder
+            aida.portrait.src = "assets/neutral1.png"
+            pulse("Aida Awakened (Local)")
+            return 
+        # -------------------------
+        # Everything below stays exactly as you have it (Google Drive Logic)
         q = f"'{aida.emotions_folder_id}' in parents and name = '{filename}' and trashed = false"
         search = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q={q.replace(' ', '%20')}", method="GET", headers=aida.current_headers)
         res = await search.json()
