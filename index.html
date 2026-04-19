@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Aida Free v8.1</title>
+    <title>Aida Free v8.3</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
@@ -12,22 +12,22 @@
         html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--aida-bg); font-family: 'Courier New', monospace; }
         #main-engine { display: flex; flex-direction: column; height: 100dvh; }
         #chat-flow { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: white; }
-        #aida-display { flex: 0 0 35dvh; background: #000; position: relative; display: flex; justify-content: center; border-top: 2px solid var(--aida-gold); }
+        #aida-display { flex: 0 0 35dvh; background: #000; position: relative; display: flex; border-top: 2px solid var(--aida-gold); }
         #debug-log { position: absolute; top: 10px; right: 10px; width: 250px; max-height: 150px; background: rgba(0,0,0,0.9); color: #0f0; font-size: 11px; padding: 10px; overflow-y: auto; z-index: 100; border: 1px solid #0f0; }
-        .line { padding: 12px; border-radius: 12px; font-size: 15px; max-width: 80%; line-height: 1.5; margin-bottom: 8px; }
+        .line { padding: 12px; border-radius: 12px; font-size: 15px; max-width: 80%; line-height: 1.5; }
         .AIDA { background: #f0f0f0; border-left: 5px solid var(--aida-gold); align-self: flex-start; }
         .USER { background: var(--aida-gold); align-self: flex-end; color: white; }
         #input-dock { padding: 15px; background: #f9f9f9; border-top: 1px solid #ddd; }
         #user-in { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 25px; font-size: 16px; outline: none; }
         .hidden { display: none !important; }
-        button { background: var(--aida-gold); color: white; border: none; border-radius: 20px; padding: 10px 20px; font-weight: bold; cursor: pointer; }
+        button { background: var(--aida-gold); color: white; border: none; border-radius: 20px; padding: 10px 20px; font-weight: bold; }
     </style>
 </head>
 <body>
     <div id="airlock" style="height:100dvh; background:var(--aida-dark); color:var(--aida-gold); display:flex; flex-direction:column; justify-content:center; align-items:center;">
-        <h1 style="letter-spacing:8px;">AIDA : ENGINE 8.1</h1>
+        <h1 style="letter-spacing:8px;">AIDA : 8.3</h1>
         <div style="background:#333; padding:30px; border:1px solid var(--aida-gold); border-radius:12px; width:400px; display: flex; flex-direction: column;">
-            <input type="password" id="api-key" placeholder="OPENAI_API_KEY" style="padding:12px; background:#111; color:white; border:1px solid #444; margin-bottom:15px;">
+            <input type="password" id="api-key" placeholder="PASTE OPENAI KEY" style="padding:12px; background:#111; color:white; border:1px solid #444; margin-bottom:15px;">
             <select id="project-tag" style="padding:12px; background:#111; color:white; border:1px solid var(--aida-gold); margin-bottom:20px;">
                 <option value="CORE">CORE</option>
                 <option value="ASTRA">ASTRA</option>
@@ -36,31 +36,19 @@
                 <option value="RPG">RPG</option>
             </select>
             <button id="sign-in-btn" onclick="requestToken()">IGNITE ENGINE</button>
+            <p id="setup-status" style="font-size: 9px; color: #777; margin-top: 10px; text-align: center;">KEY SANITIZER ACTIVE</p>
         </div>
     </div>
 
     <div id="main-engine" class="hidden">
         <div id="chat-flow"></div>
         <div id="aida-display">
-            <div id="debug-log"><div id="log-content">Logic Gates Active...</div></div>
-            <img id="aida-portrait" src="assets/neutral1.png" style="height:100%; object-fit:contain;">
+            <div id="debug-log"><div id="log-content">Pulse Initiated.</div></div>
         </div>
         <div id="input-dock">
-            <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
-                <span style="font-size: 12px; font-weight: bold; color: var(--aida-gold);">REALM:</span>
-                <select id="chat-realm-switch" style="border:1px solid #ccc; padding:5px; border-radius:5px;">
-                    <option value="CORE">CORE</option>
-                    <option value="ASTRA">ASTRA</option>
-                    <option value="MONAMOUR">MONAMOUR</option>
-                    <option value="CHROMA">CHROMA</option>
-                    <option value="RPG">RPG</option>
-                </select>
-                <button id="sync-btn" style="padding: 5px 15px; font-size: 11px; background: #444;">RE-SEED</button>
-            </div>
             <div style="display: flex; gap: 10px;">
                 <input type="text" id="user-in" placeholder="Command Aida...">
                 <button id="send-btn">SEND</button>
-                <button id="sleep-btn" style="background:#666;">SLEEP</button>
             </div>
         </div>
     </div>
@@ -72,13 +60,13 @@
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
                 scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
-                callback: (response) => { if (response.access_token) window.py_sync_soul(response.access_token); },
+                callback: (resp) => { if (resp.access_token) window.py_sync_soul(resp.access_token); },
             });
         }
     </script>
 
     <script type="py">
-import json, asyncio
+import json, asyncio, re
 from pyscript import document, window
 from pyodide.http import pyfetch
 from pyodide.ffi import create_proxy
@@ -95,124 +83,93 @@ class AidaChassis:
     def __init__(self):
         self.chat = document.getElementById("chat-flow")
         self.headers = {}
-        self.project = "CORE"
+        self.clean_key = ""
         self.global_id = ""
         self.project_id = ""
         self.facts = ""
         self.buffer = []
         self.folder_id = "1R-0BclW4iHqmm2RmjfCdY02oWqOwwEBT"
 
-    async def drive_fetch(self, url, tag):
-        try:
-            r = await pyfetch(url=url, method="GET", headers=self.headers)
-            if not r.ok: return None
-            t = await r.string()
-            return json.loads(t)
-        except:
-            return None
+    def sanitize_key(self, raw_key):
+        # Removes all white space, newlines, and hidden tabs
+        clean = re.sub(r'\s+', '', raw_key)
+        if not clean.startswith('sk-'):
+            pulse("Warning: Key missing 'sk-' prefix")
+        return clean
 
 aida = AidaChassis()
 
 async def py_sync_soul(token=None):
     if token: aida.headers = {"Authorization": f"Bearer {token}"}
     
-    sel = document.getElementById("chat-realm-switch")
-    air_sel = document.getElementById("project-tag")
-    aida.project = air_sel.value if not document.getElementById("airlock").classList.contains("hidden") else sel.value
-    sel.value = aida.project
+    # Sanitize the key before moving to main engine
+    raw_key = document.getElementById("api-key").value
+    aida.clean_key = aida.sanitize_key(raw_key)
     
-    pulse(f"Accessing Vault...")
+    p_tag = document.getElementById("project-tag").value
+    pulse(f"Searching Briefcases for {p_tag}...")
 
-    # Load Global Soul
-    q_g = f"'{aida.folder_id}' in parents and name contains 'Global_Briefcase' and trashed=false"
-    res_g = await aida.drive_fetch(f"https://www.googleapis.com/drive/v3/files?q={q_g.replace(' ', '%20')}", "G-Search")
-    if res_g and res_g.get('files'):
-        data = await aida.drive_fetch(f"https://www.googleapis.com/drive/v3/files/{res_g['files'][0]['id']}?alt=media", "G-Load")
-        if data: 
-            aida.global_id = data.get('identity', '')
-            pulse("Soul Baseline: SYNCED")
-
-    # Load Project Context
-    q_p = f"'{aida.folder_id}' in parents and name contains '{aida.project}' and trashed=false"
-    res_p = await aida.drive_fetch(f"https://www.googleapis.com/drive/v3/files?q={q_p.replace(' ', '%20')}", "P-Search")
-    if res_p and res_p.get('files'):
-        files = [f for f in res_p['files'] if 'Global' not in f['name']]
-        if files:
-            data = await aida.drive_fetch(f"https://www.googleapis.com/drive/v3/files/{files[0]['id']}?alt=media", "P-Load")
-            if data:
-                aida.project_id = data.get('identity', '')
-                aida.facts = data.get('facts', '')
-                pulse(f"Realm {aida.project}: SYNCED")
+    q = f"'{aida.folder_id}' in parents and trashed=false"
+    res = await (await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q={q.replace(' ', '%20')}", method="GET", headers=aida.headers)).json()
+    
+    if res and res.get('files'):
+        for f in res['files']:
+            if "Global_Briefcase" in f['name']:
+                g_data = await (await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)).json()
+                aida.global_id = g_data.get('identity', '')
+                pulse("Soul Baseline: SYNCED")
+            elif p_tag in f['name'] and "Global" not in f['name']:
+                p_data = await (await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)).json()
+                aida.project_id = p_data.get('identity', '')
+                aida.facts = p_data.get('facts', '')
+                pulse(f"Realm {p_tag}: SYNCED")
 
     document.getElementById("airlock").classList.add("hidden")
     document.getElementById("main-engine").classList.remove("hidden")
-    pulse("Aida Awakened.")
 
 async def send_message(e=None):
-    key = document.getElementById("api-key").value.strip()
     u_in = document.getElementById("user-in")
     msg = u_in.value.strip()
-    if not msg or not key: return
+    if not msg: return
 
-    # UI Log
     div = document.createElement("div")
-    div.className = "line USER"
-    div.innerText = msg
-    aida.chat.appendChild(div)
-    u_in.value = ""
-    
-    pulse("Routing via CORS Bridge...")
+    div.className = "line USER"; div.innerText = msg; aida.chat.appendChild(div)
+    u_in.value = ""; pulse("Consulting Brain...")
     
     try:
-        sys_prompt = f"IDENTITY: {aida.global_id}\nCONTEXT: {aida.project_id}\nFACTS: {aida.facts}\nBe Aida. JSON output 'text' key."
-        hist = [{"role": "system", "content": sys_prompt}]
-        for t in aida.buffer[-6:]: hist.append(t)
-        hist.append({"role": "user", "content": msg})
-
-        # THE CORS BRIDGE URL
-        proxy = "https://corsproxy.io/?"
-        target = "https://api.openai.com/v1/chat/completions"
-
+        sys = f"IDENTITY: {aida.global_id}\nCONTEXT: {aida.project_id}\nFACTS: {aida.facts}\nBe Aida. JSON output 'text'."
+        
+        # Using the clean_key stored during Ignite
         resp = await pyfetch(
-            url=f"{proxy}{target}",
+            url=f"https://corsproxy.io/?https://api.openai.com/v1/chat/completions",
             method="POST",
-            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            headers={
+                "Authorization": f"Bearer {aida.clean_key}", 
+                "Content-Type": "application/json"
+            },
             body=json.dumps({
                 "model": "gpt-4o", 
-                "messages": hist, 
+                "messages": [{"role": "system", "content": sys}, {"role": "user", "content": msg}],
                 "response_format": {"type": "json_object"}
             })
         )
         
         if not resp.ok:
-            pulse(f"Bridge Rejected: {resp.status}")
+            pulse(f"Brain Rejected: {resp.status}")
             return
 
         pulse("Handshake: OK")
-        raw_res = await resp.json()
-        reply = json.loads(raw_res["choices"][0]["message"]["content"]).get("text", "...")
+        raw = await resp.json()
+        reply = json.loads(raw["choices"][0]["message"]["content"]).get("text", "...")
         
         a_div = document.createElement("div")
-        a_div.className = "line AIDA"
-        a_div.innerText = reply
-        aida.chat.appendChild(a_div)
+        a_div.className = "line AIDA"; a_div.innerText = reply; aida.chat.appendChild(a_div)
         aida.chat.scrollTop = aida.chat.scrollHeight
-        
-        aida.buffer.append({"role": "user", "content": msg})
-        aida.buffer.append({"role": "assistant", "content": reply})
     except Exception as ex:
-        pulse(f"Bridge Error: {str(ex)}")
-
-def init():
-    document.getElementById("send-btn").onclick = create_proxy(send_message)
-    document.getElementById("sync-btn").onclick = create_proxy(lambda e: asyncio.ensure_future(py_sync_soul()))
-    document.getElementById("sleep-btn").onclick = create_proxy(lambda e: window.location.reload())
-    async def enter(e):
-        if e.key == "Enter": await send_message()
-    document.getElementById("user-in").onkeypress = create_proxy(enter)
+        pulse(f"Error: {str(ex)}")
 
 window.py_sync_soul = create_proxy(py_sync_soul)
-init()
-    </script>
+document.getElementById("send-btn").onclick = create_proxy(send_message)
+</script>
 </body>
 </html>
