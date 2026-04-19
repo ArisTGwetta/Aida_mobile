@@ -228,6 +228,8 @@ async def update_face(filename):
             pulse(f"Face updated: {filename}")
     except: 
         pulse("Face Swap Fail")
+
+
         
 async def py_sync_soul(token):
     try:
@@ -259,9 +261,9 @@ async def py_sync_soul(token):
                 aida.facts = briefcase_data.get('facts', '')
                 aida.memory = briefcase_data.get('identity', '')
         
-        await update_face("neutral1.png")
-        document.getElementById("airlock").classList.add("hidden")
-        document.getElementById("main-engine").classList.remove("hidden")
+            await update_face("neutral1.png")
+            document.getElementById("airlock").classList.add("hidden")
+            document.getElementById("main-engine").classList.remove("hidden")
         
         if aida.project == "NEW_PROJECT":
             add_line("Aida Free: Ooo, a new project! What should we call this realm?", "AIDA")
