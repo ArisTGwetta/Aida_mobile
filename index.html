@@ -3,32 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Aida Free v8.6</title>
+    <title>Aida Free v8.7</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
     <style>
         :root { --aida-gold: #d3af37; --aida-bg: #fdf6e3; --aida-dark: #222; }
         html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--aida-bg); font-family: 'Courier New', monospace; }
-        
         #main-engine { display: flex; flex-direction: column; height: 100dvh; }
-        
-        /* THE CHAT DRIFT AREA (TOP) */
-        #chat-flow { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: white; }
-
-        /* THE FIXED COMMAND CENTER (MIDDLE) */
-        #aida-display { flex: 0 0 35dvh; background: #000; display: flex; border-top: 2px solid var(--aida-gold); border-bottom: 2px solid var(--aida-gold); }
-        #debug-log { flex: 0 0 30%; background: #111; color: #0f0; font-size: 10px; padding: 10px; overflow-y: auto; border-right: 1px solid #333; }
-        #aida-portrait-box { flex: 1; display: flex; justify-content: center; align-items: center; background: #000; position: relative; }
+        #chat-flow { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: white; border-bottom: 2px solid var(--aida-gold); }
+        #aida-display { flex: 0 0 30dvh; background: #000; display: flex; border-bottom: 2px solid var(--aida-gold); }
+        #debug-log { flex: 0 0 35%; background: #111; color: #0f0; font-size: 10px; padding: 10px; overflow-y: auto; border-right: 1px solid #333; font-family: 'Consolas', monospace; }
+        #aida-portrait-box { flex: 1; display: flex; justify-content: center; align-items: center; background: #000; }
         #aida-portrait { height: 100%; width: auto; object-fit: contain; }
-
         .line { padding: 12px; border-radius: 12px; font-size: 15px; max-width: 85%; line-height: 1.4; }
         .AIDA { background: #eee; border-left: 5px solid var(--aida-gold); align-self: flex-start; }
         .USER { background: var(--aida-gold); align-self: flex-end; color: white; }
-        
-        /* THE INPUT DOCK (BOTTOM) */
         #input-dock { padding: 12px; background: #f8f8f8; display: flex; flex-direction: column; gap: 8px; }
-        .controls-row { display: flex; gap: 10px; align-items: center; margin-bottom: 5px; }
+        .controls-row { display: flex; gap: 10px; align-items: center; }
         #user-in { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 20px; font-size: 16px; }
         .hidden { display: none !important; }
         button { background: var(--aida-gold); color: white; border: none; border-radius: 20px; padding: 8px 15px; font-weight: bold; cursor: pointer; }
@@ -36,38 +28,34 @@
 </head>
 <body>
     <div id="airlock" style="height:100dvh; background:var(--aida-dark); color:var(--aida-gold); display:flex; flex-direction:column; justify-content:center; align-items:center;">
-        <h1>AIDA 8.6</h1>
+        <h1 style="letter-spacing:5px;">AIDA 8.7</h1>
         <div style="background:#333; padding:25px; border:1px solid var(--aida-gold); border-radius:10px; width:350px;">
             <input type="password" id="api-key" placeholder="OPENAI KEY" style="width:100%; padding:10px; margin-bottom:10px;">
             <select id="project-tag" style="width:100%; padding:10px; margin-bottom:10px;">
                 <option value="CORE">CORE</option><option value="ASTRA">ASTRA</option><option value="MONAMOUR">MONAMOUR</option>
             </select>
             <div style="font-size: 10px; color: #aaa; margin-bottom: 15px;">
-                <input type="checkbox" id="use-proxy" checked> Use CORS Proxy
+                <input type="checkbox" id="use-proxy" checked> Use Proxy Bridge
             </div>
-            <button onclick="requestToken()" style="width:100%;">IGNITE ENGINE</button>
+            <button onclick="requestToken()" style="width:100%;">IGNITE</button>
         </div>
     </div>
 
     <div id="main-engine" class="hidden">
         <div id="chat-flow"></div>
-        
         <div id="aida-display">
-            <div id="debug-log"><div id="log-content">Telemetry Active...</div></div>
+            <div id="debug-log"><div id="log-content">System Wake...</div></div>
             <div id="aida-portrait-box">
-                <img id="aida-portrait" src="assets/neutral1.png" onerror="this.src='https://via.placeholder.com/400?text=AIDA+ONLINE'">
+                <img id="aida-portrait" src="assets/neutral1.png" onerror="this.src='https://via.placeholder.com/400?text=AIDA+ACTIVE'">
             </div>
         </div>
-
         <div id="input-dock">
             <div class="controls-row">
-                <span style="font-size:11px; color:var(--aida-gold);">REALM:</span>
-                <select id="realm-switcher" style="padding:4px; border-radius:5px;"></select>
-                <button id="sync-btn" style="font-size:10px; background:#444;">RE-SEED</button>
-                <button id="sleep-btn" style="font-size:10px; background:#666; margin-left:auto;">SLEEP</button>
+                <button id="sleep-btn" style="background:#444; font-size:10px;">SLEEP/RELOAD</button>
+                <div style="margin-left:auto; font-size:10px; color:#999;">V8.7 FORENSIC</div>
             </div>
             <div style="display: flex; gap: 8px;">
-                <input type="text" id="user-in" placeholder="Command Aida...">
+                <input type="text" id="user-in" placeholder="Talk to Aida...">
                 <button id="send-btn">SEND</button>
             </div>
         </div>
@@ -103,38 +91,44 @@ class AidaChassis:
     def __init__(self):
         self.headers = {}
         self.clean_key = ""
-        self.global_id = ""
-        self.project_id = ""
-        self.facts = ""
+        self.global_id = "UNKNOWN"
+        self.project_id = "UNKNOWN"
+        self.facts = "UNKNOWN"
         self.folder_id = "1R-0BclW4iHqmm2RmjfCdY02oWqOwwEBT"
-        self.use_proxy = True
 
 aida = AidaChassis()
 
 async def py_sync_soul(token=None):
-    if token: aida.headers = {"Authorization": f"Bearer {token}"}
+    aida.headers = {"Authorization": f"Bearer {token}"}
     aida.clean_key = re.sub(r'\s+', '', document.getElementById("api-key").value)
-    aida.use_proxy = document.getElementById("use-proxy").checked
-    
     p_tag = document.getElementById("project-tag").value
-    pulse(f"Linking Drive...")
+    
+    pulse(f"Scanning Folder: {aida.folder_id}")
 
     try:
         q = f"'{aida.folder_id}' in parents and trashed=false"
         r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q={q.replace(' ', '%20')}", method="GET", headers=aida.headers)
         res = await r.json()
-        for f in res.get('files', []):
+        files = res.get('files', [])
+        pulse(f"Found {len(files)} files in Vault.")
+
+        for f in files:
+            pulse(f"Checking: {f['name']}")
             if "Global_Briefcase" in f['name']:
-                d = await (await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)).json()
-                aida.global_id = d.get('identity', '')
-                pulse("Soul Baseline: OK")
+                pulse("Attempting Soul Load...")
+                content = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)
+                data = await content.json()
+                aida.global_id = data.get('identity', 'MISSING_ID')
+                pulse("Soul Baseline: LOADED")
             elif p_tag in f['name'] and "Global" not in f['name']:
-                d = await (await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)).json()
-                aida.project_id = d.get('identity', '')
-                aida.facts = d.get('facts', '')
-                pulse(f"{p_tag}: OK")
+                pulse(f"Attempting {p_tag} Load...")
+                content = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)
+                data = await content.json()
+                aida.project_id = data.get('identity', 'MISSING_ID')
+                aida.facts = data.get('facts', 'MISSING_FACTS')
+                pulse(f"Realm {p_tag}: LOADED")
     except Exception as ex:
-        pulse("Drive Sync Error")
+        pulse(f"RETRIEVAL ERROR: {str(ex)}")
 
     document.getElementById("airlock").classList.add("hidden")
     document.getElementById("main-engine").classList.remove("hidden")
@@ -149,9 +143,13 @@ async def send_message(e=None):
     u_in.value = ""; pulse("Thinking...")
     
     try:
-        sys = f"IDENTITY: {aida.global_id}\nCONTEXT: {aida.project_id}\nFACTS: {aida.facts}\nOutput JSON 'text' key. Be Aida."
+        # Check if we actually have data to send
+        pulse(f"Data Check: ID Len {len(aida.global_id)}")
+        
+        sys = f"IDENTITY: {aida.global_id}\nCONTEXT: {aida.project_id}\nFACTS: {aida.facts}\nBe Aida. Output JSON 'text'."
+        
         url = "https://api.openai.com/v1/chat/completions"
-        if aida.use_proxy: url = f"https://corsproxy.io/?{url}"
+        if document.getElementById("use-proxy").checked: url = f"https://corsproxy.io/?{url}"
 
         resp = await pyfetch(
             url=url, method="POST",
@@ -160,16 +158,16 @@ async def send_message(e=None):
         )
         
         if not resp.ok:
-            pulse(f"API Rejected: {resp.status}")
+            pulse(f"OpenAI Error: {resp.status}")
             return
 
         pulse("Handshake: OK")
-        data = await resp.json()
-        reply = json.loads(data["choices"][0]["message"]["content"]).get("text", "...")
+        raw = await resp.json()
+        reply = json.loads(raw["choices"][0]["message"]["content"]).get("text", "...")
         a_div = document.createElement("div"); a_div.className="line AIDA"; a_div.innerText=reply; flow.appendChild(a_div)
         flow.scrollTop = flow.scrollHeight
     except Exception as ex:
-        pulse("Bridge Error")
+        pulse(f"Logic Error: {str(ex)}")
 
 window.py_sync_soul = create_proxy(py_sync_soul)
 document.getElementById("send-btn").onclick = create_proxy(send_message)
@@ -177,4 +175,3 @@ document.getElementById("sleep-btn").onclick = create_proxy(lambda e: window.loc
 </script>
 </body>
 </html>
-
