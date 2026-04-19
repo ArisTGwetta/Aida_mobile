@@ -81,12 +81,11 @@
 
     <div id="main-engine" class="hidden">
         <div id="chat-flow"></div>
-        <div id="aida-display">
+        <div id="aida-display" class="debug-mode">
             <div id="debug-log"><div id="log-content"></div></div>
-            <img id="aida-portrait" src="" style="height:90%; border-radius: 5px;">
-            <div id="aida-display" class="debug-mode"> <div id="grid-layer"></div>
-               <img id="aida-face" src="assets/neutral1.png" style="width:100%; height:100%; object-fit:cover;">
-            </div>
+            <div id="grid-layer"></div>
+            <img id="aida-portrait" src="assets/neutral1.png" style="width:100%; height:100%; object-fit:cover;">
+        </div>
         </div>
         <div id="input-dock">
             <div style="display: flex; gap: 8px; align-items: center;">
@@ -212,24 +211,25 @@ def add_line(text, role):
 
 async def update_face(filename):
     try:
-        
-        # --- NEW GITHUB LOGIC ---
+        # 1. INTERCEPT FOR GITHUB ASSET
         if filename == "neutral1.png":
-            # Point directly to your GitHub assets folder
             aida.portrait.src = "assets/neutral1.png"
             pulse("Aida Awakened (Local)")
             return 
-        # -------------------------
-        # Everything below stays exactly as you have it (Google Drive Logic)
+            
+        # 2. GOOGLE DRIVE LOGIC (Matches your current code)
         q = f"'{aida.emotions_folder_id}' in parents and name = '{filename}' and trashed = false"
         search = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q={q.replace(' ', '%20')}", method="GET", headers=aida.current_headers)
         res = await search.json()
         if res.get('files'):
             f_id = res['files'][0]['id']
             img = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f_id}?alt=media", method="GET", headers=aida.current_headers)
+            # This converts the Google Drive file to base64 for the display
             aida.portrait.src = f"data:image/png;base64,{base64.b64encode(await img.bytes()).decode('utf-8')}"
-    except: pulse("Face Swap Fail")
-
+            pulse(f"Face updated: {filename}")
+    except: 
+        pulse("Face Swap Fail")
+        
 async def py_sync_soul(token):
     try:
         status = document.getElementById("setup-status")
@@ -436,4 +436,6 @@ init()
     
 </body>
 </html>
+
+
 
