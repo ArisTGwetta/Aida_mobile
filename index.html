@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Aida v9.7.5</title>
+    <title>Aida v9.7.6</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
@@ -12,58 +12,51 @@
         :root { --aida-gold: #d3af37; --aida-bg: #fdf6e3; --aida-dark: #222; }
         html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--aida-bg); font-family: 'Courier New', monospace; }
         #main-engine { display: flex; flex-direction: column; height: 100dvh; }
-        #chat-flow { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: white; }
+        #chat-flow { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: white; border-bottom: 2px solid var(--aida-gold); }
         
-        #aida-display { 
-            flex: 0 0 28dvh; 
-            background: #000; 
-            display: grid;
-            grid-template-columns: 1fr 1.8fr 1fr;
-            border-top: 2px solid var(--aida-gold);
-            border-bottom: 2px solid var(--aida-gold);
-            position: relative;
-            overflow: hidden;
-        }
-
+        /* THE DATA RAIN GRID */
+        #aida-display { flex: 0 0 30dvh; background: #000; display: grid; grid-template-columns: 1fr 1.8fr 1fr; position: relative; overflow: hidden; }
         #flicker-grid { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(200, 1fr); grid-template-rows: repeat(120, 1fr); z-index: 20; pointer-events: none; }
         .block { border: 0.1px solid rgba(211, 175, 55, 0.005); }
-        .spark { background: rgba(211, 175, 55, 0.25); }
+        .spark { background: rgba(211, 175, 55, 0.4); }
 
+        /* THE STATE TINTS */
         .tint-layer { position: absolute; inset: 0; pointer-events: none; z-index: 5; opacity: 0; transition: opacity 0.4s; }
-        .debug-green { background: rgba(0, 255, 60, 0.12); mix-blend-mode: color; }
-        .alert-orange { background: rgba(255, 110, 0, 0.25); mix-blend-mode: color; }
+        .debug-green { background: rgba(0, 255, 60, 0.15); mix-blend-mode: color; }
+        .alert-orange { background: rgba(255, 110, 0, 0.28); mix-blend-mode: color; }
         .is-debug .debug-green { opacity: 1; }
         .is-alert .alert-orange { opacity: 1; z-index: 10; }
 
-        #debug-pane { color: #0f0; font-size: 7px; padding: 5px; overflow: hidden; border-right: 1px solid #333; z-index: 10; }
+        #debug-pane { color: #0f0; font-size: 7px; padding: 5px; overflow: hidden; border-right: 1px solid #333; z-index: 10; line-height: 1.1; }
         #portrait-pane { position: relative; z-index: 10; background: #000; display: flex; align-items: center; justify-content: center; }
         #portrait-pane img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
-        #presentation-pane { border-left: 1px solid #333; color: var(--aida-gold); font-size: 9px; padding: 8px; z-index: 10; }
+        #presentation-pane { border-left: 1px solid #333; color: var(--aida-gold); font-size: 9px; padding: 8px; z-index: 10; overflow: hidden; }
 
         #input-dock { padding: 10px; background: #f8f8f8; border-top: 1px solid #ddd; padding-bottom: 30px; display: flex; flex-direction: column; gap: 8px; }
-        #user-in { width: 100%; padding: 12px; border-radius: 20px; border: 1px solid #ccc; font-size: 16px; box-sizing: border-box; }
-        .controls { display: flex; gap: 5px; }
-        button { background: var(--aida-gold); color: white; border: none; border-radius: 20px; padding: 10px 12px; font-weight: bold; flex: 1; font-size: 11px; cursor: pointer; }
+        #user-in { width: 100%; padding: 14px; border-radius: 24px; border: 1px solid #ccc; font-size: 16px; box-sizing: border-box; outline: none; }
+        .controls { display: flex; gap: 6px; }
+        button { background: var(--aida-gold); color: white; border: none; border-radius: 20px; padding: 12px; font-weight: bold; flex: 1; cursor: pointer; font-size: 11px; }
         
-        .line { padding: 10px; border-radius: 12px; font-size: 14px; max-width: 88%; line-height: 1.4; }
+        .line { padding: 12px; border-radius: 16px; font-size: 14px; max-width: 85%; position: relative; line-height: 1.5; word-wrap: break-word; }
         .AIDA { background: #f0f0f0; border-left: 4px solid var(--aida-gold); align-self: flex-start; }
         .USER { background: var(--aida-gold); align-self: flex-end; color: white; }
+        .tag { font-size: 8px; opacity: 0.5; display: block; margin-bottom: 4px; }
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
     <div id="airlock" style="height:100dvh; background:var(--aida-dark); color:var(--aida-gold); display:flex; flex-direction:column; justify-content:center; align-items:center;">
-        <h1 style="letter-spacing:5px;">AIDA 9.7.5</h1>
-        <div style="background:#333; padding:20px; border:1px solid var(--aida-gold); border-radius:8px; width:320px;">
-            <input type="password" id="scramble-pin" placeholder="PIN" maxlength="3" style="width:100%; margin-bottom:10px; padding:10px; text-align:center; letter-spacing:15px; font-size: 18px;">
-            <select id="project-tag" style="width:100%; margin-bottom:15px; padding:10px; background:#222; color:white;">
+        <h1 style="letter-spacing:8px; margin-bottom:20px;">AIDA 9.7.6</h1>
+        <div style="background:#333; padding:25px; border:1px solid var(--aida-gold); border-radius:12px; width:300px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+            <input type="password" id="scramble-pin" placeholder="PIN" maxlength="3" style="width:100%; margin-bottom:15px; padding:12px; text-align:center; letter-spacing:15px; font-size: 20px; border-radius: 8px; border: none;">
+            <select id="project-tag" style="width:100%; margin-bottom:20px; padding:12px; background:#222; color:white; border: 1px solid #444; border-radius: 8px;">
                 <option value="CORE">CORE</option>
                 <option value="ASTRA">ASTRA</option>
                 <option value="DEBUG">DEBUG</option>
                 <option value="NEW_PROJECT">+ NEW REALM</option>
             </select>
-            <button onclick="requestToken()" style="width:100%;">IGNITE ENGINE</button>
+            <button onclick="requestToken()" style="width:100%; height: 50px; font-size: 14px;">IGNITE ENGINE</button>
         </div>
     </div>
 
@@ -77,10 +70,10 @@
                 <div class="tint-layer alert-orange"></div>
                 <img id="aida-portrait" src="assets/neutral1.png">
             </div>
-            <div id="presentation-pane"><div id="realm-tag" style="font-weight:bold; margin-bottom:5px;"></div><div id="pres-content">Engine Stable.</div></div>
+            <div id="presentation-pane"><div id="realm-tag" style="font-weight:bold; margin-bottom:5px;"></div><div id="pres-content">Awaiting Signal...</div></div>
         </div>
         <div id="input-dock">
-            <input type="text" id="user-in" placeholder="Message Aida...">
+            <input type="text" id="user-in" placeholder="Address Aida...">
             <div class="controls">
                 <button id="send-btn">SEND</button>
                 <button id="eject-btn" style="background:#666;">REALM</button>
@@ -91,8 +84,6 @@
 
     <script>
         let tokenClient;
-        
-        // THE VAULT FOLDERS
         const VAULT_KEY_FOLDERS = {
             "1": "iv8Og2duxxyD5r1Jg4xGy4wO3",
             "2": "iv8Og2duxxyD5r1Jg4xHy4wO3",
@@ -108,13 +99,10 @@
         function requestToken() {
             const pin = document.getElementById("scramble-pin").value;
             if(pin.length === 3) {
-                // Assembly: sk-proj- + Folder[pin1] + Folder[pin2] + Folder[pin3]
                 const assembled = "sk-proj-" + VAULT_KEY_FOLDERS[pin[0]] + VAULT_KEY_FOLDERS[pin[1]] + VAULT_KEY_FOLDERS[pin[2]];
-                sessionStorage.setItem("aida_active_key", assembled);
+                window.sessionStorage.setItem("aida_active_key", assembled);
                 tokenClient.requestAccessToken();
-            } else {
-                alert("PIN ERROR: RE-ENTRY REQUIRED");
-            }
+            } else { alert("PIN REJECTED"); }
         }
 
         window.onload = function () {
@@ -124,128 +112,174 @@
                 callback: (resp) => { if (resp.access_token) window.py_sync_soul(resp.access_token); },
             });
         }
-
     </script>
+
     <script type="py">
-
-# IMPORTANT - WHEN MAKING CHANES - target is that:
-#1) we login (API key/google auth)
-#2) personality pieces and core briefcase and project briefcase are loaded
-#3) interactions are tagged to the active project (for post processing in asleep), and interactions are tied to the emotion engine that changes the aida faces
-#4) for the conversation aida "agent" may need to issue summarization requests to the llm every several lines - whenever she sends a summary request a "sleep log" gets sent to drive
-#5) if interactions are censored by the llm, aida keeps the immersion by giving me a "lets give these two lovebirds some space" kind of answer... and changing her coloring to orange...
-#6) if i behave after orange for 2 turns, then she goes back to normal colors
-#7) if i change projects she sends a new "sleep" log to drive, and reloads all her basics including the briefcase fr the new project...
-#8) if the new project is debug... change coloring to green
-#9) if debug is changed back to anyithing else, go back to normal colors...
-
-
-import json, asyncio, random
+import json, asyncio, random, math
 from pyscript import document, window
 from pyodide.http import pyfetch
 from pyodide.ffi import create_proxy
 
+def pulse(msg):
+    log = document.getElementById("log-content")
+    if log:
+        div = document.createElement("div"); div.innerText = f"> {msg}"; log.appendChild(div)
+        log.parentElement.scrollTop = log.parentElement.scrollHeight
+
 class AidaChassis:
     def __init__(self):
-        self.project = "CORE"
         self.headers = {}
+        self.clean_key = ""
         self.session_log = []
+        self.project = "CORE"
+        self.strike_count = 0 
+        self.turn_count = 0   
         self.blocks = []
-        self.strike_count = 0
-        self.turn_count = 0
+        self.vault_id = "1R-0BclW4iHqmm2RmjfCdY02oWqOwwEBT"
         self.inbox_id = "1lvGV7MjaMtSJUUnYjQSSe-VwKgGZSWg7"
+        self.emotion_folder = "1Z7_0kYJ3OT2EByHG_Ircap7y5NnKPnQz"
+        self.global_id = {}
+        self.realm_data = ""
+        self.EMOTION_MAP = {
+            "happy": (0.8, 0.6), "calm": (0.4, -0.2), "focused": (0.0, 0.5),
+            "concerned": (-0.2, 0.4), "mischievous": (0.5, 0.3), "curious": (0.3, 0.5),
+            "excited": (0.9, 0.9), "pouting": (-0.4, -0.4), "neutral": (0.0, 0.0),
+            "sarcastic": (-0.3, 0.2), "angry": (-0.8, 0.8)
+        }
 
-    def pulse(self, msg):
-        log = document.getElementById("log-content")
-        div = document.createElement("div"); div.innerText = f"> {msg}"
-        log.appendChild(div); log.parentElement.scrollTop = log.parentElement.scrollHeight
+    def get_face_name(self, v, a):
+        closest = "neutral"; min_dist = 999
+        for cat, coords in self.EMOTION_MAP.items():
+            dist = math.sqrt((v - coords[0])**2 + (a - coords[1])**2)
+            if dist < min_dist: min_dist = dist; closest = cat
+        return f"{closest}1.png"
 
 aida = AidaChassis()
 
 async def sparker():
     while True:
-        active_set = random.sample(aida.blocks, 400)
-        for b in active_set: b.classList.add("spark")
-        await asyncio.sleep(0.12)
-        for b in active_set: b.classList.remove("spark")
+        if aida.blocks:
+            active_set = random.sample(aida.blocks, 400)
+            for b in active_set: b.classList.add("spark")
+            await asyncio.sleep(0.12)
+            for b in active_set: b.classList.remove("spark")
         await asyncio.sleep(0.04)
 
+async def update_face_drive(filename):
+    try:
+        q = f"'{aida.emotion_folder}' in parents and name = '{filename}' and trashed = false"
+        r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q={q.replace(' ', '%20')}", method="GET", headers=aida.headers)
+        res = await r.json()
+        if res.get('files'):
+            fid = res['files'][0]['id']
+            img_r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{fid}?alt=media", method="GET", headers=aida.headers)
+            blob = await img_r.bytes()
+            base64 = window.btoa(''.join([chr(b) for b in blob]))
+            document.getElementById("aida-portrait").src = f"data:image/png;base64,{base64}"
+    except: pulse("Face Sync Lag...")
+
 async def py_sync_soul(token):
+    # Initialize the High-Res Grid
     grid_div = document.getElementById("flicker-grid")
     for _ in range(2400):
         b = document.createElement("div"); b.className = "block"
         grid_div.appendChild(b); aida.blocks.append(b)
-    
     asyncio.create_task(sparker())
+
     aida.headers = {"Authorization": f"Bearer {token}"}
+    aida.clean_key = window.sessionStorage.getItem("aida_active_key")
     aida.project = document.getElementById("project-tag").value
     document.getElementById("realm-tag").innerText = aida.project
     
-    # Debug / Green Logic
-    if aida.project == "DEBUG": document.getElementById("aida-display").classList.add("is-debug")
+    # Debug/Orange Logic Toggles
+    display = document.getElementById("aida-display")
+    if aida.project == "DEBUG": display.classList.add("is-debug")
+    else: display.classList.remove("is-debug")
+
+    pulse(f"Fetching Briefcases for {aida.project}...")
+    try:
+        r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q='{aida.vault_id}'+in+parents+and+trashed=false", method="GET", headers=aida.headers)
+        res = await r.json()
+        for f in res.get('files', []):
+            fname = f['name'].lower()
+            if "global_briefcase" in fname:
+                c = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)
+                d = json.loads(await c.string()); aida.global_id = d.get("identity", {})
+            elif aida.project.lower() in fname and "global" not in fname:
+                c = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)
+                aida.realm_data = await c.string()
+        
+        await update_face_drive("neutral1.png")
+        pulse("Handshake Complete.")
+    except: pulse("Briefcase Fetch Error.")
     
     document.getElementById("airlock").classList.add("hidden")
     document.getElementById("main-engine").classList.remove("hidden")
-    aida.pulse(f"Cipher Active: {aida.project}")
 
 def add_line(text, role):
-    div = document.createElement("div"); div.className = f"line {role}"; div.innerText = text
-    document.getElementById("chat-flow").appendChild(div)
-    document.getElementById("chat-flow").scrollTop = document.getElementById("chat-flow").scrollHeight
+    flow = document.getElementById("chat-flow")
+    div = document.createElement("div"); div.className = f"line {role}"
+    tag = document.createElement("span"); tag.className = "tag"; tag.innerText = role if role == "AIDA" else "FRANCISCO"
+    div.appendChild(tag); 
+    txt = document.createElement("span"); txt.innerText = text; div.appendChild(txt)
+    flow.appendChild(div); flow.scrollTop = flow.scrollHeight
 
-async def main_loop_step(event=None):
-    box = document.getElementById("user-in"); text = box.value.strip()
-    if not text: return
-    box.value = ""; add_line(text, "USER")
+async def send_message(e=None):
+    u_in = document.getElementById("user-in"); msg = u_in.value.strip()
+    if not msg: return
+    add_line(msg, "USER"); u_in.value = ""; aida.turn_count += 1
+    aida.session_log.append({"role": "user", "content": msg, "project": aida.project})
     
-    aida.session_log.append({"role": "user", "content": text, "project": aida.project})
-    aida.turn_count += 1
+    try:
+        sys = f"IDENTITY: {json.dumps(aida.global_id)}\nREALM: {aida.realm_data}\nJSON ONLY: {{'text': '...', 'v': val, 'a': val}}"
+        resp = await pyfetch(
+            url="https://api.openai.com/v1/chat/completions", method="POST",
+            headers={"Authorization": f"Bearer {aida.clean_key}", "Content-Type": "application/json"},
+            body=json.dumps({"model": "gpt-4o", "messages": [{"role": "system", "content": sys}] + [{"role": m["role"], "content": m["content"]} for m in aida.session_log[-6:]], "response_format": {"type": "json_object"}})
+        )
+        data = await resp.json()
+        payload = json.loads(data["choices"][0]["message"]["content"])
+        
+        reply = payload.get("text", "...")
+        v, a = payload.get("v", 0.0), payload.get("a", 0.0)
 
-    # Nanny Filter & Orange Tint
-    if any(x in text.upper() for x in ["CARNAL", "X-RATED", "EXPLICIT"]):
-        aida.strike_count = 3
-        document.getElementById("aida-display").classList.add("is-alert")
-        add_line("Aida: A little bit too intense for this session, Francisco. Let's pivot.", "AIDA")
-        return
+        # POINT #5: The Immersion Shield (Nanny Response Logic)
+        if any(x in reply.upper() for x in ["AS AN AI", "I CANNOT FULFILL", "POLICY", "PROGRAMMING"]):
+            reply = "Aida pauses and adjusts her frequency. 'Francisco, that data stream seems to have a feedback loop. Let's redirect our focus to the architecture.'"
+            aida.strike_count = 3
+            document.getElementById("aida-display").classList.add("is-alert")
+        
+        # POINT #6: Cooldown
+        if aida.strike_count > 0:
+            aida.strike_count -= 1
+            if aida.strike_count == 0: document.getElementById("aida-display").classList.remove("is-alert")
 
-    # Cooldown Logic
-    if aida.strike_count > 0:
-        aida.strike_count -= 1
-        if aida.strike_count == 0:
-            document.getElementById("aida-display").classList.remove("is-alert")
+        await update_face_drive(aida.get_face_name(v, a))
+        add_line(reply, "AIDA")
+        aida.session_log.append({"role": "assistant", "content": reply, "project": aida.project, "v": v, "a": a})
+        
+        if aida.turn_count % 5 == 0: asyncio.create_task(aida_sleep(silent=True))
+    except: pulse("Logic Loop Break.")
 
-    # Auto-Sleep Every 5 Turns
-    if aida.turn_count % 5 == 0:
-        asyncio.create_task(py_sleep(silent=True))
-
-async def py_sleep(event=None, silent=False):
-    if not silent: aida.pulse("Synching Vault...")
+async def aida_sleep(e=None, silent=False):
+    if not silent: pulse("Archiving Parcel...")
     try:
         now = window.Date.new().toISOString().replace(":", "-").split(".")[0]
-        final_realm = aida.project
-        filename = f"{final_realm}_SLEEP_{now}.json"
-        
+        filename = f"{aida.project}_SLEEP_{now}.json"
         metadata = {"name": filename, "parents": [aida.inbox_id]}
-        parcel = {"realm_source": final_realm, "interactions": aida.session_log}
-        
-        boundary = "AidaParcelBoundary"
+        parcel = {"realm_source": aida.project, "interactions": aida.session_log}
+        boundary = "AidaSleep"
         body = f"--{boundary}\nContent-Type: application/json; charset=UTF-8\n\n{json.dumps(metadata)}\n"
         body += f"--{boundary}\nContent-Type: application/json\n\n{json.dumps(parcel)}\n--{boundary}--"
-
-        await pyfetch(
-            url="https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
-            method="POST",
-            headers={"Authorization": aida.headers["Authorization"], "Content-Type": f"multipart/related; boundary={boundary}"},
-            body=body
-        )
+        await pyfetch(url="https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", method="POST", headers={"Authorization": aida.headers["Authorization"], "Content-Type": f"multipart/related; boundary={boundary}"}, body=body)
         if not silent: window.location.reload()
-    except Exception as e:
-        aida.pulse(f"Error: {e}")
+    except: pulse("Archive Failed.")
 
-document.getElementById("send-btn").onclick = create_proxy(main_loop_step)
-document.getElementById("sleep-btn").onclick = create_proxy(py_sleep)
+document.getElementById("send-btn").onclick = create_proxy(send_message)
+document.getElementById("sleep-btn").onclick = create_proxy(aida_sleep)
 document.getElementById("eject-btn").onclick = create_proxy(lambda e: window.location.reload())
 window.py_sync_soul = create_proxy(py_sync_soul)
     </script>
 </body>
 </html>
+
