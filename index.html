@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Aida Free v7.7</title>
+    <title>Aida Free v7.8</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
@@ -33,6 +33,8 @@
                 <option value="CORE">CORE</option>
                 <option value="ASTRA">ASTRA</option>
                 <option value="MONAMOUR">MONAMOUR</option>
+                <option value="CHROMA">CHROMA</option>
+                <option value="RPG">RPG</option>
             </select>
             <button id="sign-in-btn" onclick="requestToken()" style="width: 100%; padding: 15px;">ACTIVATE</button>
             <p id="setup-status" style="font-size:11px; text-align:center; margin-top:15px; color: #888;">READY</p>
@@ -48,7 +50,13 @@
         <div id="input-dock">
             <div style="display: flex; gap: 8px; align-items: center; background: #eee; padding: 5px; border-radius: 10px;">
                 <label style="font-size: 9px; color: var(--aida-gold); font-weight: bold; margin-left: 5px;">REALM:</label>
-                <select id="chat-realm-switch" style="flex: 1; font-size: 12px; border: none; background: transparent;"></select>
+                <select id="chat-realm-switch" style="flex: 1; font-size: 12px; border: none; background: transparent;">
+                    <option value="CORE">CORE</option>
+                    <option value="ASTRA">ASTRA</option>
+                    <option value="MONAMOUR">MONAMOUR</option>
+                    <option value="CHROMA">CHROMA</option>
+                    <option value="RPG">RPG</option>
+                </select>
                 <button id="sync-btn" style="padding: 5px 10px; font-size: 10px; background: #555;">RE-SEED</button>
             </div>
             <div style="display: flex; gap: 8px;">
@@ -91,25 +99,20 @@ class AidaChassis:
         self.portrait = document.getElementById("aida-portrait")
         self.current_headers = {}
         self.project = "CORE"
-        self.global_memory = ""
-        self.project_memory = ""
+        self.global_identity = ""
+        self.project_identity = ""
         self.facts = ""
         self.living_buffer = []
         self.briefcase_folder = "1R-0BclW4iHqmm2RmjfCdY02oWqOwwEBT"
 
     async def secure_load(self, url, description):
-        """Standardized fetch to handle Blobs locally and convert to JSON"""
         try:
             resp = await pyfetch(url=url, method="GET", headers=self.current_headers)
-            if not resp.ok: 
-                pulse(f"Fetch failed: {description}")
-                return None
-            
-            # CRITICAL: Read as string (UTF-8) first to handle blob-to-text locally
+            if not resp.ok: return None
             raw_text = await resp.string()
             return json.loads(raw_text)
         except Exception as e:
-            pulse(f"Parsing {description} failed: {str(e)}")
+            pulse(f"Parse Error {description}: {str(e)}")
             return None
 
 aida = AidaChassis()
@@ -118,45 +121,46 @@ async def py_sync_soul(token=None):
     try:
         if token: aida.current_headers = {"Authorization": f"Bearer {token}"}
         
-        # UI Sync
-        airlock_sel = document.getElementById("project-tag")
+        # 1. UI Setup
         selector = document.getElementById("chat-realm-switch")
+        airlock_sel = document.getElementById("project-tag")
         aida.project = airlock_sel.value if not document.getElementById("airlock").classList.contains("hidden") else selector.value
+        selector.value = aida.project
         
-        pulse(f"Seeding Realm: {aida.project}")
+        pulse(f"Seeding {aida.project}...")
 
-        # 1. Load Global Identity (The 'Soul')
+        # 2. Load Global Baseline (Separate Pattern)
+        # Specifically targeting Global_Briefcase.json or Global_Briefcase.json.json
         q_global = f"'{aida.briefcase_folder}' in parents and name contains 'Global_Briefcase' and trashed = false"
         search_global = await aida.secure_load(f"https://www.googleapis.com/drive/v3/files?q={q_global.replace(' ', '%20')}", "Global Search")
         if search_global and search_global.get('files'):
             g_id = search_global['files'][0]['id']
-            g_data = await aida.secure_load(f"https://www.googleapis.com/drive/v3/files/{g_id}?alt=media", "Global Identity")
+            g_data = await aida.secure_load(f"https://www.googleapis.com/drive/v3/files/{g_id}?alt=media", "Global Soul")
             if g_data:
-                aida.global_memory = g_data.get('identity', '')
-                pulse("Global Persona Synced.")
+                aida.global_identity = g_data.get('identity', '')
+                pulse("Baseline Soul Synced.")
 
-        # 2. Load Project Context (The 'Knowledge')
+        # 3. Load Project Context
         q_proj = f"'{aida.briefcase_folder}' in parents and name contains '{aida.project}' and trashed = false"
         search_proj = await aida.secure_load(f"https://www.googleapis.com/drive/v3/files?q={q_proj.replace(' ', '%20')}", "Project Search")
         if search_proj and search_proj.get('files'):
-            # Filter to avoid double-loading global
+            # Avoid the Global file
             files = [f for f in search_proj['files'] if 'Global' not in f['name']]
             if files:
                 p_id = files[0]['id']
-                pulse(f"Found Knowledge: {files[0]['name']}")
-                p_data = await aida.secure_load(f"https://www.googleapis.com/drive/v3/files/{p_id}?alt=media", "Project Content")
+                pulse(f"Found: {files[0]['name']}")
+                p_data = await aida.secure_load(f"https://www.googleapis.com/drive/v3/files/{p_id}?alt=media", "Project Context")
                 if p_data:
-                    aida.project_memory = p_data.get('identity', '')
+                    aida.project_identity = p_data.get('identity', '')
                     aida.facts = p_data.get('facts', '')
                     pulse("Context Merged.")
 
-        # Update Selectors
         document.getElementById("airlock").classList.add("hidden")
         document.getElementById("main-engine").classList.remove("hidden")
         pulse("Aida Awakened.")
 
     except Exception as e:
-        pulse(f"Critical Sync Failure: {str(e)}")
+        pulse(f"Awaken Error: {str(e)}")
 
 async def main_loop_step(event=None):
     api_key = document.getElementById("api-key").value.strip()
@@ -164,7 +168,6 @@ async def main_loop_step(event=None):
     text = user_in.value.strip()
     if not text or not api_key: return
 
-    # User Line
     div = document.createElement("div")
     div.className = "line USER"
     div.innerText = text
@@ -172,21 +175,43 @@ async def main_loop_step(event=None):
     user_in.value = ""
     
     try:
-        pulse("Aida processing...")
-        combined_id = f"{aida.global_memory}\n\nCURRENT REALM CONTEXT: {aida.project_memory}"
-        sys_msg = f"IDENTITY: {combined_id}\nFACTS: {aida.facts}\nREALM: {aida.project}\nOutput JSON with key 'text'."
+        pulse("Thinking...")
+        # COMBINED SYSTEM PROMPT
+        # We place Global Identity first to set the baseline persona, then Project Identity for specific context.
+        combined_persona = f"BASELINE SOUL: {aida.global_identity}\n\nCURRENT PROJECT CONTEXT: {aida.project_identity}"
+        sys_msg = (
+            f"SYSTEM IDENTITY: {combined_persona}\n"
+            f"WORLD FACTS: {aida.facts}\n"
+            f"CURRENT REALM: {aida.project}\n"
+            "INSTRUCTION: You are Aida. Respond in character. Output JSON with a 'text' key."
+        )
         
         history = [{"role": "system", "content": sys_msg}]
-        for turn in aida.living_buffer[-4:]:
+        for turn in aida.living_buffer[-6:]:
             history.append({"role": turn["role"], "content": turn["content"]})
         history.append({"role": "user", "content": text})
 
+        # MOBILE-HARDENED FETCH
         resp = await pyfetch(
             url="https://api.openai.com/v1/chat/completions", 
             method="POST",
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
-            body=json.dumps({"model": "gpt-4o", "messages": history, "response_format": {"type": "json_object"}})
+            headers={
+                "Content-Type": "application/json", 
+                "Authorization": f"Bearer {api_key}"
+            },
+            body=json.dumps({
+                "model": "gpt-4o", 
+                "messages": history, 
+                "response_format": {"type": "json_object"},
+                "temperature": 0.7
+            })
         )
+        
+        if not resp.ok:
+            error_data = await resp.string()
+            pulse(f"API Rejected: {resp.status}")
+            return
+
         res_json = await resp.json()
         payload = json.loads(res_json["choices"][0]["message"]["content"])
         reply = payload.get("text", "...")
@@ -200,7 +225,7 @@ async def main_loop_step(event=None):
         aida.living_buffer.append({"role": "user", "content": text})
         aida.living_buffer.append({"role": "assistant", "content": reply})
     except Exception as e:
-        pulse(f"Intelligence Failure: {str(e)}")
+        pulse(f"Intelligence Fail: {str(e)}")
 
 def init():
     document.getElementById("send-btn").onclick = create_proxy(main_loop_step)
@@ -215,4 +240,3 @@ init()
     </script>
 </body>
 </html>
-\
