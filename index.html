@@ -97,40 +97,33 @@
     </style>
 </head>
 <body>
-
     <div id="airlock" style="height:100dvh; background:#222; display:flex; flex-direction:column; justify-content:center; align-items:center;">
-    <div id="vault-door" style="background:#111; padding:25px; border:1px solid #444; border-radius:15px; width:300px;">
-        <div class="scanner-line"></div>
-        <h2 style="color:#d3af37; font-size:10px; letter-spacing:4px; margin-bottom:15px; text-align:center;">VAULT AUTHENTICATION</h2>
-        
-        <input type="password" id="scramble-pin" placeholder="---" maxlength="4" readonly 
-               style="width:100%; margin-bottom:15px; padding:12px; text-align:center; letter-spacing:15px; font-size: 24px; background:#000; color:#d3af37; border:1px solid #333; border-radius:8px;">
-        
-        <div id="vault-door" ...>
+        <div id="vault-door" style="background:#111; padding:25px; border:1px solid #444; border-radius:15px; width:300px; text-align:center;">
             <div class="scanner-line"></div>
-            <div id="portrait-scan-area"></div> 
             
-            <input type="password" id="scramble-pin" ...>
-            <div class="keypad"> ... </div>
-            ...
-        </div>
-        
-        <div class="keypad">
-            <button class="key" onclick="pressKey('1')">1</button>
-            <button class="key" onclick="pressKey('2')">2</button>
-            <button class="key" onclick="pressKey('3')">3</button>
-            <button class="key" onclick="pressKey('4')">4</button>
-            <button class="key" onclick="pressKey('5')">5</button>
-            <button class="key" onclick="pressKey('6')">6</button>
-            <button class="key" onclick="pressKey('7')">7</button>
-            <button class="key" onclick="pressKey('8')">8</button>
-            <button class="key" onclick="pressKey('9')">9</button>
-            <button class="key" style="color:#666" onclick="pressKey('0')">0</button>
-            <button class="key" style="color:#ff4444; font-size:12px;" onclick="pressKey('C')">CLR</button>
-            <button class="key" style="color:#d3af37; font-size:12px;" onclick="requestToken()">OK</button>
-        </div>
-
-        <select id="project-tag" style="width:100%; padding:12px; background:#000; color:white; border-radius:8px; border:1px solid #444;">
+            <div id="portrait-scan-area"></div> 
+    
+            <h2 style="color:#d3af37; font-size:10px; letter-spacing:4px; margin-bottom:15px;">VAULT AUTHENTICATION</h2>
+            
+            <input type="password" id="scramble-pin" placeholder="---" maxlength="4" readonly 
+                   style="width:100%; margin-bottom:15px; padding:12px; text-align:center; letter-spacing:15px; font-size: 24px; background:#000; color:#d3af37; border:1px solid #333; border-radius:8px;">
+            
+            <div class="keypad">
+                <button class="key" onclick="pressKey('1')">1</button>
+                <button class="key" onclick="pressKey('2')">2</button>
+                <button class="key" onclick="pressKey('3')">3</button>
+                <button class="key" onclick="pressKey('4')">4</button>
+                <button class="key" onclick="pressKey('5')">5</button>
+                <button class="key" onclick="pressKey('6')">6</button>
+                <button class="key" onclick="pressKey('7')">7</button>
+                <button class="key" onclick="pressKey('8')">8</button>
+                <button class="key" onclick="pressKey('9')">9</button>
+                <button class="key" style="color:#666" onclick="pressKey('0')">0</button>
+                <button class="key" style="color:#ff4444; font-size:12px;" onclick="pressKey('C')">CLR</button>
+                <button class="key" style="color:#d3af37; font-size:12px;" onclick="requestToken()">OK</button>
+            </div>
+    
+            <select id="project-tag" style="width:100%; padding:12px; background:#000; color:white; border-radius:8px; border:1px solid #444; margin-top:15px;">
             <option value="CORE">CORE</option>
             <option value="ASTRA">ASTRA</option>
             <option value="DEBUG">DEBUG</option>
@@ -181,21 +174,22 @@
             if (val === 'C') { box.value = ""; }
             else if (box.value.length < 4) { box.value += val; }
         }
+        
         function requestToken() {
             const rawPin = document.getElementById("scramble-pin").value;
+            // THE ZERO-IGNORE MAGIC
             const pin = rawPin.replace(/0/g, "").substring(0, 3);
             
             if(pin.length === 3) {
-                // Step 1: Hide Keypad, show "Face Mapping" area
+                // Transition: Hide keypad, Show Mapping Silhouette
                 document.querySelector(".keypad").style.display = "none";
-                const scanArea = document.getElementById("portrait-scan-area");
-                scanArea.style.display = "block";
+                document.getElementById("scramble-pin").style.display = "none";
+                document.getElementById("portrait-scan-area").style.display = "block";
                 
-                // Step 2: Set the Key
                 const assembled = "sk-proj-" + VAULT_KEY_FOLDERS[pin[0]] + VAULT_KEY_FOLDERS[pin[1]] + VAULT_KEY_FOLDERS[pin[2]];
                 sessionStorage.setItem("aida_active_key", assembled);
                 
-                // Step 3: Brief "Processing" delay for immersion
+                // Brief delay for the "Face Mapping" effect before Google OAuth kicks in
                 setTimeout(() => { 
                     tokenClient.requestAccessToken(); 
                 }, 1800);
@@ -204,7 +198,7 @@
                 document.getElementById("scramble-pin").value = "";
             }
         }
-
+        
         window.onload = function () {
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
@@ -259,12 +253,19 @@ aida = AidaChassis()
 async def sparker():
     while True:
         if aida.blocks:
-            active = random.sample(aida.blocks, 80)
-            for b in active: b.classList.add("spark")
+            # Randomly pick some to be blue and some to be white
+            active_blue = random.sample(aida.blocks, 40)
+            active_white = random.sample(aida.blocks, 15)
+            
+            for b in active_blue: b.classList.add("spark-blue")
+            for b in active_white: b.classList.add("spark-white")
+            
             await asyncio.sleep(0.1)
-            for b in active: b.classList.remove("spark")
+            
+            for b in active_blue: b.classList.remove("spark-blue")
+            for b in active_white: b.classList.remove("spark-white")
         await asyncio.sleep(0.05)
-
+        
 async def update_face_drive(filename):
     try:
         q = f"'{aida.emotion_folder}' in parents and name = '{filename}' and trashed = false"
