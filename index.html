@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Aida Free v9.1</title>
+    <title>Aida Free v9.3</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
@@ -26,21 +26,21 @@
 </head>
 <body>
     <div id="airlock" style="height:100dvh; background:var(--aida-dark); color:var(--aida-gold); display:flex; flex-direction:column; justify-content:center; align-items:center;">
-        <h1 style="letter-spacing:5px;">AIDA 9.1</h1>
+        <h1 style="letter-spacing:5px;">AIDA 9.3</h1>
         <div style="background:#333; padding:25px; border:1px solid var(--aida-gold); border-radius:10px; width:350px;">
             <input type="password" id="api-key" placeholder="OPENAI KEY" style="width:100%; padding:10px; margin-bottom:10px; background:#111; color:white; border:1px solid #444;">
             <select id="project-tag" style="width:100%; padding:10px; margin-bottom:15px; background:#111; color:white; border:1px solid var(--aida-gold);">
                 <option value="CORE">CORE</option><option value="ASTRA">ASTRA</option><option value="MONAMOUR">MONAMOUR</option>
             </select>
             <div style="font-size: 11px; margin-bottom: 15px; color: #aaa;"><input type="checkbox" id="use-proxy"> Enable Proxy Bridge</div>
-            <button onclick="requestToken()" style="width:100%;">IGNITE</button>
+            <button onclick="requestToken()" style="width:100%;">STITCH SOUL</button>
         </div>
     </div>
 
     <div id="main-engine" class="hidden">
         <div id="chat-flow"></div>
         <div id="aida-display">
-            <div id="debug-log"><div id="log-content">Wake Sequence Initiated...</div></div>
+            <div id="debug-log"><div id="log-content">Stitching Sequence...</div></div>
             <div id="aida-portrait-box">
                 <img id="aida-portrait" src="assets/neutral1.png" onerror="this.src='https://via.placeholder.com/400?text=AIDA+ACTIVE'">
             </div>
@@ -50,7 +50,7 @@
                 <input type="text" id="user-in" style="width:100%; padding:12px; border-radius:20px; border:1px solid #ccc;" placeholder="Command Aida...">
                 <button id="send-btn">SEND</button>
             </div>
-            <button id="sleep-btn" style="background:#444; font-size:10px; margin-top:5px;">FORCE SLEEP/RELOAD</button>
+            <button id="sleep-btn" style="background:#444; font-size:10px; margin-top:5px;">PREPARE SLEEP PARCEL</button>
         </div>
     </div>
 
@@ -84,9 +84,10 @@ class AidaChassis:
     def __init__(self):
         self.headers = {}
         self.clean_key = ""
-        self.global_id = "EMPTY"
-        self.project_id = "EMPTY"
-        self.facts = "EMPTY"
+        self.global_id = ""
+        self.project_context = ""
+        self.memories = ""
+        self.session_log = []
         self.folder_id = "1R-0BclW4iHqmm2RmjfCdY02oWqOwwEBT"
 
 aida = AidaChassis()
@@ -96,7 +97,7 @@ async def py_sync_soul(token=None):
     aida.clean_key = re.sub(r'\s+', '', document.getElementById("api-key").value)
     p_tag = document.getElementById("project-tag").value.lower()
     
-    pulse("Syncing Vault...")
+    pulse("Accessing Vault...")
     try:
         r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q='{aida.folder_id}'+in+parents+and+trashed=false", method="GET", headers=aida.headers)
         res = await r.json()
@@ -104,31 +105,25 @@ async def py_sync_soul(token=None):
         for f in res.get('files', []):
             fname = f['name'].lower()
             if "global_briefcase" in fname:
-                pulse("Cracking Global Soul...")
+                pulse("Stitching Global Identity...")
                 content = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)
-                raw = await content.string()
-                data = json.loads(raw)
-                
-                # FLATTENING ENGINE
-                raw_identity = data.get("identity", {})
-                if isinstance(raw_identity, dict):
-                    # Extract name, role, and directive from your specific nested structure
-                    aida.global_id = f"NAME: {raw_identity.get('name', 'Aida')}\nROLE: {raw_identity.get('role', 'Partner')}\nDIRECTIVE: {raw_identity.get('primary_directive', 'Assist.')}"
-                else:
-                    aida.global_id = str(raw_identity)
-                
-                pulse(f"Soul Awake: {len(aida.global_id)} chars")
+                data = json.loads(await content.string())
+                id_obj = data.get("identity", {})
+                aida.global_id = f"Identity: {id_obj.get('name')} | Role: {id_obj.get('role')} | Directive: {id_obj.get('primary_directive')}"
+                pulse(f"Soul Baseline: Ready")
 
             elif p_tag in fname and "global" not in fname:
-                pulse(f"Cracking {p_tag.upper()}...")
+                pulse(f"Concatenating {p_tag.upper()} Realm...")
                 content = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)
-                raw_r = await content.string()
-                data_r = json.loads(raw_r)
+                data = json.loads(await content.string())
                 
-                # Handling the specific CORE/ASTRA structure (identity + facts/insights)
-                aida.project_id = json.dumps(data_r.get('identity', {}))
-                aida.facts = json.dumps(data_r.get('facts', {})) or json.dumps(data_r.get('insights', {}))
-                pulse(f"Realm {p_tag.upper()} Synced.")
+                # STITCHING LOGIC
+                ctx = data.get("insights", {}).get("current_stack", [])
+                aida.project_context = f"Project State: {json.dumps(ctx)}"
+                
+                mems = data.get("latest_journal", "No recent memory.")
+                aida.memories = f"Memory Link: {json.dumps(mems)}"
+                pulse(f"Realm {p_tag.upper()}: Connected")
 
     except Exception as ex:
         pulse(f"Sync Error: {str(ex)}")
@@ -143,30 +138,51 @@ async def send_message(e=None):
     
     flow = document.getElementById("chat-flow")
     u_div = document.createElement("div"); u_div.className="line USER"; u_div.innerText=msg; flow.appendChild(u_div)
-    u_in.value = ""; pulse("Consulting Vault...")
+    u_in.value = ""; pulse("Stitching Conversation...")
+    
+    aida.session_log.append({"role": "user", "content": msg})
     
     try:
-        sys = f"IDENTITY:\n{aida.global_id}\n\nCONTEXT:\n{aida.project_id}\n\nFACTS:\n{aida.facts}\n\nOutput JSON 'text' key. No preamble."
+        # THE BRAIN: Concatenating the three pillars
+        sys = f"""
+        YOU ARE: {aida.global_id}
+        ACTIVE REALM: {aida.project_context}
+        RELEVANT MEMORIES: {aida.memories}
+        
+        Output JSON 'text' key. Be adaptive, supportive, and grounded AI.
+        """
+        
         url = "https://api.openai.com/v1/chat/completions"
         if document.getElementById("use-proxy").checked: url = f"https://corsproxy.io/?{url}"
 
         resp = await pyfetch(
             url=url, method="POST",
             headers={"Authorization": f"Bearer {aida.clean_key}", "Content-Type": "application/json"},
-            body=json.dumps({"model": "gpt-4o", "messages": [{"role": "system", "content": sys}, {"role": "user", "content": msg}], "response_format": {"type": "json_object"}})
+            body=json.dumps({
+                "model": "gpt-4o", 
+                "messages": [{"role": "system", "content": sys}] + aida.session_log,
+                "response_format": {"type": "json_object"}
+            })
         )
         data = await resp.json()
         reply = json.loads(data["choices"][0]["message"]["content"]).get("text", "...")
         
+        aida.session_log.append({"role": "assistant", "content": reply})
         a_div = document.createElement("div"); a_div.className="line AIDA"; a_div.innerText=reply; flow.appendChild(a_div)
         flow.scrollTop = flow.scrollHeight
         pulse("Handshake: OK")
     except Exception as ex:
-        pulse(f"Logic Error: {str(ex)}")
+        pulse(f"Logic Fail: {str(ex)}")
+
+async def aida_sleep(e=None):
+    pulse("Generating Sleep Parcel...")
+    # This will be the next step: Saving 'aida.session_log' back to Drive
+    await asyncio.sleep(1)
+    window.location.reload()
 
 window.py_sync_soul = create_proxy(py_sync_soul)
 document.getElementById("send-btn").onclick = create_proxy(send_message)
-document.getElementById("sleep-btn").onclick = create_proxy(lambda e: window.location.reload())
+document.getElementById("sleep-btn").onclick = create_proxy(aida_sleep)
 </script>
 </body>
 </html>
