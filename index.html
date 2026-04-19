@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Aida Free v9.6.7</title>
+    <title>Aida Free v9.6.9</title>
+    
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
 
@@ -22,17 +24,17 @@
             overflow: hidden;
         }
 
-        /* HIGH-RESOLUTION CAMOUFLAGE GRID */
+        /* CAMOUFLAGE GRID */
         #flicker-grid {
             position: absolute; inset: 0;
             display: grid;
-            grid-template-columns: repeat(20, 1fr);  /* Horizontal partitions */
-            grid-template-rows: repeat(120, 1fr);   /* High Vertical Resolution */
+            grid-template-columns: repeat(20, 1fr);
+            grid-template-rows: repeat(120, 1fr);
             z-index: 20;
             pointer-events: none;
         }
-        .block { border: 0.1px solid rgba(211, 175, 55, 0.01); } /* Nearly invisible lines */
-        .spark { background: rgba(211, 175, 55, 0.18); } /* Shimmer intensity */
+        .block { border: 0.1px solid rgba(211, 175, 55, 0.01); }
+        .spark { background: rgba(211, 175, 55, 0.18); }
 
         .tint-layer { position: absolute; inset: 0; pointer-events: none; z-index: 5; opacity: 0; transition: opacity 0.4s; }
         .debug-green { background: rgba(0, 255, 60, 0.15); mix-blend-mode: color; }
@@ -48,7 +50,6 @@
 
         #chat-flow { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: white; }
         .line { padding: 10px; border-radius: 12px; font-size: 14px; max-width: 88%; position: relative; }
-        .tag { position: absolute; top: -6px; right: 10px; font-size: 8px; background: #555; color: #fff; padding: 1px 5px; border-radius: 4px; }
         .AIDA { background: #f0f0f0; border-left: 4px solid var(--aida-gold); align-self: flex-start; }
         .USER { background: var(--aida-gold); align-self: flex-end; color: white; }
         
@@ -62,17 +63,16 @@
 <body>
 
     <div id="airlock" style="height:100dvh; background:var(--aida-dark); color:var(--aida-gold); display:flex; flex-direction:column; justify-content:center; align-items:center;">
-        <h1 style="letter-spacing:5px; margin-bottom: 5px;">AIDA 9.6.7</h1>
-        <p style="font-size: 10px; margin-bottom: 20px; color: #666;">DIGITAL CAMOUFLAGE ENABLED</p>
-        <div style="background:#333; padding:20px; border:1px solid var(--aida-gold); border-radius:8px; width:300px;">
-            <input type="password" id="api-key" placeholder="OPENAI KEY" style="width:100%; margin-bottom:10px; padding:8px; border:none;">
-            <select id="project-tag" style="width:100%; margin-bottom:15px; padding:8px; background: #111; color: white; border: 1px solid #444;">
+        <h1 style="letter-spacing:5px;">AIDA 9.6.9</h1>
+        <div style="background:#333; padding:20px; border:1px solid var(--aida-gold); border-radius:8px; width:320px;">
+            <input type="password" id="api-key" placeholder="OPENAI KEY" style="width:100%; margin-bottom:10px; padding:8px;">
+            <select id="project-tag" style="width:100%; margin-bottom:15px; padding:8px;">
                 <option value="CORE">CORE</option>
                 <option value="ASTRA">ASTRA</option>
                 <option value="DEBUG">DEBUG</option>
                 <option value="NEW_PROJECT">+ NEW REALM</option>
             </select>
-            <button onclick="requestToken()" style="width:100%;">IGNITE</button>
+            <button onclick="requestToken()" style="width:100%;">IGNITE ENGINE</button>
         </div>
     </div>
 
@@ -83,7 +83,7 @@
             <div id="portrait-pane">
                 <div class="tint-layer debug-green"></div>
                 <div class="tint-layer alert-orange"></div>
-                <img id="aida-portrait" src="">
+                <img id="aida-portrait" src="assets/neutral1.png">
             </div>
             <div id="presentation-pane"><div id="realm-tag" style="font-weight:bold;"></div><div id="pres-content"></div></div>
         </div>
@@ -132,7 +132,6 @@ class AidaChassis:
 aida = AidaChassis()
 
 async def sparker():
-    # 20% constant flicker (400 blocks out of 2400)
     while True:
         active_set = random.sample(aida.blocks, 400)
         for b in active_set: b.classList.add("spark")
@@ -141,29 +140,52 @@ async def sparker():
         await asyncio.sleep(0.04)
 
 async def py_sync_soul(token):
-    # Setup Grid (20 cols x 120 rows = 2400 blocks)
+    # Setup Grid
     grid_div = document.getElementById("flicker-grid")
     for _ in range(2400):
         b = document.createElement("div"); b.className = "block"
         grid_div.appendChild(b); aida.blocks.append(b)
     
     asyncio.create_task(sparker())
-    
     aida.headers = {"Authorization": f"Bearer {token}"}
     aida.project = document.getElementById("project-tag").value
-    document.getElementById("realm-tag").innerText = aida.project
+    document.getElementById("realm-tag").innerText = f"REALM: {aida.project}"
     
     if aida.project == "DEBUG": document.getElementById("aida-display").classList.add("is-debug")
-    
     document.getElementById("airlock").classList.add("hidden")
     document.getElementById("main-engine").classList.remove("hidden")
-    aida.pulse(f"Realm {aida.project} Active.")
+    aida.pulse("Engine Ignited.")
+
+def add_line(text, role):
+    div = document.createElement("div"); div.className = f"line {role}"; div.innerText = text
+    document.getElementById("chat-flow").appendChild(div)
+    document.getElementById("chat-flow").scrollTop = document.getElementById("chat-flow").scrollHeight
+
+async def main_loop_step(event=None):
+    user_in = document.getElementById("user-in"); text = user_in.value.strip()
+    if not text: return
+    user_in.value = ""
+    add_line(text, "USER")
+    aida.session_log.append({"role": "user", "content": text})
+
+    # PROJECT PIVOT LOGIC
+    if aida.project == "NEW_PROJECT" and not aida.new_project_name:
+        aida.new_project_name = text
+        aida.pulse(f"Pivot: {text}")
+        add_line(f"Aida: I've created the ledger for '{text}'. Ready to document.", "AIDA")
+        return
+
+    # SHIELD LOGIC
+    if any(x in text.upper() for x in ["CARNAL", "X-RATED", "EXPLICIT"]):
+        document.getElementById("aida-display").classList.add("is-alert")
+        aida.pulse("Shield: Immersion Maintained.")
+        add_line("Aida: That doesn't seem to fit our current focus, Francisco. Let's look at it differently.", "AIDA")
+        return
 
 async def py_sleep(event=None):
     aida.pulse("Packing Parcel...")
     try:
         now = window.Date.new().toISOString().replace(":", "-").split(".")[0]
-        # Use new project name if set
         final_realm = aida.new_project_name if aida.new_project_name else aida.project
         filename = f"{final_realm}_SLEEP_{now}.json"
         
@@ -180,10 +202,12 @@ async def py_sleep(event=None):
             headers={"Authorization": aida.headers["Authorization"], "Content-Type": f"multipart/related; boundary={boundary}"},
             body=body
         )
+        aida.pulse("Sleep Success.")
         window.location.reload()
     except Exception as e:
         aida.pulse(f"Error: {e}")
 
+document.getElementById("send-btn").onclick = create_proxy(main_loop_step)
 document.getElementById("sleep-btn").onclick = create_proxy(py_sleep)
 window.py_sync_soul = create_proxy(py_sync_soul)
     </script>
