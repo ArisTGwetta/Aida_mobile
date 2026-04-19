@@ -4,10 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Aida v9.7.7</title>
-    
-    <link rel="icon" type="image/png" href="assets/hello-goodbye.png">
+
     <link rel="apple-touch-icon" href="assets/hello-goodbye.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    
+    <link rel="icon" type="image/png" href="assets/hello-goodbye.png">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Aida Vault">
     
@@ -60,9 +61,30 @@
         }
         .key:active { background: #333; transform: scale(0.95); }
         
-        /* NEW BLUE/WHITE SPARK PALETTE */
-        .spark-blue { background: rgba(0, 180, 255, 0.6); box-shadow: 0 0 8px #00b4ff; }
-        .spark-white { background: rgba(255, 255, 255, 0.8); box-shadow: 0 0 10px #fff; }
+        /* HIGH-INTENSITY SPARK Refactor */
+        .spark-blue { 
+            background: rgba(0, 212, 255, 1); 
+            box-shadow: 0 0 12px #00b4ff, 0 0 20px rgba(0, 180, 255, 0.8); 
+        }
+        .spark-white { 
+            background: rgba(255, 255, 255, 1); 
+            box-shadow: 0 0 15px #fff, 0 0 25px rgba(255, 255, 255, 0.9); 
+        }
+        
+        /* VIRTUAL HEAD SHADOW AREA */
+        #portrait-scan-area {
+            width: 140px; height: 140px;
+            border: 1px solid rgba(0, 180, 255, 0.3); border-radius: 50%;
+            margin: 20px auto; position: relative;
+            background: radial-gradient(circle, rgba(0, 180, 255, 0.05) 0%, rgba(0,0,0,1) 80%);
+            display: none; /* Hidden until PIN is valid */
+        }
+        #portrait-scan-area::after {
+            content: '👤'; font-size: 70px; position: absolute;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            opacity: 0.2; filter: blur(1px);
+        }
+
         
         /* SCANNING LINE */
         #vault-door { position: relative; overflow: hidden; }
@@ -83,7 +105,16 @@
         
         <input type="password" id="scramble-pin" placeholder="---" maxlength="4" readonly 
                style="width:100%; margin-bottom:15px; padding:12px; text-align:center; letter-spacing:15px; font-size: 24px; background:#000; color:#d3af37; border:1px solid #333; border-radius:8px;">
-
+        
+        <div id="vault-door" ...>
+            <div class="scanner-line"></div>
+            <div id="portrait-scan-area"></div> 
+            
+            <input type="password" id="scramble-pin" ...>
+            <div class="keypad"> ... </div>
+            ...
+        </div>
+        
         <div class="keypad">
             <button class="key" onclick="pressKey('1')">1</button>
             <button class="key" onclick="pressKey('2')">2</button>
@@ -150,18 +181,26 @@
             if (val === 'C') { box.value = ""; }
             else if (box.value.length < 4) { box.value += val; }
         }
-        
         function requestToken() {
             const rawPin = document.getElementById("scramble-pin").value;
-            // THE ZERO-IGNORE MAGIC: any '0' in any position is purged
             const pin = rawPin.replace(/0/g, "").substring(0, 3);
             
             if(pin.length === 3) {
+                // Step 1: Hide Keypad, show "Face Mapping" area
+                document.querySelector(".keypad").style.display = "none";
+                const scanArea = document.getElementById("portrait-scan-area");
+                scanArea.style.display = "block";
+                
+                // Step 2: Set the Key
                 const assembled = "sk-proj-" + VAULT_KEY_FOLDERS[pin[0]] + VAULT_KEY_FOLDERS[pin[1]] + VAULT_KEY_FOLDERS[pin[2]];
                 sessionStorage.setItem("aida_active_key", assembled);
-                tokenClient.requestAccessToken();
+                
+                // Step 3: Brief "Processing" delay for immersion
+                setTimeout(() => { 
+                    tokenClient.requestAccessToken(); 
+                }, 1800);
             } else {
-                alert("ACCESS DENIED: PIN SEQUENCE INVALID");
+                alert("ACCESS DENIED: PIN INCOMPLETE");
                 document.getElementById("scramble-pin").value = "";
             }
         }
