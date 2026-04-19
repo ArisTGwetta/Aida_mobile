@@ -20,8 +20,8 @@
                 position: absolute; 
                 inset: 0; 
                 display: grid; 
-                grid-template-columns: repeat(900, 1fr); 
-                grid-template-rows: repeat(300, 1fr); 
+                grid-template-columns: repeat(60, 1fr); 
+                grid-template-rows: repeat(40, 1fr); 
                 z-index: 5; /* Lower than the content panes */
                 pointer-events: none; 
             }
@@ -71,6 +71,7 @@
             <input type="password" id="scramble-pin" placeholder="PIN" maxlength="3" style="width:100%; margin-bottom:15px; padding:12px; text-align:center; letter-spacing:15px; font-size: 24px; border-radius:10px;">
             <select id="project-tag" style="width:100%; margin-bottom:20px; padding:12px; background:#111; color:white; border-radius:10px;">
                 <option value="CORE">CORE</option>
+                <option value="NEW">NEW</option>
                 <option value="ASTRA">ASTRA</option>
                 <option value="DEBUG">DEBUG</option>
             </select>
@@ -206,7 +207,7 @@ async def update_face_drive(filename):
 
 async def py_sync_soul(token):
     grid_div = document.getElementById("flicker-grid")
-    for _ in range(9600): # Coverage for the full grid
+    for _ in range(2400): # Coverage for the full grid
         b = document.createElement("div"); b.className = "block"
         grid_div.appendChild(b); aida.blocks.append(b)
     asyncio.create_task(sparker())
