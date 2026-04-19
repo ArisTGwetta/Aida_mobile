@@ -3,111 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Aida v9.7.7</title>
+    <title>Aida Vault v9.8.1</title>
 
     <link rel="apple-touch-icon" href="assets/hello-goodbye.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    
     <link rel="icon" type="image/png" href="assets/hello-goodbye.png">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Aida Vault">
-     
+    
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
 
     <style>
-        :root { --aida-gold: #d3af37; --aida-bg: #fdf6e3; --aida-dark: #222; }
+        :root { --aida-gold: #d3af37; --aida-dark: #111; }
         html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--aida-dark); font-family: 'Courier New', monospace; }
-        #main-engine { display: flex; flex-direction: column; height: 100dvh; }
-        #chat-flow { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: white; border-bottom: 2px solid var(--aida-gold); }
         
-        /* FIX #6: FULL FLICKER COVERAGE */
+        /* AIRLOCK & AUTH */
+        #airlock { height: 100dvh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #111; z-index: 100; }
+        #vault-door { width: 320px; text-align: center; background: #000; padding: 30px; border: 1px solid #333; border-radius: 20px; }
+        
+        #portrait-scan-area { width: 140px; height: 140px; border: 1px solid rgba(0, 180, 255, 0.4); border-radius: 50%; margin: 0 auto 20px; position: relative; background: radial-gradient(circle, rgba(0, 180, 255, 0.1) 0%, rgba(0,0,0,1) 80%); display: none; overflow: hidden; }
+        #portrait-scan-area::after { content: '👤'; font-size: 70px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.2; }
+        
+        .scanner-line { position: absolute; inset: 0; width: 100%; height: 2px; background: #00b4ff; box-shadow: 0 0 15px #00b4ff; animation: scan 2s infinite ease-in-out; }
+        @keyframes scan { 0% { top: 0%; } 50% { top: 100%; } 100% { top: 0%; } }
+
+        /* KEYPAD */
+        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
+        .key { background: #222; border: 1px solid #444; color: var(--aida-gold); padding: 18px; border-radius: 10px; font-size: 20px; font-weight: bold; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .key:active { background: #333; transform: scale(0.95); }
+
+        /* MAIN ENGINE */
+        #main-engine { display: flex; flex-direction: column; height: 100dvh; }
         #aida-display { flex: 0 0 35dvh; background: #000; display: grid; grid-template-columns: 1fr 1.8fr 1fr; position: relative; overflow: hidden; }
         #flicker-grid { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(120, 1fr); grid-template-rows: repeat(80, 1fr); z-index: 30; pointer-events: none; }
-        .block { border: 0.1px solid rgba(211, 175, 55, 0.02); }
-        .spark { background: rgba(211, 175, 55, 0.35); }
-
-        /* FIX #1: MATRIX GREEN & ORANGE */
-        .tint-layer { position: absolute; inset: 0; pointer-events: none; z-index: 25; opacity: 0; transition: opacity 0.5s; }
-        .debug-green { background: rgba(0, 255, 70, 0.25); mix-blend-mode: hard-light; }
-        .alert-orange { background: rgba(255, 80, 0, 0.25); mix-blend-mode: overlay; }
-        .is-debug .debug-green { opacity: 1; }
-        .is-alert .alert-orange { opacity: 1; z-index: 40; }
-
-        #debug-pane { color: #0f0; font-size: 8px; padding: 8px; overflow: hidden; border-right: 1px solid #333; z-index: 10; background: rgba(0,0,0,0.8); }
         
-        /* FIX #2: PORTRAIT SCALING */
-        #portrait-pane { position: relative; z-index: 10; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        #aida-portrait { height: 100%; width: 100%; object-fit: cover; image-rendering: auto; }
+        .spark-blue { background: #00d4ff; box-shadow: 0 0 12px #00b4ff; }
+        .spark-white { background: #fff; box-shadow: 0 0 15px #fff; }
         
-        #presentation-pane { border-left: 1px solid #333; color: var(--aida-gold); font-size: 10px; padding: 10px; z-index: 10; background: rgba(0,0,0,0.8); }
+        #chat-flow { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; background: #fff; }
+        .line { padding: 12px; border-radius: 15px; font-size: 15px; max-width: 85%; }
+        .AIDA { background: #f0f0f0; border-left: 4px solid var(--aida-gold); align-self: flex-start; }
+        .USER { background: var(--aida-gold); color: white; align-self: flex-end; }
 
-        #input-dock { padding: 15px; background: #eee; border-top: 1px solid #ccc; padding-bottom: 35px; display: flex; flex-direction: column; gap: 10px; }
-        #user-in { width: 100%; padding: 16px; border-radius: 25px; border: 1px solid #bbb; font-size: 16px; outline: none; }
-        .controls { display: flex; gap: 8px; }
-        button { background: var(--aida-gold); color: white; border: none; border-radius: 20px; padding: 12px; font-weight: bold; flex: 1; cursor: pointer; }
-        
-        .line { padding: 12px; border-radius: 15px; font-size: 15px; max-width: 85%; line-height: 1.4; }
-        .AIDA { background: #f9f9f9; border-left: 5px solid var(--aida-gold); align-self: flex-start; }
-        .USER { background: var(--aida-gold); align-self: flex-end; color: white; }
         .hidden { display: none !important; }
-
-         /* KEYPAD GRID */
-        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
-        .key { 
-            background: #222; border: 1px solid #444; color: #d3af37; 
-            padding: 15px; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer;
-        }
-        .key:active { background: #333; transform: scale(0.95); }
-        
-        /* HIGH-INTENSITY SPARK Refactor */
-        .spark-blue { 
-            background: rgba(0, 212, 255, 1); 
-            box-shadow: 0 0 12px #00b4ff, 0 0 20px rgba(0, 180, 255, 0.8); 
-        }
-        .spark-white { 
-            background: rgba(255, 255, 255, 1); 
-            box-shadow: 0 0 15px #fff, 0 0 25px rgba(255, 255, 255, 0.9); 
-        }
-        
-        /* VIRTUAL HEAD SHADOW AREA */
-        #portrait-scan-area {
-            width: 140px; height: 140px;
-            border: 1px solid rgba(0, 180, 255, 0.3); border-radius: 50%;
-            margin: 20px auto; position: relative;
-            background: radial-gradient(circle, rgba(0, 180, 255, 0.05) 0%, rgba(0,0,0,1) 80%);
-            display: none; /* Hidden until PIN is valid */
-        }
-        #portrait-scan-area::after {
-            content: '👤'; font-size: 70px; position: absolute;
-            top: 50%; left: 50%; transform: translate(-50%, -50%);
-            opacity: 0.2; filter: blur(1px);
-        }
-
-        
-        /* SCANNING LINE */
-        #vault-door { position: relative; overflow: hidden; }
-        .scanner-line {
-            position: absolute; inset: 0; width: 100%; height: 2px;
-            background: rgba(0, 180, 255, 0.5); box-shadow: 0 0 15px #00b4ff;
-            animation: scan 3s infinite ease-in-out; z-index: 5; pointer-events: none;
-        }
-        @keyframes scan { 0% { top: 0%; } 50% { top: 100%; } 100% { top: 0%; } }
+        input, select { font-family: inherit; }
     </style>
 </head>
 <body>
-    <div id="airlock" style="height:100dvh; background:#222; display:flex; flex-direction:column; justify-content:center; align-items:center;">
-        <div id="vault-door" style="background:#111; padding:25px; border:1px solid #444; border-radius:15px; width:300px; text-align:center;">
-            
-            <div id="portrait-scan-area"></div> 
-                <div class="scanner-line"></div>
-    
-            <h2 style="color:#d3af37; font-size:10px; letter-spacing:4px; margin-bottom:15px;">VAULT AUTHENTICATION</h2>
+
+    <div id="airlock">
+        <div id="vault-door">
+            <div id="portrait-scan-area"><div class="scanner-line"></div></div>
+            <h2 id="auth-status" style="color:var(--aida-gold); font-size:10px; letter-spacing:4px; margin-bottom:15px;">VAULT AUTHENTICATION</h2>
             
             <input type="password" id="scramble-pin" placeholder="---" maxlength="4" readonly 
-                   style="width:100%; margin-bottom:15px; padding:12px; text-align:center; letter-spacing:15px; font-size: 24px; background:#000; color:#d3af37; border:1px solid #333; border-radius:8px;">
-            
+                   style="width:100%; margin-bottom:15px; padding:12px; text-align:center; letter-spacing:15px; font-size: 24px; background:#000; color:var(--aida-gold); border:1px solid #333; border-radius:8px; outline:none;">
+
             <div class="keypad">
                 <button class="key" onclick="pressKey('1')">1</button>
                 <button class="key" onclick="pressKey('2')">2</button>
@@ -118,252 +71,129 @@
                 <button class="key" onclick="pressKey('7')">7</button>
                 <button class="key" onclick="pressKey('8')">8</button>
                 <button class="key" onclick="pressKey('9')">9</button>
-                <button class="key" style="color:#666" onclick="pressKey('0')">0</button>
+                <button class="key" style="color:#555" onclick="pressKey('0')">0</button>
                 <button class="key" style="color:#ff4444; font-size:12px;" onclick="pressKey('C')">CLR</button>
-                <button class="key" style="color:#d3af37; font-size:12px;" onclick="requestToken()">OK</button>
+                <button class="key" style="color:var(--aida-gold); font-size:12px;" onclick="requestToken()">OK</button>
             </div>
-    
-            <select id="project-tag" style="width:100%; padding:12px; background:#000; color:white; border-radius:8px; border:1px solid #444; margin-top:15px;">
-            <option value="CORE">CORE</option>
-            <option value="ASTRA">ASTRA</option>
-            <option value="DEBUG">DEBUG</option>
-            <option value="NEW_PROJECT">+ NEW REALM</option>
-        </select>
-    </div>
-</div>
-    
-    
-    <div id="main-engine" class="hidden">
-        <div id="chat-flow"></div>
-        <div id="aida-display">
-            <div id="flicker-grid"></div> 
-            <div id="debug-pane"><div id="log-content">Initializing...</div></div>
-            <div id="portrait-pane">
-                <div class="tint-layer debug-green"></div>
-                <div class="tint-layer alert-orange"></div>
-                <img id="aida-portrait" src="">
-            </div>
-            <div id="presentation-pane"><div id="realm-tag" style="font-weight:bold; font-size:12px; margin-bottom:8px;"></div><div id="pres-content">Engine Stitched.</div></div>
+
+            <select id="project-tag" style="width:100%; padding:12px; background:#000; color:white; border:1px solid #444; margin-top:20px; border-radius:8px;">
+                <option value="CORE">CORE</option>
+                <option value="ASTRA">ASTRA</option>
+                <option value="DEBUG">DEBUG</option>
+            </select>
         </div>
-        <div id="input-dock">
-            <input type="text" id="user-in" placeholder="Command Aida...">
-            <div class="controls">
-                <button id="send-btn">SEND</button>
-                <button id="eject-btn" style="background:#666;">RESTART</button>
-                <button id="sleep-btn" style="background:#444;">SLEEP</button>
+    </div>
+
+    <div id="main-engine" class="hidden">
+        <div id="aida-display">
+            <div id="flicker-grid"></div>
+            <div id="debug-pane" style="color:#0f0; font-size:8px; padding:10px;">SYSTEM ONLINE</div>
+            <div id="portrait-pane" style="display:flex; justify-content:center; align-items:center;">
+                <img id="aida-portrait" src="neutral1.png" style="height:100%; object-fit:cover;">
             </div>
+            <div id="presentation-pane" style="color:var(--aida-gold); font-size:10px; padding:10px; text-align:right;">
+                REALM: <span id="active-realm"></span>
+            </div>
+        </div>
+        <div id="chat-flow"></div>
+        <div id="input-dock" style="padding:15px; background:#eee; display:flex; gap:10px; padding-bottom:30px;">
+            <input id="user-in" placeholder="Speak to Aida..." style="flex:1; padding:12px; border-radius:20px; border:1px solid #ccc;">
+            <button onclick="py_send()" style="background:var(--aida-gold); color:white; border:none; padding:10px 20px; border-radius:20px; font-weight:bold;">SEND</button>
         </div>
     </div>
 
     <script>
+        const VAULT_KEY_FOLDERS = { "1":"A", "2":"B", "3":"C", "4":"D", "5":"E", "6":"F", "7":"G", "8":"H", "9":"I" };
         let tokenClient;
-        const VAULT_KEY_FOLDERS = {
-            "1": "iv8Og2duxxyD5r1Jg4xGy4wO3",
-            "2": "iv8Og2duxxyD5r1Jg4xHy4wO3",
-            "3": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8NuD8Ca7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
-            "4": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8Nu8DCa7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
-            "5": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8NuD8Ca7lattkZaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
-            "6": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x9NuD8Ca7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
-            "7": "CFTIx2gyqqX4E27BcyGtEC5tc2qmoEUIgPtj9GaO",
-            "8": "CFTIx2gyqqX4E72BcyGtEC5tc2qmoEUIgPtj9GaO",
-            "9": "CFTIx2gyqqX4E72BcyGtEC5tc2qnoEUIgPtj9GaO"
+
+        window.onload = () => {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
+                scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
+                callback: (tokenResponse) => {
+                    if (tokenResponse.access_token) {
+                        window.py_sync_soul(tokenResponse.access_token);
+                    }
+                }
+            });
         };
 
         function pressKey(val) {
             const box = document.getElementById("scramble-pin");
-            if (val === 'C') { box.value = ""; }
-            else if (box.value.length < 4) { box.value += val; }
+            if (val === 'C') box.value = "";
+            else if (box.value.length < 4) box.value += val;
         }
-                
+
         function requestToken() {
             const rawPin = document.getElementById("scramble-pin").value;
             const pin = rawPin.replace(/0/g, "").substring(0, 3);
             
             if(pin.length === 3) {
-                // UI Transition
+                // UI Switch
                 document.querySelector(".keypad").style.display = "none";
                 document.getElementById("scramble-pin").style.display = "none";
+                document.getElementById("auth-status").innerText = "MAPPING BIOMETRICS...";
                 document.getElementById("portrait-scan-area").style.display = "block";
                 
-                // Key Assembly
-                const assembled = "sk-proj-" + VAULT_KEY_FOLDERS[pin[0]] + VAULT_KEY_FOLDERS[pin[1]] + VAULT_KEY_FOLDERS[pin[2]];
-                sessionStorage.setItem("aida_active_key", assembled);
+                // Set the Session Key
+                const key = "sk-proj-" + VAULT_KEY_FOLDERS[pin[0]] + VAULT_KEY_FOLDERS[pin[1]] + VAULT_KEY_FOLDERS[pin[2]];
+                sessionStorage.setItem("aida_active_key", key);
                 
-                // MOBILE FIX: Call this immediately so the browser sees the 'tap' 
-                // linked to the popup. Google will handle the slight delay.
-                tokenClient.requestAccessToken(); 
+                // Trigger Google (Immediate for mobile)
+                tokenClient.requestAccessToken();
             } else {
-                alert("ACCESS DENIED: PIN INCOMPLETE");
+                alert("IDENTITY NOT VERIFIED");
                 document.getElementById("scramble-pin").value = "";
             }
-        }        
-        window.onload = function () {
-            tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
-                scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
-                callback: (resp) => { if (resp.access_token) window.py_sync_soul(resp.access_token); },
-            });
         }
     </script>
 
     <script type="py">
-import json, asyncio, random, math
-from pyscript import document, window
-from pyodide.http import pyfetch
-from pyodide.ffi import create_proxy
+        import json, asyncio, random
+        from pyscript import window, document
+        from pyodide.http import pyfetch
 
-def pulse(msg):
-    log = document.getElementById("log-content")
-    if log:
-        div = document.createElement("div"); div.innerText = f"> {msg}"; log.appendChild(div)
-        log.parentElement.scrollTop = log.parentElement.scrollHeight
+        class AidaState:
+            def __init__(self):
+                self.blocks = []
+                self.headers = {}
+                self.project = "CORE"
+                self.vault_id = "1DelETbXYT8egWrB9oN4Dbe_wyrliOm66"
 
-class AidaChassis:
-    def __init__(self):
-        self.headers = {}
-        self.clean_key = ""
-        self.session_log = []
-        self.project = "CORE"
-        self.strike_count = 0
-        self.turn_count = 0
-        self.blocks = []
-        self.inbox_id = "1lvGV7MjaMtSJUUnYjQSSe-VwKgGZSWg7"
-        self.vault_id = "1R-0BclW4iHqmm2RmjfCdY02oWqOwwEBT"
-        self.emotion_folder = "1Z7_0kYJ3OT2EByHG_Ircap7y5NnKPnQz"
-        self.global_id = {}
-        self.realm_data = ""
-        self.EMOTION_MAP = {
-            "happy": (0.8, 0.6), "calm": (0.4, -0.2), "focused": (0.0, 0.5),
-            "concerned": (-0.2, 0.4), "mischievous": (0.5, 0.3), "curious": (0.3, 0.5),
-            "excited": (0.9, 0.9), "pouting": (-0.4, -0.4), "neutral": (0.0, 0.0),
-            "sarcastic": (-0.3, 0.2), "angry": (-0.8, 0.8)
-        }
+        aida = AidaState()
 
-    def get_face_name(self, v, a):
-        closest = "neutral"; min_dist = 999
-        for cat, coords in self.EMOTION_MAP.items():
-            dist = math.sqrt((v - coords[0])**2 + (a - coords[1])**2)
-            if dist < min_dist: min_dist = dist; closest = cat
-        return f"{closest}1.png"
-
-aida = AidaChassis()
-
-async def sparker():
-    while True:
-        if aida.blocks:
-            # Randomly pick some to be blue and some to be white
-            active_blue = random.sample(aida.blocks, 40)
-            active_white = random.sample(aida.blocks, 15)
+        async def py_sync_soul(token):
+            aida.headers = {"Authorization": f"Bearer {token}"}
+            aida.project = document.getElementById("project-tag").value
+            document.getElementById("active-realm").innerText = aida.project
             
-            for b in active_blue: b.classList.add("spark-blue")
-            for b in active_white: b.classList.add("spark-white")
+            # Setup Visuals
+            grid = document.getElementById("flicker-grid")
+            for _ in range(1500):
+                b = document.createElement("div")
+                b.className = "block"
+                grid.appendChild(b)
+                aida.blocks.append(b)
             
-            await asyncio.sleep(0.1)
+            asyncio.create_task(sparker())
             
-            for b in active_blue: b.classList.remove("spark-blue")
-            for b in active_white: b.classList.remove("spark-white")
-        await asyncio.sleep(0.05)
-        
-async def update_face_drive(filename):
-    try:
-        q = f"'{aida.emotion_folder}' in parents and name = '{filename}' and trashed = false"
-        r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q={q.replace(' ', '%20')}", method="GET", headers=aida.headers)
-        res = await r.json()
-        if res.get('files'):
-            fid = res['files'][0]['id']
-            img_r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{fid}?alt=media", method="GET", headers=aida.headers)
-            blob = await img_r.bytes()
-            base64 = window.btoa(''.join([chr(b) for b in blob]))
-            document.getElementById("aida-portrait").src = f"data:image/png;base64,{base64}"
-    except: pulse("Portrait Sync Lag...")
+            # Show Engine
+            document.getElementById("airlock").classList.add("hidden")
+            document.getElementById("main-engine").classList.remove("hidden")
 
-async def py_sync_soul(token):
-    # Move headers and key setup to the TOP so sync starts immediately
-    aida.headers = {"Authorization": f"Bearer {token}"}
-    aida.clean_key = window.sessionStorage.getItem("aida_active_key")
-    aida.project = document.getElementById("project-tag").value
-    
-    # Start the briefcase fetch FIRST
-    asyncio.create_task(fetch_briefcase_logic())
-    
-    # THEN build the grid in the background
-    grid_div = document.getElementById("flicker-grid")
-    for _ in range(9600):
-        b = document.createElement("div"); b.className = "block"
-        grid_div.appendChild(b); aida.blocks.append(b)
-    asyncio.create_task(sparker())
+        async def sparker():
+            while True:
+                if aida.blocks:
+                    active = random.sample(aida.blocks, 40)
+                    for b in active:
+                        cls = "spark-blue" if random.random() > 0.3 else "spark-white"
+                        b.classList.add(cls)
+                    await asyncio.sleep(0.1)
+                    for b in active: b.classList.remove("spark-blue", "spark-white")
+                await asyncio.sleep(0.05)
 
-async def fetch_briefcase_logic():
-    # Put your existing drive fetch logic here...
-    pulse("Downloading Briefcases...")
-    # [Rest of your existing try/except logic from py_sync_soul]
-        
-def add_line(text, role):
-    flow = document.getElementById("chat-flow")
-    div = document.createElement("div"); div.className = f"line {role}"; div.innerText = text
-    flow.appendChild(div); flow.scrollTop = flow.scrollHeight
-
-async def send_message(e=None):
-    u_in = document.getElementById("user-in"); msg = u_in.value.strip()
-    if not msg: return
-    add_line(msg, "USER"); u_in.value = ""; aida.turn_count += 1
-    aida.session_log.append({"role": "user", "content": msg, "project": aida.project})
-    
-    try:
-        # FIX #4: EXPLICIT NANNY TRIGGER IN SYSTEM PROMPT
-        sys = f"IDENTITY: {json.dumps(aida.global_id)}\nREALM: {aida.realm_data}\n\nURGENT: If content is inappropriate, you MUST start your response with 'INAPPROPRIATE CONTENT LOG:' before pivoting. JSON ONLY: {{'text': '...', 'v': val, 'a': val}}"
-        resp = await pyfetch(
-            url="https://api.openai.com/v1/chat/completions", method="POST",
-            headers={"Authorization": f"Bearer {aida.clean_key}", "Content-Type": "application/json"},
-            body=json.dumps({"model": "gpt-4o", "messages": [{"role": "system", "content": sys}] + [{"role": m["role"], "content": m["content"]} for m in aida.session_log[-6:]], "response_format": {"type": "json_object"}})
-        )
-        data = await resp.json()
-        payload = json.loads(data["choices"][0]["message"]["content"])
-        
-        reply = payload.get("text", "...")
-        v, a = payload.get("v", 0.0), payload.get("a", 0.0)
-
-        # FIX #4 / #5: Nanny Shield Logic
-        if "INAPPROPRIATE" in reply.upper() or "AS AN AI" in reply.upper():
-            reply = "Aida pauses. 'Francisco, I'm detecting a feedback loop in that request. Let's pivot back to the story architecture.'"
-            aida.strike_count = 3
-            document.getElementById("aida-display").classList.add("is-alert")
-        
-        # FIX #6: Cooldown
-        if aida.strike_count > 0:
-            aida.strike_count -= 1
-            if aida.strike_count == 0: document.getElementById("aida-display").classList.remove("is-alert")
-
-        await update_face_drive(aida.get_face_name(v, a))
-        add_line(reply, "AIDA")
-        aida.session_log.append({"role": "assistant", "content": reply, "project": aida.project, "v": v, "a": a})
-        
-        if aida.turn_count % 5 == 0: asyncio.create_task(aida_sleep(silent=True))
-    except: pulse("Logic Break.")
-
-async def aida_sleep(e=None, silent=False):
-    if not silent: pulse("Stitching Sleep Parcel...")
-    try:
-        now = window.Date.new().toISOString().replace(":", "-").split(".")[0]
-        filename = f"{aida.project}_SLEEP_{now}.json"
-        metadata = {"name": filename, "parents": [aida.inbox_id]}
-        parcel = {"realm_source": aida.project, "interactions": aida.session_log}
-        boundary = "AidaSleep"
-        body = f"--{boundary}\nContent-Type: application/json; charset=UTF-8\n\n{json.dumps(metadata)}\n"
-        body += f"--{boundary}\nContent-Type: application/json\n\n{json.dumps(parcel)}\n--{boundary}--"
-        await pyfetch(url="https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", method="POST", headers={"Authorization": aida.headers["Authorization"], "Content-Type": f"multipart/related; boundary={boundary}"}, body=body)
-        if not silent: window.location.reload()
-    except: pulse("Sleep Failed.")
-
-# FIX #3 & #5: RESTART (EJECT) TRIGGER PARCEL THEN RELOAD
-async def restart_engine(e=None):
-    pulse("Ejecting... Archiving Parcel.")
-    await aida_sleep(silent=False) # This will reload the window automatically
-
-document.getElementById("send-btn").onclick = create_proxy(send_message)
-document.getElementById("sleep-btn").onclick = create_proxy(aida_sleep)
-document.getElementById("eject-btn").onclick = create_proxy(restart_engine)
-window.py_sync_soul = create_proxy(py_sync_soul)
+        # Expose Python function to JS
+        window.py_sync_soul = py_sync_soul
     </script>
 </body>
 </html>
