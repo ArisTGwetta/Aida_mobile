@@ -209,15 +209,18 @@ def add_line(text, role):
     aida.chat.scrollTop = aida.chat.scrollHeight
 
 async def update_face(filename):
-    try:
+    try: # <--- This should be indented 4 spaces
         # 1. INTERCEPT FOR GITHUB ASSET
         if filename == "neutral1.png":
             aida.portrait.src = "assets/neutral1.png"
             pulse("Aida Awakened (Local)")
             return 
             
-        # 2. GOOGLE DRIVE LOGIC (Matches your current code)
+        # 2. GOOGLE DRIVE LOGIC
         q = f"'{aida.emotions_folder_id}' in parents and name = '{filename}' and trashed = false"
+        # ... keep the rest of this logic indented to match ...
+    except: 
+        pulse("Face Swap Fail")
         search = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q={q.replace(' ', '%20')}", method="GET", headers=aida.current_headers)
         res = await search.json()
         if res.get('files'):
@@ -303,7 +306,8 @@ async def main_loop_step(event=None):
     user_in.value = ""
     aida.living_buffer.append({"role": "user", "content": text, "realm": aida.project})    
     
-        try:
+    try:
+
         # CLEANER, STRICTER PROMPT
         sys_msg = (
             f"IDENTITY: {aida.memory}\n"
@@ -376,9 +380,10 @@ async def main_loop_step(event=None):
         else:
             pulse(f"API Error: {res_json.get('error', {}).get('message', 'Check API Key/Balance')}")
 
+    # Align the 'except' with the 'try' above 
     except Exception as e: 
-        add_line(f"ENGINE ERR: {str(e)}", "AIDA")
-        pulse(f"Trace: {e}")
+            add_line(f"ENGINE ERR: {str(e)}", "AIDA")
+            pulse(f"Trace: {e}")
         
         
 
