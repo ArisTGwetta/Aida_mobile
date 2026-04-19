@@ -20,9 +20,9 @@
                 position: absolute; 
                 inset: 0; 
                 display: grid; 
-                grid-template-columns: repeat(60, 1fr); 
-                grid-template-rows: repeat(40, 1fr); 
-                z-index: 30; 
+                grid-template-columns: repeat(900, 1fr); 
+                grid-template-rows: repeat(300, 1fr); 
+                z-index: 5; /* Lower than the content panes */
                 pointer-events: none; 
             }
             .block { border: none; }
@@ -81,26 +81,6 @@
     <div id="main-engine" class="hidden">
         <div id="chat-flow"></div>
         <div id="aida-display">
-            #flicker-grid { 
-        position: absolute; 
-        inset: 0; 
-        display: grid; 
-        grid-template-columns: repeat(60, 1fr); 
-        grid-template-rows: repeat(40, 1fr); 
-        z-index: 30; 
-        pointer-events: none; 
-    }
-    .block { border: none; }
-    
-    /* These provide the "intense" glow you wanted */
-    .spark-blue { 
-        background: #00d4ff; 
-        box-shadow: 0 0 12px #00b4ff, 0 0 20px rgba(0, 180, 255, 0.8); 
-    }
-    .spark-white { 
-        background: #fff; 
-        box-shadow: 0 0 15px #fff, 0 0 25px rgba(255, 255, 255, 0.9); 
-    }
             <div id="flicker-grid"></div> 
             <div id="debug-pane"><div id="log-content">Initializing...</div></div>
             <div id="portrait-pane">
@@ -197,7 +177,7 @@ aida = AidaChassis()
 async def sparker():
     while True:
         if aida.blocks:
-            # Increased sample size for "all coverage" look
+            # High intensity: 70 blue, 30 white
             active_blue = random.sample(aida.blocks, 70)
             active_white = random.sample(aida.blocks, 30)
             
@@ -226,7 +206,7 @@ async def update_face_drive(filename):
 
 async def py_sync_soul(token):
     grid_div = document.getElementById("flicker-grid")
-    for _ in range(1000): # Coverage for the full grid
+    for _ in range(9600): # Coverage for the full grid
         b = document.createElement("div"); b.className = "block"
         grid_div.appendChild(b); aida.blocks.append(b)
     asyncio.create_task(sparker())
