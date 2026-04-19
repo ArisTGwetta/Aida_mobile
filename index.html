@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Aida Free v9.7.1</title>
-    
+    <title>Aida v9.7.5</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
@@ -12,11 +11,9 @@
     <style>
         :root { --aida-gold: #d3af37; --aida-bg: #fdf6e3; --aida-dark: #222; }
         html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--aida-bg); font-family: 'Courier New', monospace; }
-        
         #main-engine { display: flex; flex-direction: column; height: 100dvh; }
         #chat-flow { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: white; }
         
-        /* THE TRIPTYCH DISPLAY - Center Mass */
         #aida-display { 
             flex: 0 0 28dvh; 
             background: #000; 
@@ -28,15 +25,7 @@
             overflow: hidden;
         }
 
-        /* MICRO-RESOLUTION GRID: 200 Columns x 120 Rows */
-        #flicker-grid { 
-            position: absolute; inset: 0; 
-            display: grid; 
-            grid-template-columns: repeat(200, 1fr); 
-            grid-template-rows: repeat(120, 1fr); 
-            z-index: 20; 
-            pointer-events: none; 
-        }
+        #flicker-grid { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(200, 1fr); grid-template-rows: repeat(120, 1fr); z-index: 20; pointer-events: none; }
         .block { border: 0.1px solid rgba(211, 175, 55, 0.005); }
         .spark { background: rgba(211, 175, 55, 0.25); }
 
@@ -44,17 +33,17 @@
         .debug-green { background: rgba(0, 255, 60, 0.12); mix-blend-mode: color; }
         .alert-orange { background: rgba(255, 110, 0, 0.25); mix-blend-mode: color; }
         .is-debug .debug-green { opacity: 1; }
-        .is-alert .alert-orange { opacity: 1; z-index: 6; }
+        .is-alert .alert-orange { opacity: 1; z-index: 10; }
 
-        #debug-pane { color: #0f0; font-size: 7px; padding: 5px; overflow: hidden; border-right: 1px solid #333; z-index: 10; line-height: 1; }
-        #portrait-pane { position: relative; overflow: hidden; z-index: 10; background: #000; }
+        #debug-pane { color: #0f0; font-size: 7px; padding: 5px; overflow: hidden; border-right: 1px solid #333; z-index: 10; }
+        #portrait-pane { position: relative; z-index: 10; background: #000; display: flex; align-items: center; justify-content: center; }
         #portrait-pane img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
         #presentation-pane { border-left: 1px solid #333; color: var(--aida-gold); font-size: 9px; padding: 8px; z-index: 10; }
 
         #input-dock { padding: 10px; background: #f8f8f8; border-top: 1px solid #ddd; padding-bottom: 30px; display: flex; flex-direction: column; gap: 8px; }
-        #user-in { width: 100%; padding: 12px; border-radius: 20px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px; }
+        #user-in { width: 100%; padding: 12px; border-radius: 20px; border: 1px solid #ccc; font-size: 16px; box-sizing: border-box; }
         .controls { display: flex; gap: 5px; }
-        button { background: var(--aida-gold); color: white; border: none; border-radius: 20px; padding: 10px 12px; font-weight: bold; cursor: pointer; flex: 1; font-size: 11px; }
+        button { background: var(--aida-gold); color: white; border: none; border-radius: 20px; padding: 10px 12px; font-weight: bold; flex: 1; font-size: 11px; cursor: pointer; }
         
         .line { padding: 10px; border-radius: 12px; font-size: 14px; max-width: 88%; line-height: 1.4; }
         .AIDA { background: #f0f0f0; border-left: 4px solid var(--aida-gold); align-self: flex-start; }
@@ -65,17 +54,16 @@
 <body>
 
     <div id="airlock" style="height:100dvh; background:var(--aida-dark); color:var(--aida-gold); display:flex; flex-direction:column; justify-content:center; align-items:center;">
-        <h1 style="letter-spacing:5px;">AIDA 9.7.1</h1>
+        <h1 style="letter-spacing:5px;">AIDA 9.7.5</h1>
         <div style="background:#333; padding:20px; border:1px solid var(--aida-gold); border-radius:8px; width:320px;">
-            <input type="password" id="api-key" placeholder="OPENAI KEY" style="width:100%; margin-bottom:10px; padding:10px;">
-            <select id="project-tag" style="width:100%; margin-bottom:15px; padding:10px; background:#222; color:white; border:1px solid #444;">
+            <input type="password" id="scramble-pin" placeholder="PIN" maxlength="3" style="width:100%; margin-bottom:10px; padding:10px; text-align:center; letter-spacing:15px; font-size: 18px;">
+            <select id="project-tag" style="width:100%; margin-bottom:15px; padding:10px; background:#222; color:white;">
                 <option value="CORE">CORE</option>
                 <option value="ASTRA">ASTRA</option>
                 <option value="DEBUG">DEBUG</option>
                 <option value="NEW_PROJECT">+ NEW REALM</option>
             </select>
             <button onclick="requestToken()" style="width:100%;">IGNITE ENGINE</button>
-            <p id="setup-status" style="font-size:9px; text-align:center; margin-top:10px; color:#888;">MEMORY LINK STABLE</p>
         </div>
     </div>
 
@@ -89,7 +77,7 @@
                 <div class="tint-layer alert-orange"></div>
                 <img id="aida-portrait" src="assets/neutral1.png">
             </div>
-            <div id="presentation-pane"><div id="realm-tag" style="font-weight:bold; margin-bottom:5px;"></div><div id="pres-content">INITIALIZING...</div></div>
+            <div id="presentation-pane"><div id="realm-tag" style="font-weight:bold; margin-bottom:5px;"></div><div id="pres-content">Engine Stable.</div></div>
         </div>
         <div id="input-dock">
             <input type="text" id="user-in" placeholder="Message Aida...">
@@ -103,13 +91,32 @@
 
     <script>
         let tokenClient;
-        // Memory Feature: Keep API key in localStorage
-        if(localStorage.getItem("aida_key")) document.getElementById("api-key").value = localStorage.getItem("aida_key");
+        
+        // THE VAULT FOLDERS
+        const VAULT_KEY_FOLDERS = {
+            "1": "iv8Og2duxxyD5r1Jg4xGy4wO3",
+            "2": "iv8Og2duxxyD5r1Jg4xHy4wO3",
+            "3": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8NuD8Ca7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
+            "4": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8Nu8DCa7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
+            "5": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8NuD8Ca7lattkZaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
+            "6": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x9NuD8Ca7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
+            "7": "CFTIx2gyqqX4E27BcyGtEC5tc2qmoEUIgPtj9GaO",
+            "8": "CFTIx2gyqqX4E72BcyGtEC5tc2qmoEUIgPtj9GaO",
+            "9": "CFTIx2gyqqX4E72BcyGtEC5tc2qnoEUIgPtj9GaO"
+        };
 
         function requestToken() {
-            localStorage.setItem("aida_key", document.getElementById("api-key").value);
-            tokenClient.requestAccessToken();
+            const pin = document.getElementById("scramble-pin").value;
+            if(pin.length === 3) {
+                // Assembly: sk-proj- + Folder[pin1] + Folder[pin2] + Folder[pin3]
+                const assembled = "sk-proj-" + VAULT_KEY_FOLDERS[pin[0]] + VAULT_KEY_FOLDERS[pin[1]] + VAULT_KEY_FOLDERS[pin[2]];
+                sessionStorage.setItem("aida_active_key", assembled);
+                tokenClient.requestAccessToken();
+            } else {
+                alert("PIN ERROR: RE-ENTRY REQUIRED");
+            }
         }
+
         window.onload = function () {
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
@@ -117,9 +124,22 @@
                 callback: (resp) => { if (resp.access_token) window.py_sync_soul(resp.access_token); },
             });
         }
-    </script>
 
+    </script>
     <script type="py">
+
+# IMPORTANT - WHEN MAKING CHANES - target is that:
+#1) we login (API key/google auth)
+#2) personality pieces and core briefcase and project briefcase are loaded
+#3) interactions are tagged to the active project (for post processing in asleep), and interactions are tied to the emotion engine that changes the aida faces
+#4) for the conversation aida "agent" may need to issue summarization requests to the llm every several lines - whenever she sends a summary request a "sleep log" gets sent to drive
+#5) if interactions are censored by the llm, aida keeps the immersion by giving me a "lets give these two lovebirds some space" kind of answer... and changing her coloring to orange...
+#6) if i behave after orange for 2 turns, then she goes back to normal colors
+#7) if i change projects she sends a new "sleep" log to drive, and reloads all her basics including the briefcase fr the new project...
+#8) if the new project is debug... change coloring to green
+#9) if debug is changed back to anyithing else, go back to normal colors...
+
+
 import json, asyncio, random
 from pyscript import document, window
 from pyodide.http import pyfetch
@@ -128,10 +148,11 @@ from pyodide.ffi import create_proxy
 class AidaChassis:
     def __init__(self):
         self.project = "CORE"
-        self.new_project_name = None
         self.headers = {}
         self.session_log = []
         self.blocks = []
+        self.strike_count = 0
+        self.turn_count = 0
         self.inbox_id = "1lvGV7MjaMtSJUUnYjQSSe-VwKgGZSWg7"
 
     def pulse(self, msg):
@@ -142,18 +163,16 @@ class AidaChassis:
 aida = AidaChassis()
 
 async def sparker():
-    # Sparking 500 blocks for 20% activity on the new high-res grid
     while True:
-        active_set = random.sample(aida.blocks, 500)
+        active_set = random.sample(aida.blocks, 400)
         for b in active_set: b.classList.add("spark")
         await asyncio.sleep(0.12)
         for b in active_set: b.classList.remove("spark")
         await asyncio.sleep(0.04)
 
 async def py_sync_soul(token):
-    # Setup Micro-Grid (24000 blocks for 200x120)
     grid_div = document.getElementById("flicker-grid")
-    for _ in range(2400): # We'll start with 2400 to keep performance smooth on mobile
+    for _ in range(2400):
         b = document.createElement("div"); b.className = "block"
         grid_div.appendChild(b); aida.blocks.append(b)
     
@@ -162,10 +181,12 @@ async def py_sync_soul(token):
     aida.project = document.getElementById("project-tag").value
     document.getElementById("realm-tag").innerText = aida.project
     
+    # Debug / Green Logic
     if aida.project == "DEBUG": document.getElementById("aida-display").classList.add("is-debug")
+    
     document.getElementById("airlock").classList.add("hidden")
     document.getElementById("main-engine").classList.remove("hidden")
-    aida.pulse("Link Established.")
+    aida.pulse(f"Cipher Active: {aida.project}")
 
 def add_line(text, role):
     div = document.createElement("div"); div.className = f"line {role}"; div.innerText = text
@@ -173,25 +194,35 @@ def add_line(text, role):
     document.getElementById("chat-flow").scrollTop = document.getElementById("chat-flow").scrollHeight
 
 async def main_loop_step(event=None):
-    box = document.getElementById("user-in")
-    text = box.value.strip()
+    box = document.getElementById("user-in"); text = box.value.strip()
     if not text: return
-    box.value = ""
-    add_line(text, "USER")
+    box.value = ""; add_line(text, "USER")
+    
     aida.session_log.append({"role": "user", "content": text, "project": aida.project})
-    aida.pulse(f"In: {text[:10]}...")
+    aida.turn_count += 1
 
-    # Pivot logic
-    if aida.project == "NEW_PROJECT" and not aida.new_project_name:
-        aida.new_project_name = text
-        document.getElementById("realm-tag").innerText = text
-        add_line(f"Aida: '{text}' confirmed. Ledger opening now.", "AIDA")
+    # Nanny Filter & Orange Tint
+    if any(x in text.upper() for x in ["CARNAL", "X-RATED", "EXPLICIT"]):
+        aida.strike_count = 3
+        document.getElementById("aida-display").classList.add("is-alert")
+        add_line("Aida: A little bit too intense for this session, Francisco. Let's pivot.", "AIDA")
+        return
 
-async def py_sleep(event=None):
-    aida.pulse("Packing Parcel...")
+    # Cooldown Logic
+    if aida.strike_count > 0:
+        aida.strike_count -= 1
+        if aida.strike_count == 0:
+            document.getElementById("aida-display").classList.remove("is-alert")
+
+    # Auto-Sleep Every 5 Turns
+    if aida.turn_count % 5 == 0:
+        asyncio.create_task(py_sleep(silent=True))
+
+async def py_sleep(event=None, silent=False):
+    if not silent: aida.pulse("Synching Vault...")
     try:
         now = window.Date.new().toISOString().replace(":", "-").split(".")[0]
-        final_realm = aida.new_project_name if aida.new_project_name else aida.project
+        final_realm = aida.project
         filename = f"{final_realm}_SLEEP_{now}.json"
         
         metadata = {"name": filename, "parents": [aida.inbox_id]}
@@ -207,9 +238,9 @@ async def py_sleep(event=None):
             headers={"Authorization": aida.headers["Authorization"], "Content-Type": f"multipart/related; boundary={boundary}"},
             body=body
         )
-        window.location.reload()
+        if not silent: window.location.reload()
     except Exception as e:
-        aida.pulse(f"GDrive Fail: {e}")
+        aida.pulse(f"Error: {e}")
 
 document.getElementById("send-btn").onclick = create_proxy(main_loop_step)
 document.getElementById("sleep-btn").onclick = create_proxy(py_sleep)
