@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Aida v9.7.7</title>
+    
+    <link rel="icon" type="image/png" href="assets/hello-goodbye.png">
+    <link rel="apple-touch-icon" href="assets/hello-goodbye.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Aida Vault">
+    
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
@@ -16,14 +23,14 @@
         
         /* FIX #6: FULL FLICKER COVERAGE */
         #aida-display { flex: 0 0 35dvh; background: #000; display: grid; grid-template-columns: 1fr 1.8fr 1fr; position: relative; overflow: hidden; }
-        #flicker-grid { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(120, 1fr); grid-template-rows: repeat(25, 1fr); z-index: 30; pointer-events: none; }
+        #flicker-grid { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(120, 1fr); grid-template-rows: repeat(80, 1fr); z-index: 30; pointer-events: none; }
         .block { border: 0.1px solid rgba(211, 175, 55, 0.02); }
         .spark { background: rgba(211, 175, 55, 0.35); }
 
         /* FIX #1: MATRIX GREEN & ORANGE */
         .tint-layer { position: absolute; inset: 0; pointer-events: none; z-index: 25; opacity: 0; transition: opacity 0.5s; }
-        .debug-green { background: rgba(0, 255, 70, 0.5); mix-blend-mode: hard-light; }
-        .alert-orange { background: rgba(255, 80, 0, 0.5); mix-blend-mode: overlay; }
+        .debug-green { background: rgba(0, 255, 70, 0.25); mix-blend-mode: hard-light; }
+        .alert-orange { background: rgba(255, 80, 0, 0.25); mix-blend-mode: overlay; }
         .is-debug .debug-green { opacity: 1; }
         .is-alert .alert-orange { opacity: 1; z-index: 40; }
 
@@ -234,7 +241,7 @@ async def update_face_drive(filename):
 
 async def py_sync_soul(token):
     grid_div = document.getElementById("flicker-grid")
-    for _ in range(1000): # Coverage for the full grid
+    for _ in range(9600): # Coverage for the full grid because 120 cols * 80 rows = 9600 boxes to flicker 
         b = document.createElement("div"); b.className = "block"
         grid_div.appendChild(b); aida.blocks.append(b)
     asyncio.create_task(sparker())
