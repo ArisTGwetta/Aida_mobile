@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Aida Vault v9.8.1</title>
+    <title>Aida v9.8.3</title>
 
     <link rel="apple-touch-icon" href="assets/hello-goodbye.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="icon" type="image/png" href="assets/hello-goodbye.png">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Aida Vault">
-    
+     
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
@@ -19,67 +18,66 @@
         :root { --aida-gold: #d3af37; --aida-dark: #111; }
         html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--aida-dark); font-family: 'Courier New', monospace; }
         
-        /* AIRLOCK & AUTH */
+        /* THE AIRLOCK */
         #airlock { height: 100dvh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #111; z-index: 100; }
-        #vault-door { width: 320px; text-align: center; background: #000; padding: 30px; border: 1px solid #333; border-radius: 20px; }
+        #vault-door { width: 320px; text-align: center; background: #000; padding: 30px; border: 1px solid #333; border-radius: 20px; position: relative; }
         
-        #portrait-scan-area { width: 140px; height: 140px; border: 1px solid rgba(0, 180, 255, 0.4); border-radius: 50%; margin: 0 auto 20px; position: relative; background: radial-gradient(circle, rgba(0, 180, 255, 0.1) 0%, rgba(0,0,0,1) 80%); display: none; overflow: hidden; }
+        #portrait-scan-area { 
+            width: 140px; height: 140px; border: 1px solid rgba(0, 180, 255, 0.3); border-radius: 50%; 
+            margin: 0 auto 20px; position: relative; background: radial-gradient(circle, rgba(0, 180, 255, 0.05) 0%, rgba(0,0,0,1) 80%); 
+            display: none; overflow: hidden; 
+        }
         #portrait-scan-area::after { content: '👤'; font-size: 70px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.2; }
-        
-        .scanner-line { position: absolute; inset: 0; width: 100%; height: 2px; background: #00b4ff; box-shadow: 0 0 15px #00b4ff; animation: scan 2s infinite ease-in-out; }
-        @keyframes scan { 0% { top: 0%; } 50% { top: 100%; } 100% { top: 0%; } }
 
-        /* KEYPAD */
         .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
         .key { background: #222; border: 1px solid #444; color: var(--aida-gold); padding: 18px; border-radius: 10px; font-size: 20px; font-weight: bold; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-        .key:active { background: #333; transform: scale(0.95); }
 
-        /* MAIN ENGINE */
+        /* THE MAIN ENGINE */
         #main-engine { display: flex; flex-direction: column; height: 100dvh; }
-        #aida-display { flex: 0 0 35dvh; background: #000; display: grid; grid-template-columns: 1fr 1.8fr 1fr; position: relative; overflow: hidden; }
+        #aida-display { flex: 0 0 35dvh; background: #000; display: grid; grid-template-columns: 1fr 1.8fr 1fr; position: relative; overflow: hidden; border-bottom: 2px solid var(--aida-gold); }
+        
         #flicker-grid { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(120, 1fr); grid-template-rows: repeat(80, 1fr); z-index: 30; pointer-events: none; }
-        
-        .spark-blue { background: #00d4ff; box-shadow: 0 0 12px #00b4ff; }
-        .spark-white { background: #fff; box-shadow: 0 0 15px #fff; }
-        
+        .block { border: none; }
+        .spark-blue { background: #00d4ff; box-shadow: 0 0 12px #00b4ff, 0 0 20px rgba(0, 180, 255, 0.8); }
+        .spark-white { background: #fff; box-shadow: 0 0 15px #fff, 0 0 25px rgba(255, 255, 255, 0.9); }
+
+        #debug-pane { color: #0f0; font-size: 8px; padding: 10px; background: rgba(0,0,0,0.8); z-index: 10; border-right: 1px solid #222; overflow-y: auto; }
+        #portrait-pane { position: relative; z-index: 5; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        #aida-portrait { height: 100%; width: 100%; object-fit: cover; }
+        #presentation-pane { color: var(--aida-gold); font-size: 10px; padding: 10px; background: rgba(0,0,0,0.8); z-index: 10; border-left: 1px solid #222; text-align: right; }
+
         #chat-flow { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; background: #fff; }
         .line { padding: 12px; border-radius: 15px; font-size: 15px; max-width: 85%; }
-        .AIDA { background: #f0f0f0; border-left: 4px solid var(--aida-gold); align-self: flex-start; }
+        .AIDA { background: #f9f9f9; border-left: 4px solid var(--aida-gold); align-self: flex-start; }
         .USER { background: var(--aida-gold); color: white; align-self: flex-end; }
 
         .hidden { display: none !important; }
-        input, select { font-family: inherit; }
     </style>
 </head>
 <body>
 
     <div id="airlock">
         <div id="vault-door">
-            <div id="portrait-scan-area"><div class="scanner-line"></div></div>
+            <div id="portrait-scan-area"></div>
             <h2 id="auth-status" style="color:var(--aida-gold); font-size:10px; letter-spacing:4px; margin-bottom:15px;">VAULT AUTHENTICATION</h2>
             
             <input type="password" id="scramble-pin" placeholder="---" maxlength="4" readonly 
                    style="width:100%; margin-bottom:15px; padding:12px; text-align:center; letter-spacing:15px; font-size: 24px; background:#000; color:var(--aida-gold); border:1px solid #333; border-radius:8px; outline:none;">
 
             <div class="keypad">
-                <button class="key" onclick="pressKey('1')">1</button>
-                <button class="key" onclick="pressKey('2')">2</button>
-                <button class="key" onclick="pressKey('3')">3</button>
-                <button class="key" onclick="pressKey('4')">4</button>
-                <button class="key" onclick="pressKey('5')">5</button>
-                <button class="key" onclick="pressKey('6')">6</button>
-                <button class="key" onclick="pressKey('7')">7</button>
-                <button class="key" onclick="pressKey('8')">8</button>
-                <button class="key" onclick="pressKey('9')">9</button>
+                <button class="key" onclick="pressKey('1')">1</button><button class="key" onclick="pressKey('2')">2</button><button class="key" onclick="pressKey('3')">3</button>
+                <button class="key" onclick="pressKey('4')">4</button><button class="key" onclick="pressKey('5')">5</button><button class="key" onclick="pressKey('6')">6</button>
+                <button class="key" onclick="pressKey('7')">7</button><button class="key" onclick="pressKey('8')">8</button><button class="key" onclick="pressKey('9')">9</button>
                 <button class="key" style="color:#555" onclick="pressKey('0')">0</button>
                 <button class="key" style="color:#ff4444; font-size:12px;" onclick="pressKey('C')">CLR</button>
                 <button class="key" style="color:var(--aida-gold); font-size:12px;" onclick="requestToken()">OK</button>
             </div>
 
-            <select id="project-tag" style="width:100%; padding:12px; background:#000; color:white; border:1px solid #444; margin-top:20px; border-radius:8px;">
+            <select id="project-tag" onchange="checkNewProject(this.value)" style="width:100%; padding:12px; background:#000; color:white; border:1px solid #444; margin-top:20px; border-radius:8px;">
                 <option value="CORE">CORE</option>
                 <option value="ASTRA">ASTRA</option>
                 <option value="DEBUG">DEBUG</option>
+                <option value="NEW">+ NEW REALM</option>
             </select>
         </div>
     </div>
@@ -87,18 +85,21 @@
     <div id="main-engine" class="hidden">
         <div id="aida-display">
             <div id="flicker-grid"></div>
-            <div id="debug-pane" style="color:#0f0; font-size:8px; padding:10px;">SYSTEM ONLINE</div>
-            <div id="portrait-pane" style="display:flex; justify-content:center; align-items:center;">
-                <img id="aida-portrait" src="neutral1.png" style="height:100%; object-fit:cover;">
-            </div>
-            <div id="presentation-pane" style="color:var(--aida-gold); font-size:10px; padding:10px; text-align:right;">
-                REALM: <span id="active-realm"></span>
+            <div id="debug-pane"><div id="log-content">Initializing...</div></div>
+            <div id="portrait-pane"><img id="aida-portrait" src=""></div>
+            <div id="presentation-pane">
+                <div id="realm-tag" style="font-weight:bold; font-size:12px; margin-bottom:8px;"></div>
+                <div id="pres-content">Engine Stitched.</div>
             </div>
         </div>
         <div id="chat-flow"></div>
-        <div id="input-dock" style="padding:15px; background:#eee; display:flex; gap:10px; padding-bottom:30px;">
-            <input id="user-in" placeholder="Speak to Aida..." style="flex:1; padding:12px; border-radius:20px; border:1px solid #ccc;">
-            <button onclick="py_send()" style="background:var(--aida-gold); color:white; border:none; padding:10px 20px; border-radius:20px; font-weight:bold;">SEND</button>
+        <div style="padding:15px; background:#eee; display:flex; flex-direction:column; gap:10px; padding-bottom:35px;">
+            <input id="user-in" placeholder="Speak to Aida..." style="width:100%; padding:14px; border-radius:25px; border:1px solid #ccc; outline:none;">
+            <div style="display:flex; gap:8px;">
+                <button id="send-btn" style="background:var(--aida-gold); color:white; border:none; padding:12px; border-radius:20px; font-weight:bold; flex:1;">SEND</button>
+                <button id="eject-btn" style="background:#666; color:white; border:none; padding:12px; border-radius:20px; font-weight:bold; flex:1;">RESTART</button>
+                <button id="sleep-btn" style="background:#444; color:white; border:none; padding:12px; border-radius:20px; font-weight:bold; flex:1;">SLEEP</button>
+            </div>
         </div>
     </div>
 
@@ -106,94 +107,111 @@
         const VAULT_KEY_FOLDERS = { "1":"A", "2":"B", "3":"C", "4":"D", "5":"E", "6":"F", "7":"G", "8":"H", "9":"I" };
         let tokenClient;
 
+        function checkNewProject(val) {
+            if(val === "NEW") {
+                const name = prompt("Enter New Realm Name:");
+                if(name) {
+                    const opt = document.createElement("option");
+                    opt.value = name.toUpperCase(); opt.text = name.toUpperCase();
+                    const sel = document.getElementById("project-tag");
+                    sel.add(opt, sel.options[sel.options.length-1]);
+                    sel.value = opt.value;
+                } else { document.getElementById("project-tag").value = "CORE"; }
+            }
+        }
+
         window.onload = () => {
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
                 scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
-                callback: (tokenResponse) => {
-                    if (tokenResponse.access_token) {
-                        window.py_sync_soul(tokenResponse.access_token);
-                    }
-                }
+                callback: (res) => { if (res.access_token) window.py_sync_soul(res.access_token); }
             });
         };
 
         function pressKey(val) {
             const box = document.getElementById("scramble-pin");
-            if (val === 'C') box.value = "";
-            else if (box.value.length < 4) box.value += val;
+            if (val === 'C') box.value = ""; else if (box.value.length < 4) box.value += val;
         }
 
         function requestToken() {
             const rawPin = document.getElementById("scramble-pin").value;
             const pin = rawPin.replace(/0/g, "").substring(0, 3);
-            
             if(pin.length === 3) {
-                // UI Switch
                 document.querySelector(".keypad").style.display = "none";
                 document.getElementById("scramble-pin").style.display = "none";
                 document.getElementById("auth-status").innerText = "MAPPING BIOMETRICS...";
                 document.getElementById("portrait-scan-area").style.display = "block";
-                
-                // Set the Session Key
-                const key = "sk-proj-" + VAULT_KEY_FOLDERS[pin[0]] + VAULT_KEY_FOLDERS[pin[1]] + VAULT_KEY_FOLDERS[pin[2]];
-                sessionStorage.setItem("aida_active_key", key);
-                
-                // Trigger Google (Immediate for mobile)
+                sessionStorage.setItem("aida_active_key", "sk-proj-" + VAULT_KEY_FOLDERS[pin[0]] + VAULT_KEY_FOLDERS[pin[1]] + VAULT_KEY_FOLDERS[pin[2]]);
                 tokenClient.requestAccessToken();
-            } else {
-                alert("IDENTITY NOT VERIFIED");
-                document.getElementById("scramble-pin").value = "";
-            }
+            } else { alert("IDENTITY NOT VERIFIED"); }
         }
     </script>
 
     <script type="py">
-        import json, asyncio, random
-        from pyscript import window, document
-        from pyodide.http import pyfetch
+import json, asyncio, random, math
+from pyscript import window, document
+from pyodide.http import pyfetch
+from pyodide.ffi import create_proxy
 
-        class AidaState:
-            def __init__(self):
-                self.blocks = []
-                self.headers = {}
-                self.project = "CORE"
-                self.vault_id = "1DelETbXYT8egWrB9oN4Dbe_wyrliOm66"
+def pulse(msg):
+    log = document.getElementById("log-content")
+    if log:
+        div = document.createElement("div"); div.innerText = f"> {msg}"; log.appendChild(div)
+        log.parentElement.scrollTop = log.parentElement.scrollHeight
 
-        aida = AidaState()
+class AidaChassis:
+    def __init__(self):
+        self.headers = {}
+        self.clean_key = ""
+        self.session_log = []
+        self.project = "CORE"
+        self.blocks = []
+        self.vault_id = "1DelETbXYT8egWrB9oN4Dbe_wyrliOm66"
+        self.emotion_folder = "1Z7_0kYJ3OT2EByHG_Ircap7y5NnKPnQz"
+        self.EMOTION_MAP = {
+            "happy": (0.8, 0.6), "neutral": (0.0, 0.0), "focused": (0.0, 0.5)
+        }
 
-        async def py_sync_soul(token):
-            aida.headers = {"Authorization": f"Bearer {token}"}
-            aida.project = document.getElementById("project-tag").value
-            document.getElementById("active-realm").innerText = aida.project
-            
-            # Setup Visuals
-            grid = document.getElementById("flicker-grid")
-            for _ in range(1500):
-                b = document.createElement("div")
-                b.className = "block"
-                grid.appendChild(b)
-                aida.blocks.append(b)
-            
-            asyncio.create_task(sparker())
-            
-            # Show Engine
-            document.getElementById("airlock").classList.add("hidden")
-            document.getElementById("main-engine").classList.remove("hidden")
+    def get_face_name(self, v, a):
+        return "neutral1.png" # Simple placeholder for now
 
-        async def sparker():
-            while True:
-                if aida.blocks:
-                    active = random.sample(aida.blocks, 40)
-                    for b in active:
-                        cls = "spark-blue" if random.random() > 0.3 else "spark-white"
-                        b.classList.add(cls)
-                    await asyncio.sleep(0.1)
-                    for b in active: b.classList.remove("spark-blue", "spark-white")
-                await asyncio.sleep(0.05)
+aida = AidaChassis()
 
-        # Expose Python function to JS
-        window.py_sync_soul = py_sync_soul
+async def py_sync_soul(token):
+    aida.headers = {"Authorization": f"Bearer {token}"}
+    aida.project = document.getElementById("project-tag").value
+    document.getElementById("realm-tag").innerText = aida.project
+    
+    pulse("Downloading Briefcases...")
+    # Initialize Visuals
+    grid = document.getElementById("flicker-grid")
+    for _ in range(2500):
+        b = document.createElement("div"); b.className = "block"
+        grid.appendChild(b); aida.blocks.append(b)
+    asyncio.create_task(sparker())
+
+    # Mock Briefcase Handshake
+    await asyncio.sleep(1)
+    pulse("Handshake Complete.")
+    document.getElementById("airlock").classList.add("hidden")
+    document.getElementById("main-engine").classList.remove("hidden")
+    document.getElementById("aida-portrait").src = "neutral1.png"
+
+async def sparker():
+    while True:
+        if aida.blocks:
+            active_blue = random.sample(aida.blocks, 60)
+            active_white = random.sample(aida.blocks, 25)
+            for b in active_blue: b.classList.add("spark-blue")
+            for b in active_white: b.classList.add("spark-white")
+            await asyncio.sleep(0.1)
+            for b in active_blue: b.classList.remove("spark-blue")
+            for b in active_white: b.classList.remove("spark-white")
+        await asyncio.sleep(0.05)
+
+window.py_sync_soul = create_proxy(py_sync_soul)
     </script>
 </body>
 </html>
+
+
