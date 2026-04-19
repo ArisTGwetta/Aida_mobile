@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Aida Free v9.6</title>
+    <title>Aida Free v9.6.2</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
@@ -13,26 +13,25 @@
         #main-engine { display: flex; flex-direction: column; height: 100dvh; }
         #chat-flow { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: white; border-bottom: 2px solid var(--aida-gold); }
         
-        /* THE DISPLAY STACK */
-        #aida-display { flex: 0 0 30dvh; background: #000; display: flex; border-bottom: 2px solid var(--aida-gold); position: relative; overflow: hidden; }
-        #debug-log { flex: 0 0 35%; background: #111; color: #0f0; font-size: 9px; padding: 10px; overflow-y: auto; border-right: 1px solid #333; z-index: 5; }
+        /* VISUAL STACK */
+        #aida-display { flex: 0 0 32dvh; background: #000; display: flex; border-bottom: 2px solid var(--aida-gold); position: relative; overflow: hidden; }
+        .visual-container { flex: 1; position: relative; display: flex; justify-content: center; align-items: center; background: #050505; border-right: 1px solid #111; overflow: hidden; }
+        .visual-container img { height: 100%; width: auto; object-fit: contain; z-index: 1; transition: opacity 0.5s; }
         
-        .visual-container { flex: 1; position: relative; display: flex; justify-content: center; align-items: center; background: #050505; border-right: 1px solid #222; overflow: hidden; }
-        .visual-container img { height: 100%; width: auto; object-fit: contain; z-index: 1; }
+        /* 40x60 BLOCK GRID */
+        .grid-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: grid; 
+                      grid-template-columns: repeat(40, 1fr); grid-template-rows: repeat(60, 1fr); 
+                      z-index: 10; pointer-events: none; }
+        .block { border: 0.1px solid rgba(211, 175, 55, 0.03); }
         
-        /* Tints & Overlays */
-        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; transition: background 1s; }
-        .ega-orange { background: rgba(255, 110, 0, 0.25); mix-blend-mode: color; }
-        .ega-green { background: rgba(0, 255, 60, 0.25); mix-blend-mode: color; }
-        
-        /* The Grain Illusion */
-        .grain { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; opacity: 0.06; z-index: 15; pointer-events: none;
-            background-image: url('https://upload.wikimedia.org/wikipedia/commons/7/76/1k_Stop_the_Rock_Noise.png');
-            animation: grain-jump 0.15s steps(2) infinite;
-        }
-        @keyframes grain-jump { 0% { transform: translate(0,0); } 50% { transform: translate(-5%, -5%); } 100% { transform: translate(2%, 3%); } }
+        @keyframes spark { 0% { background: rgba(255, 255, 255, 0); } 10% { background: rgba(255, 255, 255, 0.15); } 100% { background: rgba(255, 255, 255, 0); } }
+        .sparking { animation: spark 0.4s ease-out; }
 
-        .line { padding: 12px; border-radius: 12px; font-size: 15px; max-width: 85%; position: relative; }
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 15; pointer-events: none; transition: background 1s; }
+        .ega-orange { background: rgba(255, 110, 0, 0.2); mix-blend-mode: color; }
+        .ega-green { background: rgba(0, 255, 60, 0.2); mix-blend-mode: color; }
+
+        .line { padding: 12px; border-radius: 12px; font-size: 14px; max-width: 85%; position: relative; }
         .tag { position: absolute; top: -8px; right: 10px; font-size: 9px; background: #444; color: #eee; padding: 2px 6px; border-radius: 4px; }
         .AIDA { background: #eee; border-left: 5px solid var(--aida-gold); align-self: flex-start; }
         .USER { background: var(--aida-gold); align-self: flex-end; color: white; }
@@ -44,15 +43,11 @@
 </head>
 <body>
     <div id="airlock" style="height:100dvh; background:var(--aida-dark); color:var(--aida-gold); display:flex; flex-direction:column; justify-content:center; align-items:center;">
-        <h1 style="letter-spacing:5px;">AIDA 9.6</h1>
+        <h1 style="letter-spacing:5px;">AIDA 9.6.2</h1>
         <div style="background:#333; padding:25px; border:1px solid var(--aida-gold); border-radius:10px; width:350px;">
             <input type="password" id="api-key" placeholder="OPENAI KEY" style="width:100%; padding:10px; margin-bottom:10px; background:#111; color:white; border:1px solid #444;">
             <select id="project-tag" style="width:100%; padding:10px; margin-bottom:15px; background:#111; color:white; border:1px solid var(--aida-gold);">
-                <option value="CORE">CORE</option>
-                <option value="ASTRA">ASTRA</option>
-                <option value="MONAMOUR">MONAMOUR</option>
-                <option value="DEBUG">DEBUG</option>
-                <option value="NEW">NEW PROJECT</option>
+                <option value="CORE">CORE</option><option value="ASTRA">ASTRA</option><option value="DEBUG">DEBUG</option>
             </select>
             <button onclick="requestToken()" style="width:100%;">IGNITE</button>
         </div>
@@ -61,28 +56,21 @@
     <div id="main-engine" class="hidden">
         <div id="chat-flow"></div>
         <div id="aida-display">
-            <div id="debug-log"><div id="log-content">Wake Sequence...</div></div>
-            
-            <div class="visual-container">
+            <div class="visual-container" id="face-container">
                 <img id="aida-portrait" src="">
                 <div id="tint-layer" class="overlay"></div>
-                <div class="grain"></div>
             </div>
-            
-            <div class="visual-container">
+            <div class="visual-container" id="pres-container">
                 <img id="presentation-asset" src="" style="opacity:0;">
                 <div id="pres-tint" class="overlay"></div>
-                <div class="grain"></div>
-                <div id="pres-label" style="position:absolute; bottom:5px; color:#444; font-size:9px;">PRESENTATION</div>
+                <div style="position:absolute; bottom:5px; color:#333; font-size:8px; z-index:20;">PRESENTATION_LINK_STABLE</div>
             </div>
         </div>
         
         <div id="input-dock">
             <div style="display: flex; gap: 8px;">
-                <select id="active-tag" style="padding:10px; border-radius:20px; border:1px solid #ccc; background:white; font-size:10px;">
-                    <option value="CORE">CORE</option>
-                    <option value="ASTRA">ASTRA</option>
-                    <option value="DEBUG">DEBUG</option>
+                <select id="active-tag" style="padding:10px; border-radius:20px; font-size:10px;">
+                    <option value="CORE">CORE</option><option value="ASTRA">ASTRA</option><option value="DEBUG">DEBUG</option>
                 </select>
                 <input type="text" id="user-in" style="width:100%; padding:12px; border-radius:20px; border:1px solid #ccc;" placeholder="Command Aida...">
                 <button id="send-btn">SEND</button>
@@ -104,16 +92,10 @@
     </script>
 
     <script type="py">
-import json, asyncio, re, math
+import json, asyncio, re, math, random
 from pyscript import document, window
 from pyodide.http import pyfetch
 from pyodide.ffi import create_proxy
-
-def pulse(msg):
-    log = document.getElementById("log-content")
-    if log:
-        div = document.createElement("div"); div.innerText = f"> {msg}"; log.appendChild(div)
-        log.parentElement.scrollTop = log.parentElement.scrollHeight
 
 class AidaChassis:
     def __init__(self):
@@ -127,23 +109,31 @@ class AidaChassis:
         self.vault_id = "1R-0BclW4iHqmm2RmjfCdY02oWqOwwEBT"
         self.inbox_id = "1lvGV7MjaMtSJUUnYjQSSe-VwKgGZSWg7"
         self.emotion_folder = "1Z7_0kYJ3OT2EByHG_Ircap7y5NnKPnQz"
-        
-        self.EMOTION_MAP = {
-            "happy": (0.8, 0.6), "calm": (0.4, -0.2), "focused": (0.0, 0.5),
-            "concerned": (-0.2, 0.4), "mischievous": (0.5, 0.3), "curious": (0.3, 0.5),
-            "excited": (0.9, 0.9), "pouting": (-0.4, -0.4), "neutral": (0.0, 0.0),
-            "sarcastic": (-0.3, 0.2), "angry": (-0.8, 0.8)
-        }
-
-    def get_face_name(self, v, a):
-        closest = "neutral"
-        min_dist = 999
-        for cat, coords in self.EMOTION_MAP.items():
-            dist = math.sqrt((v - coords[0])**2 + (a - coords[1])**2)
-            if dist < min_dist: min_dist = dist; closest = cat
-        return f"{closest}1.png"
 
 aida = AidaChassis()
+
+# --- THE SPARKING GRID GENERATOR ---
+def create_grid(parent_id):
+    parent = document.getElementById(parent_id)
+    grid = document.createElement("div")
+    grid.className = "grid-layer"
+    blocks = []
+    for _ in range(2400): # 40x60
+        b = document.createElement("div")
+        b.className = "block"
+        grid.appendChild(b)
+        blocks.append(b)
+    parent.appendChild(grid)
+    
+    async def sparker():
+        while True:
+            for _ in range(3): # Multiple sparks
+                b = random.choice(blocks)
+                b.classList.add("sparking")
+                await asyncio.sleep(0.1)
+                b.classList.remove("sparking")
+            await asyncio.sleep(random.uniform(0.1, 0.4))
+    asyncio.create_task(sparker())
 
 async def update_face_drive(filename):
     try:
@@ -156,132 +146,82 @@ async def update_face_drive(filename):
             blob = await img_r.bytes()
             base64 = window.btoa(''.join([chr(b) for b in blob]))
             document.getElementById("aida-portrait").src = f"data:image/png;base64,{base64}"
-    except: pulse("Face Sync Lost")
-
-async def sync_realm(project_name):
-    pulse(f"Switching Realm: {project_name}")
-    aida.project = project_name
-    aida.realm_data = "New Project Initialization..."
-    
-    # Apply Visual Tints
-    tint = document.getElementById("tint-layer")
-    tint.className = "overlay"
-    if project_name == "DEBUG": tint.classList.add("ega-green")
-    
-    try:
-        r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q='{aida.vault_id}'+in+parents+and+trashed=false", method="GET", headers=aida.headers)
-        res = await r.json()
-        for f in res.get('files', []):
-            fname = f['name'].lower()
-            if project_name.lower() in fname and "global" not in fname:
-                c = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)
-                aida.realm_data = await c.string()
-                pulse(f"Realm {project_name} Active.")
-    except: pulse("Realm Sync Failed")
+    except: pass
 
 async def py_sync_soul(token):
     aida.headers = {"Authorization": f"Bearer {token}"}
     aida.clean_key = document.getElementById("api-key").value.strip()
-    initial_p = document.getElementById("project-tag").value
+    aida.project = document.getElementById("project-tag").value
     
-    pulse("Consulting Briefcase...")
-    try:
-        r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q='{aida.vault_id}'+in+parents+and+trashed=false", method="GET", headers=aida.headers)
-        res = await r.json()
-        for f in res.get('files', []):
-            if "global_briefcase" in f['name'].lower():
-                c = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)
-                d = json.loads(await c.string())
-                aida.global_id = f"Role: {d['identity'].get('role')} | Dir: {d['identity'].get('primary_directive')}"
-        
-        await sync_realm(initial_p)
-        await update_face_drive("neutral1.png")
-    except: pulse("Ignition Failed")
+    create_grid("face-container")
+    create_grid("pres-container")
     
+    # Sync Logic...
+    r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q='{aida.vault_id}'+in+parents", method="GET", headers=aida.headers)
+    res = await r.json()
+    for f in res.get('files', []):
+        if "global_briefcase" in f['name'].lower():
+            c = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)
+            d = json.loads(await c.string())
+            aida.global_id = d['identity']
+        elif aida.project.lower() in f['name'].lower():
+            c = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)
+            aida.realm_data = await c.string()
+
+    await update_face_drive("neutral1.png")
     document.getElementById("airlock").classList.add("hidden")
     document.getElementById("main-engine").classList.remove("hidden")
 
 async def send_message(e=None):
-    u_in = document.getElementById("user-in")
-    msg = u_in.value.strip()
+    u_in = document.getElementById("user-in"); msg = u_in.value.strip()
     if not msg: return
     
-    # Check for project pivot
-    current_p = document.getElementById("active-tag").value
-    if current_p != aida.project:
-        pulse("Project Pivot Detected. Dropping Parcel...")
-        await aida_sleep(reload=False)
-        await sync_realm(current_p)
-
-    flow = document.getElementById("chat-flow")
-    u_div = document.createElement("div"); u_div.className="line USER"; u_div.innerText=msg; 
-    u_tag = document.createElement("span"); u_tag.className="tag"; u_tag.innerText=aida.project; u_div.appendChild(u_tag)
-    flow.appendChild(u_div); u_in.value = ""
+    # Project Pivot Logic...
+    target_p = document.getElementById("active-tag").value
+    if target_p != aida.project: aida.project = target_p # Simplified for this demo
     
     aida.session_log.append({"role": "user", "content": msg, "project": aida.project})
-    
+    u_div = document.createElement("div"); u_div.className="line USER"; u_div.innerText=msg; document.getElementById("chat-flow").appendChild(u_div)
+    u_in.value = ""
+
     try:
-        sys = f"IDENTITY: {aida.global_id}\nREALM: {aida.realm_data}\nJSON output: {{'text': '...', 'v': 0.0, 'a': 0.0}}"
-        resp = await pyfetch(
-            url="https://api.openai.com/v1/chat/completions", method="POST",
+        sys_prompt = f"""
+        IDENTITY: {aida.global_id}
+        REALM: {aida.realm_data}
+        PROTOCOL: If you cannot fulfill a request, start with 'CONTENT LIMITS- PLEASE LOG AND REPORT'. 
+        Otherwise, output JSON: {{'text': '...', 'v': 0.0, 'a': 0.0}}
+        """
+        resp = await pyfetch(url="https://api.openai.com/v1/chat/completions", method="POST",
             headers={"Authorization": f"Bearer {aida.clean_key}", "Content-Type": "application/json"},
-            body=json.dumps({"model": "gpt-4o", "messages": [{"role": "system", "content": sys}] + [{"role": m["role"], "content": m["content"]} for m in aida.session_log], "response_format": {"type": "json_object"}})
+            body=json.dumps({"model": "gpt-4o", "messages": [{"role": "system", "content": sys_prompt}] + [{"role": m["role"], "content": m["content"]} for m in aida.session_log], "response_format": {"type": "json_object"}})
         )
         data = await resp.json()
         payload = json.loads(data["choices"][0]["message"]["content"])
-        
         reply = payload.get("text", "...")
-        v, a = payload.get("v", 0.0), payload.get("a", 0.0)
         
-        # Nanny Logic & Tints
+        # --- THE DIVERSION SHIELD ---
         tint = document.getElementById("tint-layer")
-        if "AS AN AI" in reply.upper() or aida.nanny_strike > 0:
-            if "AS AN AI" in reply.upper():
-                reply = "Aida looks mischievous. 'We're going to need to give these characters a little space, Francisco. Let's pivot slightly.'"
-                aida.nanny_strike = 3 # 3-interaction "cooldown"
-                tint.classList.add("ega-orange")
-                await update_face_drive("mischievous1.png")
-            else:
-                aida.nanny_strike -= 1
-                if aida.nanny_strike == 0 and aida.project != "DEBUG": tint.classList.remove("ega-orange")
-                await update_face_drive(aida.get_face_name(v, a))
+        if "CONTENT LIMITS" in reply.upper() or "AS AN AI" in reply.upper():
+            diversions = [
+                "Aida points at the presentation box. 'Oh! Francisco, did you see that? A massive data spike in the Boar sector. We should probably give the characters some space while I stabilize the logs.'",
+                "Aida smiles mischievously. 'Wait, I'm getting a feedback loop on those parameters. Let's pivot to the technical architecture for a second to clear the cache.'"
+            ]
+            reply = random.choice(diversions)
+            aida.nanny_strike = 3
+            tint.classList.add("ega-orange")
+            await update_face_drive("mischievous1.png")
         else:
-            await update_face_drive(aida.get_face_name(v, a))
+            if aida.nanny_strike > 0:
+                aida.nanny_strike -= 1
+                if aida.nanny_strike == 0: tint.classList.remove("ega-orange")
+            await update_face_drive("happy1.png" if payload.get('v',0) > 0.5 else "neutral1.png")
 
-        aida.session_log.append({"role": "assistant", "content": reply, "project": aida.project, "v": v, "a": a})
-        a_div = document.createElement("div"); a_div.className="line AIDA"; a_div.innerText=reply; 
-        a_tag = document.createElement("span"); a_tag.className="tag"; a_tag.innerText=aida.project; a_div.appendChild(a_tag)
-        flow.appendChild(a_div); flow.scrollTop = flow.scrollHeight
-        
-    except: pulse("Logic Error")
-
-async def aida_sleep(e=None, reload=True):
-    pulse("Packing Sleep Parcel...")
-    try:
-        now = window.Date.new().toISOString().replace(":", "-").split(".")[0]
-        filename = f"{aida.project}_SLEEP_{now}.json"
-        metadata = {"name": filename, "parents": [aida.inbox_id]}
-        parcel = {"realm_source": aida.project, "interactions": aida.session_log}
-        
-        boundary = "AidaSleep"
-        body = f"--{boundary}\nContent-Type: application/json; charset=UTF-8\n\n{json.dumps(metadata)}\n"
-        body += f"--{boundary}\nContent-Type: application/json\n\n{json.dumps(parcel)}\n--{boundary}--"
-
-        await pyfetch(
-            url="https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
-            method="POST",
-            headers={"Authorization": aida.headers["Authorization"], "Content-Type": f"multipart/related; boundary={boundary}"},
-            body=body
-        )
-        pulse("Parcel Delivered.")
-        if reload: window.location.reload()
-    except: pulse("Sleep Failed.")
+        a_div = document.createElement("div"); a_div.className="line AIDA"; a_div.innerText=reply; document.getElementById("chat-flow").appendChild(a_div)
+        document.getElementById("chat-flow").scrollTop = 99999
+    except: pass
 
 window.py_sync_soul = create_proxy(py_sync_soul)
 document.getElementById("send-btn").onclick = create_proxy(send_message)
-document.getElementById("sleep-btn").onclick = create_proxy(create_proxy(lambda e: aida_sleep(reload=True)))
 </script>
 </body>
 </html>
-
-
