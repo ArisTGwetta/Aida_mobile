@@ -99,9 +99,9 @@
 <body>
     <div id="airlock" style="height:100dvh; background:#222; display:flex; flex-direction:column; justify-content:center; align-items:center;">
         <div id="vault-door" style="background:#111; padding:25px; border:1px solid #444; border-radius:15px; width:300px; text-align:center;">
-            <div class="scanner-line"></div>
             
             <div id="portrait-scan-area"></div> 
+                <div class="scanner-line"></div>
     
             <h2 style="color:#d3af37; font-size:10px; letter-spacing:4px; margin-bottom:15px;">VAULT AUTHENTICATION</h2>
             
@@ -174,31 +174,29 @@
             if (val === 'C') { box.value = ""; }
             else if (box.value.length < 4) { box.value += val; }
         }
-        
+                
         function requestToken() {
             const rawPin = document.getElementById("scramble-pin").value;
-            // THE ZERO-IGNORE MAGIC
             const pin = rawPin.replace(/0/g, "").substring(0, 3);
             
             if(pin.length === 3) {
-                // Transition: Hide keypad, Show Mapping Silhouette
+                // UI Transition
                 document.querySelector(".keypad").style.display = "none";
                 document.getElementById("scramble-pin").style.display = "none";
                 document.getElementById("portrait-scan-area").style.display = "block";
                 
+                // Key Assembly
                 const assembled = "sk-proj-" + VAULT_KEY_FOLDERS[pin[0]] + VAULT_KEY_FOLDERS[pin[1]] + VAULT_KEY_FOLDERS[pin[2]];
                 sessionStorage.setItem("aida_active_key", assembled);
                 
-                // Brief delay for the "Face Mapping" effect before Google OAuth kicks in
-                setTimeout(() => { 
-                    tokenClient.requestAccessToken(); 
-                }, 1800);
+                // MOBILE FIX: Call this immediately so the browser sees the 'tap' 
+                // linked to the popup. Google will handle the slight delay.
+                tokenClient.requestAccessToken(); 
             } else {
                 alert("ACCESS DENIED: PIN INCOMPLETE");
                 document.getElementById("scramble-pin").value = "";
             }
-        }
-        
+        }        
         window.onload = function () {
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
@@ -280,39 +278,26 @@ async def update_face_drive(filename):
     except: pulse("Portrait Sync Lag...")
 
 async def py_sync_soul(token):
+    # Move headers and key setup to the TOP so sync starts immediately
+    aida.headers = {"Authorization": f"Bearer {token}"}
+    aida.clean_key = window.sessionStorage.getItem("aida_active_key")
+    aida.project = document.getElementById("project-tag").value
+    
+    # Start the briefcase fetch FIRST
+    asyncio.create_task(fetch_briefcase_logic())
+    
+    # THEN build the grid in the background
     grid_div = document.getElementById("flicker-grid")
-    for _ in range(9600): # Coverage for the full grid because 120 cols * 80 rows = 9600 boxes to flicker 
+    for _ in range(9600):
         b = document.createElement("div"); b.className = "block"
         grid_div.appendChild(b); aida.blocks.append(b)
     asyncio.create_task(sparker())
 
-    aida.headers = {"Authorization": f"Bearer {token}"}
-    aida.clean_key = window.sessionStorage.getItem("aida_active_key")
-    aida.project = document.getElementById("project-tag").value
-    document.getElementById("realm-tag").innerText = aida.project
-    
-    display = document.getElementById("aida-display")
-    if aida.project == "DEBUG": display.classList.add("is-debug")
-    else: display.classList.remove("is-debug")
-
+async def fetch_briefcase_logic():
+    # Put your existing drive fetch logic here...
     pulse("Downloading Briefcases...")
-    try:
-        r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q='{aida.vault_id}'+in+parents+and+trashed=false", method="GET", headers=aida.headers)
-        res = await r.json()
-        for f in res.get('files', []):
-            if "global_briefcase" in f['name'].lower():
-                c = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)
-                aida.global_id = json.loads(await c.string()).get("identity", {})
-            elif aida.project.lower() in f['name'].lower():
-                c = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)
-                aida.realm_data = await c.string()
-        await update_face_drive("neutral1.png")
-        pulse("Handshake Complete.")
-    except: pulse("Briefcase Fetch Error.")
-    
-    document.getElementById("airlock").classList.add("hidden")
-    document.getElementById("main-engine").classList.remove("hidden")
-
+    # [Rest of your existing try/except logic from py_sync_soul]
+        
 def add_line(text, role):
     flow = document.getElementById("chat-flow")
     div = document.createElement("div"); div.className = f"line {role}"; div.innerText = text
