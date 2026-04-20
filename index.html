@@ -228,18 +228,19 @@ aida = AidaChassis()
 async def sparker():
     while True:
         if aida.blocks:
-            # High intensity: 70 blue, 30 white
+            # High intensity coverage
             active_blue = random.sample(aida.blocks, 70)
             active_white = random.sample(aida.blocks, 30)
             
+            # Use the EXACT names from your CSS
             for b in active_blue: b.classList.add("spark-blue")
             for b in active_white: b.classList.add("spark-white")
             
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.05) # Snappy flash
             
             for b in active_blue: b.classList.remove("spark-blue")
             for b in active_white: b.classList.remove("spark-white")
-        await asyncio.sleep(0.05)
+        await asyncio.sleep(0.02)
 
     
 async def update_face_drive(filename):
@@ -255,6 +256,13 @@ async def update_face_drive(filename):
             document.getElementById("aida-portrait").src = f"data:image/png;base64,{base64}"
     except: pulse("Portrait Sync Lag...")
 
+async def py_sync_soul(token):
+    # 1. Build the grid immediately to stop the console errors
+    grid_div = document.getElementById("flicker-grid")
+    grid_div.innerHTML = "" # Clear any ghost blocks
+    aida.blocks = [] # Reset the list
+    
+        
 async def py_sync_soul(token):
     grid_div = document.getElementById("flicker-grid")
     for _ in range(2400): # Coverage for the full grid
