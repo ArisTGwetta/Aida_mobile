@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Aida v9.7.7</title>
+    <title>AIDA</title>
+    <link rel=""apple-touch-icon" href="assets/hello-goobye.png"
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
@@ -66,20 +67,168 @@
     </style>
 </head>
 <body>
+    
+        <div id="airlock"
+            style="height:100dvh;
+                    background:black;
+                    color:#00b4ff;
+                    display:flex;
+                    flex-direction:column;
+                    justify-content:center;
+                    align-items:center;">
 
-    <div id="airlock" style="height:100dvh; background:var(--aida-dark); color:var(--aida-gold); display:flex; flex-direction:column; justify-content:center; align-items:center;">
-        <h1 style="letter-spacing:10px;">AIDA 9.7.7</h1>
-        <div style="background:#333; padding:30px; border:1px solid var(--aida-gold); border-radius:15px; width:320px; box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
-            <input type="password" id="scramble-pin" placeholder="PIN" maxlength="3" style="width:100%; margin-bottom:15px; padding:12px; text-align:center; letter-spacing:15px; font-size: 24px; border-radius:10px;">
-            <select id="project-tag" style="width:100%; margin-bottom:20px; padding:12px; background:#111; color:white; border-radius:10px;">
-                <option value="CORE">CORE</option>
-                <option value="NEW">NEW</option>
-                <option value="ASTRA">ASTRA</option>
-                <option value="DEBUG">DEBUG</option>
-            </select>
-            <button onclick="requestToken()" style="width:100%; height: 50px;">IGNITE</button>
+            <h1 style="letter-spacing:10px; margin-bottom:20px;">PIN</h1>
+
+            <div style="
+                background:rgba(0,180,255,0.12);
+                backdrop-filter: blur(18px);
+                padding:30px;
+                border:1px solid rgba(0,180,255,0.4);
+                border-radius:18px;
+                width:340px;
+                box-shadow: 0 0 40px rgba(0,180,255,0.25),
+                            inset 0 0 25px rgba(0,180,255,0.15);">
+
+                <input
+                    type="password"
+                    id="scramble-pin"
+                    placeholder="••••••"
+                    maxlength="8"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    style="
+                        width:100%;
+                        margin-bottom:18px;
+                        padding:14px;
+                        text-align:center;
+                        letter-spacing:14px;
+                        font-size:24px;
+                        border-radius:12px;
+                        background:transparent;
+                        color:#7dd9ff;
+                        border:1px solid rgba(0,180,255,0.4);
+                        box-shadow: inset 0 0 20px rgba(0,180,255,0.3);
+                        outline:none;
+                    ">
+
+                <!-- Keypad -->
+                <div id="keypad"
+                    style="
+                        display:grid;
+                        grid-template-columns:repeat(3, 1fr);
+                        gap:12px;
+                        margin-bottom:18px;
+                    ">
+                </div>
+
+                <select id="project-tag"
+                        style="width:100%;
+                            margin-bottom:18px;
+                            padding:12px;
+                            background:#111;
+                            color:white;
+                            border-radius:10px;
+                            border:1px solid rgba(0,180,255,0.4);">
+                    <option value="CORE">CORE</option>
+                    <option value="NEW">NEW</option>
+                    <option value="DEBUG">DEBUG</option>
+                </select>
+
+                <button onclick="requestToken()"
+                        style="
+                            width:100%;
+                            height:52px;
+                            border-radius:16px;
+                            font-size:18px;
+                            font-weight:bold;
+                            color:black;
+                            background:linear-gradient(90deg,#00b4ff,#7dd9ff);
+                            border:none;
+                            box-shadow:0 0 25px rgba(0,180,255,0.8);
+                            cursor:pointer;
+                        ">
+                    IGNITE
+                </button>
+
+            </div>
         </div>
-    </div>
+        <script>
+        const input = document.getElementById("scramble-pin");
+        const keypad = document.getElementById("keypad");
+
+        function shuffle(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+        }
+
+        function renderKeypad() {
+        keypad.innerHTML = "";
+
+        shuffle(["0","1","2","3","4","5","6","7","8","9"])
+            .forEach(n => {
+            const b = document.createElement("button");
+            b.textContent = n;
+            b.style.cssText = `
+                height:60px;
+                font-size:20px;
+                border-radius:14px;
+                background:rgba(0,180,255,0.15);
+                border:1px solid rgba(0,180,255,0.4);
+                color:#7dd9ff;
+                cursor:pointer;
+                box-shadow: inset 0 0 20px rgba(0,180,255,0.25);
+            `;
+            b.onclick = () => {
+                if (input.value.length < input.maxLength) {
+                input.value += n;
+                input.focus();
+                }
+            };
+            keypad.appendChild(b);
+            });
+
+        ["CLEAR","⌫"].forEach(label => {
+            const c = document.createElement("button");
+            c.textContent = label;
+            c.style.cssText = `
+            grid-column:span 3;
+            height:52px;
+            border-radius:14px;
+            background:rgba(0,180,255,0.25);
+            border:1px solid rgba(0,180,255,0.4);
+            color:#7dd9ff;
+            cursor:pointer;
+            `;
+            c.onclick = () => {
+            if (label === "CLEAR") {
+                input.value = "";
+                renderKeypad();
+            } else {
+                input.value = input.value.slice(0, -1);
+            }
+            };
+            keypad.appendChild(c);
+        });
+        }
+
+        function normalizedPin() {
+        return input.value.replace(/0/g, "");
+        }
+
+        function requestToken() {
+        const pin = normalizedPin();
+        if (pin.length !== 3) {
+            alert("ACCESS DENIED");
+            return;
+        }
+        alert("ACCESS GRANTED");
+        }
+
+        renderKeypad();
+        </script>
 
     <div id="main-engine" class="hidden">
         <div id="chat-flow"></div>
@@ -310,3 +459,4 @@ window.py_sync_soul = create_proxy(py_sync_soul)
     </script>
 </body>
 </html>
+
