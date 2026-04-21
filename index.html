@@ -17,31 +17,32 @@
         /* FIX #6: FULL FLICKER COVERAGE */
         #aida-display { flex: 0 0 35dvh; background: #000; display: grid; grid-template-columns: 1fr 1.8fr 1fr; position: relative; overflow: hidden; }
         #flicker-grid { 
+        #flicker-grid { 
+            position: absolute; 
+            inset: 0; 
+            display: grid; 
             grid-template-columns: repeat(120, 1fr); /* Razor thin */
             grid-template-rows: repeat(50, 1fr); 
+            grid-auto-rows: 1fr; /* Forces rows to stay uniform */
             z-index: 20; 
+            pointer-events: none;
+            overflow: hidden; /* Prevents the grid from pushing other elements */
         }
-        /* CHANGE #3: ADD INTENSE NEON COLOR GRID */
-/* SOBER BLUE - Depth */
-.spark-blue { 
-    background: #005f73; /* Dark Aqua/Teal */
-    box-shadow: 0 0 8px #0a9396;
-    transition: background 0.3s ease, opacity 0.4s ease;
-}
-
-/* SHINY BUT SUBTLE WHITE */
-.spark-white { 
-    background: rgba(255, 255, 255, 0.7); /* Translucent white */
-    box-shadow: 0 0 10px #fff;
-    transition: all 0.2s ease;
-}
-
-/* THE DROP EFFECT */
-.drop {
-    transform: translateY(10px); /* Small digital 'fall' */
-    transition: transform 0.5s ease-out, opacity 0.5s ease-out;
-}
         
+        .block { border: none; width: 100%; height: 100%; }
+        
+        /* DARK AQUA BLUE */
+        .spark-blue { 
+            background: #005f73; 
+            box-shadow: 0 0 8px #0a9396;
+            transition: background 0.3s ease;
+        }
+        
+        /* SUBTLE SHINY WHITE */
+        .spark-white { 
+            background: rgba(255, 255, 255, 0.6); 
+            box-shadow: 0 0 12px #fff;
+        }   
         
         /* KEYPAD UI - Tactile & Sci-Fi */
         .keypad { 
@@ -241,18 +242,21 @@ aida = AidaChassis()
 async def sparker():
     while True:
         if aida.blocks:
-            # We'll pick 70 blue and 30 white for a nice digital mix
-            active_blue = random.sample(aida.blocks, 85)
-            active_white = random.sample(aida.blocks, 40)
+            # Picking from the middle-ish to focus on her face
+            # 6000 blocks total; 2000 to 4500 is the "sweet spot" for the portrait
+            face_zone = aida.blocks[2000:4500]
+            
+            active_blue = random.sample(face_zone, 40) 
+            active_white = random.sample(face_zone, 10) # Less white = more sober
             
             for b in active_blue: b.classList.add("spark-blue")
             for b in active_white: b.classList.add("spark-white")
             
-            await asyncio.sleep(0.12) #  flicker
+            await asyncio.sleep(0.15) # Slower "shimmer"
             
             for b in active_blue: b.classList.remove("spark-blue")
             for b in active_white: b.classList.remove("spark-white")
-        await asyncio.sleep(0.08)
+        await asyncio.sleep(0.05)
         
 async def update_face_drive(filename):
     try:
@@ -269,8 +273,11 @@ async def update_face_drive(filename):
 
 async def py_sync_soul(token):
     grid_div = document.getElementById("flicker-grid")
-    # UPDATED: 90 columns * 50 rows = 4500 blocks
-    for _ in range(4500):
+    grid_div.innerHTML = "" 
+    aida.blocks = [] # Clear the list to avoid memory leaks
+    
+    # MATCH THE CSS: 120 * 50 = 6000
+    for _ in range(6000):
         b = document.createElement("div")
         b.className = "block"
         grid_div.appendChild(b)
