@@ -20,7 +20,8 @@
                        /* CHANGE #1: Use 60 columns for thinner horizontal pixels (matching Aida's hair) */
                        grid-template-columns: repeat(60, 1fr); grid-template-rows: repeat(25, 1fr); 
                        /* CHANGE #2: Lower z-index so content panes sit on top */
-                       z-index: 5; pointer-events: none; }
+                       z-index: 20; /* MOVED TO FRONT: Sparks now float over the portrait */
+                       pointer-events: none; }
         .block { border: none; }
         /* CHANGE #3: ADD INTENSE NEON COLOR GRID */
         
@@ -30,8 +31,9 @@
             box-shadow: 
                 0 0 15px #00d4ff, 
                 0 0 30px rgba(0, 212, 255, 1), 
-                0 0 45px rgba(0, 212, 255, 0.6); 
+                0 0 45px rgba(0, 212, 255, 0.8); /* Wider bloom */
             opacity: 1 !important;
+            z-index: 100 !important; /* This pulls them to the very front */
         }
 
         /* THE WHITE SPARK - Supernova Digital White */
@@ -40,8 +42,9 @@
             box-shadow: 
                 0 0 20px #fff, 
                 0 0 35px rgba(255, 255, 255, 1), 
-                0 0 55px rgba(255, 255, 255, 0.8); 
+                0 0 55px rgba(255, 255, 255, 0.9); 
             opacity: 1 !important;
+            z-index: 100 !important; /* This pulls them to the very front */
         }
 
 
@@ -244,17 +247,17 @@ async def sparker():
     while True:
         if aida.blocks:
             # We'll pick 70 blue and 30 white for a nice digital mix
-            active_blue = random.sample(aida.blocks, 70)
-            active_white = random.sample(aida.blocks, 30)
+            active_blue = random.sample(aida.blocks, 85)
+            active_white = random.sample(aida.blocks, 40)
             
             for b in active_blue: b.classList.add("spark-blue")
             for b in active_white: b.classList.add("spark-white")
             
-            await asyncio.sleep(0.08) # Quick flicker
+            await asyncio.sleep(0.05) # Quick flicker
             
             for b in active_blue: b.classList.remove("spark-blue")
             for b in active_white: b.classList.remove("spark-white")
-        await asyncio.sleep(0.05)
+        await asyncio.sleep(0.02)
         
 async def update_face_drive(filename):
     try:
