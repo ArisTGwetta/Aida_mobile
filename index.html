@@ -16,13 +16,11 @@
         
         /* FIX #6: FULL FLICKER COVERAGE */
         #aida-display { flex: 0 0 35dvh; background: #000; display: grid; grid-template-columns: 1fr 1.8fr 1fr; position: relative; overflow: hidden; }
-        #flicker-grid { position: absolute; inset: 0; display: grid; 
-                       /* CHANGE #1: Use 90 columns for thinner horizontal pixels (matching Aida's hair) */
-                       grid-template-columns: repeat(90, 1fr); grid-template-rows: repeat(50, 1fr); 
-                       /* CHANGE #2: Lower z-index so content panes sit on top */
-                       z-index: 20; /* MOVED TO FRONT: Sparks now float over the portrait */
-                       pointer-events: none; }
-        .block { border: none; }
+        #flicker-grid { 
+            grid-template-columns: repeat(120, 1fr); /* Razor thin */
+            grid-template-rows: repeat(50, 1fr); 
+            z-index: 20; 
+        }
         /* CHANGE #3: ADD INTENSE NEON COLOR GRID */
 /* SOBER BLUE - Depth */
 .spark-blue { 
