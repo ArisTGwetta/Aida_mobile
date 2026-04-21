@@ -8,58 +8,49 @@
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
 
-    <style>
-        :root { --aida-gold: #d3af37; --aida-bg: #fdf6e3; --aida-dark: #222; }
+<style>
+        :root { --aida-gold: #d3af37; --aida-bg: #fdf6e3; --aida-dark: #222; --aida-aqua: #005f73; }
         html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--aida-dark); font-family: 'Courier New', monospace; }
         #main-engine { display: flex; flex-direction: column; height: 100dvh; }
         #chat-flow { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: white; border-bottom: 2px solid var(--aida-gold); }
         
-        /* FIX #6: FULL FLICKER COVERAGE */
+        /* FIX #6: RAZOR THIN DATA RAIN GRID */
         #aida-display { 
-                    flex: 0 0 35dvh; 
-                    background: #000; 
-                    display: grid; 
-                    grid-template-columns: 1fr 1.8fr 1fr; 
-                    position: relative; 
-                    overflow: hidden; 
-                }
-                #flicker-grid { 
-                    position: absolute; 
-                    inset: 0; 
-                    display: grid; 
-                    grid-template-columns: repeat(120, 1fr);
-                    grid-template-rows: repeat(50, 1fr); 
-                    grid-auto-rows: 1fr;
-                    z-index: 20; 
-                    pointer-events: none;
-                    overflow: hidden;
-                }
+            flex: 0 0 35dvh; 
+            background: #000; 
+            display: grid; 
+            grid-template-columns: 1fr 1.8fr 1fr; 
+            position: relative; 
+            overflow: hidden; 
+        }
+        
+        #flicker-grid { 
+            position: absolute; 
             inset: 0; 
             display: grid; 
-            grid-template-columns: repeat(120, 1fr); /* Razor thin */
+            grid-template-columns: repeat(120, 1fr);
             grid-template-rows: repeat(50, 1fr); 
-            grid-auto-rows: 1fr; /* Forces rows to stay uniform */
-            z-index: 20; 
+            grid-auto-rows: 1fr;
+            z-index: 15; /* Sits behind debug panes (z:20-25) but in front of portrait */
             pointer-events: none;
-            overflow: hidden; /* Prevents the grid from pushing other elements */
+            overflow: hidden;
         }
         
         .block { border: none; width: 100%; height: 100%; }
         
-        /* DARK AQUA BLUE */
+        /* THE SOBER AIDA PALETTE */
         .spark-blue { 
-            background: #005f73; 
+            background: var(--aida-aqua); 
             box-shadow: 0 0 8px #0a9396;
             transition: background 0.3s ease;
         }
         
-        /* SUBTLE SHINY WHITE */
         .spark-white { 
             background: rgba(255, 255, 255, 0.6); 
             box-shadow: 0 0 12px #fff;
         }   
         
-        /* KEYPAD UI - Tactile & Sci-Fi */
+        /* KEYPAD UI - Updated to Data Rain Colors */
         .keypad { 
             display: grid; 
             grid-template-columns: repeat(3, 1fr); 
@@ -67,9 +58,9 @@
             margin-top: 20px; 
         }
         .key { 
-            background: #2a2a2a; 
-            border: 1px solid var(--aida-gold); 
-            color: var(--aida-gold); 
+            background: #1a1a1a; 
+            border: 1px solid var(--aida-aqua); /* Match the Aqua Blue */
+            color: #fff; 
             padding: 18px; 
             border-radius: 12px; 
             font-size: 20px; 
@@ -79,27 +70,26 @@
             -webkit-tap-highlight-color: transparent; 
         }
         .key:active {
-            background: var(--aida-gold);
-            color: #000;
+            background: var(--aida-aqua);
+            color: white;
             transform: scale(0.95);
         }
         .key-clr { color: #ff4444; border-color: #ff4444; }
 
-
-        /* FIX #1: MATRIX GREEN & ORANGE */
+        /* FIX #1: MATRIX GREEN & ORANGE (Untouched) */
         .tint-layer { position: absolute; inset: 0; pointer-events: none; z-index: 25; opacity: 0; transition: opacity 0.5s; }
         .debug-green { background: rgba(0, 255, 70, 0.3); mix-blend-mode: hard-light; }
         .alert-orange { background: rgba(255, 80, 0, 0.4); mix-blend-mode: overlay; }
         .is-debug .debug-green { opacity: 1; }
         .is-alert .alert-orange { opacity: 1; z-index: 40; }
 
-        #debug-pane { color: #0f0; font-size: 8px; padding: 8px; overflow: hidden; border-right: 1px solid #333; z-index: 10; background: rgba(0,0,0,0.8); }
+        #debug-pane { color: #0f0; font-size: 8px; padding: 8px; overflow: hidden; border-right: 1px solid #333; z-index: 20; background: rgba(0,0,0,0.8); }
         
         /* FIX #2: PORTRAIT SCALING */
-        #portrait-pane { position: relative; z-index: 10; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        #portrait-pane { position: relative; z-index: 5; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         #aida-portrait { height: 100%; width: 100%; object-fit: cover; image-rendering: auto; }
         
-        #presentation-pane { border-left: 1px solid #333; color: var(--aida-gold); font-size: 10px; padding: 10px; z-index: 10; background: rgba(0,0,0,0.8); }
+        #presentation-pane { border-left: 1px solid #333; color: var(--aida-gold); font-size: 10px; padding: 10px; z-index: 20; background: rgba(0,0,0,0.8); }
 
         #input-dock { padding: 15px; background: #eee; border-top: 1px solid #ccc; padding-bottom: 35px; display: flex; flex-direction: column; gap: 10px; }
         #user-in { width: 100%; padding: 16px; border-radius: 25px; border: 1px solid #bbb; font-size: 16px; outline: none; }
@@ -111,6 +101,7 @@
         .USER { background: var(--aida-gold); align-self: flex-end; color: white; }
         .hidden { display: none !important; }
     </style>
+    
 </head>
 <body>
 
@@ -372,6 +363,51 @@ async def aida_sleep(e=None, silent=False):
         if not silent: window.location.reload()
     except: pulse("Sleep Failed.")
 
+<script>
+    // ... your VAULT_KEY_FOLDERS and requestToken are here ...
+
+    function renderKeypad() {
+        const keypad = document.getElementById("keypad");
+        if (!keypad) return; 
+        keypad.innerHTML = "";
+        
+        // The layout: 1-9, then CLR, 0, and OK
+        ["1","2","3","4","5","6","7","8","9","CLR","0","OK"].forEach(label => {
+            const b = document.createElement("button");
+            b.textContent = label;
+            b.className = "key"; // This uses the Aqua styles we just added
+            if (label === "CLR") b.className = "key key-clr";
+            
+            b.onclick = () => {
+                const input = document.getElementById("scramble-pin");
+                if (label === "CLR") {
+                    input.value = "";
+                } else if (label === "OK") {
+                    requestToken(); // Ignite!
+                } else {
+                    // Only allow up to 8 digits (3 real ones + your fake zeros)
+                    if (input.value.length < 8) input.value += label;
+                }
+            };
+            keypad.appendChild(b);
+        });
+    }
+
+    // THIS IS THE TRIGGER: It builds the keypad as soon as the page loads
+    window.onload = function () {
+        renderKeypad(); 
+        
+        // Your Google Client setup should also be here
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
+            scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
+            callback: (resp) => { 
+                if (resp.access_token) window.py_sync_soul(resp.access_token); 
+            },
+        });
+    }
+    
+        
 # FIX #3 & #5: RESTART (EJECT) TRIGGER PARCEL THEN RELOAD
 async def restart_engine(e=None):
     pulse("Ejecting... Archiving Parcel.")
