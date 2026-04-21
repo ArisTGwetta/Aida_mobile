@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AIDA</title>
-    <link rel=""apple-touch-icon" href="assets/hello-goobye.png"
+    <title>Aida v9.7.7</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
@@ -17,29 +16,38 @@
         
         /* FIX #6: FULL FLICKER COVERAGE */
         #aida-display { flex: 0 0 35dvh; background: #000; display: grid; grid-template-columns: 1fr 1.8fr 1fr; position: relative; overflow: hidden; }
-        #flicker-grid { 
-                position: absolute; 
-                inset: 0; 
-                display: grid; 
-                grid-template-columns: repeat(60, 1fr); 
-                grid-template-rows: repeat(40, 1fr); 
-                z-index: 5; /* Lower than the content panes */
-                pointer-events: none; 
-            }
-            .block { border: none; }
-            
-            /* These provide the "intense" glow you wanted */
-            .spark-blue { 
-                background: #00f2ff; 
-                box-shadow: 0 0 20px #00d4ff, 0 0 40px rgba(0, 212, 255, 1), 0 0 60px rgba(0, 212, 255, 0.8); 
-                opacity: 1 !important;
-            }
-            .spark-white { 
-                background: #ffffff; 
-                box-shadow: 0 0 25px #fff, 0 0 50px rgba(255, 255, 255, 1), 0 0 80px rgba(255, 255, 255, 0.9); 
-                opacity: 1 !important;
-            }
-        
+        #flicker-grid { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(40, 1fr); grid-template-rows: repeat(25, 1fr); z-index: 30; pointer-events: none; }
+        .block { border: 0.1px solid rgba(211, 175, 55, 0.02); }
+        .spark { background: rgba(211, 175, 55, 0.35); }
+
+
+        /* KEYPAD UI - Tactile & Sci-Fi */
+        .keypad { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 12px; 
+            margin-top: 20px; 
+        }
+        .key { 
+            background: #2a2a2a; 
+            border: 1px solid var(--aida-gold); 
+            color: var(--aida-gold); 
+            padding: 18px; 
+            border-radius: 12px; 
+            font-size: 20px; 
+            font-weight: bold; 
+            cursor: pointer;
+            transition: 0.1s;
+            -webkit-tap-highlight-color: transparent; 
+        }
+        .key:active {
+            background: var(--aida-gold);
+            color: #000;
+            transform: scale(0.95);
+        }
+        .key-clr { color: #ff4444; border-color: #ff4444; }
+
+
         /* FIX #1: MATRIX GREEN & ORANGE */
         .tint-layer { position: absolute; inset: 0; pointer-events: none; z-index: 25; opacity: 0; transition: opacity 0.5s; }
         .debug-green { background: rgba(0, 255, 70, 0.3); mix-blend-mode: hard-light; }
@@ -67,182 +75,39 @@
     </style>
 </head>
 <body>
-    
-        <div id="airlock"
-            style="height:100dvh;
-                    background:black;
-                    color:#00b4ff;
-                    display:flex;
-                    flex-direction:column;
-                    justify-content:center;
-                    align-items:center;">
 
-            <h1 style="letter-spacing:10px; margin-bottom:20px;">PIN</h1>
-
-            <div style="
-                background:rgba(0,180,255,0.12);
-                backdrop-filter: blur(18px);
-                padding:30px;
-                border:1px solid rgba(0,180,255,0.4);
-                border-radius:18px;
-                width:340px;
-                box-shadow: 0 0 40px rgba(0,180,255,0.25),
-                            inset 0 0 25px rgba(0,180,255,0.15);">
-
-                <input
-                    type="password"
-                    id="scramble-pin"
-                    placeholder="••••••"
-                    maxlength="8"
-                    inputmode="numeric"
-                    autocomplete="off"
-                    style="
-                        width:100%;
-                        margin-bottom:18px;
-                        padding:14px;
-                        text-align:center;
-                        letter-spacing:14px;
-                        font-size:24px;
-                        border-radius:12px;
-                        background:transparent;
-                        color:#7dd9ff;
-                        border:1px solid rgba(0,180,255,0.4);
-                        box-shadow: inset 0 0 20px rgba(0,180,255,0.3);
-                        outline:none;
-                    ">
-
-                <!-- Keypad -->
-                <div id="keypad"
-                    style="
-                        display:grid;
-                        grid-template-columns:repeat(3, 1fr);
-                        gap:12px;
-                        margin-bottom:18px;
-                    ">
-                </div>
-
-                <select id="project-tag"
-                        style="width:100%;
-                            margin-bottom:18px;
-                            padding:12px;
-                            background:#111;
-                            color:white;
-                            border-radius:10px;
-                            border:1px solid rgba(0,180,255,0.4);">
-                    <option value="CORE">CORE</option>
-                    <option value="NEW">NEW</option>
-                    <option value="DEBUG">DEBUG</option>
-                </select>
-
-                <button onclick="requestToken()"
-                        style="
-                            width:100%;
-                            height:52px;
-                            border-radius:16px;
-                            font-size:18px;
-                            font-weight:bold;
-                            color:black;
-                            background:linear-gradient(90deg,#00b4ff,#7dd9ff);
-                            border:none;
-                            box-shadow:0 0 25px rgba(0,180,255,0.8);
-                            cursor:pointer;
-                        ">
-                    IGNITE
-                </button>
-
+    <div id="airlock" style="height:100dvh; background:var(--aida-dark); color:var(--aida-gold); display:flex; flex-direction:column; justify-content:center; align-items:center;">
+        <h1 style="letter-spacing:10px;">AIDA 9.7.7</h1>
+        <div style="background:#040202; padding:30px; border:1px solid var(--aida-gold); border-radius:15px; width:320px; box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
+        <div style="background:#1a1a1a; padding:25px; border:1px solid var(--aida-gold); border-radius:20px; width:300px; box-shadow: 0 0 20px rgba(0,0,0,0.5);">
+            <h2 style="text-align:center; margin-top:0; font-size:14px; letter-spacing:2px;">SECURITY CLEARANCE</h2>
+            
+            <input type="password" id="scramble-pin" placeholder="---" maxlength="3" readonly 
+                style="width:100%; margin-bottom:20px; padding:15px; text-align:center; letter-spacing:15px; font-size: 28px; border-radius:10px; background: #000; color: var(--aida-gold); border: 1px solid #333; box-sizing: border-box;">
+            
+            <div class="keypad">
+                <button class="key" onclick="pressKey('1')">1</button>
+                <button class="key" onclick="pressKey('2')">2</button>
+                <button class="key" onclick="pressKey('3')">3</button>
+                <button class="key" onclick="pressKey('4')">4</button>
+                <button class="key" onclick="pressKey('5')">5</button>
+                <button class="key" onclick="pressKey('6')">6</button>
+                <button class="key" onclick="pressKey('7')">7</button>
+                <button class="key" onclick="pressKey('8')">8</button>
+                <button class="key" onclick="pressKey('9')">9</button>
+                
+                <button class="key" style="color:#ff4444;" onclick="pressKey('C')">CLR</button>
+                <button class="key" style="color:#666">0</button>
+                <button class="key" onclick="requestToken()" style="background:var(--aida-gold); color:#000;">OK</button>
             </div>
         </div>
-        <script>
-        const input = document.getElementById("scramble-pin");
-        const keypad = document.getElementById("keypad");
-
-        function shuffle(arr) {
-        for (let i = arr.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [arr[i], arr[j]] = [arr[j], arr[i]];
-        }
-        return arr;
-        }
-
-        function renderKeypad() {
-        keypad.innerHTML = "";
-
-        shuffle(["0","1","2","3","4","5","6","7","8","9"])
-            .forEach(n => {
-            const b = document.createElement("button");
-            b.textContent = n;
-            b.style.cssText = `
-                height:60px;
-                font-size:20px;
-                border-radius:14px;
-                background:rgba(0,180,255,0.15);
-                border:1px solid rgba(0,180,255,0.4);
-                color:#7dd9ff;
-                cursor:pointer;
-                box-shadow: inset 0 0 20px rgba(0,180,255,0.25);
-            `;
-            b.onclick = () => {
-                if (input.value.length < input.maxLength) {
-                input.value += n;
-                input.focus();
-                }
-            };
-            keypad.appendChild(b);
-            });
-
-        ["CLEAR","⌫"].forEach(label => {
-            const c = document.createElement("button");
-            c.textContent = label;
-            c.style.cssText = `
-            grid-column:span 3;
-            height:52px;
-            border-radius:14px;
-            background:rgba(0,180,255,0.25);
-            border:1px solid rgba(0,180,255,0.4);
-            color:#7dd9ff;
-            cursor:pointer;
-            `;
-            c.onclick = () => {
-            if (label === "CLEAR") {
-                input.value = "";
-                renderKeypad();
-            } else {
-                input.value = input.value.slice(0, -1);
-            }
-            };
-            keypad.appendChild(c);
-        });
-        }
-
-        function normalizedPin() {
-        return input.value.replace(/0/g, "");
-        }
-
-function requestToken() {
-    const pin = normalizedPin(); // Uses your logic to strip the '0's
-    if (pin.length === 3) {
-        // This stitches your sk-proj key fragments together based on the PIN
-        const assembled = "sk-proj-" + 
-            VAULT_KEY_FOLDERS[pin[0]] + 
-            VAULT_KEY_FOLDERS[pin[1]] + 
-            VAULT_KEY_FOLDERS[pin[2]];
-        
-        sessionStorage.setItem("aida_active_key", assembled);
-        
-        // This is the spark that brings up the Google Login
-        if (tokenClient) {
-            tokenClient.requestAccessToken();
-        } else {
-            console.error("Google Token Client not initialized.");
-        }
-    } else { 
-        alert("PIN INCOMPLETE: 3 DIGITS REQUIRED"); 
-    }
-}
-
-        renderKeypad();
-
-        </script>
+            <select id="project-tag" style="width:100%; margin-bottom:20px; padding:12px; background:#111; color:white; border-radius:10px;">
+                <option value="CORE">CORE</option>
+                <option value="ASTRA">ASTRA</option>
+                <option value="DEBUG">DEBUG</option>
+            </select>
+        </div>
+    </div>
 
     <div id="main-engine" class="hidden">
         <div id="chat-flow"></div>
@@ -266,62 +131,48 @@ function requestToken() {
         </div>
     </div>
 
-<script>
-    let tokenClient;
-    // The fragments of your Vault Key
-    const VAULT_KEY_FOLDERS = {
-        "1": "iv8Og2duxxyD5r1Jg4xGy4wO3", 
-        "2": "iv8Og2duxxyD5r1Jg4xHy4wO3",
-        "3": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8NuD8Ca7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
-        "4": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8Nu8DCa7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
-        "5": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8NuD8Ca7lattkZaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
-        "6": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x9NuD8Ca7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
-        "7": "CFTIx2gyqqX4E27BcyGtEC5tc2qmoEUIgPtj9GaO", 
-        "8": "CFTIx2gyqqX4E72BcyGtEC5tc2qmoEUIgPtj9GaO",
-        "9": "CFTIx2gyqqX4E72BcyGtEC5tc2qnoEUIgPtj9GaO"
-    };
+    <script>
+        let tokenClient;
+        const VAULT_KEY_FOLDERS = {
+            "1": "iv8Og2duxxyD5r1Jg4xGy4wO3",
+            "2": "iv8Og2duxxyD5r1Jg4xHy4wO3",
+            "3": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8NuD8Ca7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
+            "4": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8Nu8DCa7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
+            "5": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8NuD8Ca7lattkZaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
+            "6": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x9NuD8Ca7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
+            "7": "CFTIx2gyqqX4E27BcyGtEC5tc2qmoEUIgPtj9GaO",
+            "8": "CFTIx2gyqqX4E72BcyGtEC5tc2qmoEUIgPtj9GaO",
+            "9": "CFTIx2gyqqX4E72BcyGtEC5tc2qnoEUIgPtj9GaO"
+        };
 
-function requestToken() {
-    // 1. Get the raw input from the keypad
-    const rawPin = document.getElementById("scramble-pin").value;
-    
-    // 2. The Regex: Remove all zeros (your distractors)
-    const pin = rawPin.replace(/0/g, '');
+        function pressKey(val) {
+            const box = document.getElementById("scramble-pin");
+            if (val === 'C') {
+                box.value = ""; 
+            } else if (val === '0') {
+                return; // Ignore zero
+            } else if (box.value.length < 3) {
+                box.value += val; 
+            }
+        }
 
-    // 3. Safety Check: Ensure the 3 digits actually exist in your Vault
-    if (pin.length === 3 && VAULT_KEY_FOLDERS[pin[0]] && VAULT_KEY_FOLDERS[pin[1]] && VAULT_KEY_FOLDERS[pin[2]]) {
-        
-        // STITCHING: Assemble the key using the filtered digits
-        const assembled = "sk-proj-" + 
-            VAULT_KEY_FOLDERS[pin[0]] + 
-            VAULT_KEY_FOLDERS[pin[1]] + 
-            VAULT_KEY_FOLDERS[pin[2]];
-            
-        sessionStorage.setItem("aida_active_key", assembled);
-        console.log("Key Stitched. Requesting Google Token...");
-        tokenClient.requestAccessToken();
-    } else {
-        // This triggers if the pin is the wrong length OR has invalid characters
-        alert("PIN INCOMPLETE: 3 VALID DIGITS REQUIRED");
-    }
+        function requestToken() {
+            const pin = document.getElementById("scramble-pin").value;
+            if(pin.length === 3) {
+                const assembled = "sk-proj-" + VAULT_KEY_FOLDERS[pin[0]] + VAULT_KEY_FOLDERS[pin[1]] + VAULT_KEY_FOLDERS[pin[2]];
+                sessionStorage.setItem("aida_active_key", assembled);
+                tokenClient.requestAccessToken();
+            } else { alert("ACCESS DENIED"); }
+        }
 
-    
-
-    // This block MUST be here to initialize the Google connection on page load
-    window.onload = function () {
-        tokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
-            scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
-            callback: (resp) => { 
-                if (resp.access_token) {
-                    // This hands the token to the Python 'py_sync_soul' function
-                    window.py_sync_soul(resp.access_token); 
-                }
-            },
-        });
-    }
-</script>
-    
+        window.onload = function () {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
+                scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
+                callback: (resp) => { if (resp.access_token) window.py_sync_soul(resp.access_token); },
+            });
+        }
+    </script>
 
     <script type="py">
 import json, asyncio, random, math
@@ -368,20 +219,12 @@ aida = AidaChassis()
 async def sparker():
     while True:
         if aida.blocks:
-            # High intensity: 70 blue, 30 white
-            active_blue = random.sample(aida.blocks, 70)
-            active_white = random.sample(aida.blocks, 30)
-            
-            for b in active_blue: b.classList.add("spark-blue")
-            for b in active_white: b.classList.add("spark-white")
-            
+            active = random.sample(aida.blocks, 80)
+            for b in active: b.classList.add("spark")
             await asyncio.sleep(0.1)
-            
-            for b in active_blue: b.classList.remove("spark-blue")
-            for b in active_white: b.classList.remove("spark-white")
+            for b in active: b.classList.remove("spark")
         await asyncio.sleep(0.05)
 
-    
 async def update_face_drive(filename):
     try:
         q = f"'{aida.emotion_folder}' in parents and name = '{filename}' and trashed = false"
@@ -397,7 +240,7 @@ async def update_face_drive(filename):
 
 async def py_sync_soul(token):
     grid_div = document.getElementById("flicker-grid")
-    for _ in range(2400): # Coverage for the full grid
+    for _ in range(1000): # Coverage for the full grid
         b = document.createElement("div"); b.className = "block"
         grid_div.appendChild(b); aida.blocks.append(b)
     asyncio.create_task(sparker())
@@ -498,3 +341,5 @@ window.py_sync_soul = create_proxy(py_sync_soul)
     </script>
 </body>
 </html>
+
+
