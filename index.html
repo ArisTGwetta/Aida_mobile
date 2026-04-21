@@ -19,11 +19,19 @@
                        display: grid; 
                        grid-template-columns: 0.8fr 1.8fr 0.8fr; 
                        position: relative; overflow: hidden; }
-        #flicker-grid { 
-            grid-template-columns: repeat(120, 1fr); /* Razor thin */
-            grid-template-rows: repeat(50, 1fr); 
-            z-index: 20; 
+        #flicker-grid {
+            position: absolute; /* Takes it out of the grid flow */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: grid;
+            grid-template-columns: repeat(120, 1fr);
+            grid-template-rows: repeat(50, 1fr);
+            z-index: 20; /* Sits on top of everything else in the display */
+            pointer-events: none; /* Allows you to still click buttons underneath */
         }
+        
         /* CHANGE #3: ADD INTENSE NEON COLOR GRID */
 /* SOBER BLUE - Depth */
 .spark-blue { 
@@ -72,15 +80,27 @@
         }
         .key-clr { color: #ff4444; border-color: #ff4444; }
 
+/*
         @media (max-width: 600px) {
-            #aida-display {
+            #aida-display{
                 /* Changes from 3 horizontal columns to 1 vertical stack */
                 grid-template-columns: 1fr; 
                 grid-template-rows: auto 1fr auto; 
                 height: auto;
                 min-height: 35dvh;
             }
+  */
         
+        #aida-display {
+                flex: 0 0 35dvh;
+                background: #000;
+                display: grid;
+                /* Two panes: Portrait (1.5) and Data (1) */
+                grid-template-columns: 1.5fr 1fr; 
+                position: relative; /* This is key for the flicker 'coat' */
+                overflow: hidden;
+            }                
+            
             #debug-pane, #presentation-pane {
                 /* Gives text more room and a slightly smaller font for mobile */
                 font-size: 11px;
@@ -105,13 +125,24 @@
         
         #presentation-pane { border-left: 1px solid #333; color: var(--aida-gold); font-size: 10px; padding: 10px; z-index: 10; background: rgba(0,0,0,0.8); }
 
-        #input-dock { padding: 15px; background: #eee; border-top: 1px solid #ccc; padding-bottom: 35px; display: flex; flex-direction: column; gap: 10px; }
+        #input-dock { padding: 15px; background: #000000; border-top: 1px solid #ccc; padding-bottom: 35px; display: flex; flex-direction: column; gap: 10px; }
         #user-in { width: 100%; padding: 16px; border-radius: 25px; border: 1px solid #bbb; font-size: 16px; outline: none; }
         .controls { display: flex; gap: 8px; }
         button { background: var(--aida-gold); color: white; border: none; border-radius: 20px; padding: 12px; font-weight: bold; flex: 1; cursor: pointer; }
         
         .line { padding: 12px; border-radius: 15px; font-size: 15px; max-width: 85%; line-height: 1.4; }
+
+        .AIDA {
+            background: #0d0d0d; /* Very dark charcoal */
+            border-left: 5px solid var(--aida-gold);
+            align-self: flex-start;
+            color: #e0e0e0; /* Soft white text so it's readable on black */
+        }
+        
+/*        
         .AIDA { background: #f9f9f9; border-left: 5px solid var(--aida-gold); align-self: flex-start; }
+*/       
+        
         .USER { background: var(--aida-gold); align-self: flex-end; color: white; }
         .hidden { display: none !important; }
     </style>
