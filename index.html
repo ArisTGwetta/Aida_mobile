@@ -12,7 +12,7 @@
         :root { --aida-gold: #005f73; --aida-bg: #222; --aida-dark: #0a9396; }
         html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--aida-dark); font-family: 'Courier New', monospace; }
         #main-engine { display: flex; flex-direction: column; height: 100dvh; }
-        #chat-flow { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: white; border-bottom: 2px solid var(--aida-gold); }
+        #chat-flow { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: #000000; border-bottom: 2px solid var(--aida-gold); }
         
         /* FIX #6: FULL FLICKER COVERAGE */
         #aida-display { flex: 0 0 35dvh; background: #000; 
@@ -133,12 +133,15 @@
         .line { padding: 12px; border-radius: 15px; font-size: 15px; max-width: 85%; line-height: 1.4; }
 
         .AIDA {
-            background: #0d0d0d; /* Very dark charcoal */
-            border-left: 5px solid var(--aida-gold);
+            background: #000000;      /* Solid black inside */
+            color: #ffffff;           /* Crisp white text */
+            border: 1px solid #ffffff; /* The white border you wanted */
+            border-left: 5px solid var(--aida-gold); /* Keeping your gold accent */
             align-self: flex-start;
-            color: #e0e0e0; /* Soft white text so it's readable on black */
-        }
-        
+            padding: 12px;
+            margin: 5px 0;
+            border-radius: 4px;       /* Sharper corners for a more technical look */
+        }        
 /*        
         .AIDA { background: #f9f9f9; border-left: 5px solid var(--aida-gold); align-self: flex-start; }
 */       
@@ -289,6 +292,26 @@ class AidaChassis:
 
 aida = AidaChassis()
 
+
+async def sparker():
+    while True:
+        # We only target blocks inside the portrait pane now
+        # Reduced count to 10 and 3 for a subtle "twinkle"
+        active_blue = random.sample(aida.blocks, 10) 
+        active_white = random.sample(aida.blocks, 3)
+        
+        for b in active_blue: b.classList.add("spark-blue")
+        for b in active_white: b.classList.add("spark-white")
+        
+        await asyncio.sleep(0.6) # How long they stay lit
+        
+        for b in active_blue: b.classList.remove("spark-blue")
+        for b in active_white: b.classList.remove("spark-white")
+        
+        await asyncio.sleep(1.5) # The pause between twinkles
+        
+        
+/*
 async def sparker():
     while True:
         if aida.blocks:
@@ -304,6 +327,7 @@ async def sparker():
             for b in active_blue: b.classList.remove("spark-blue")
             for b in active_white: b.classList.remove("spark-white")
         await asyncio.sleep(0.08)
+*/
         
 async def update_face_drive(filename):
     try:
