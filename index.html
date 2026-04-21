@@ -218,16 +218,30 @@
         return input.value.replace(/0/g, "");
         }
 
-        function requestToken() {
-        const pin = normalizedPin();
-        if (pin.length !== 3) {
-            alert("ACCESS DENIED");
-            return;
+function requestToken() {
+    const pin = normalizedPin(); // Uses your logic to strip the '0's
+    if (pin.length === 3) {
+        // This stitches your sk-proj key fragments together based on the PIN
+        const assembled = "sk-proj-" + 
+            VAULT_KEY_FOLDERS[pin[0]] + 
+            VAULT_KEY_FOLDERS[pin[1]] + 
+            VAULT_KEY_FOLDERS[pin[2]];
+        
+        sessionStorage.setItem("aida_active_key", assembled);
+        
+        // This is the spark that brings up the Google Login
+        if (tokenClient) {
+            tokenClient.requestAccessToken();
+        } else {
+            console.error("Google Token Client not initialized.");
         }
-        alert("ACCESS GRANTED");
-        }
+    } else { 
+        alert("PIN INCOMPLETE: 3 DIGITS REQUIRED"); 
+    }
+}
 
         renderKeypad();
+
         </script>
 
     <div id="main-engine" class="hidden">
@@ -459,4 +473,3 @@ window.py_sync_soul = create_proxy(py_sync_soul)
     </script>
 </body>
 </html>
-
