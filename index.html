@@ -70,12 +70,12 @@
         .key-clr { color: #ff4444; border-color: #ff4444; }
 
 
-        /* FIX #1: MATRIX GREEN & ORANGE */
+        /* FIX #1: MATRIX GREEN & O */
         .tint-layer { position: absolute; inset: 0; pointer-events: none; z-index: 25; opacity: 0; transition: opacity 0.5s; }
         .debug-green { background: rgba(0, 255, 70, 0.3); mix-blend-mode: hard-light; }
-        .alert-orange { background: rgba(255, 80, 0, 0.4); mix-blend-mode: overlay; }
+        .alert-o { background: rgba(255, 80, 0, 0.4); mix-blend-mode: overlay; }
         .is-debug .debug-green { opacity: 1; }
-        .is-alert .alert-orange { opacity: 1; z-index: 40; }
+        .is-alert .alert-o { opacity: 1; z-index: 40; }
 
         #debug-pane { color: #0f0; font-size: 8px; padding: 8px; overflow: hidden; border-right: 1px solid #333; z-index: 10; background: rgba(0,0,0,0.8); }
         
@@ -138,7 +138,7 @@
             <div id="debug-pane"><div id="log-content">Initializing...</div></div>
             <div id="portrait-pane">
                 <div class="tint-layer debug-green"></div>
-                <div class="tint-layer alert-orange"></div>
+                <div class="tint-layer alert-o"></div>
                 <img id="aida-portrait" src="">
             </div>
             <div id="presentation-pane"><div id="realm-tag" style="font-weight:bold; font-size:12px; margin-bottom:8px;"></div><div id="pres-content">Engine Stitched.</div></div>
@@ -269,8 +269,8 @@ async def update_face_drive(filename):
 
 async def py_sync_soul(token):
     grid_div = document.getElementById("flicker-grid")
-    # UPDATED: 90 columns * 50 rows = 4500 blocks
-    for _ in range(4500):
+    # UPDATED: 120 columns * 50 rows = 4500 blocks
+    for _ in range(6000):
         b = document.createElement("div")
         b.className = "block"
         grid_div.appendChild(b)
