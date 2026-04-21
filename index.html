@@ -112,6 +112,7 @@
             } else { alert("ACCESS DENIED"); }
         }
 
+        // THE CARPENTRY: This builds the buttons inside the div id="keypad"
         function renderKeypad() {
             const keypad = document.getElementById("keypad");
             if (!keypad) return; 
@@ -131,7 +132,7 @@
         }
 
         window.onload = function () {
-            renderKeypad(); 
+            renderKeypad(); // Ignite the UI
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
                 scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
