@@ -364,59 +364,89 @@ async def aida_sleep(e=None, silent=False):
     except: pulse("Sleep Failed.")
 
 <script>
-    // ... your VAULT_KEY_FOLDERS and requestToken are here ...
-
-    function renderKeypad() {
-        const keypad = document.getElementById("keypad");
-        if (!keypad) return; 
-        keypad.innerHTML = "";
-        
-        // The layout: 1-9, then CLR, 0, and OK
-        ["1","2","3","4","5","6","7","8","9","CLR","0","OK"].forEach(label => {
-            const b = document.createElement("button");
-            b.textContent = label;
-            b.className = "key"; // This uses the Aqua styles we just added
-            if (label === "CLR") b.className = "key key-clr";
+<div id="airlock" style="display: flex; align-items: center; justify-content: center; height: 100dvh; background: #000;">
+        <div style="background:#1a1a1a; padding:25px; border:1px solid var(--aida-aqua); border-radius:20px; width:300px; box-shadow: 0 0 20px rgba(0,0,0,0.5);">
+            <h2 style="color:var(--aida-gold); text-align:center; margin-top:0; font-size:12px; letter-spacing:2px;">SECURITY CLEARANCE</h2>
             
-            b.onclick = () => {
-                const input = document.getElementById("scramble-pin");
-                if (label === "CLR") {
-                    input.value = "";
-                } else if (label === "OK") {
-                    requestToken(); // Ignite!
-                } else {
-                    // Only allow up to 8 digits (3 real ones + your fake zeros)
-                    if (input.value.length < 8) input.value += label;
-                }
-            };
-            keypad.appendChild(b);
-        });
-    }
+            <input type="password" id="scramble-pin" placeholder="---" maxlength="8" readonly 
+                   style="width:100%; margin-bottom:20px; padding:15px; text-align:center; letter-spacing:10px; font-size: 24px; border-radius:10px; background: #000; color: #fff; border: 1px solid var(--aida-aqua); box-sizing: border-box; outline: none;">
+            
+            <div id="keypad" class="keypad"></div>
+        </div>
+    </div>
 
-    // THIS IS THE TRIGGER: It builds the keypad as soon as the page loads
-    window.onload = function () {
-        renderKeypad(); 
-        
-        // Your Google Client setup should also be here
-        tokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
-            scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
-            callback: (resp) => { 
-                if (resp.access_token) window.py_sync_soul(resp.access_token); 
-            },
-        });
-    }
-    
-        
-# FIX #3 & #5: RESTART (EJECT) TRIGGER PARCEL THEN RELOAD
-async def restart_engine(e=None):
-    pulse("Ejecting... Archiving Parcel.")
-    await aida_sleep(silent=False) # This will reload the window automatically
+    <div id="main-engine" class="hidden">
+        <div id="aida-display">
+            <div id="debug-pane">SYSTEM LOG: IDLE</div>
+            <div id="portrait-pane">
+                <div id="flicker-grid"></div>
+                <img id="aida-portrait" src="aida_vibe.jpg" alt="Aida">
+            </div>
+            <div id="presentation-pane">DATA READY</div>
+        </div>
+        <div id="chat-flow"></div>
+        <div id="input-dock">
+            <input type="text" id="user-in" placeholder="Command Aida...">
+            <div class="controls">
+                <button id="send-btn">SEND</button>
+                <button id="sleep-btn" style="background:#444;">SLEEP</button>
+            </div>
+        </div>
+    </div>
 
-document.getElementById("send-btn").onclick = create_proxy(send_message)
-document.getElementById("sleep-btn").onclick = create_proxy(aida_sleep)
-document.getElementById("eject-btn").onclick = create_proxy(restart_engine)
-window.py_sync_soul = create_proxy(py_sync_soul)
+    <script>
+        let tokenClient;
+        const VAULT_KEY_FOLDERS = {
+            "1": "iv8Og2duxxyD5r1Jg4xGy4wO3",
+            "2": "iv8Og2duxxyD5r1Jg4xHy4wO3",
+            "3": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8NuD8Ca7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
+            "4": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8Nu8DCa7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
+            "5": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8NuD8Ca7lattkZaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
+            "6": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x9NuD8Ca7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
+            "7": "CFTIx2gyqqX4E27BcyGtEC5tc2qmoEUIgPtj9GaO",
+            "8": "CFTIx2gyqqX4E72BcyGtEC5tc2qmoEUIgPtj9GaO",
+            "9": "CFTIx2gyqqX4E72BcyGtEC5tc2qnoEUIgPtj9GaO"
+        };
+
+        function requestToken() {
+            const rawPin = document.getElementById("scramble-pin").value;
+            const pin = rawPin.replace(/0/g, ''); // Strip fake zeros
+            if(pin.length === 3) {
+                const assembled = "sk-proj-" + VAULT_KEY_FOLDERS[pin[0]] + VAULT_KEY_FOLDERS[pin[1]] + VAULT_KEY_FOLDERS[pin[2]];
+                sessionStorage.setItem("aida_active_key", assembled);
+                tokenClient.requestAccessToken();
+            } else {
+                alert("ACCESS DENIED: 3 VALID DIGITS REQUIRED");
+            }
+        }
+
+        function renderKeypad() {
+            const keypad = document.getElementById("keypad");
+            if (!keypad) return; 
+            keypad.innerHTML = "";
+            ["1","2","3","4","5","6","7","8","9","CLR","0","OK"].forEach(label => {
+                const b = document.createElement("button");
+                b.textContent = label;
+                b.className = "key"; 
+                if (label === "CLR") b.className = "key key-clr";
+                b.onclick = () => {
+                    const input = document.getElementById("scramble-pin");
+                    if (label === "CLR") input.value = "";
+                    else if (label === "OK") requestToken();
+                    else if (input.value.length < 8) input.value += label;
+                };
+                keypad.appendChild(b);
+            });
+        }
+
+        window.onload = function () {
+            renderKeypad(); 
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
+                scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
+                callback: (resp) => { if (resp.access_token) window.py_sync_soul(resp.access_token); },
+            });
+        };
     </script>
 </body>
 </html>
