@@ -24,24 +24,26 @@
                        pointer-events: none; }
         .block { border: none; }
         /* CHANGE #3: ADD INTENSE NEON COLOR GRID */
-/* SOBER BLUE - Depth instead of Neon */
+/* SOBER BLUE - Depth */
 .spark-blue { 
-    background: #0077be; /* Cobalt Blue */
-    box-shadow: 0 0 10px #004d7a, 0 0 20px rgba(0, 119, 190, 0.4);
-    opacity: 0.8 !important;
+    background: #005f73; /* Dark Aqua/Teal */
+    box-shadow: 0 0 8px #0a9396;
+    transition: background 0.3s ease, opacity 0.4s ease;
 }
 
-/* SHINY WHITE - The 'Glint' Effect */
+/* SHINY BUT SUBTLE WHITE */
 .spark-white { 
-    background: #ffffff; 
-    /* The trick to 'shiny' is a tight, intense core glow */
-    box-shadow: 
-        0 0 5px #fff, 
-        0 0 15px #fff, 
-        0 0 30px rgba(255, 255, 255, 0.8); 
-    opacity: 1 !important;
-    filter: brightness(1.5); /* Boosts the 'glint' */
+    background: rgba(255, 255, 255, 0.7); /* Translucent white */
+    box-shadow: 0 0 10px #fff;
+    transition: all 0.2s ease;
 }
+
+/* THE DROP EFFECT */
+.drop {
+    transform: translateY(10px); /* Small digital 'fall' */
+    transition: transform 0.5s ease-out, opacity 0.5s ease-out;
+}
+        
         
         /* KEYPAD UI - Tactile & Sci-Fi */
         .keypad { 
