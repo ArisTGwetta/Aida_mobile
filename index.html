@@ -17,37 +17,32 @@
         /* FIX #6: FULL FLICKER COVERAGE */
         #aida-display { flex: 0 0 35dvh; background: #000; display: grid; grid-template-columns: 1fr 1.8fr 1fr; position: relative; overflow: hidden; }
         #flicker-grid { position: absolute; inset: 0; display: grid; 
-                       /* CHANGE #1: Use 60 columns for thinner horizontal pixels (matching Aida's hair) */
-                       grid-template-columns: repeat(60, 1fr); grid-template-rows: repeat(25, 1fr); 
+                       /* CHANGE #1: Use 90 columns for thinner horizontal pixels (matching Aida's hair) */
+                       grid-template-columns: repeat(90, 1fr); grid-template-rows: repeat(25, 1fr); 
                        /* CHANGE #2: Lower z-index so content panes sit on top */
-                       z-index: 75; /* MOVED TO FRONT: Sparks now float over the portrait */
+                       z-index: 20; /* MOVED TO FRONT: Sparks now float over the portrait */
                        pointer-events: none; }
         .block { border: none; }
         /* CHANGE #3: ADD INTENSE NEON COLOR GRID */
+/* SOBER BLUE - Depth instead of Neon */
+.spark-blue { 
+    background: #0077be; /* Cobalt Blue */
+    box-shadow: 0 0 10px #004d7a, 0 0 20px rgba(0, 119, 190, 0.4);
+    opacity: 0.8 !important;
+}
+
+/* SHINY WHITE - The 'Glint' Effect */
+.spark-white { 
+    background: #ffffff; 
+    /* The trick to 'shiny' is a tight, intense core glow */
+    box-shadow: 
+        0 0 5px #fff, 
+        0 0 15px #fff, 
+        0 0 30px rgba(255, 255, 255, 0.8); 
+    opacity: 1 !important;
+    filter: brightness(1.5); /* Boosts the 'glint' */
+}
         
-        /* THE BLUE SPARK - Plasma Cyber Cyan */
-        .spark-blue { 
-            background: #00f2ff; /* Shifted cyan for maximum pop */
-            box-shadow: 
-                0 0 15px #00d4ff, 
-                0 0 30px rgba(0, 212, 255, 1), 
-                0 0 45px rgba(0, 212, 255, 0.8); /* Wider bloom */
-            opacity: 1 !important;
-            z-index: 100 !important; /* This pulls them to the very front */
-        }
-
-        /* THE WHITE SPARK - Supernova Digital White */
-        .spark-white { 
-            background: #ffffff; 
-            box-shadow: 
-                0 0 20px #fff, 
-                0 0 35px rgba(255, 255, 255, 1), 
-                0 0 55px rgba(255, 255, 255, 0.9); 
-            opacity: 1 !important;
-            z-index: 100 !important; /* This pulls them to the very front */
-        }
-
-
         /* KEYPAD UI - Tactile & Sci-Fi */
         .keypad { 
             display: grid; 
@@ -253,11 +248,11 @@ async def sparker():
             for b in active_blue: b.classList.add("spark-blue")
             for b in active_white: b.classList.add("spark-white")
             
-            await asyncio.sleep(0.05) # Quick flicker
+            await asyncio.sleep(0.12) #  flicker
             
             for b in active_blue: b.classList.remove("spark-blue")
             for b in active_white: b.classList.remove("spark-white")
-        await asyncio.sleep(0.02)
+        await asyncio.sleep(0.08)
         
 async def update_face_drive(filename):
     try:
@@ -274,8 +269,8 @@ async def update_face_drive(filename):
 
 async def py_sync_soul(token):
     grid_div = document.getElementById("flicker-grid")
-    # UPDATED: 60 columns * 25 rows = 1500 blocks
-    for _ in range(1500):
+    # UPDATED: 90 columns * 25 rows = 2250 blocks
+    for _ in range(2250):
         b = document.createElement("div")
         b.className = "block"
         grid_div.appendChild(b)
