@@ -79,35 +79,35 @@
             transform: scale(0.95);
         }
         .key-clr { color: #ff4444; border-color: #ff4444; }
-
-/*
-        @media (max-width: 600px) {
-            #aida-display{
-                /* Changes from 3 horizontal columns to 1 vertical stack */
-                grid-template-columns: 1fr; 
-                grid-template-rows: auto 1fr auto; 
-                height: auto;
-                min-height: 35dvh;
-            }
-  */
         
         #aida-display {
-                flex: 0 0 35dvh;
-                background: #000;
-                display: grid;
-                /* Two panes: Portrait (1.5) and Data (1) */
-                grid-template-columns: 1.5fr 1fr; 
-                position: relative; /* This is key for the flicker 'coat' */
-                overflow: hidden;
-            }                
-            
-            #debug-pane, #presentation-pane {
-                /* Gives text more room and a slightly smaller font for mobile */
-                font-size: 11px;
-                padding: 5px;
-                text-align: center;
-            }        
-
+            flex: 0 0 35dvh;
+            background: #000;
+            display: grid;
+            /* Two Columns: Portrait is 1.6x larger than the data column */
+            grid-template-columns: 1.6fr 1fr; 
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* This stacks the Debug and Presentation panes on top of each other */
+        #debug-pane, #presentation-pane {
+            grid-column: 2; 
+            font-size: 10px;
+            background: rgba(0,0,0,0.9);
+            border-left: 1px solid #333;
+            padding: 8px;
+        }
+        
+        #debug-pane {
+            border-bottom: 1px solid #222;
+            height: 50%;
+        }
+        
+        #presentation-pane {
+            height: 50%;
+        }
+                
         /* FIX #1: MATRIX GREEN & O */
         .tint-layer { position: absolute; inset: 0; pointer-events: none; z-index: 25; opacity: 0; transition: opacity 0.5s; }
         .debug-green { background: rgba(0, 255, 70, 0.3); mix-blend-mode: hard-light; }
@@ -115,14 +115,10 @@
         .is-debug .debug-green { opacity: 1; }
         .is-alert .alert-o { opacity: 1; z-index: 40; }
 
-        #debug-pane { color: #0f0; font-size: 8px; padding: 8px; overflow: hidden; border-right: 1px solid #333; z-index: 10; background: rgba(0,0,0,0.8); }
-        
         /* FIX #2: PORTRAIT SCALING */
         #portrait-pane { position: relative; z-index: 10; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         #aida-portrait { height: 100%; width: 100%; object-fit: cover; image-rendering: auto; }
         
-        #presentation-pane { border-left: 1px solid #333; color: var(--aida-gold); font-size: 10px; padding: 10px; z-index: 10; background: rgba(0,0,0,0.8); }
-
         #input-dock { padding: 15px; background: #000000; border-top: 1px solid #ccc; padding-bottom: 35px; display: flex; flex-direction: column; gap: 10px; }
         #user-in { width: 100%; padding: 16px; border-radius: 25px; border: 1px solid #bbb; font-size: 16px; outline: none; }
         .controls { display: flex; gap: 8px; }
@@ -132,17 +128,14 @@
 
         .AIDA {
             background: #000000;      /* Solid black inside */
-            color: #ffffff;           /* Crisp white text */
-            border: 1px solid #ffffff; /* The white border you wanted */
+            color: var(--aida-gold);           /* Crisp white text */
+            border: 1px solid var(--aida-gold); /* The white border you wanted */
             border-left: 5px solid var(--aida-gold); /* Keeping your gold accent */
             align-self: flex-start;
             padding: 12px;
             margin: 5px 0;
-            border-radius: 4px;       /* Sharper corners for a more technical look */
-        }        
-/*        
-        .AIDA { background: #f9f9f9; border-left: 5px solid var(--aida-gold); align-self: flex-start; }
-*/       
+            border-radius: 10px;       /* Sharper corners for a more technical look */
+        }              
         
         .USER { background: var(--aida-gold); align-self: flex-end; color: white; }
         .hidden { display: none !important; }
@@ -186,15 +179,22 @@
     <div id="main-engine" class="hidden">
         <div id="chat-flow"></div>
         <div id="aida-display">
-             <div id="portrait-pane">
-                <div id="flicker-grid"></div> 
-                <div id="debug-pane"><div id="log-content">Initializing...</div></div>
-                <div class="tint-layer debug-green"></div>
-                <div class="tint-layer alert-o"></div>
-                <img id="aida-portrait" src="">
-            </div>
-            <div id="presentation-pane"><div id="realm-tag" style="font-weight:bold; font-size:12px; margin-bottom:8px;"></div><div id="pres-content">Engine Stitched.</div></div>
+    <div id="portrait-pane">
+        <div id="flicker-grid"></div>
+        <div class="tint-layer debug-green"></div>
+        <div class="tint-layer alert-o"></div>
+        <img id="aida-portrait" src="">
+    </div>
+
+    <div id="data-stack" style="display: flex; flex-direction: column;">
+        <div id="debug-pane"><div id="log-content">Initializing...</div></div>
+        <div id="presentation-pane">
+            <div id="realm-tag" style="font-weight:bold; font-size:12px; margin-bottom:8px;"></div>
+            <div id="pres-content">Engine Stitched.</div>
         </div>
+    </div>
+</div>
+        
         <div id="input-dock">
             <input type="text" id="user-in" placeholder="Command Aida...">
             <div class="controls">
