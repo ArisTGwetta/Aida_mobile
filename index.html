@@ -266,37 +266,62 @@ function requestToken() {
         </div>
     </div>
 
-    <script>
-        let tokenClient;
-        const VAULT_KEY_FOLDERS = {
-            "1": "iv8Og2duxxyD5r1Jg4xGy4wO3",
-            "2": "iv8Og2duxxyD5r1Jg4xHy4wO3",
-            "3": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8NuD8Ca7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
-            "4": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8Nu8DCa7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
-            "5": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8NuD8Ca7lattkZaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
-            "6": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x9NuD8Ca7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
-            "7": "CFTIx2gyqqX4E27BcyGtEC5tc2qmoEUIgPtj9GaO",
-            "8": "CFTIx2gyqqX4E72BcyGtEC5tc2qmoEUIgPtj9GaO",
-            "9": "CFTIx2gyqqX4E72BcyGtEC5tc2qnoEUIgPtj9GaO"
-        };
+<script>
+    let tokenClient;
+    // The fragments of your Vault Key
+    const VAULT_KEY_FOLDERS = {
+        "1": "iv8Og2duxxyD5r1Jg4xGy4wO3", 
+        "2": "iv8Og2duxxyD5r1Jg4xHy4wO3",
+        "3": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8NuD8Ca7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
+        "4": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8Nu8DCa7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
+        "5": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8NuD8Ca7lattkZaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
+        "6": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x9NuD8Ca7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
+        "7": "CFTIx2gyqqX4E27BcyGtEC5tc2qmoEUIgPtj9GaO", 
+        "8": "CFTIx2gyqqX4E72BcyGtEC5tc2qmoEUIgPtj9GaO",
+        "9": "CFTIx2gyqqX4E72BcyGtEC5tc2qnoEUIgPtj9GaO"
+    };
 
-        function requestToken() {
-            const pin = document.getElementById("scramble-pin").value;
-            if(pin.length === 3) {
-                const assembled = "sk-proj-" + VAULT_KEY_FOLDERS[pin[0]] + VAULT_KEY_FOLDERS[pin[1]] + VAULT_KEY_FOLDERS[pin[2]];
-                sessionStorage.setItem("aida_active_key", assembled);
-                tokenClient.requestAccessToken();
-            } else { alert("ACCESS DENIED"); }
-        }
+function requestToken() {
+    // 1. Get the raw input from the keypad
+    const rawPin = document.getElementById("scramble-pin").value;
+    
+    // 2. The Regex: Remove all zeros (your distractors)
+    const pin = rawPin.replace(/0/g, '');
 
-        window.onload = function () {
-            tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
-                scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
-                callback: (resp) => { if (resp.access_token) window.py_sync_soul(resp.access_token); },
-            });
-        }
-    </script>
+    // 3. Safety Check: Ensure the 3 digits actually exist in your Vault
+    if (pin.length === 3 && VAULT_KEY_FOLDERS[pin[0]] && VAULT_KEY_FOLDERS[pin[1]] && VAULT_KEY_FOLDERS[pin[2]]) {
+        
+        // STITCHING: Assemble the key using the filtered digits
+        const assembled = "sk-proj-" + 
+            VAULT_KEY_FOLDERS[pin[0]] + 
+            VAULT_KEY_FOLDERS[pin[1]] + 
+            VAULT_KEY_FOLDERS[pin[2]];
+            
+        sessionStorage.setItem("aida_active_key", assembled);
+        console.log("Key Stitched. Requesting Google Token...");
+        tokenClient.requestAccessToken();
+    } else {
+        // This triggers if the pin is the wrong length OR has invalid characters
+        alert("PIN INCOMPLETE: 3 VALID DIGITS REQUIRED");
+    }
+
+    
+
+    // This block MUST be here to initialize the Google connection on page load
+    window.onload = function () {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
+            scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
+            callback: (resp) => { 
+                if (resp.access_token) {
+                    // This hands the token to the Python 'py_sync_soul' function
+                    window.py_sync_soul(resp.access_token); 
+                }
+            },
+        });
+    }
+</script>
+    
 
     <script type="py">
 import json, asyncio, random, math
