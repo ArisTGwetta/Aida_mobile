@@ -342,8 +342,8 @@ aida = AidaChassis()
 async def spark_layer_fast():
     while True:
         # Layer 1: The Fast Twitch (Current Storm)
-        active_blue = random.sample(aida.blocks, 60)
-        active_white = random.sample(aida.blocks, 40)
+        active_blue = random.sample(aida.blocks, 50)
+        active_white = random.sample(aida.blocks, 20)
         for b in active_blue: b.classList.add("spark-blue")
         for b in active_white: b.classList.add("spark-white")
         
@@ -357,7 +357,7 @@ async def spark_layer_slow():
     while True:
         # Layer 2: The Deep Pulse (Fluidity)
         # We pick different blocks to create overlap
-        deep_blue = random.sample(aida.blocks, 30)
+        deep_blue = random.sample(aida.blocks, 25)
         for b in deep_blue: 
             b.style.opacity = "0.4" # Subtle dim layer
             b.classList.add("spark-blue")
