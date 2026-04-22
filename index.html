@@ -369,7 +369,7 @@ async def spark_layer_slow():
             continue
         # Layer 2: The Deep Pulse (Fluidity)
         # We pick different blocks to create overlap
-        active_blue = random.sample(aida.blocks, 20)
+        deep_blue = random.sample(aida.blocks, 20)
         active_white = random.sample(aida.blocks, 20)
         for b in deep_blue: 
             b.style.opacity = "0.4" # Subtle dim layer
