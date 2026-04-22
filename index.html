@@ -300,7 +300,7 @@ async def sparker():
         for b in active_blue: b.classList.add("spark-blue")
         for b in active_white: b.classList.add("spark-white")
         
-        await asyncio.sleep(0.50) # How long they stay lit
+        await asyncio.sleep(1.5) # How long they stay lit
         
         for b in active_blue: b.classList.remove("spark-blue")
         for b in active_white: b.classList.remove("spark-white")
