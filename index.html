@@ -26,8 +26,8 @@
             width: 100%;
             height: 100%;
             display: grid;
-            grid-template-columns: repeat(120, 1fr);
-            grid-template-rows: repeat(50, 1fr);
+            grid-template-columns: repeat(60, 1fr);
+            grid-template-rows: repeat(25, 1fr);
             z-index: 20; /* Sits on top of everything else in the display */
             pointer-events: none; /* Allows you to still click buttons underneath */
         }
@@ -186,7 +186,7 @@
         <img id="aida-portrait" src="">
     </div>
 
-    <div id="data-stack" style="display: flex; flex-direction: column;">
+    <div id="data-stack" style="display: flex; flex-direction: column; width: 100%;">
         <div id="debug-pane"><div id="log-content">Initializing...</div></div>
         <div id="presentation-pane">
             <div id="realm-tag" style="font-weight:bold; font-size:12px; margin-bottom:8px;"></div>
@@ -295,8 +295,8 @@ async def sparker():
     while True:
         # We only target blocks inside the portrait pane now
         # Reduced count to 10 and 3 for a subtle "twinkle"
-        active_blue = random.sample(aida.blocks, 20) 
-        active_white = random.sample(aida.blocks, 10)
+        active_blue = random.sample(aida.blocks, 50) 
+        active_white = random.sample(aida.blocks, 50)
         
         for b in active_blue: b.classList.add("spark-blue")
         for b in active_white: b.classList.add("spark-white")
@@ -325,7 +325,6 @@ async def update_face_drive(filename):
 
 async def py_sync_soul(token):
     grid_div = document.getElementById("flicker-grid")
-    # UPDATED: 120 columns * 50 rows = 4500 blocks
     for _ in range(6000):
         b = document.createElement("div")
         b.className = "block"
