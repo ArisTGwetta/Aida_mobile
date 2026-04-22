@@ -94,14 +94,12 @@
         #debug-pane, #presentation-pane {
             grid-column: 2; 
             font-size: 10px;
-            background: rgba(0,0,0,0.9);
+            background: #1a1a1a; /* Changed from black to dark gray to "pop" */
             border-left: 1px solid #333;
             padding: 8px;
-        }
-        
-        #debug-pane {
-            border-bottom: 1px solid #222;
-            height: 50%;
+            display: flex;
+            flex-direction: column;
+            min-height: 50%; /* Force them to take up space */
         }
         
         #presentation-pane {
@@ -304,7 +302,7 @@ async def sparker():
         for b in active_blue: b.classList.add("spark-blue")
         for b in active_white: b.classList.add("spark-white")
         
-        await asyncio.sleep(1.0) # How long they stay lit
+        await asyncio.sleep(0.50) # How long they stay lit
         
         for b in active_blue: b.classList.remove("spark-blue")
         for b in active_white: b.classList.remove("spark-white")
