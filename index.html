@@ -3,11 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Aida v9.7.7</title>
+    <title>Poket_AIDA</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
 
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/ArisTGwetta/Aida_mobile/main/aida_icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Aida">
+
+    
     <style>
         :root { --aida-gold: #005f73; --aida-bg: #222; --aida-dark: #0a9396; }
         html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--aida-dark); font-family: 'Courier New', monospace; }
@@ -34,14 +40,14 @@
         
         /* CHANGE #3: ADD INTENSE NEON COLOR GRID */
 /* SOBER BLUE - Depth */
-.spark-blue { 
+.-blue { 
     background: #005f73; /* Dark Aqua/Teal */
     box-shadow: 0 0 8px #0a9396;
     transition: background 0.3s ease, opacity 0.4s ease;
 }
 
 /* SHINY BUT SUBTLE WHITE */
-.spark-white { 
+.-white { 
     background: rgba(255, 255, 255, 0.7); /* Translucent white */
     box-shadow: 0 0 10px #fff;
     transition: all 0.2s ease;
@@ -172,6 +178,12 @@
         </div>
     </div>
 
+<div id="auth-veil" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; z-index: 9999; flex-direction: column; align-items: center; justify-content: center;">
+    <div id="veil-sparks" style="position: absolute; width: 100%; height: 100%;"></div>
+    <div style="color: var(--aida-gold); font-family: monospace; z-index: 10000; letter-spacing: 5px; animation: pulse 2s infinite;">MANIFESTING...</div>
+</div>
+    
+    
     <div id="main-engine" class="hidden">
         <div id="chat-flow"></div>
         <div id="aida-display">
@@ -290,22 +302,35 @@ class AidaChassis:
 aida = AidaChassis()
 
 
-async def sparker():
+async def spark_layer_fast():
     while True:
-        # We only target blocks inside the portrait pane now
-        # Reduced count to 10 and 3 for a subtle "twinkle"
-        active_blue = random.sample(aida.blocks, 100) 
-        active_white = random.sample(aida.blocks, 75)
-        
+        # Layer 1: The Fast Twitch (Current Storm)
+        active_blue = random.sample(aida.blocks, 60)
+        active_white = random.sample(aida.blocks, 40)
         for b in active_blue: b.classList.add("spark-blue")
         for b in active_white: b.classList.add("spark-white")
         
-        await asyncio.sleep(1.5) # How long they stay lit
+        await asyncio.sleep(0.4) # Fast flash
         
         for b in active_blue: b.classList.remove("spark-blue")
         for b in active_white: b.classList.remove("spark-white")
+        await asyncio.sleep(0.1)
+
+async def spark_layer_slow():
+    while True:
+        # Layer 2: The Deep Pulse (Fluidity)
+        # We pick different blocks to create overlap
+        deep_blue = random.sample(aida.blocks, 30)
+        for b in deep_blue: 
+            b.style.opacity = "0.4" # Subtle dim layer
+            b.classList.add("spark-blue")
         
-        await asyncio.sleep(0.75) # The pause between twinkles
+        await asyncio.sleep(2.5) # Stays on much longer
+        
+        for b in deep_blue: 
+            b.classList.remove("spark-blue")
+            b.style.opacity = "1"
+        await asyncio.sleep(0.8)
         
         
         
@@ -330,7 +355,9 @@ async def py_sync_soul(token):
         grid_div.appendChild(b)
         aida.blocks.append(b)
     
-    asyncio.create_task(sparker())
+    # Replace the single asyncio.create_task(sparker()) with:
+    asyncio.create_task(spark_layer_fast())
+    asyncio.create_task(spark_layer_slow())
         
 
     aida.headers = {"Authorization": f"Bearer {token}"}
