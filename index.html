@@ -355,7 +355,7 @@ async def spark_layer_fast():
         for b in active_blue: b.classList.add("spark-blue")
         for b in active_white: b.classList.add("spark-white")
         
-        await asyncio.sleep(0.4) # Fast flash
+        await asyncio.sleep(2.5) # Stays on much longer
         
         for b in active_blue: b.classList.remove("spark-blue")
         for b in active_white: b.classList.remove("spark-white")
@@ -369,13 +369,13 @@ async def spark_layer_slow():
             continue
         # Layer 2: The Deep Pulse (Fluidity)
         # We pick different blocks to create overlap
-        deep_blue = random.sample(aida.blocks, 20)
-        active_white = random.sample(aida.blocks, 20)
+        deep_blue = random.sample(aida.blocks, 5)
+        active_white = random.sample(aida.blocks, 5)
         for b in deep_blue: 
             b.style.opacity = "0.4" # Subtle dim layer
             b.classList.add("spark-blue")
         
-        await asyncio.sleep(2.5) # Stays on much longer
+        await asyncio.sleep(0.4) # Fast flash
         
         for b in deep_blue: 
             b.classList.remove("spark-blue")
