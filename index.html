@@ -167,13 +167,15 @@
 </div>
     
     <div id="airlock" style="height:100dvh; background:var(--aida-dark); color:var(--aida-gold); display:flex; flex-direction:column; justify-content:center; align-items:center;">
-        <h1 style="letter-spacing:10px;">AIDA 9.7.7</h1>
-        <div style="background:#040202; padding:30px; border:1px solid var(--aida-gold); border-radius:15px; width:320px; box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
-        <div style="background:#1a1a1a; padding:25px; border:1px solid var(--aida-gold); border-radius:20px; width:300px; box-shadow: 0 0 20px rgba(0,0,0,0.5);">
+    <h1 style="letter-spacing:10px; margin-bottom: 20px;">AIDA 9.7.7</h1>
+    
+    <div style="background:#040202; padding:20px; border:1px solid var(--aida-gold); border-radius:15px; width:90%; max-width:340px; box-sizing: border-box; box-shadow: 0 20px 50px rgba(0,0,0,0.6); display:flex; flex-direction:column; align-items:center;">
+        
+        <div style="background:#1a1a1a; padding:20px; border:1px solid var(--aida-gold); border-radius:20px; width:100%; box-sizing: border-box; box-shadow: 0 0 20px rgba(0,0,0,0.5);">
             <h2 style="text-align:center; margin-top:0; font-size:14px; letter-spacing:2px;">SECURITY CLEARANCE</h2>
             
             <input type="password" id="scramble-pin" placeholder="---" maxlength="3" readonly 
-                style="width:100%; margin-bottom:20px; padding:15px; text-align:center; letter-spacing:15px; font-size: 28px; border-radius:10px; background: #000; color: var(--aida-gold); border: 1px solid #333; box-sizing: border-box;">
+                style="width:100%; margin-bottom:20px; padding:15px; text-align:center; letter-spacing:10px; font-size: 28px; border-radius:10px; background: #000; color: var(--aida-gold); border: 1px solid #333; box-sizing: border-box;">
             
             <div class="keypad">
                 <button class="key" onclick="pressKey('1')">1</button>
@@ -185,20 +187,20 @@
                 <button class="key" onclick="pressKey('7')">7</button>
                 <button class="key" onclick="pressKey('8')">8</button>
                 <button class="key" onclick="pressKey('9')">9</button>
-                
-                <button class="key" style="color:#ff4444;" onclick="pressKey('C')">CLR</button>
+                <button class="key-clr key" onclick="pressKey('C')">CLR</button>
                 <button class="key" style="color:#666">0</button>
                 <button class="key" onclick="requestToken()" style="background:var(--aida-gold); color:#000;">OK</button>
             </div>
         </div>
-            <select id="project-tag" style="width:100%; margin-bottom:20px; padding:12px; background:#111; color:white; border-radius:10px;">
-                <option value="CORE">CORE</option>
-                <option value="ASTRA">ASTRA</option>
-                <option value="DEBUG">DEBUG</option>
-            </select>
-        </div>
-    </div>
 
+        <select id="project-tag" style="width:100%; margin-top:20px; padding:12px; background:#111; color:white; border-radius:10px; border: 1px solid #444;">
+            <option value="CORE">CORE</option>
+            <option value="ASTRA">ASTRA</option>
+            <option value="DEBUG">DEBUG</option>
+        </select>
+    </div>
+</div>
+    
 <div id="auth-veil" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; z-index: 9999; flex-direction: column; align-items: center; justify-content: center;">
     <div id="veil-sparks" style="position: absolute; width: 100%; height: 100%;"></div>
     <div style="color: var(--aida-gold); font-family: monospace; z-index: 10000; letter-spacing: 5px; animation: pulse 2s infinite;">MANIFESTING...</div>
@@ -348,8 +350,8 @@ async def spark_layer_fast():
             await asyncio.sleep(0.5)
             continue
         # Layer 1: The Fast Twitch (Current Storm)
-        active_blue = random.sample(aida.blocks, 30)
-        active_white = random.sample(aida.blocks, 20)
+        active_blue = random.sample(aida.blocks, 20)
+        active_white = random.sample(aida.blocks, 10)
         for b in active_blue: b.classList.add("spark-blue")
         for b in active_white: b.classList.add("spark-white")
         
