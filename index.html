@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
 
-    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/ArisTGwetta/Aida_mobile/main/aida_icon.png">
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/ArisTGwetta/Aida_mobile/main/aida_icon.png?v=2">
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/ArisTGwetta/Aida_mobile/main/aida_icon.png">
     
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -54,7 +54,19 @@
     box-shadow: 0 0 10px #fff;
     transition: all 0.2s ease;
 }
-
+        
+.spark-blue { 
+    background-color: #005f73 !important; 
+    box-shadow: 0 0 10px #0a9396; 
+    opacity: 1 !important;
+    
+}
+.spark-white { 
+    background-color: #ffffff !important; 
+    box-shadow: 0 0 15px #ffffff; 
+    opacity: 1 !important;
+}
+        
 /* THE DROP EFFECT */
 .drop {
     transform: translateY(10px); /* Small digital 'fall' */
@@ -374,17 +386,21 @@ async def update_face_drive(filename):
 
 async def py_sync_soul(token):
     grid_div = document.getElementById("flicker-grid")
-    for _ in range(6000):
+    grid_div.innerHTML = "" # Clear old grid
+    aida.blocks = [] # Reset block list
+    
+    # 2000 blocks is plenty for the effect and much faster for mobile
+    for _ in range(2000):
         b = document.createElement("div")
         b.className = "block"
         grid_div.appendChild(b)
         aida.blocks.append(b)
     
-    # Replace the single asyncio.create_task(sparker()) with:
-    asyncio.create_task(spark_layer_fast())
-    asyncio.create_task(spark_layer_slow())
+    # Start the sparks ONLY after the blocks are appended to the list
+    if len(aida.blocks) > 100:
+        asyncio.create_task(spark_layer_fast())
+        asyncio.create_task(spark_layer_slow())
         
-
     aida.headers = {"Authorization": f"Bearer {token}"}
     aida.clean_key = window.sessionStorage.getItem("aida_active_key")
     aida.project = document.getElementById("project-tag").value
