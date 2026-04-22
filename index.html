@@ -26,7 +26,7 @@
             width: 100%;
             height: 100%;
             display: grid;
-            grid-template-columns: repeat(60, 1fr);
+            grid-template-columns: repeat(90, 1fr);
             grid-template-rows: repeat(30, 1fr);
             z-index: 20; /* Sits on top of everything else in the display */
             pointer-events: none; /* Allows you to still click buttons underneath */
@@ -92,18 +92,16 @@
         
         /* This stacks the Debug and Presentation panes on top of each other */
         #debug-pane, #presentation-pane {
-            grid-column: 2; 
-            font-size: 10px;
-            background: #1a1a1a; /* Changed from black to dark gray to "pop" */
-            border-left: 1px solid #333;
-            padding: 8px;
+            /* REMOVE grid-column: 2 from here; the parent data-stack handles it */
+            font-size: 11px;
+            background: #1a1a1a;       /* A dark gray so you can see the box */
+            border-left: 1px solid #444;
+            padding: 10px;
             display: flex;
             flex-direction: column;
-            min-height: 50%; /* Force them to take up space */
-        }
-        
-        #presentation-pane {
-            height: 50%;
+            flex: 1;                   /* This forces them to split the space 50/50 */
+            color: #00ff41;            /* Classic Matrix Green for visibility */
+            text-shadow: 0 0 5px #00ff41;
         }
                 
         /* FIX #1: MATRIX GREEN & O */
@@ -307,7 +305,7 @@ async def sparker():
         for b in active_blue: b.classList.remove("spark-blue")
         for b in active_white: b.classList.remove("spark-white")
         
-        await asyncio.sleep(0.05) # The pause between twinkles
+        await asyncio.sleep(0.75) # The pause between twinkles
         
         
         
