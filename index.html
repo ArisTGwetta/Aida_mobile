@@ -299,12 +299,22 @@
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
                 scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
-                callback: (resp) => { if (resp.access_token) window.py_sync_soul(resp.access_token); },
-            });
-        }
-    </script>
+                callback: (resp) => { 
+                    if (resp.access_token) {
+                        // 1. LIFT THE VEIL & KEYPAD
+                        document.getElementById("loading-screen").style.display = "none";
+                        const keypad = document.querySelector(".keypad-container") || document.getElementById("pin-container");
+                        if (keypad) keypad.style.display = "none";
+                        
+                        // 2. SYNC THE SOUL
+                        window.py_sync_soul(resp.access_token); 
+                    } 
+                },
+        });
+    }
 
-    <script type="py">
+<script type="py">
+            
 import json, asyncio, random, math
 from pyscript import document, window
 from pyodide.http import pyfetch
