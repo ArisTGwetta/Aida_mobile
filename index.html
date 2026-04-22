@@ -27,7 +27,7 @@
             height: 100%;
             display: grid;
             grid-template-columns: repeat(60, 1fr);
-            grid-template-rows: repeat(20, 1fr);
+            grid-template-rows: repeat(30, 1fr);
             z-index: 20; /* Sits on top of everything else in the display */
             pointer-events: none; /* Allows you to still click buttons underneath */
         }
@@ -186,9 +186,9 @@
         <img id="aida-portrait" src="">
     </div>
 
-<div id="data-stack" style="display: flex; flex-direction: column; width: 100%; height: 100%; grid-column: 2;">
-    <div id="debug-pane"><div id="log-content">Initializing...</div></div>
+    <div id="data-stack" style="display: flex; flex-direction: column; width: 100%; height: 100%; grid-column: 2; position: relative; z-index: 30;">
         <div id="presentation-pane">
+        <div id="debug-pane"><div id="log-content">Initializing...</div></div>
             <div id="realm-tag" style="font-weight:bold; font-size:12px; margin-bottom:8px;"></div>
             <div id="pres-content">Engine Stitched.</div>
         </div>
@@ -306,7 +306,7 @@ async def sparker():
         for b in active_blue: b.classList.remove("spark-blue")
         for b in active_white: b.classList.remove("spark-white")
         
-        await asyncio.sleep(0.1) # The pause between twinkles
+        await asyncio.sleep(0.05) # The pause between twinkles
         
         
         
