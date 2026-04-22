@@ -9,6 +9,8 @@
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
 
     <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/ArisTGwetta/Aida_mobile/main/aida_icon.png">
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/ArisTGwetta/Aida_mobile/main/aida_icon.png">
+    
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Aida">
@@ -476,6 +478,12 @@ document.getElementById("send-btn").onclick = create_proxy(send_message)
 document.getElementById("sleep-btn").onclick = create_proxy(aida_sleep)
 document.getElementById("eject-btn").onclick = create_proxy(restart_engine)
 window.py_sync_soul = create_proxy(py_sync_soul)
+
+# Add this at the very bottom of your Python script to get the sparkling overlay to trigger
+import asyncio
+asyncio.ensure_future(spark_layer_fast())
+asyncio.ensure_future(spark_layer_slow())
+        
     </script>
 </body>
 </html>
