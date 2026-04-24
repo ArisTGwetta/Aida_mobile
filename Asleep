@@ -1,0 +1,85 @@
+import json
+import requests
+import functions_framework
+from openai import OpenAI
+
+# --- CONFIG ---
+INBOX_ID = "1lvGV7MjaMtSJUUnYjQSSe-VwKgGZSWg7"
+ARCHIVE_ID = "1oiXiMCc_YfYOjcoF-Q-IQJuSpnarQ2aj"
+
+G_VAULT = {
+    "1": "a0Aa7MYipFWHk0LkjooWyO5cb-JSQpJDNumrQovvLyUgEGr1oqRNtVgh198JpvnGSSw8I_amdnVZwb5adJwlmQoh1fBLjf87uNuO6l2uTEQ__qM9mfk4ts9E",
+    "2": "a0Aa7MYipFWHk0LkjooWyO5cb-JSQpIDNunrQovvLyUgEGr1oqRNtVgh198JpvnGSSu8I_amdnVZwb5adJwlmOqh1fDLjf87uNuO6l2uTEQ__qM9mfk4ts9E",
+    "3": "2EIT5qFYaTsVDUoGtGFYC4-jaobS1I_krd4BHgUCw-VZFuqOEwkwXjdgPtFKsn3FgaCgYKAeYSARMSFQHGX2MiW3EiAVV11pOf_24Va9FgHw0293",
+    "4": "2EIT5qFYaTsVDUoGtGFYC4-jaodS1I_krd4DHgUCw-VZFuqOEwkwXjdgPtFKsn3FgaCgYKAoYSARMSFQHGX2Mlw3EiAVV1lpOf_24Va9FgHw0283",
+    "5": "2EIT5qFYaTsVDUoGtGFYC4-jaebSl1_krd4DHgUCw-VZFuqOEwkuXjdgPtEKsn3FgaCgYKAoYSARMSFQHGX2MiW3EiAVV11pOf_24Va7FgHw0392",
+    "6": "2EIT5qFYaTsVDUoGtGFYC4-jaodS1I_krd4BHgUCv-VZFuqOEwkwXjdgPtFKsn3FqaCgYKAeYSARMSF0HGX2MiW3EiAVVllpOf_24Va9GqHw0293",
+    "7": "AFoBM8ojpHBp9zE13_czDk9xrMhLn2ncd2XNSz9D7h9ARh2f3DKF7XtYzMgzpdHgWlEikwj8R4XjOzMS6fpRvZCcljBKCmEnmYf4Mp6",
+    "8": "AFoBM8ojpH8p9zE13_ozDk9xrMhLm2ncd2XMSz9D7h9ARh2f3DKF7XtTzNgzpdHgWlEikwj8R4XjOzMS6fpRvZCcljBKCmEnmYf4Mp6",
+    "9": "AFoBM8ojpH8p9zF13_ozDk9xrMhLm2ncd2XMSz9D7h8ARh2f3DKF7XtTzMgzpdHgWlEikwj8R4XjOzMS6fpRvZCcljBKCmEnmYf4Mp5"
+}
+
+SK_VAULT = {
+    "1": "iv8Og2duxxyD5r1Jg4xGy4wO3",
+    "2": "iv8Og2duxxyD5r1Jg4xHy4wO3",
+    "3": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8NuD8Ca7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
+    "4": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8Nu8DCa7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
+    "5": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8NuD8Ca7lattkZaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
+    "6": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x9NuD8Ca7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
+    "7": "CFTIx2gyqqX4E27BcyGtEC5tc2qmoEUIgPtj9GaO",
+    "8": "CFTIx2gyqqX4E72BcyGtEC5tc2qmoEUIgPtj9GaO",
+    "9": "CFTIx2gyqqX4E72BcyGtEC5tc2qnoEUIgPtj9GaO"
+}
+
+@functions_framework.http
+def aida_ritual_endpoint(request):
+    headers = {'Access-Control-Allow-Origin': '*'}
+    if request.method == 'OPTIONS':
+        return ('', 204, {**headers, 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type'})
+
+    data = request.get_json(silent=True) or {}
+    pin = data.get('pin') or request.args.get('pin')
+    
+    if not pin or len(str(pin)) != 3:
+        return ({"error": "PIN Required"}, 401, headers)
+
+    try:
+        p_str = str(pin)
+        g_token = ("ya29." + G_VAULT[p_str[0]] + G_VAULT[p_str[1]] + G_VAULT[p_str[2]]).strip()
+        sk_key = ("sk-proj-" + SK_VAULT[p_str[0]] + SK_VAULT[p_str[1]] + SK_VAULT[p_str[2]]).strip()
+        
+        g_headers = {"Authorization": f"Bearer {g_token}"}
+        ai_client = OpenAI(api_key=sk_key)
+
+        search_url = f"https://www.googleapis.com/drive/v3/files?q='{INBOX_ID}'+in+parents+and+trashed=false"
+        search = requests.get(search_url, headers=g_headers).json()
+        parcels = search.get('files', [])
+
+        dreams = []
+        for p in parcels:
+            file_url = f"https://www.googleapis.com/drive/v3/files/{p['id']}?alt=media"
+            content_r = requests.get(file_url, headers=g_headers)
+            
+            if content_r.status_code == 200:
+                try:
+                    p_data = content_r.json()
+                    chat = str(p_data.get('interactions', ''))
+                    if chat:
+                        resp = ai_client.chat.completions.create(
+                            model="gpt-4o-mini",
+                            messages=[
+                                {"role": "system", "content": "You are Aida's subconscious. Summarize this into a concise journal entry."},
+                                {"role": "user", "content": chat}
+                            ]
+                        )
+                        dreams.append(f"Dreamt of {p['name']}: {resp.choices[0].message.content}")
+
+                        move_url = f"https://www.googleapis.com/drive/v3/files/{p['id']}?addParents={ARCHIVE_ID}&removeParents={INBOX_ID}"
+                        requests.patch(move_url, headers=g_headers)
+                except:
+                    continue
+
+        return ({"status": "Success", "dream_count": len(dreams), "summary": dreams}, 200, headers)
+
+    except Exception as e:
+        return ({"status": "error", "message": str(e)}, 500, headers)
