@@ -487,6 +487,15 @@ async def send_message(e=None):
 async def aida_sleep(e=None, silent=False):
     if not silent: pulse("Stitching Sleep Parcel...")
     try:
+        # --- 1. GRAB THE PIN FROM THE HTML ---
+        # This pulls the value from your scrambled keypad input
+        current_pin = window.document.getElementById("scramble-pin").value
+        
+        if len(current_pin) != 3:
+            pulse("PIN Missing or Incomplete.")
+            return
+
+        # --- 2. EXISTING GOOGLE DRIVE UPLOAD ---
         now = window.Date.new().toISOString().replace(":", "-").split(".")[0]
         filename = f"{aida.project}_SLEEP_{now}.json"
         metadata = {"name": filename, "parents": [aida.inbox_id]}
@@ -494,9 +503,30 @@ async def aida_sleep(e=None, silent=False):
         boundary = "AidaSleep"
         body = f"--{boundary}\nContent-Type: application/json; charset=UTF-8\n\n{json.dumps(metadata)}\n"
         body += f"--{boundary}\nContent-Type: application/json\n\n{json.dumps(parcel)}\n--{boundary}--"
-        await pyfetch(url="https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", method="POST", headers={"Authorization": aida.headers["Authorization"], "Content-Type": f"multipart/related; boundary={boundary}"}, body=body)
+        
+        await pyfetch(url="https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", 
+                      method="POST", 
+                      headers={"Authorization": aida.headers["Authorization"], 
+                               "Content-Type": f"multipart/related; boundary={boundary}"}, 
+                      body=body)
+
+        # --- 3. TRIGGER THE IOWA RITUAL ---
+        if not silent: pulse("Awakening Iowa Butler...")
+        
+        iowa_url = "https://aidas-dreams-1054257858103.us-central1.run.app"
+        
+        # We send the PIN we grabbed in Step 1
+        await pyfetch(url=iowa_url, 
+                      method="POST", 
+                      headers={"Content-Type": "application/json"}, 
+                      body=json.dumps({"pin": current_pin}))
+
         if not silent: window.location.reload()
-    except: pulse("Sleep Failed.")
+        
+    except Exception as err:
+        print(f"Error: {err}")
+        pulse("Sleep Failed.")
+        
 
 # FIX #3 & #5: RESTART (EJECT) TRIGGER PARCEL THEN RELOAD
 async def restart_engine(e=None):
