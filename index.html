@@ -418,10 +418,7 @@ async def py_sync_soul(token):
     aida.clean_key = window.sessionStorage.getItem("aida_active_key")
     aida.project = document.getElementById("project-tag").value
     document.getElementById("realm-tag").innerText = aida.project
-    
-    # ADD THIS LINE TEMPORARILY:
-    print(f"IOWA_KEY_STRETCH: {token}")
-    
+      
     display = document.getElementById("aida-display")
     if aida.project == "DEBUG": display.classList.add("is-debug")
     else: display.classList.remove("is-debug")
