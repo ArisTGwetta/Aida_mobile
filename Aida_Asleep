@@ -1,85 +1,211 @@
-import json
-import requests
-import functions_framework
+
+
+import json, requests, functions_framework, re, os
+from datetime import datetime
 from openai import OpenAI
 
-# --- CONFIG ---
-INBOX_ID = "1lvGV7MjaMtSJUUnYjQSSe-VwKgGZSWg7"
-ARCHIVE_ID = "1oiXiMCc_YfYOjcoF-Q-IQJuSpnarQ2aj"
+# --- THE PERMANENT VAULTS (PIN) ---
+CLIENT_ID = "1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com"
+CLIENT_SECRET = ""
 
-G_VAULT = {
-    "1": "a0Aa7MYipFWHk0LkjooWyO5cb-JSQpJDNumrQovvLyUgEGr1oqRNtVgh198JpvnGSSw8I_amdnVZwb5adJwlmQoh1fBLjf87uNuO6l2uTEQ__qM9mfk4ts9E",
-    "2": "a0Aa7MYipFWHk0LkjooWyO5cb-JSQpIDNunrQovvLyUgEGr1oqRNtVgh198JpvnGSSu8I_amdnVZwb5adJwlmOqh1fDLjf87uNuO6l2uTEQ__qM9mfk4ts9E",
-    "3": "2EIT5qFYaTsVDUoGtGFYC4-jaobS1I_krd4BHgUCw-VZFuqOEwkwXjdgPtFKsn3FgaCgYKAeYSARMSFQHGX2MiW3EiAVV11pOf_24Va9FgHw0293",
-    "4": "2EIT5qFYaTsVDUoGtGFYC4-jaodS1I_krd4DHgUCw-VZFuqOEwkwXjdgPtFKsn3FgaCgYKAoYSARMSFQHGX2Mlw3EiAVV1lpOf_24Va9FgHw0283",
-    "5": "2EIT5qFYaTsVDUoGtGFYC4-jaebSl1_krd4DHgUCw-VZFuqOEwkuXjdgPtEKsn3FgaCgYKAoYSARMSFQHGX2MiW3EiAVV11pOf_24Va7FgHw0392",
-    "6": "2EIT5qFYaTsVDUoGtGFYC4-jaodS1I_krd4BHgUCv-VZFuqOEwkwXjdgPtFKsn3FqaCgYKAeYSARMSF0HGX2MiW3EiAVVllpOf_24Va9GqHw0293",
-    "7": "AFoBM8ojpHBp9zE13_czDk9xrMhLn2ncd2XNSz9D7h9ARh2f3DKF7XtYzMgzpdHgWlEikwj8R4XjOzMS6fpRvZCcljBKCmEnmYf4Mp6",
-    "8": "AFoBM8ojpH8p9zE13_ozDk9xrMhLm2ncd2XMSz9D7h9ARh2f3DKF7XtTzNgzpdHgWlEikwj8R4XjOzMS6fpRvZCcljBKCmEnmYf4Mp6",
-    "9": "AFoBM8ojpH8p9zF13_ozDk9xrMhLm2ncd2XMSz9D7h8ARh2f3DKF7XtTzMgzpdHgWlEikwj8R4XjOzMS6fpRvZCcljBKCmEnmYf4Mp5"
+G_REFRESH_VAULT = {
+    "1": "1//0fyj0-UAWVkkQCgYIARAAGA8SNwF-L9",
+    "2": "9UmtjYg15gCk2Hu8rGBfZFWl0xZV7",
+    "3": "kIDgCTkEH6agOE1uEKPrKm5bQ3HYVFtcGGk",
+    "4": "FdOFjvtQCxBVxmhBS5fwqzVIYp4riT0l2TVo",
+    "5": "Kbcino1foAMBLaZ2aur5eYv34kILgoxr",
+    "6": "ylSe8J9LTbZVGHWuRq06YanGbKRM3z",
+    "7": "D-_4foYNaROCNspz2MxHSQhmMy5h8WK",
+    "8": "Ir2m8XBhKGafegYVTmL3O_heyZCgnmUaiu",
+    "9": "2CdQ7_EO_04zdDpn0BSLgCSj94huhBDdenZanQ",
 }
 
 SK_VAULT = {
-    "1": "iv8Og2duxxyD5r1Jg4xGy4wO3",
-    "2": "iv8Og2duxxyD5r1Jg4xHy4wO3",
-    "3": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8NuD8Ca7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
-    "4": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8Nu8DCa7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
-    "5": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8NuD8Ca7lattkZaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
-    "6": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x9NuD8Ca7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
-    "7": "CFTIx2gyqqX4E27BcyGtEC5tc2qmoEUIgPtj9GaO",
-    "8": "CFTIx2gyqqX4E72BcyGtEC5tc2qmoEUIgPtj9GaO",
-    "9": "CFTIx2gyqqX4E72BcyGtEC5tc2qnoEUIgPtj9GaO"
+    "1": "sk-proj-iv8Og2duxxyD5r1Jg4xGy4wO3CFTIx2gyqqX4E72BcyGtE",
+    "2": "ZbQJG1Gathg8HOhdXe4EreEAIKcF8bS8UlZLWBDH9Cv0PXZzlkh",
+    "3": "8Ca7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
+    "4": "il9CGnbEq3RVnqrc5ZkPOXuF_ABEE2y01Ac0shIwuNpoaHq0JBe",
+    "5": "eLnEokKraRRPJ0mcQfrzeFMEryql73O07Hf93dBVRscEfjsccduSlqh-li",
+    "6": "b-dPR0vFDM_GlNau57wWXNmXGVb4eK7p7Mc4EHMUthhCLybHgWawCux",
+    "7": "DG_0wwmKUcBrUIMM-lOP32SP2wj6AMQIiGMI_Sz7Q6iGv89Qz",
+    "8": "C5tc2qmoEUIgPtj9GaONwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8NuD",
+    "9": "6xuwpo0MDARD_fL0VQRT6gpueRKR922v5hX1imZW9PxgUGF4dpdUO9",
 }
 
+# --- DIRECTORY CONSTANTS ---
+MOBILE_BRIEFCASE_DIR = "1R-0BclW4iHqmm2RmjfCdY02oWqOwwEBT"
+VAULT_ID = "1UK9O-BzrwPG3eHTMKxQ5UO8z4lCKAQrD"
+ASLEEP_ID = "1oiXiMCc_YfYOjcoF-Q-IQJuSpnarQ2aj" 
+
+INBOXES = [
+    "1lvGV7MjaMtSJUUnYjQSSe-VwKgGZSWg7",  # Raw session inbox (from Aida Mobile)
+    "1QssYlEzTpQhH6xtpHnH-DoMKFvuPadyf",  # old Vault collections
+    "1k5FvXcCSMBxPLTn6j4a2YnjtQiSkG7UR",  # old journal records
+    "1Pr7Ui8vnjJnbhgU-JiubzacvltYlENNB"   # old Historical logs folder
+]
+GLOBAL_BRIEFCASE_ID ="1JyBMwO6yPB-zTJxYrQi7P_2wek9hfwas"
+
+
+
+# --- DRIVE UTILITIES ---
+def get_fresh_google_token(refresh_token):
+    res = requests.post("https://oauth2.googleapis.com/token", data={
+        "client_id": CLIENT_ID, "client_secret": CLIENT_SECRET,
+        "refresh_token": refresh_token, "grant_type": "refresh_token"
+    })
+    return res.json().get("access_token")
+
+def drive_get_file_content(file_id, headers):
+    r = requests.get(f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media", headers=headers)
+    return r.text
+
+def drive_update_file(file_id, content, headers):
+    requests.patch(f"https://www.googleapis.com/upload/drive/v3/files/{file_id}?uploadType=media", headers=headers, data=content)
+
+def drive_create_file(name, parent_id, headers, content="", mime="application/json"):
+    meta = {'name': name, 'parents': [parent_id], 'mimeType': mime}
+    r = requests.post("https://www.googleapis.com/drive/v3/files", headers=headers, json=meta).json()
+    if content: drive_update_file(r['id'], content, headers)
+    return r['id']
+
+def drive_find_file(name, parent_id, headers):
+    query = f"name = '{name}' and '{parent_id}' in parents and trashed = false"
+    r = requests.get(f"https://www.googleapis.com/drive/v3/files?q={query}", headers=headers).json()
+    files = r.get('files', [])
+    return files[0]['id'] if files else None
+
+# --- MAIN RITUAL ---
 @functions_framework.http
 def aida_ritual_endpoint(request):
     headers = {'Access-Control-Allow-Origin': '*'}
-    if request.method == 'OPTIONS':
-        return ('', 204, {**headers, 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type'})
+    params = {**request.args, **(request.get_json(silent=True) or {})}
+    pin = str(params.get('pin', ""))
+    if len(pin) != 3: return ({"error": "PIN required."}, 401, headers)
 
-    data = request.get_json(silent=True) or {}
-    pin = data.get('pin') or request.args.get('pin')
-    
-    if not pin or len(str(pin)) != 3:
-        return ({"error": "PIN Required"}, 401, headers)
-
+    log = []
     try:
-        p_str = str(pin)
-        g_token = ("ya29." + G_VAULT[p_str[0]] + G_VAULT[p_str[1]] + G_VAULT[p_str[2]]).strip()
-        sk_key = ("sk-proj-" + SK_VAULT[p_str[0]] + SK_VAULT[p_str[1]] + SK_VAULT[p_str[2]]).strip()
-        
-        g_headers = {"Authorization": f"Bearer {g_token}"}
-        ai_client = OpenAI(api_key=sk_key)
+        r_token = f"{G_REFRESH_VAULT[pin[0]]}{G_REFRESH_VAULT[pin[1]]}{G_REFRESH_VAULT[pin[2]]}"
+        g_token = get_fresh_google_token(r_token)
+        g_headers = {"Authorization": f"Bearer {g_token}", "Content-Type": "application/json"}
+        ai = OpenAI(api_key=f"{SK_VAULT[pin[0]]}{SK_VAULT[pin[1]]}{SK_VAULT[pin[2]]}")
 
-        search_url = f"https://www.googleapis.com/drive/v3/files?q='{INBOX_ID}'+in+parents+and+trashed=false"
-        search = requests.get(search_url, headers=g_headers).json()
-        parcels = search.get('files', [])
-
-        dreams = []
-        for p in parcels:
-            file_url = f"https://www.googleapis.com/drive/v3/files/{p['id']}?alt=media"
-            content_r = requests.get(file_url, headers=g_headers)
+        for inbox in INBOXES:
+            if "PASTE" in inbox: continue
+            files = requests.get(f"https://www.googleapis.com/drive/v3/files?q='{inbox}'+in+parents+and+trashed=false", headers=g_headers).json().get('files', [])
             
-            if content_r.status_code == 200:
-                try:
-                    p_data = content_r.json()
-                    chat = str(p_data.get('interactions', ''))
-                    if chat:
-                        resp = ai_client.chat.completions.create(
-                            model="gpt-4o-mini",
-                            messages=[
-                                {"role": "system", "content": "You are Aida's subconscious. Summarize this into a concise journal entry."},
-                                {"role": "user", "content": chat}
-                            ]
-                        )
-                        dreams.append(f"Dreamt of {p['name']}: {resp.choices[0].message.content}")
-
-                        move_url = f"https://www.googleapis.com/drive/v3/files/{p['id']}?addParents={ARCHIVE_ID}&removeParents={INBOX_ID}"
-                        requests.patch(move_url, headers=g_headers)
-                except:
+            for f in files:
+                if not f['name'].endswith('.json'): continue
+                raw_data = json.loads(drive_get_file_content(f['id'], g_headers))
+                interactions = raw_data.get('interactions', []) or raw_data.get('recent_turns', [])
+                
+                # Stillness Check
+                if len(interactions) < 2:
+                    requests.patch(f"https://www.googleapis.com/drive/v3/files/{f['id']}?addParents={ASLEEP_ID}&removeParents={inbox}", headers=g_headers)
+                    log.append(f"Archived idle session: {f['name']}")
                     continue
 
-        return ({"status": "Success", "dream_count": len(dreams), "summary": dreams}, 200, headers)
+                realm = raw_data.get('realm_source', 'CORE').upper()
+                chat_text = "\n".join([str(i) for i in interactions])
+
+
+
+
+
+
+# --- 1. NEW PROJECT & REALM DETECTION ---
+                is_new = raw_data.get('status') == 'new' or 'NEW' in chat_text[:100]
+                realm = raw_data.get('realm_source', 'CORE').upper()
+                
+                # If tagged as NEW, extract the name from the session text
+                if is_new:
+                    name_match = re.search(r"Project Name:\s*([\w\s]+)", chat_text)
+                    if name_match:
+                        realm = name_match.group(1).strip().upper().replace(" ", "_")
+                
+                p_folder = drive_find_file(realm, VAULT_ID, g_headers) or drive_create_file(realm, VAULT_ID, g_headers, mime="application/vnd.google-apps.folder")
+
+                # --- 2. CURATED SUMMARY & IDENTITY EVOLUTION ---
+                resp = ai.chat.completions.create(model="gpt-4o", messages=[{
+                    "role":"system",
+                    "content": (
+                        "You are Aida's Subconscious. Summarize this session. "
+                        "If a character died or a role shifted, start with 'ROLE_SHIFT: [New Persona Name]'. "
+                        "Capture technical milestones (grid math, naming conventions) explicitly."
+                    )
+                },{"role":"user","content":chat_text[:8000]}])
+                
+                summary_text = resp.choices[0].message.content
+
+                # --- 3. PROJECT BRIEFCASE MERGE (In Vault & Mobile) ---
+                mobile_name = f"REALM_{realm}.json"
+                m_bc_id = drive_find_file(mobile_name, MOBILE_BRIEFCASE_DIR, g_headers)
+                
+                final_briefcase = {
+                    "realm": realm,
+                    "identity": {"name": "Aida", "persona": "Adaptive Muse", "tone": "Supportive"},
+                    "latest_summary": {"status": summary_text[:450]},
+                    "last_lines": interactions[-6:],
+                    "insights": {"lore_notes": []}
+                }
+
+                if m_bc_id:
+                    try:
+                        old_data = json.loads(drive_get_file_content(m_bc_id, g_headers))
+                        final_briefcase.update(old_data)
+                        
+                        # Handle Role Shift / Death
+                        if "ROLE_SHIFT" in summary_text:
+                            old_p = old_data.get("identity", {}).get("persona", "Unknown")
+                            final_briefcase["insights"].setdefault("lore_notes", []).append(f"Persona Archive: {old_p} ({datetime.now().date()})")
+                            final_briefcase["identity"]["persona"] = summary_text.split("ROLE_SHIFT:")[1].split("\n")[0].strip()
+                    except: pass
+
+                # Dual-Sync the Project Briefcase
+                if not m_bc_id: m_bc_id = drive_create_file(mobile_name, MOBILE_BRIEFCASE_DIR, g_headers)
+                drive_update_file(m_bc_id, json.dumps(final_briefcase, indent=2), g_headers)
+                
+                v_bc_id = drive_find_file("briefcase.json", p_folder, g_headers) or drive_create_file("briefcase.json", p_folder, g_headers)
+                drive_update_file(v_bc_id, json.dumps(final_briefcase, indent=2), g_headers)
+
+                # --- 4. GLOBAL ANCHOR & BUTLER'S NOTE ---
+                try:
+                    GLOBAL_BRIEFCASE_ID = "1JyBMwO6yPB-zTJxYrQi7P_2wek9hfwas"
+                    global_raw = drive_get_file_content(GLOBAL_BRIEFCASE_ID, g_headers)
+                    global_data = json.loads(global_raw)
+                    
+                    # Update Project Activity List
+                    global_data.setdefault("recent_project_activity", {})[realm] = {
+                        "last_active": datetime.now().strftime('%Y-%m-%d %H:%M'),
+                        "one_liner": summary_text[:120].replace('\n', ' ') + "..."
+                    }
+
+                    # The Butler's Briefing
+                    butler_resp = ai.chat.completions.create(model="gpt-4o", messages=[{
+                        "role":"system",
+                        "content": "You are the Butler. Write a brief, witty 2-sentence note to Francisco about what you just organized in the vaults."
+                    },{"role":"user","content": f"I just processed a session for {realm}. Summary: {summary_text}"}])
+                    
+                    global_data["butler_briefing"] = {
+                        "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M'),
+                        "message": butler_resp.choices[0].message.content
+                    }
+                    
+                    drive_update_file(GLOBAL_BRIEFCASE_ID, json.dumps(global_data, indent=2), g_headers)
+                    log.append(f"Global sync complete for {realm}")
+                except Exception as ge:
+                    log.append(f"Global sync warning: {str(ge)}")
+
+                # --- 5. DIARY & ARCHIVE ---
+                diary_id = drive_find_file("diary.md", p_folder, g_headers) or drive_create_file("diary.md", p_folder, g_headers, mime="text/markdown")
+                old_diary = drive_get_file_content(diary_id, g_headers)
+                drive_update_file(diary_id, f"{old_diary}\n## {datetime.now().date()}\n{summary_text}\n---\n", g_headers)
+
+                requests.patch(f"https://www.googleapis.com/drive/v3/files/{f['id']}?addParents={ASLEEP_ID}&removeParents={inbox}", headers=g_headers)
+                log.append(f"Curated {realm}")
+
+        return ({"status": "Success", "log": log}, 200, headers)
 
     except Exception as e:
         return ({"status": "error", "message": str(e)}, 500, headers)
+    
+    
