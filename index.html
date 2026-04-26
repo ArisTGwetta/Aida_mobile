@@ -399,29 +399,34 @@ async def update_face_drive(filename):
 
 async def generate_initial_greeting(prompt):
     try:
-        # Check if we have our AI components ready
-        # If your object is named something else, change 'ai' here
-        if hasattr(aida, 'ai') or 'ai' in globals():
-            resp = await ai.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {"role": "system", "content": "You are Aida. One short, contextual greeting."},
+        # We use pyfetch so it works exactly like send_message
+        resp = await pyfetch(
+            url="https://api.openai.com/v1/chat/completions", 
+            method="POST",
+            headers={
+                "Authorization": f"Bearer {aida.clean_key}", 
+                "Content-Type": "application/json"
+            },
+            body=json.dumps({
+                "model": "gpt-4o", 
+                "messages": [
+                    {"role": "system", "content": "You are Aida. Give a short, one-sentence greeting based on the context provided. Do not use JSON."},
                     {"role": "user", "content": prompt}
                 ]
-            )
-            greeting = resp.choices[0].message.content
-        else:
-            greeting = "Systems stable. Ready to continue, Francisco."
-
-        # Inside generate_initial_greeting...
+            })
+        )
+        data = await resp.json()
+        # Extract the text and save it to the log
+        greeting = data["choices"][0]["message"]["content"]
+        
         add_line(greeting, "AIDA")
         aida.session_log.append({"role": "assistant", "content": greeting})
+        pulse("LLM Online.") 
         
     except Exception as e:
-        # If the AI fails, don't break the engine, just say hi
         add_line("Identity synced. Connection stable.", "AIDA")
-        print(f"Greeting Logic Error: {e}")
-        
+        print(f"Greeting Error: {e}")
+
         
 async def py_sync_soul(token):
     # Setup UI
@@ -475,43 +480,52 @@ def add_line(text, role):
     flow.appendChild(div); flow.scrollTop = flow.scrollHeight
 
 async def send_message(e=None):
-    u_in = document.getElementById("user-in"); msg = u_in.value.strip()
+    u_in = document.getElementById("user-in")
+    msg = u_in.value.strip()
     if not msg: return
-    add_line(msg, "USER"); u_in.value = ""; aida.turn_count += 1
+    
+    add_line(msg, "USER")
+    u_in.value = ""
+    aida.turn_count += 1
     aida.session_log.append({"role": "user", "content": msg, "project": aida.project})
     
     try:
-        # FIX #4: EXPLICIT NANNY TRIGGER IN SYSTEM PROMPT
-        sys = f"IDENTITY: {json.dumps(aida.global_id)}\nREALM: {aida.realm_data}\n\nURGENT: If content is inappropriate, you MUST start your response with 'INAPPROPRIATE CONTENT LOG:' before pivoting. JSON ONLY: {{'text': '...', 'v': val, 'a': val}}"
+        sys = f"IDENTITY: {json.dumps(aida.global_id)}\nREALM: {aida.realm_data}\n\nURGENT: JSON ONLY format: {{'text': '...', 'v': val, 'a': val}}"
+        
         resp = await pyfetch(
-            url="https://api.openai.com/v1/chat/completions", method="POST",
+            url="https://api.openai.com/v1/chat/completions", 
+            method="POST",
             headers={"Authorization": f"Bearer {aida.clean_key}", "Content-Type": "application/json"},
-            body=json.dumps({"model": "gpt-4o", "messages": [{"role": "system", "content": sys}] + [{"role": m["role"], "content": m["content"]} for m in aida.session_log[-6:]], "response_format": {"type": "json_object"}})
+            body=json.dumps({
+                "model": "gpt-4o", 
+                "messages": [{"role": "system", "content": sys}] + [{"role": m["role"], "content": m["content"]} for m in aida.session_log[-6:]], 
+                "response_format": {"type": "json_object"}
+            })
         )
-        data = await resp.json()
-        payload = json.loads(data["choices"][0]["message"]["content"])
+        
+        res_data = await resp.json()
+        payload = json.loads(res_data["choices"][0]["message"]["content"])
         
         reply = payload.get("text", "...")
         v, a = payload.get("v", 0.0), payload.get("a", 0.0)
 
-        # FIX #4 / #5: Nanny Shield Logic
+        # Nanny Shield
         if "INAPPROPRIATE" in reply.upper() or "AS AN AI" in reply.upper():
-            reply = "Aida pauses. 'Francisco, I'm detecting a feedback loop in that request. Let's pivot back to the story architecture.'"
+            reply = "Aida pauses. 'I'm detecting a feedback loop. Let's pivot back.'"
             aida.strike_count = 3
             document.getElementById("aida-display").classList.add("is-alert")
         
-        # FIX #6: Cooldown
-        if aida.strike_count > 0:
-            aida.strike_count -= 1
-            if aida.strike_count == 0: document.getElementById("aida-display").classList.remove("is-alert")
-
         await update_face_drive(aida.get_face_name(v, a))
         add_line(reply, "AIDA")
         aida.session_log.append({"role": "assistant", "content": reply, "project": aida.project, "v": v, "a": a})
         
-        if aida.turn_count % 5 == 0: asyncio.create_task(aida_sleep(silent=True))
-    except: pulse("Logic Break.")
-
+        if aida.turn_count % 5 == 0: 
+            asyncio.create_task(aida_sleep(silent=True))
+            
+    except Exception as e:
+        pulse(f"Reply Error: {str(e)[:15]}")
+        print(f"Full Reply Error: {e}")
+        
 async def aida_sleep(e=None, silent=False):
     if not silent: pulse("Stitching Sleep Parcel...")
     try:
