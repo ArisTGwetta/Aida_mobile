@@ -431,11 +431,13 @@ async def py_sync_soul(token):
     else: display.classList.remove("is-debug")
 
 pulse("Downloading Briefcases...")
-loaded_briefcases = [] # Track what we found
+loaded_briefcases = [] 
+
 try:
     r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q='{aida.vault_id}'+in+parents+and+trashed=false", method="GET", headers=aida.headers)
     res = await r.json()
     
+    # 1. PROCESS THE FILES
     for f in res.get('files', []):
         fname = f['name'].lower()
         
@@ -449,9 +451,7 @@ try:
             aida.realm_data = await c.string()
             loaded_briefcases.append(aida.project.upper())
 
-    await update_face_drive("neutral1.png")
-
-    # --- GREETING TRIGGER ---
+    # 2. TRIGGER ASYNC GREETING
     if aida.realm_data:
         data = json.loads(aida.realm_data)
         summary = data.get("latest_summary", {}).get("status", "a fresh start")
@@ -459,14 +459,18 @@ try:
         prompt = f"Francisco is here. Project: {realm}. Last context: {summary}. Greet him briefly based on this."
         asyncio.create_task(generate_initial_greeting(prompt))
 
-    # --- UPDATED SUCCESS MESSAGE ---
-    sync_msg = f"Sync Complete: {', '.join(loaded_briefcases)}" if loaded_briefcases else "Handshake Complete."
-    pulse(sync_msg)
+    # 3. FINAL PULSE (Outside the loop, inside the try)
+    await update_face_drive("neutral1.png")
+    
+    if loaded_briefcases:
+        pulse(f"Sync Complete: {', '.join(loaded_briefcases)}")
+    else:
+        pulse("Handshake Complete (No Briefcases).")
 
 except Exception as e: 
     pulse(f"Briefcase Fetch Error: {str(e)}")
-    
 
+    
     # Open the gates
     document.getElementById("airlock").classList.add("hidden")
     document.getElementById("main-engine").classList.remove("hidden")
