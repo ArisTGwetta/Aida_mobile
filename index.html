@@ -397,6 +397,13 @@ async def update_face_drive(filename):
             document.getElementById("aida-portrait").src = f"data:image/png;base64,{base64}"
     except: pulse("Portrait Sync Lag...")
 
+async def generate_initial_greeting(prompt):
+    # This simulates Aida thinking and then speaking first
+    # You'd use your existing OpenAI/GPT-4o setup here
+    # greeting = await call_your_ai_api(prompt)
+    # add_line(greeting, "AIDA")
+    pass
+        
 async def py_sync_soul(token):
     grid_div = document.getElementById("flicker-grid")
     grid_div.innerHTML = "" # Clear old grid
@@ -423,24 +430,47 @@ async def py_sync_soul(token):
     if aida.project == "DEBUG": display.classList.add("is-debug")
     else: display.classList.remove("is-debug")
 
-    pulse("Downloading Briefcases...")
-    try:
-        r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q='{aida.vault_id}'+in+parents+and+trashed=false", method="GET", headers=aida.headers)
-        res = await r.json()
-        for f in res.get('files', []):
-            if "global_briefcase" in f['name'].lower():
-                c = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)
-                aida.global_id = json.loads(await c.string()).get("identity", {})
-            elif aida.project.lower() in f['name'].lower():
-                c = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)
-                aida.realm_data = await c.string()
-        await update_face_drive("neutral1.png")
-        pulse("Handshake Complete.")
-    except: pulse("Briefcase Fetch Error.")
+pulse("Downloading Briefcases...")
+loaded_briefcases = [] # Track what we found
+try:
+    r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q='{aida.vault_id}'+in+parents+and+trashed=false", method="GET", headers=aida.headers)
+    res = await r.json()
     
+    for f in res.get('files', []):
+        fname = f['name'].lower()
+        
+        if "global_briefcase" in fname:
+            c = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)
+            aida.global_id = json.loads(await c.string()).get("identity", {})
+            loaded_briefcases.append("Global")
+            
+        elif aida.project.lower() in fname:
+            c = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)
+            aida.realm_data = await c.string()
+            loaded_briefcases.append(aida.project.upper())
+
+    await update_face_drive("neutral1.png")
+
+    # --- GREETING TRIGGER ---
+    if aida.realm_data:
+        data = json.loads(aida.realm_data)
+        summary = data.get("latest_summary", {}).get("status", "a fresh start")
+        realm = data.get("realm", aida.project)
+        prompt = f"Francisco is here. Project: {realm}. Last context: {summary}. Greet him briefly based on this."
+        asyncio.create_task(generate_initial_greeting(prompt))
+
+    # --- UPDATED SUCCESS MESSAGE ---
+    sync_msg = f"Sync Complete: {', '.join(loaded_briefcases)}" if loaded_briefcases else "Handshake Complete."
+    pulse(sync_msg)
+
+except Exception as e: 
+    pulse(f"Briefcase Fetch Error: {str(e)}")
+    
+
+    # Open the gates
     document.getElementById("airlock").classList.add("hidden")
     document.getElementById("main-engine").classList.remove("hidden")
-
+        
 def add_line(text, role):
     flow = document.getElementById("chat-flow")
     div = document.createElement("div"); div.className = f"line {role}"; div.innerText = text
