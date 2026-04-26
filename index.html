@@ -510,18 +510,26 @@ async def aida_sleep(e=None, silent=False):
                                "Content-Type": f"multipart/related; boundary={boundary}"}, 
                       body=body)
 
-        # --- 3. TRIGGER THE IOWA RITUAL ---
+# --- 3. TRIGGER THE IOWA RITUAL (FIRE AND FORGET) ---
         if not silent: pulse("Awakening Iowa Butler...")
         
         iowa_url = "https://aidas-dreams-1054257858103.us-central1.run.app"
         
-        # We send the PIN we grabbed in Step 1
-        await pyfetch(url=iowa_url, 
-                      method="POST", 
-                      headers={"Content-Type": "application/json"}, 
-                      body=json.dumps({"pin": current_pin}))
+        asyncio.create_task(pyfetch(url=iowa_url, 
+                                     method="POST", 
+                                     headers={"Content-Type": "application/json"}, 
+                                     body=json.dumps({"pin": current_pin})))
 
-        if not silent: window.location.reload()
+        await asyncio.sleep(0.5) 
+
+        # --- CRITICAL FIX: Only reload if NOT a silent heartbeat ---
+        if not silent: 
+            pulse("Cycle Complete. Goodbye.")
+            window.location.reload()
+        else:
+            # This is the heartbeat; just log it to console and keep going
+            print("Heartbeat Parcel Delivered successfully.")
+        
         
     except Exception as err:
         print(f"Error: {err}")
