@@ -405,59 +405,48 @@ async def generate_initial_greeting(prompt):
     pass
         
 async def py_sync_soul(token):
-    # Everything below MUST be indented
-    grid_div = document.getElementById("flicker-grid")
-    grid_div.innerHTML = "" 
-    aida.blocks = [] 
-    
-    for _ in range(2000):
-        b = document.createElement("div")
-        b.className = "block"
-        grid_div.appendChild(b)
-        aida.blocks.append(b)
-    
-    if len(aida.blocks) > 100:
-        asyncio.create_task(spark_layer_fast())
-        asyncio.create_task(spark_layer_slow())
-        
+    # Setup UI
     aida.headers = {"Authorization": f"Bearer {token}"}
     aida.project = document.getElementById("project-tag").value
-    
     pulse("Downloading Briefcases...")
-    loaded_briefcases = [] 
+    loaded = []
     
     try:
-        # The 'await' is safe here because we are inside 'async def'
-        r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q='{aida.vault_id}'+in+parents+and+trashed=false", method="GET", headers=aida.headers)
+        # 1. Fetch File List
+        url_list = f"https://www.googleapis.com/drive/v3/files?q='{aida.vault_id}'+in+parents+and+trashed=false"
+        r = await pyfetch(url=url_list, method="GET", headers=aida.headers)
         res = await r.json()
         
+        # 2. Download loop
         for f in res.get('files', []):
-            fname = f['name'].lower()
-            if "global_briefcase" in fname:
-                c = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)
+            name = f['name'].lower()
+            fid = f['id']
+            # Global
+            if "global_briefcase" in name:
+                c = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{fid}?alt=media", method="GET", headers=aida.headers)
                 aida.global_id = json.loads(await c.string()).get("identity", {})
-                loaded_briefcases.append("Global")
-            elif aida.project.lower() in fname:
-                c = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)
+                loaded.append("Global")
+            # Project
+            elif aida.project.lower() in name:
+                c = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{fid}?alt=media", method="GET", headers=aida.headers)
                 aida.realm_data = await c.string()
-                loaded_briefcases.append(aida.project.upper())
+                loaded.append(aida.project.upper())
+
+        # 3. Final Greeting
+        if aida.realm_data:
+            d = json.loads(aida.realm_data)
+            sum_text = d.get("latest_summary", {}).get("status", "ready")
+            p_msg = f"Francisco is here. Project: {aida.project}. Status: {sum_text}. Greet him."
+            asyncio.create_task(generate_initial_greeting(p_msg))
 
         await update_face_drive("neutral1.png")
+        pulse(f"Sync: {', '.join(loaded)}" if loaded else "Handshake Complete")
 
-        if aida.realm_data:
-            data = json.loads(aida.realm_data)
-            summary = data.get("latest_summary", {}).get("status", "a fresh start")
-            realm = data.get("realm", aida.project)
-            prompt = f"Francisco is here. Project: {realm}. Last context: {summary}. Greet him briefly based on this."
-            asyncio.create_task(generate_initial_greeting(prompt))
+    except Exception as e:
+        pulse(f"Error: {str(e)[:20]}") # Short error for mobile screen
+        print(f"Full Error: {e}")
 
-        sync_msg = f"Sync Complete: {', '.join(loaded_briefcases)}" if loaded_briefcases else "Handshake Complete."
-        pulse(sync_msg)
-
-    except Exception as e: 
-        pulse(f"Briefcase Fetch Error: {str(e)}")
-
-    # These final UI steps must also be indented to stay in the function
+    # ALWAYS hide the airlock, even if it fails
     document.getElementById("airlock").classList.add("hidden")
     document.getElementById("main-engine").classList.remove("hidden")
 
