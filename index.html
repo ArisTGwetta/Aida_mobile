@@ -398,31 +398,30 @@ async def update_face_drive(filename):
     except: pulse("Portrait Sync Lag...")
 
 async def generate_initial_greeting(prompt):
-    # This simulates Aida thinking and then speaking first
-    # You'd use your existing OpenAI/GPT-4o setup here
-    # greeting = await call_your_ai_api(prompt)
-    # add_line(greeting, "AIDA")
     try:
-        # 1. Reuse your existing AI call structure
-        # (Assuming 'ai' is your OpenAI object or similar)
-        resp = await ai.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": "You are Aida. Keep it to one short sentence."},
-                {"role": "user", "content": prompt}
-            ]
-        )
-        
-        greeting = resp.choices[0].message.content
-        
-        # 2. Add it to the UI and the log
+        # Check if we have our AI components ready
+        # If your object is named something else, change 'ai' here
+        if hasattr(aida, 'ai') or 'ai' in globals():
+            resp = await ai.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "You are Aida. One short, contextual greeting."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            greeting = resp.choices[0].message.content
+        else:
+            greeting = "Systems stable. Ready to continue, Francisco."
+
+        # Inside generate_initial_greeting...
         add_line(greeting, "AIDA")
         aida.session_log.append({"role": "assistant", "content": greeting})
         
     except Exception as e:
-        print(f"Greeting failed: {e}")
-
-
+        # If the AI fails, don't break the engine, just say hi
+        add_line("Identity synced. Connection stable.", "AIDA")
+        print(f"Greeting Logic Error: {e}")
+        
         
 async def py_sync_soul(token):
     # Setup UI
@@ -463,8 +462,8 @@ async def py_sync_soul(token):
         pulse(f"Sync: {', '.join(loaded)}" if loaded else "Handshake Complete")
 
     except Exception as e:
-        pulse(f"Error: {str(e)[:20]}") # Short error for mobile screen
-        print(f"Full Error: {e}")
+        pulse("Logic Break.")
+        print(f"Full Trace: {e}")
 
     # ALWAYS hide the airlock, even if it fails
     document.getElementById("airlock").classList.add("hidden")
