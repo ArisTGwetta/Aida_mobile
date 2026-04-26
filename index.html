@@ -429,51 +429,55 @@ async def generate_initial_greeting(prompt):
 
         
 async def py_sync_soul(token):
-    # Setup UI
+    # 1. PULL THE ASSEMBLED KEY FROM STORAGE
+    # This connects your JS 'assembled' variable to the Python 'aida' object
+    aida.clean_key = window.sessionStorage.getItem("aida_active_key")
+    
     aida.headers = {"Authorization": f"Bearer {token}"}
     aida.project = document.getElementById("project-tag").value
     pulse("Downloading Briefcases...")
     loaded = []
     
     try:
-        # 1. Fetch File List
+        # Fetching File List from Drive
         url_list = f"https://www.googleapis.com/drive/v3/files?q='{aida.vault_id}'+in+parents+and+trashed=false"
         r = await pyfetch(url=url_list, method="GET", headers=aida.headers)
         res = await r.json()
         
-        # 2. Download loop
         for f in res.get('files', []):
             name = f['name'].lower()
             fid = f['id']
-            # Global
             if "global_briefcase" in name:
                 c = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{fid}?alt=media", method="GET", headers=aida.headers)
                 aida.global_id = json.loads(await c.string()).get("identity", {})
                 loaded.append("Global")
-            # Project
             elif aida.project.lower() in name:
                 c = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{fid}?alt=media", method="GET", headers=aida.headers)
                 aida.realm_data = await c.string()
                 loaded.append(aida.project.upper())
 
-        # 3. Final Greeting
+        # 2. UPDATED INITIAL GREETING 
+        # We now pass the briefcase data so she's not 'hallucinating' who you are
         if aida.realm_data:
-            d = json.loads(aida.realm_data)
-            sum_text = d.get("latest_summary", {}).get("status", "ready")
-            p_msg = f"Francisco is here. Project: {aida.project}. Status: {sum_text}. Greet him."
-            asyncio.create_task(generate_initial_greeting(p_msg))
+            briefcase_summary = json.loads(aida.realm_data).get("latest_summary", {}).get("status", "ready")
+            context_prompt = f"""
+            IDENTITY: {json.dumps(aida.global_id)}
+            REALM: {aida.realm_data}
+             Francisco is here. Project: {aida.project}. Current Status: {briefcase_summary}. 
+            Greet him appropriately based on your identity and the realm data.
+            """
+            asyncio.create_task(generate_initial_greeting(context_prompt))
 
         await update_face_drive("neutral1.png")
         pulse(f"Sync: {', '.join(loaded)}" if loaded else "Handshake Complete")
 
     except Exception as e:
-        pulse("Logic Break.")
-        print(f"Full Trace: {e}")
+        pulse("Logic Break during briefcase sync.")
+        print(f"Sync Error: {e}")
 
-    # ALWAYS hide the airlock, even if it fails
     document.getElementById("airlock").classList.add("hidden")
     document.getElementById("main-engine").classList.remove("hidden")
-
+        
 def add_line(text, role):
     flow = document.getElementById("chat-flow")
     div = document.createElement("div"); div.className = f"line {role}"; div.innerText = text
