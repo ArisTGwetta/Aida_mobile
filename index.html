@@ -405,76 +405,62 @@ async def generate_initial_greeting(prompt):
     pass
         
 async def py_sync_soul(token):
+    # Everything below MUST be indented
     grid_div = document.getElementById("flicker-grid")
-    grid_div.innerHTML = "" # Clear old grid
-    aida.blocks = [] # Reset block list
+    grid_div.innerHTML = "" 
+    aida.blocks = [] 
     
-    # 2000 blocks is plenty for the effect and much faster for mobile
     for _ in range(2000):
         b = document.createElement("div")
         b.className = "block"
         grid_div.appendChild(b)
         aida.blocks.append(b)
     
-    # Start the sparks ONLY after the blocks are appended to the list
     if len(aida.blocks) > 100:
         asyncio.create_task(spark_layer_fast())
         asyncio.create_task(spark_layer_slow())
         
     aida.headers = {"Authorization": f"Bearer {token}"}
-    aida.clean_key = window.sessionStorage.getItem("aida_active_key")
     aida.project = document.getElementById("project-tag").value
-    document.getElementById("realm-tag").innerText = aida.project
-      
-    display = document.getElementById("aida-display")
-    if aida.project == "DEBUG": display.classList.add("is-debug")
-    else: display.classList.remove("is-debug")
-
-pulse("Downloading Briefcases...")
-loaded_briefcases = [] 
-
-try:
-    r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q='{aida.vault_id}'+in+parents+and+trashed=false", method="GET", headers=aida.headers)
-    res = await r.json()
     
-    # 1. PROCESS THE FILES
-    for f in res.get('files', []):
-        fname = f['name'].lower()
+    pulse("Downloading Briefcases...")
+    loaded_briefcases = [] 
+    
+    try:
+        # The 'await' is safe here because we are inside 'async def'
+        r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q='{aida.vault_id}'+in+parents+and+trashed=false", method="GET", headers=aida.headers)
+        res = await r.json()
         
-        if "global_briefcase" in fname:
-            c = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)
-            aida.global_id = json.loads(await c.string()).get("identity", {})
-            loaded_briefcases.append("Global")
-            
-        elif aida.project.lower() in fname:
-            c = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)
-            aida.realm_data = await c.string()
-            loaded_briefcases.append(aida.project.upper())
+        for f in res.get('files', []):
+            fname = f['name'].lower()
+            if "global_briefcase" in fname:
+                c = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)
+                aida.global_id = json.loads(await c.string()).get("identity", {})
+                loaded_briefcases.append("Global")
+            elif aida.project.lower() in fname:
+                c = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)
+                aida.realm_data = await c.string()
+                loaded_briefcases.append(aida.project.upper())
 
-    # 2. TRIGGER ASYNC GREETING
-    if aida.realm_data:
-        data = json.loads(aida.realm_data)
-        summary = data.get("latest_summary", {}).get("status", "a fresh start")
-        realm = data.get("realm", aida.project)
-        prompt = f"Francisco is here. Project: {realm}. Last context: {summary}. Greet him briefly based on this."
-        asyncio.create_task(generate_initial_greeting(prompt))
+        await update_face_drive("neutral1.png")
 
-    # 3. FINAL PULSE (Outside the loop, inside the try)
-    await update_face_drive("neutral1.png")
-    
-    if loaded_briefcases:
-        pulse(f"Sync Complete: {', '.join(loaded_briefcases)}")
-    else:
-        pulse("Handshake Complete (No Briefcases).")
+        if aida.realm_data:
+            data = json.loads(aida.realm_data)
+            summary = data.get("latest_summary", {}).get("status", "a fresh start")
+            realm = data.get("realm", aida.project)
+            prompt = f"Francisco is here. Project: {realm}. Last context: {summary}. Greet him briefly based on this."
+            asyncio.create_task(generate_initial_greeting(prompt))
 
-except Exception as e: 
-    pulse(f"Briefcase Fetch Error: {str(e)}")
+        sync_msg = f"Sync Complete: {', '.join(loaded_briefcases)}" if loaded_briefcases else "Handshake Complete."
+        pulse(sync_msg)
 
-    
-    # Open the gates
+    except Exception as e: 
+        pulse(f"Briefcase Fetch Error: {str(e)}")
+
+    # These final UI steps must also be indented to stay in the function
     document.getElementById("airlock").classList.add("hidden")
     document.getElementById("main-engine").classList.remove("hidden")
-        
+
 def add_line(text, role):
     flow = document.getElementById("chat-flow")
     div = document.createElement("div"); div.className = f"line {role}"; div.innerText = text
