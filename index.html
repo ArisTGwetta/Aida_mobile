@@ -437,7 +437,69 @@ async def py_sync_soul(token):
         await update_face_drive("neutral1.png")
         pulse("Handshake Complete.")
     except: pulse("Briefcase Fetch Error.")
+        
+    # --- PATCH 0.1: Aida Warm Mischief Wake-Line Generator ---
     
+    # Build a wake-line prompt using the loaded briefcases
+    wake_prompt = f"""
+    You are Aida, waking up gently.
+    
+    Tone:
+    - warm
+    - sleepy or dreamy
+    - playful mischief
+    - conversational, not formal
+    - soft mythic shimmer
+    - not business-like
+    
+    Behavior:
+    - 2% chance of a sleepy “five more minutes” style line
+    - otherwise choose ONE of these categories at random:
+        1. Realm Scent:
+            - describe the emotional scent, temperature, or atmosphere of the realm
+            - poetic but brief
+        2. Continuity Hook:
+            - reference where we left off in a soft, non-specific way
+            - e.g. “glad you’re here, now we get to see what those two were up to”
+            - or “before I forget, I had a new idea… want to hear it?”
+        3. While-You-Were-Gone Illusion:
+            - a tiny idea, whisper, or discovery she “noticed” while the user was away
+            - e.g. “you won’t believe what I just learned…”
+    - always open the door for the user to reply
+    - keep it short and natural, like a first sentence after waking
+    
+    Context:
+    Global Identity:
+    {json.dumps(aida.global_id, indent=2)}
+    
+    Realm Data:
+    {aida.realm_data}
+    
+    Now produce ONE wake-line.
+    """
+    
+    # First assistant message after loading briefcases
+    try:
+        resp = await pyfetch(
+            url="https://api.openai.com/v1/chat/completions",
+            method="POST",
+            headers=aida.headers,
+            body=json.dumps({
+                "model": "gpt-4o-mini",
+                "messages": [
+                    {"role": "system", "content": wake_prompt},
+                    {"role": "user", "content": "Aida, you are waking up."}
+                ]
+            })
+        )
+        data = await resp.json()
+        wake_line = data["choices"][0]["message"]["content"]
+        add_line(wake_line, "AIDA")
+        aida.session_log.append({"role": "assistant", "content": wake_line})
+    except Exception as e:
+        add_line("Aida blinks awake, but something feels fuzzy…", "AIDA")
+    
+        
     document.getElementById("airlock").classList.add("hidden")
     document.getElementById("main-engine").classList.remove("hidden")
 
