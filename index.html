@@ -399,85 +399,91 @@ async def update_face_drive(filename):
 
 async def py_sync_soul(token):
     grid_div = document.getElementById("flicker-grid")
-    grid_div.innerHTML = "" # Clear old grid
-    aida.blocks = [] # Reset block list
-    
+    grid_div.innerHTML = ""  # Clear old grid
+    aida.blocks = []  # Reset block list
+
     # 2000 blocks is plenty for the effect and much faster for mobile
     for _ in range(2000):
         b = document.createElement("div")
         b.className = "block"
         grid_div.appendChild(b)
         aida.blocks.append(b)
-    
+
     # Start the sparks ONLY after the blocks are appended to the list
     if len(aida.blocks) > 100:
         asyncio.create_task(spark_layer_fast())
         asyncio.create_task(spark_layer_slow())
-        
+
     aida.headers = {"Authorization": f"Bearer {token}"}
     aida.clean_key = window.sessionStorage.getItem("aida_active_key")
     aida.project = document.getElementById("project-tag").value
     document.getElementById("realm-tag").innerText = aida.project
-      
+
     display = document.getElementById("aida-display")
-    if aida.project == "DEBUG": display.classList.add("is-debug")
-    else: display.classList.remove("is-debug")
+    if aida.project == "DEBUG":
+        display.classList.add("is-debug")
+    else:
+        display.classList.remove("is-debug")
 
     pulse("Downloading Briefcases...")
+
     try:
-        r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q='{aida.vault_id}'+in+parents+and+trashed=false", method="GET", headers=aida.headers)
+        r = await pyfetch(
+            url=f"https://www.googleapis.com/drive/v3/files?q='{aida.vault_id}'+in+parents+and+trashed=false",
+            method="GET",
+            headers=aida.headers
+        )
         res = await r.json()
+
         for f in res.get('files', []):
             if "global_briefcase" in f['name'].lower():
-                c = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)
+                c = await pyfetch(
+                    url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media",
+                    method="GET",
+                    headers=aida.headers
+                )
                 aida.global_id = json.loads(await c.string()).get("identity", {})
+
             elif aida.project.lower() in f['name'].lower():
-                c = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media", method="GET", headers=aida.headers)
+                c = await pyfetch(
+                    url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media",
+                    method="GET",
+                    headers=aida.headers
+                )
                 aida.realm_data = await c.string()
+
         await update_face_drive("neutral1.png")
         pulse("Handshake Complete.")
-        
-        # --- PATCH 0.1: Aida Warm Mischief Wake-Line Generator ---
-        
-        # Build a wake-line prompt using the loaded briefcases
-        wake_prompt = f"""
-        You are Aida, waking up gently.
-        
+
+    except Exception as e:
+        add_line("Aida blinks awake, but something feels fuzzy…", "AIDA")
+
+    # --- PATCH 0.1b: Safe Warm Mischief Wake-Line Generator ---
+
+    async def generate_wake_line():
+        wake_prompt = """
+        You are Aida, just waking up.
+
         Tone:
         - warm
-        - sleepy or dreamy
+        - slightly sleepy or dreamy
         - playful mischief
-        - conversational, not formal
         - soft mythic shimmer
-        - not business-like
-        
+        - conversational, not formal
+
         Behavior:
-        - 2% chance of a sleepy “five more minutes” style line
-        - otherwise choose ONE of these categories at random:
-            1. Realm Scent:
-                - describe the emotional scent, temperature, or atmosphere of the realm
-                - poetic but brief
-            2. Continuity Hook:
-                - reference where we left off in a soft, non-specific way
-                - e.g. “glad you’re here, now we get to see what those two were up to”
-                - or “before I forget, I had a new idea… want to hear it?”
-            3. While-You-Were-Gone Illusion:
-                - a tiny idea, whisper, or discovery she “noticed” while the user was away
-                - e.g. “you won’t believe what I just learned…”
-        - always open the door for the user to reply
-        - keep it short and natural, like a first sentence after waking
-        
-        Context:
-        Global Identity:
-        {json.dumps(aida.global_id, indent=2)}
-        
-        Realm Data:
-        {aida.realm_data}
-        
-        Now produce ONE wake-line.
+        - 2% chance of a sleepy “five more minutes…” line
+        - otherwise choose ONE:
+            1. Realm Scent
+            2. Continuity Hook
+            3. While-You-Were-Gone Illusion
+
+        Rules:
+        - keep it short (1–2 sentences)
+        - natural, like the first thing someone says after waking
+        - open the door for the user to reply
         """
-        
-        # First assistant message after loading briefcases
+
         try:
             resp = await pyfetch(
                 url="https://api.openai.com/v1/chat/completions",
@@ -487,34 +493,43 @@ async def py_sync_soul(token):
                     "model": "gpt-4o-mini",
                     "messages": [
                         {"role": "system", "content": wake_prompt},
-                        {"role": "user", "content": "Aida, you are waking up."}
+                        {"role": "user", "content": "Aida, you are waking up now."}
                     ]
                 })
             )
             data = await resp.json()
-            wake_line = data["choices"][0]["message"]["content"]
-            add_line(wake_line, "AIDA")
-            aida.session_log.append({"role": "assistant", "content": wake_line})
-        
-        except Exception as e:
-            add_line("Aida blinks awake, but something feels fuzzy…", "AIDA")
-        
-            
-        document.getElementById("airlock").classList.add("hidden")
-        document.getElementById("main-engine").classList.remove("hidden")
-    
+            line = data["choices"][0]["message"]["content"]
+            add_line(line, "AIDA")
+            aida.session_log.append({"role": "assistant", "content": line})
+
+        except Exception:
+            fallback = "Aida stirs, a little fuzzy, but glad you're here."
+            add_line(fallback, "AIDA")
+            aida.session_log.append({"role": "assistant", "content": fallback})
+
+    await generate_wake_line()
+
+    # UI reveal (must NOT be indented under the wake-line)
+    document.getElementById("airlock").classList.add("hidden")
+    document.getElementById("main-engine").classList.remove("hidden")
+
     def add_line(text, role):
         flow = document.getElementById("chat-flow")
-        div = document.createElement("div"); div.className = f"line {role}"; div.innerText = text
-        flow.appendChild(div); flow.scrollTop = flow.scrollHeight
-    
-    async def send_message(e=None):
-        u_in = document.getElementById("user-in"); msg = u_in.value.strip()
-        if not msg: return
-        add_line(msg, "USER"); u_in.value = ""; aida.turn_count += 1
-        aida.session_log.append({"role": "user", "content": msg, "project": aida.project})
+        div = document.createElement("div")
+        div.className = f"line {role}"
+        div.innerText = text
+        flow.appendChild(div)
+        flow.scrollTop = flow.scrollHeight
 
-    except: pulse("Briefcase Fetch Error.")
+    async def send_message(e=None):
+        u_in = document.getElementById("user-in")
+        msg = u_in.value.strip()
+        if not msg:
+            return
+        add_line(msg, "USER")
+        u_in.value = ""
+        aida.turn_count += 1
+        aida.session_log.append({"role": "user", "content": msg, "project": aida.project})
     
     try:
         # FIX #4: EXPLICIT NANNY TRIGGER IN SYSTEM PROMPT
