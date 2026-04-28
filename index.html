@@ -513,55 +513,94 @@ async def py_sync_soul(token):
     document.getElementById("airlock").classList.add("hidden")
     document.getElementById("main-engine").classList.remove("hidden")
 
-    def add_line(text, role):
-        flow = document.getElementById("chat-flow")
-        div = document.createElement("div")
-        div.className = f"line {role}"
-        div.innerText = text
-        flow.appendChild(div)
-        flow.scrollTop = flow.scrollHeight
+def add_line(text, role):
+        def add_line(text, role):
+    flow = document.getElementById("chat-flow")
+    div = document.createElement("div")
+    div.className = f"line {role}"
+    div.innerText = text
+    flow.appendChild(div)
+    flow.scrollTop = flow.scrollHeight
 
-    async def send_message(e=None):
-        u_in = document.getElementById("user-in")
-        msg = u_in.value.strip()
-        if not msg:
-            return
-        add_line(msg, "USER")
-        u_in.value = ""
-        aida.turn_count += 1
-        aida.session_log.append({"role": "user", "content": msg, "project": aida.project})
-    
+
+async def send_message(e=None):
+    u_in = document.getElementById("user-in")
+    msg = u_in.value.strip()
+    if not msg:
+        return
+    add_line(msg, "USER")
+    u_in.value = ""
+    aida.turn_count += 1
+    aida.session_log.append({
+        "role": "user",
+        "content": msg,
+        "project": aida.project
+    })
+
     try:
         # FIX #4: EXPLICIT NANNY TRIGGER IN SYSTEM PROMPT
-        sys = f"IDENTITY: {json.dumps(aida.global_id)}\nREALM: {aida.realm_data}\n\nURGENT: If content is inappropriate, you MUST start your response with 'INAPPROPRIATE CONTENT LOG:' before pivoting. JSON ONLY: {{'text': '...', 'v': val, 'a': val}}"
+        sys = (
+            f"IDENTITY: {json.dumps(aida.global_id)}\n"
+            f"REALM: {aida.realm_data}\n\n"
+            "URGENT: If content is inappropriate, you MUST start your response with "
+            "'INAPPROPRIATE CONTENT LOG:' before pivoting. JSON ONLY: "
+            "{'text': '...', 'v': val, 'a': val}"
+        )
+
         resp = await pyfetch(
-            url="https://api.openai.com/v1/chat/completions", method="POST",
-            headers={"Authorization": f"Bearer {aida.clean_key}", "Content-Type": "application/json"},
-            body=json.dumps({"model": "gpt-4o", "messages": [{"role": "system", "content": sys}] + [{"role": m["role"], "content": m["content"]} for m in aida.session_log[-6:]], "response_format": {"type": "json_object"}})
+            url="https://api.openai.com/v1/chat/completions",
+            method="POST",
+            headers={
+                "Authorization": f"Bearer {aida.clean_key}",
+                "Content-Type": "application/json"
+            },
+            body=json.dumps({
+                "model": "gpt-4o",
+                "messages": (
+                    [{"role": "system", "content": sys}] +
+                    [{"role": m["role"], "content": m["content"]}
+                     for m in aida.session_log[-6:]]
+                ),
+                "response_format": {"type": "json_object"}
+            })
         )
         data = await resp.json()
         payload = json.loads(data["choices"][0]["message"]["content"])
-        
+
         reply = payload.get("text", "...")
         v, a = payload.get("v", 0.0), payload.get("a", 0.0)
 
-        # FIX #4 / #5: Nanny Shield Logic
+        # Nanny Shield Logic
         if "INAPPROPRIATE" in reply.upper() or "AS AN AI" in reply.upper():
-            reply = "Aida pauses. 'Francisco, I'm detecting a feedback loop in that request. Let's pivot back to the story architecture.'"
+            reply = (
+                "Aida pauses. 'Francisco, I'm detecting a feedback loop in that request. "
+                "Let's pivot back to the story architecture.'"
+            )
             aida.strike_count = 3
             document.getElementById("aida-display").classList.add("is-alert")
-        
-        # FIX #6: Cooldown
+
+        # Cooldown
         if aida.strike_count > 0:
             aida.strike_count -= 1
-            if aida.strike_count == 0: document.getElementById("aida-display").classList.remove("is-alert")
+            if aida.strike_count == 0:
+                document.getElementById("aida-display").classList.remove("is-alert")
 
         await update_face_drive(aida.get_face_name(v, a))
         add_line(reply, "AIDA")
-        aida.session_log.append({"role": "assistant", "content": reply, "project": aida.project, "v": v, "a": a})
-        
-        if aida.turn_count % 5 == 0: asyncio.create_task(aida_sleep(silent=True))
-    except: pulse("Logic Break.")
+        aida.session_log.append({
+            "role": "assistant",
+            "content": reply,
+            "project": aida.project,
+            "v": v,
+            "a": a
+        })
+
+        if aida.turn_count % 5 == 0:
+            asyncio.create_task(aida_sleep(silent=True))
+
+    except Exception:
+        pulse("Logic Break.")
+
 
 async def aida_sleep(e=None, silent=False):
     if not silent: pulse("Stitching Sleep Parcel...")
