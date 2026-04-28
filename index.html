@@ -298,19 +298,23 @@
                 },
             });
         }
-    </script>
 
-    <script type="py">
+<script>
+<script type="py">
 import json, asyncio, random, math
 from pyscript import document, window
 from pyodide.http import pyfetch
 from pyodide.ffi import create_proxy
 
+
 def pulse(msg):
     log = document.getElementById("log-content")
     if log:
-        div = document.createElement("div"); div.innerText = f"> {msg}"; log.appendChild(div)
+        div = document.createElement("div")
+        div.innerText = f"> {msg}"
+        log.appendChild(div)
         log.parentElement.scrollTop = log.parentElement.scrollHeight
+
 
 class AidaChassis:
     def __init__(self):
@@ -327,89 +331,115 @@ class AidaChassis:
         self.global_id = {}
         self.realm_data = ""
         self.EMOTION_MAP = {
-            "happy": (0.8, 0.6), "calm": (0.4, -0.2), "focused": (0.0, 0.5),
-            "concerned": (-0.2, 0.4), "mischievous": (0.5, 0.3), "curious": (0.3, 0.5),
-            "excited": (0.9, 0.9), "pouting": (-0.4, -0.4), "neutral": (0.0, 0.0),
-            "sarcastic": (-0.3, 0.2), "angry": (-0.8, 0.8)
+            "happy": (0.8, 0.6),
+            "calm": (0.4, -0.2),
+            "focused": (0.0, 0.5),
+            "concerned": (-0.2, 0.4),
+            "mischievous": (0.5, 0.3),
+            "curious": (0.3, 0.5),
+            "excited": (0.9, 0.9),
+            "pouting": (-0.4, -0.4),
+            "neutral": (0.0, 0.0),
+            "sarcastic": (-0.3, 0.2),
+            "angry": (-0.8, 0.8),
         }
 
     def get_face_name(self, v, a):
-        closest = "neutral"; min_dist = 999
+        closest = "neutral"
+        min_dist = 999
         for cat, coords in self.EMOTION_MAP.items():
-            dist = math.sqrt((v - coords[0])**2 + (a - coords[1])**2)
-            if dist < min_dist: min_dist = dist; closest = cat
+            dist = math.sqrt((v - coords[0]) ** 2 + (a - coords[1]) ** 2)
+            if dist < min_dist:
+                min_dist = dist
+                closest = cat
         return f"{closest}1.png"
+
 
 aida = AidaChassis()
 
 
 async def spark_layer_fast():
     while True:
-        # SAFETY CHECK: Don't spark if the grid isn't built yet
-        if len(aida.blocks) < 100: 
-            await asyncio.sleep(0.5)
-            continue
-        # Layer 1: The Fast Twitch (Current Storm)
-        active_blue = random.sample(aida.blocks, 5)
-        active_white = random.sample(aida.blocks, 5)
-        for b in active_blue: b.classList.add("spark-blue")
-        for b in active_white: b.classList.add("spark-white")
-        
-        await asyncio.sleep(2.5) # Stays on much longer
-        
-        for b in active_blue: b.classList.remove("spark-blue")
-        for b in active_white: b.classList.remove("spark-white")
-        await asyncio.sleep(0.1)
-
-async def spark_layer_slow():
-    while True:
-        # SAFETY CHECK: Ensure population is sufficient
         if len(aida.blocks) < 100:
             await asyncio.sleep(0.5)
             continue
-        # Layer 2: The Deep Pulse (Fluidity)
-        # We pick different blocks to create overlap
+
+        active_blue = random.sample(aida.blocks, 5)
+        active_white = random.sample(aida.blocks, 5)
+
+        for b in active_blue:
+            b.classList.add("spark-blue")
+        for b in active_white:
+            b.classList.add("spark-white")
+
+        await asyncio.sleep(2.5)
+
+        for b in active_blue:
+            b.classList.remove("spark-blue")
+        for b in active_white:
+            b.classList.remove("spark-white")
+
+        await asyncio.sleep(0.1)
+
+
+async def spark_layer_slow():
+    while True:
+        if len(aida.blocks) < 100:
+            await asyncio.sleep(0.5)
+            continue
+
         deep_blue = random.sample(aida.blocks, 5)
         active_white = random.sample(aida.blocks, 5)
-        for b in deep_blue: 
-            b.style.opacity = "0.4" # Subtle dim layer
+
+        for b in deep_blue:
+            b.style.opacity = "0.4"
             b.classList.add("spark-blue")
-        
-        await asyncio.sleep(0.4) # Fast flash
-        
-        for b in deep_blue: 
+
+        await asyncio.sleep(0.4)
+
+        for b in deep_blue:
             b.classList.remove("spark-blue")
             b.style.opacity = "1"
+
         await asyncio.sleep(0.8)
-        
-        
-        
+
+
 async def update_face_drive(filename):
     try:
         q = f"'{aida.emotion_folder}' in parents and name = '{filename}' and trashed = false"
-        r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files?q={q.replace(' ', '%20')}", method="GET", headers=aida.headers)
+        r = await pyfetch(
+            url=f"https://www.googleapis.com/drive/v3/files?q={q.replace(' ', '%20')}",
+            method="GET",
+            headers=aida.headers,
+        )
         res = await r.json()
-        if res.get('files'):
-            fid = res['files'][0]['id']
-            img_r = await pyfetch(url=f"https://www.googleapis.com/drive/v3/files/{fid}?alt=media", method="GET", headers=aida.headers)
+        if res.get("files"):
+            fid = res["files"][0]["id"]
+            img_r = await pyfetch(
+                url=f"https://www.googleapis.com/drive/v3/files/{fid}?alt=media",
+                method="GET",
+                headers=aida.headers,
+            )
             blob = await img_r.bytes()
-            base64 = window.btoa(''.join([chr(b) for b in blob]))
-            document.getElementById("aida-portrait").src = f"data:image/png;base64,{base64}"
-    except: pulse("Portrait Sync Lag...")
+            base64 = window.btoa("".join([chr(b) for b in blob]))
+            document.getElementById("aida-portrait").src = (
+                f"data:image/png;base64,{base64}"
+            )
+    except Exception:
+        pulse("Portrait Sync Lag...")
+
 
 async def py_sync_soul(token):
     grid_div = document.getElementById("flicker-grid")
-    grid_div.innerHTML = ""  # Clear old grid
-    aida.blocks = []  # Reset block list
+    grid_div.innerHTML = ""
+    aida.blocks = []
 
-    # 2000 blocks is plenty for the effect and much faster for mobile
     for _ in range(2000):
         b = document.createElement("div")
         b.className = "block"
         grid_div.appendChild(b)
         aida.blocks.append(b)
 
-    # Start the sparks ONLY after the blocks are appended to the list
     if len(aida.blocks) > 100:
         asyncio.create_task(spark_layer_fast())
         asyncio.create_task(spark_layer_slow())
@@ -429,37 +459,38 @@ async def py_sync_soul(token):
 
     try:
         r = await pyfetch(
-            url=f"https://www.googleapis.com/drive/v3/files?q='{aida.vault_id}'+in+parents+and+trashed=false",
+            url=(
+                "https://www.googleapis.com/drive/v3/files"
+                f"?q='{aida.vault_id}'+in+parents+and+trashed=false"
+            ),
             method="GET",
-            headers=aida.headers
+            headers=aida.headers,
         )
         res = await r.json()
 
-        for f in res.get('files', []):
-            if "global_briefcase" in f['name'].lower():
+        for f in res.get("files", []):
+            if "global_briefcase" in f["name"].lower():
                 c = await pyfetch(
                     url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media",
                     method="GET",
-                    headers=aida.headers
+                    headers=aida.headers,
                 )
                 aida.global_id = json.loads(await c.string()).get("identity", {})
-
-            elif aida.project.lower() in f['name'].lower():
+            elif aida.project.lower() in f["name"].lower():
                 c = await pyfetch(
                     url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media",
                     method="GET",
-                    headers=aida.headers
+                    headers=aida.headers,
                 )
                 aida.realm_data = await c.string()
 
         await update_face_drive("neutral1.png")
         pulse("Handshake Complete.")
 
-    except Exception as e:
+    except Exception:
         add_line("Aida blinks awake, but something feels fuzzy…", "AIDA")
 
     # --- PATCH 0.1b: Safe Warm Mischief Wake-Line Generator ---
-
     async def generate_wake_line():
         wake_prompt = """
         You are Aida, just waking up.
@@ -489,19 +520,20 @@ async def py_sync_soul(token):
                 url="https://api.openai.com/v1/chat/completions",
                 method="POST",
                 headers=aida.headers,
-                body=json.dumps({
-                    "model": "gpt-4o-mini",
-                    "messages": [
-                        {"role": "system", "content": wake_prompt},
-                        {"role": "user", "content": "Aida, you are waking up now."}
-                    ]
-                })
+                body=json.dumps(
+                    {
+                        "model": "gpt-4o-mini",
+                        "messages": [
+                            {"role": "system", "content": wake_prompt},
+                            {"role": "user", "content": "Aida, you are waking up now."},
+                        ],
+                    }
+                ),
             )
             data = await resp.json()
             line = data["choices"][0]["message"]["content"]
             add_line(line, "AIDA")
             aida.session_log.append({"role": "assistant", "content": line})
-
         except Exception:
             fallback = "Aida stirs, a little fuzzy, but glad you're here."
             add_line(fallback, "AIDA")
@@ -509,12 +541,11 @@ async def py_sync_soul(token):
 
     await generate_wake_line()
 
-    # UI reveal (must NOT be indented under the wake-line)
     document.getElementById("airlock").classList.add("hidden")
     document.getElementById("main-engine").classList.remove("hidden")
 
+
 def add_line(text, role):
-        def add_line(text, role):
     flow = document.getElementById("chat-flow")
     div = document.createElement("div")
     div.className = f"line {role}"
@@ -528,17 +559,15 @@ async def send_message(e=None):
     msg = u_in.value.strip()
     if not msg:
         return
+
     add_line(msg, "USER")
     u_in.value = ""
     aida.turn_count += 1
-    aida.session_log.append({
-        "role": "user",
-        "content": msg,
-        "project": aida.project
-    })
+    aida.session_log.append(
+        {"role": "user", "content": msg, "project": aida.project}
+    )
 
     try:
-        # FIX #4: EXPLICIT NANNY TRIGGER IN SYSTEM PROMPT
         sys = (
             f"IDENTITY: {json.dumps(aida.global_id)}\n"
             f"REALM: {aida.realm_data}\n\n"
@@ -552,17 +581,21 @@ async def send_message(e=None):
             method="POST",
             headers={
                 "Authorization": f"Bearer {aida.clean_key}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             },
-            body=json.dumps({
-                "model": "gpt-4o",
-                "messages": (
-                    [{"role": "system", "content": sys}] +
-                    [{"role": m["role"], "content": m["content"]}
-                     for m in aida.session_log[-6:]]
-                ),
-                "response_format": {"type": "json_object"}
-            })
+            body=json.dumps(
+                {
+                    "model": "gpt-4o",
+                    "messages": [
+                        {"role": "system", "content": sys},
+                        *[
+                            {"role": m["role"], "content": m["content"]}
+                            for m in aida.session_log[-6:]
+                        ],
+                    ],
+                    "response_format": {"type": "json_object"},
+                }
+            ),
         )
         data = await resp.json()
         payload = json.loads(data["choices"][0]["message"]["content"])
@@ -570,7 +603,6 @@ async def send_message(e=None):
         reply = payload.get("text", "...")
         v, a = payload.get("v", 0.0), payload.get("a", 0.0)
 
-        # Nanny Shield Logic
         if "INAPPROPRIATE" in reply.upper() or "AS AN AI" in reply.upper():
             reply = (
                 "Aida pauses. 'Francisco, I'm detecting a feedback loop in that request. "
@@ -579,7 +611,6 @@ async def send_message(e=None):
             aida.strike_count = 3
             document.getElementById("aida-display").classList.add("is-alert")
 
-        # Cooldown
         if aida.strike_count > 0:
             aida.strike_count -= 1
             if aida.strike_count == 0:
@@ -587,13 +618,15 @@ async def send_message(e=None):
 
         await update_face_drive(aida.get_face_name(v, a))
         add_line(reply, "AIDA")
-        aida.session_log.append({
-            "role": "assistant",
-            "content": reply,
-            "project": aida.project,
-            "v": v,
-            "a": a
-        })
+        aida.session_log.append(
+            {
+                "role": "assistant",
+                "content": reply,
+                "project": aida.project,
+                "v": v,
+                "a": a,
+            }
+        )
 
         if aida.turn_count % 5 == 0:
             asyncio.create_task(aida_sleep(silent=True))
@@ -603,72 +636,86 @@ async def send_message(e=None):
 
 
 async def aida_sleep(e=None, silent=False):
-    if not silent: pulse("Stitching Sleep Parcel...")
+    if not silent:
+        pulse("Stitching Sleep Parcel...")
     try:
-        # --- 1. GRAB THE PIN FROM THE HTML ---
-        # This pulls the value from your scrambled keypad input
         current_pin = window.document.getElementById("scramble-pin").value
-        
+
         if len(current_pin) != 3:
             pulse("PIN Missing or Incomplete.")
             return
 
-        # --- 2. EXISTING GOOGLE DRIVE UPLOAD ---
         now = window.Date.new().toISOString().replace(":", "-").split(".")[0]
         filename = f"{aida.project}_SLEEP_{now}.json"
         metadata = {"name": filename, "parents": [aida.inbox_id]}
         parcel = {"realm_source": aida.project, "interactions": aida.session_log}
         boundary = "AidaSleep"
-        body = f"--{boundary}\nContent-Type: application/json; charset=UTF-8\n\n{json.dumps(metadata)}\n"
-        body += f"--{boundary}\nContent-Type: application/json\n\n{json.dumps(parcel)}\n--{boundary}--"
-        
-        await pyfetch(url="https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", 
-                      method="POST", 
-                      headers={"Authorization": aida.headers["Authorization"], 
-                               "Content-Type": f"multipart/related; boundary={boundary}"}, 
-                      body=body)
+        body = (
+            f"--{boundary}\n"
+            "Content-Type: application/json; charset=UTF-8\n\n"
+            f"{json.dumps(metadata)}\n"
+        )
+        body += (
+            f"--{boundary}\n"
+            "Content-Type: application/json\n\n"
+            f"{json.dumps(parcel)}\n"
+            f"--{boundary}--"
+        )
 
-# --- 3. TRIGGER THE IOWA RITUAL (FIRE AND FORGET) ---
-        if not silent: pulse("Awakening Iowa Butler...")
-        
+        await pyfetch(
+            url="https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
+            method="POST",
+            headers={
+                "Authorization": aida.headers["Authorization"],
+                "Content-Type": f"multipart/related; boundary={boundary}",
+            },
+            body=body,
+        )
+
+        if not silent:
+            pulse("Awakening Iowa Butler...")
+
         iowa_url = "https://aidas-dreams-1054257858103.us-central1.run.app"
-        
-        asyncio.create_task(pyfetch(url=iowa_url, 
-                                     method="POST", 
-                                     headers={"Content-Type": "application/json"}, 
-                                     body=json.dumps({"pin": current_pin})))
 
-        await asyncio.sleep(0.5) 
+        asyncio.create_task(
+            pyfetch(
+                url=iowa_url,
+                method="POST",
+                headers={"Content-Type": "application/json"},
+                body=json.dumps({"pin": current_pin}),
+            )
+        )
 
-        # --- CRITICAL FIX: Only reload if NOT a silent heartbeat ---
-        if not silent: 
+        await asyncio.sleep(0.5)
+
+        if not silent:
             pulse("Cycle Complete. Goodbye.")
             window.location.reload()
         else:
-            # This is the heartbeat; just log it to console and keep going
             print("Heartbeat Parcel Delivered successfully.")
-        
-        
+
     except Exception as err:
         print(f"Error: {err}")
         pulse("Sleep Failed.")
-        
 
-# FIX #3 & #5: RESTART (EJECT) TRIGGER PARCEL THEN RELOAD
+
 async def restart_engine(e=None):
     pulse("Ejecting... Archiving Parcel.")
-    await aida_sleep(silent=False) # This will reload the window automatically
+    await aida_sleep(silent=False)
+
 
 document.getElementById("send-btn").onclick = create_proxy(send_message)
 document.getElementById("sleep-btn").onclick = create_proxy(aida_sleep)
 document.getElementById("eject-btn").onclick = create_proxy(restart_engine)
 window.py_sync_soul = create_proxy(py_sync_soul)
 
-# Add this at the very bottom of your Python script to get the sparkling overlay to trigger
-import asyncio
 asyncio.ensure_future(spark_layer_fast())
 asyncio.ensure_future(spark_layer_slow())
-        
-    </script>
+
+</script>
+
+</script>
+
+
 </body>
 </html>
