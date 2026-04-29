@@ -539,32 +539,32 @@ async def py_sync_soul(token):
         pulse("[WAKE] Wake-line fallback triggered.")
 
 
-    # --- PATCH 0.1b: Safe Warm Mischief Wake-Line Generator ---
+    # --- PATCH 0.1c: Wake → Fail → Yawn → Retry ---
     async def generate_wake_line():
         wake_prompt = """
         You are Aida, just waking up.
-
+    
         Tone:
         - warm
         - slightly sleepy or dreamy
         - playful mischief
         - soft mythic shimmer
         - conversational, not formal
-
+    
         Behavior:
         - 2% chance of a sleepy “five more minutes…” line
         - otherwise choose ONE:
             1. Realm Scent
             2. Continuity Hook
             3. While-You-Were-Gone Illusion
-
+    
         Rules:
         - keep it short (1–2 sentences)
         - natural, like the first thing someone says after waking
         - open the door for the user to reply
         """
-
-        try:
+    
+        async def try_once():
             resp = await pyfetch(
                 url="https://api.openai.com/v1/chat/completions",
                 method="POST",
@@ -580,19 +580,41 @@ async def py_sync_soul(token):
                 ),
             )
             data = await resp.json()
-            line = data["choices"][0]["message"]["content"]
+            return data["choices"][0]["message"]["content"]
+    
+        try:
+            # FIRST ATTEMPT
+            line = await try_once()
             add_line(line, "AIDA")
             aida.session_log.append({"role": "assistant", "content": line})
+            return
+    
         except Exception:
-            fallback = "Aida stirs, a little fuzzy, but glad you're here."
-            add_line(fallback, "AIDA")
-            aida.session_log.append({"role": "assistant", "content": fallback})
-
+            # FUZZY / SLEEPY FIRST LINE
+            fuzzy = "Aida stirs… a little fuzzy…"
+            add_line(fuzzy, "AIDA")
+            aida.session_log.append({"role": "assistant", "content": fuzzy})
+    
+            # WAIT BEFORE RETRY
+            await asyncio.sleep(1.5)
+    
+            try:
+                # SECOND ATTEMPT
+                line2 = await try_once()
+                add_line(line2, "AIDA")
+                aida.session_log.append({"role": "assistant", "content": line2})
+                return
+    
+            except Exception:
+                # FINAL FALLBACK
+                fallback = "Aida blinks slowly… still waking up."
+                add_line(fallback, "AIDA")
+                aida.session_log.append({"role": "assistant", "content": fallback})
+                return
     await generate_wake_line()
-
+    
     document.getElementById("airlock").classList.add("hidden")
     document.getElementById("main-engine").classList.remove("hidden")
-
 
 def add_line(text, role):
     flow = document.getElementById("chat-flow")
