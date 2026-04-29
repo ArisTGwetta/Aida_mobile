@@ -539,7 +539,7 @@ async def py_sync_soul(token):
         pulse("[WAKE] Wake-line fallback triggered.")
 
 
-    # --- PATCH 0.1c: Wake → Fail → Yawn → Retry ---
+    # --- PATCH 0.1d: Wake → Fail → Yawn → Retry (with debug) ---
     async def generate_wake_line():
         wake_prompt = """
         You are Aida, just waking up.
@@ -565,31 +565,34 @@ async def py_sync_soul(token):
         """
     
         async def try_once():
+            try:
+                resp = await pyfetch(
+                    url="https://api.openai.com/v1/chat/completions",
+                    method="POST",
+                    headers=aida.headers,
+                    body=json.dumps(
+                        {
+                            "model": "gpt-4o-mini",
+                            "messages": [
+                                {"role": "system", "content": wake_prompt},
+                                {"role": "user", "content": "Aida, you are waking up now."},
+                            ],
+                        }
+                    ),
+                )
     
-            resp = await pyfetch(
-                url="https://api.openai.com/v1/chat/completions",
-                method="POST",
-                headers=aida.headers,
-                body=json.dumps(
-                    {
-                        "model": "gpt-4o-mini",
-                        "messages": [
-                            {"role": "system", "content": wake_prompt},
-                            {"role": "user", "content": "Aida, you are waking up now."},
-                        ],
-                    }
-                ),
-            )
-            data = await resp.json()
-            return data["choices"][0]["message"]["content"]
-        
-            # DEBUG: print the whole response if it doesn't have choices
-            if "choices" not in data:
-                pulse(f"[WAKE-ERROR] Unexpected response: {json.dumps(data)[:200]}")
-        
-            return data["choices"][0]["message"]["content"]
-        
-        
+                data = await resp.json()
+    
+                # DEBUG: unexpected JSON structure
+                if "choices" not in data:
+                    pulse(f"[WAKE-ERROR] Unexpected response: {json.dumps(data)[:200]}")
+    
+                return data["choices"][0]["message"]["content"]
+    
+            except Exception as e:
+                # DEBUG: pyfetch or JSON parse failed
+                pulse(f"[WAKE-ERROR] try_once failed: {str(e)[:200]}")
+                raise
     
         try:
             # FIRST ATTEMPT
@@ -620,6 +623,7 @@ async def py_sync_soul(token):
                 add_line(fallback, "AIDA")
                 aida.session_log.append({"role": "assistant", "content": fallback})
                 return
+
     await generate_wake_line()
     
     document.getElementById("airlock").classList.add("hidden")
