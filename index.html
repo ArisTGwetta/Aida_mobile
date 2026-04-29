@@ -565,6 +565,7 @@ async def py_sync_soul(token):
         """
     
         async def try_once():
+    
             resp = await pyfetch(
                 url="https://api.openai.com/v1/chat/completions",
                 method="POST",
@@ -581,6 +582,14 @@ async def py_sync_soul(token):
             )
             data = await resp.json()
             return data["choices"][0]["message"]["content"]
+        
+            # DEBUG: print the whole response if it doesn't have choices
+            if "choices" not in data:
+                pulse(f"[WAKE-ERROR] Unexpected response: {json.dumps(data)[:200]}")
+        
+            return data["choices"][0]["message"]["content"]
+        
+        
     
         try:
             # FIRST ATTEMPT
