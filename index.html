@@ -596,7 +596,7 @@ async def py_sync_soul(token):
             aida.session_log.append({"role": "assistant", "content": fuzzy})
     
             # WAIT BEFORE RETRY
-            await asyncio.sleep(1.5)
+            await asyncio.sleep(5)
     
             try:
                 # SECOND ATTEMPT
