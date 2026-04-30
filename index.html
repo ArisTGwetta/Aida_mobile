@@ -486,8 +486,13 @@ async def py_sync_soul(token):
         asyncio.create_task(spark_layer_fast())
         asyncio.create_task(spark_layer_slow())
 
-    aida.headers = {"Authorization": f"Bearer {token}"}
-    aida.clean_key = window.sessionStorage.getItem("aida_active_key")
+    # Google token (for Drive)
+    aida.google_headers = {"Authorization": f"Bearer {token}"}
+    
+    # OpenAI key (for LLM)
+    aida.openai_key = window.sessionStorage.getItem("aida_active_key")
+    aida.openai_headers = {"Authorization": f"Bearer {aida.openai_key}"}
+    
     aida.project = document.getElementById("project-tag").value
     document.getElementById("realm-tag").innerText = aida.project
 
@@ -506,7 +511,7 @@ async def py_sync_soul(token):
                 f"?q='{aida.vault_id}'+in+parents+and+trashed=false"
             ),
             method="GET",
-            headers=aida.headers,
+            headers=aida.google_headers,
         )
         res = await r.json()
 
@@ -517,7 +522,7 @@ async def py_sync_soul(token):
                 c = await pyfetch(
                     url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media",
                     method="GET",
-                    headers=aida.headers,
+                    headers=aida.google_headers,
                 )
                 aida.global_id = json.loads(await c.string()).get("identity", {})
                 pulse("[BRIEFCASE] Loaded global identity.")
@@ -526,7 +531,7 @@ async def py_sync_soul(token):
                 c = await pyfetch(
                     url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media",
                     method="GET",
-                    headers=aida.headers,
+                    headers=aida.google_headers,
                 )
                 aida.realm_data = await c.string()
                 pulse(f"[BRIEFCASE] Loaded realm briefcase for {aida.project}.")            
@@ -569,7 +574,7 @@ async def py_sync_soul(token):
                 resp = await pyfetch(
                     url="https://api.openai.com/v1/chat/completions",
                     method="POST",
-                    headers=aida.headers,
+                    headers=aida.openai_headers,
                     body=json.dumps(
                         {
                             "model": "gpt-4o-mini",
