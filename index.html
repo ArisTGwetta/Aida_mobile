@@ -164,7 +164,85 @@
             color: #00ff41;            /* Classic Matrix Green for visibility */
             text-shadow: 0 0 5px #00ff41;
         }
-                
+
+        /* --- VEIL --- */
+        #veil {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            z-index: 999;
+        }
+
+        #veil.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* --- GRID MASK --- */
+        .pixel-grid {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            z-index: 998;
+            pointer-events: none;
+        }
+
+        .pixel-grid div {
+            opacity: 0;
+            transform: translate(0,0);
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+
+        /* assemble */
+        .pixel-grid.assemble div {
+            opacity: 1;
+            transform: translate(0,0);
+        }
+
+        /* dissolve */
+        .pixel-grid.dissolve div {
+            opacity: 0;
+            transform: translate(
+                calc((var(--dx) - 0.5) * 10px),
+                calc((var(--dy) - 0.5) * 10px)
+            );
+        }
+
+        /* --- SPARK LAYER --- */
+        .spark-layer {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .spark-layer.active {
+            opacity: 1;
+        }
+
+        .spark {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: white;
+            border-radius: 50%;
+            opacity: 0;
+            animation: spark-float 1.2s linear infinite;
+        }
+
+        @keyframes spark-float {
+            0% { opacity: 0; transform: translateY(0); }
+            20% { opacity: 1; }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
+          
         /* FIX #1: MATRIX GREEN & O */
         .tint-layer { position: absolute; inset: 0; pointer-events: none; z-index: 25; opacity: 0; transition: opacity 0.5s; }
         .debug-green { background: rgba(0, 255, 70, 0.3); mix-blend-mode: hard-light; }
@@ -199,6 +277,7 @@
     </style>
 </head>
 <body>
+
 
 
 <div id="auth-veil" style="display: none; pointer-events: none; opacity: 0; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; z-index: 9999; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease;">
@@ -244,7 +323,10 @@
     <div id="veil-sparks" style="position: absolute; width: 100%; height: 100%;"></div>
     <div style="color: var(--aida-gold); font-family: monospace; z-index: 10000; letter-spacing: 5px; animation: pulse 2s infinite;">MANIFESTING...</div>
 </div>
-    
+
+<div id="veil"></div>
+<div class="pixel-grid" id="pixelGrid"></div>
+<div class="spark-layer" id="sparkLayer"></div>
     
     <div id="main-engine" class="hidden">
         <div id="chat-flow"></div>
@@ -320,6 +402,76 @@
                 tokenClient.requestAccessToken();
             } else { alert("ACCESS DENIED"); }
         }
+
+
+        // Build the pixel grid once
+        function buildPixelGrid() {
+            const grid = document.getElementById("pixelGrid");
+            grid.innerHTML = "";
+            for (let i = 0; i < 40; i++) {
+                const cell = document.createElement("div");
+                cell.style.setProperty("--dx", Math.random());
+                cell.style.setProperty("--dy", Math.random());
+                grid.appendChild(cell);
+            }
+        }
+        buildPixelGrid();
+
+        // Build spark layer
+        function buildSparks() {
+            const layer = document.getElementById("sparkLayer");
+            layer.innerHTML = "";
+            for (let i = 0; i < 12; i++) {
+                const s = document.createElement("div");
+                s.className = "spark";
+                s.style.left = Math.random() * 100 + "%";
+                s.style.top = Math.random() * 100 + "%";
+                s.style.animationDelay = (Math.random() * 1.2) + "s";
+                layer.appendChild(s);
+            }
+        }
+        buildSparks();
+
+        /* --- ARRIVAL --- */
+        function aida_arrive() {
+            const veil = document.getElementById("veil");
+            const grid = document.getElementById("pixelGrid");
+            const sparks = document.getElementById("sparkLayer");
+
+            veil.classList.add("active");
+
+            setTimeout(() => {
+                grid.classList.add("assemble");
+                sparks.classList.add("active");
+            }, 100);
+
+            setTimeout(() => {
+                veil.classList.remove("active");
+                sparks.classList.remove("active");
+                grid.classList.remove("assemble");
+            }, 900);
+        }
+
+        /* --- DEPARTURE --- */
+        function aida_depart() {
+            const veil = document.getElementById("veil");
+            const grid = document.getElementById("pixelGrid");
+            const sparks = document.getElementById("sparkLayer");
+
+            veil.classList.add("active");
+
+            setTimeout(() => {
+                grid.classList.add("dissolve");
+                sparks.classList.add("active");
+            }, 100);
+
+            setTimeout(() => {
+                veil.classList.remove("active");
+                sparks.classList.remove("active");
+                grid.classList.remove("dissolve");
+            }, 900);
+        }
+
 
         window.onload = function () {
             tokenClient = google.accounts.oauth2.initTokenClient({
@@ -543,32 +695,31 @@ async def py_sync_soul(token):
         add_line("Aida blinks awake, but something feels fuzzy…", "AIDA")
         pulse("[WAKE] Wake-line fallback triggered.")
 
-
     # --- PATCH 0.1d: Wake → Fail → Yawn → Retry (with debug) ---
     async def generate_wake_line():
         wake_prompt = """
         You are Aida, just waking up.
-    
+
         Tone:
         - warm
         - slightly sleepy or dreamy
         - playful mischief
         - soft mythic shimmer
         - conversational, not formal
-    
+
         Behavior:
         - 2% chance of a sleepy “five more minutes…” line
         - otherwise choose ONE:
             1. Realm Scent
             2. Continuity Hook
             3. While-You-Were-Gone Illusion
-    
+
         Rules:
         - keep it short (1–2 sentences)
         - natural, like the first thing someone says after waking
         - open the door for the user to reply
         """
-    
+
         async def try_once():
             try:
                 resp = await pyfetch(
@@ -588,54 +739,57 @@ async def py_sync_soul(token):
                         }
                     ),
                 )
-    
+
                 data = await resp.json()
-    
-                # DEBUG: unexpected JSON structure
+
                 if "choices" not in data:
                     pulse(f"[WAKE-ERROR] Unexpected response: {json.dumps(data)[:200]}")
-    
+
                 return data["choices"][0]["message"]["content"]
-    
+
             except Exception as e:
-                # DEBUG: pyfetch or JSON parse failed
                 pulse(f"[WAKE-ERROR] try_once failed: {str(e)[:200]}")
                 raise
-    
+
         try:
-            # FIRST ATTEMPT
             line = await try_once()
             add_line(line, "AIDA")
             aida.session_log.append({"role": "assistant", "content": line})
             return
-    
+
         except Exception:
-            # FUZZY / SLEEPY FIRST LINE
             fuzzy = "Aida stirs… a little fuzzy…"
             add_line(fuzzy, "AIDA")
             aida.session_log.append({"role": "assistant", "content": fuzzy})
-    
-            # WAIT BEFORE RETRY
+
             await asyncio.sleep(5)
-    
+
             try:
-                # SECOND ATTEMPT
                 line2 = await try_once()
                 add_line(line2, "AIDA")
                 aida.session_log.append({"role": "assistant", "content": line2})
                 return
-    
+
             except Exception:
-                # FINAL FALLBACK
                 fallback = "Aida blinks slowly… still waking up."
                 add_line(fallback, "AIDA")
                 aida.session_log.append({"role": "assistant", "content": fallback})
                 return
 
+
+    # ⭐ Aida materializes into the realm
+    aida_arrive()
+
+    # ⭐ Let the animation finish
+    await asyncio.sleep(1)
+
+    # ⭐ Now she wakes up and speaks (ONCE)
     await generate_wake_line()
-    
+
+    # ⭐ Reveal the main engine
     document.getElementById("airlock").classList.add("hidden")
     document.getElementById("main-engine").classList.remove("hidden")
+
 
 def add_line(text, role):
     flow = document.getElementById("chat-flow")
@@ -673,7 +827,8 @@ async def send_message(e=None):
             url="https://api.openai.com/v1/chat/completions",
             method="POST",
             headers={
-                "Authorization": f"Bearer {aida.clean_key}",
+                
+                "Authorization": f"Bearer {aida.openai_key}",
                 "Content-Type": "application/json",
             },
             body=json.dumps(
@@ -739,6 +894,8 @@ async def aida_sleep(e=None, silent=False):
     if not silent:
         pulse("Stitching Sleep Parcel...")
 
+    aida_depart();
+
     try:
         current_pin = window.document.getElementById("scramble-pin").value
 
@@ -798,6 +955,7 @@ async def aida_sleep(e=None, silent=False):
 
         if not silent:
             pulse("Cycle Complete. Goodbye.")
+            await asyncio.sleep(1)   # <-- give the animation time
             window.location.reload()
         else:
             pulse("[SLEEP] Heartbeat delivered.")
