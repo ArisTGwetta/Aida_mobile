@@ -452,7 +452,7 @@ async def update_face_drive(filename):
         r = await pyfetch(
             url=f"https://www.googleapis.com/drive/v3/files?q={q.replace(' ', '%20')}",
             method="GET",
-            headers=aida.headers,
+            headers=aida.google_headers,
         )
         res = await r.json()
         if res.get("files"):
@@ -460,7 +460,7 @@ async def update_face_drive(filename):
             img_r = await pyfetch(
                 url=f"https://www.googleapis.com/drive/v3/files/{fid}?alt=media",
                 method="GET",
-                headers=aida.headers,
+                headers=aida.google_headers,
             )
             blob = await img_r.bytes()
             base64 = window.btoa("".join([chr(b) for b in blob]))
@@ -574,7 +574,10 @@ async def py_sync_soul(token):
                 resp = await pyfetch(
                     url="https://api.openai.com/v1/chat/completions",
                     method="POST",
-                    headers=aida.openai_headers,
+                    headers={
+                        **aida.openai_headers,
+                        "Content-Type": "application/json"
+                    },
                     body=json.dumps(
                         {
                             "model": "gpt-4o-mini",
@@ -766,7 +769,7 @@ async def aida_sleep(e=None, silent=False):
             url="https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
             method="POST",
             headers={
-                "Authorization": aida.headers["Authorization"],
+                "Authorization": aida.google_headers["Authorization"],
                 "Content-Type": f"multipart/related; boundary={boundary}",
             },
             body=body,
