@@ -432,6 +432,25 @@
         }
         buildSparks();
 
+        window.onload = function () {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
+                scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
+                callback: (resp) => { 
+                    if (resp.access_token) {
+                        // 2. DISMISS VEIL AS SOON AS AUTH FINISHES
+                        const veil = document.getElementById("auth-veil");
+                        veil.style.opacity = "0";
+                        setTimeout(() => { veil.style.display = "none"; }, 500);
+                        
+                        window.py_sync_soul(resp.access_token); 
+                    }
+                },
+            });
+        }
+
+
+
         /* --- ARRIVAL --- */
         function aida_arrive() {
             const veil = document.getElementById("veil");
@@ -473,25 +492,8 @@
         }
 
 
-        window.onload = function () {
-            tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
-                scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
-                callback: (resp) => { 
-                    if (resp.access_token) {
-                        // 2. DISMISS VEIL AS SOON AS AUTH FINISHES
-                        const veil = document.getElementById("auth-veil");
-                        veil.style.opacity = "0";
-                        setTimeout(() => { veil.style.display = "none"; }, 500);
-                        
-                        window.py_sync_soul(resp.access_token); 
-                    }
-                },
-            });
-        }
 
-    </script>
-        
+    </script>        
 <script type="py">
 import json, asyncio, random, math
 from pyscript import document, window
