@@ -169,7 +169,7 @@
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.6s ease;
-            z-index: 900;
+            z-index: 5000;
         }
 
         #veil.active {
@@ -331,6 +331,12 @@
 
 
 <div id="veil"></div>
+    <div id="holoScanline"></div>
+    <div id="holoBeam"></div>
+    <div id="holoCone"></div>
+    <img id="holoFace" />
+</div>
+
 <div class="pixel-grid" id="pixelGrid"></div>
 <div class="spark-layer" id="sparkLayer"></div>
     
@@ -473,6 +479,12 @@
 window.addEventListener("load", () => {
 
     /* Grab all existing layers */
+    // Preload Aida portrait to avoid broken icon
+    const preloadPortrait = new Image();
+    preloadPortrait.src = "assets/neutral1.png";  // same image used for aida-portrait
+    preloadPortrait.onload = () => {
+        document.getElementById("aida-portrait").src = preloadPortrait.src;
+    };
     const veil        = document.getElementById("veil");
     const flickerGrid = document.getElementById("flicker-grid");
     const pixelGrid   = document.getElementById("pixelGrid");
@@ -575,6 +587,7 @@ window.addEventListener("load", () => {
         flickerGrid.style.opacity = "0";
         pixelGrid.style.opacity = "0";
         sparkLayer.style.opacity = "0";
+        portraitPane.style.opacity = "0";
 
         /* Full blackout */
         veil.style.background = "black";
@@ -643,6 +656,7 @@ window.addEventListener("load", () => {
             uiDock.style.opacity = "1";
             dataStack.style.opacity = "1";
             flickerGrid.style.opacity = "1";
+            portraitPane.style.opacity = "1";
 
             /* Remove blackout */
             veil.style.opacity = "0";
