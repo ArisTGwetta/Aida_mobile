@@ -457,7 +457,11 @@
         
                         // Trigger hologram arrival
                         setTimeout(() => {
-                            window.aida_arrive();
+                                // 1. Reveal the engine FIRST
+                                document.getElementById("main-engine").classList.remove("hidden");
+                            
+                                // 2. THEN run the hologram ritual
+                                window.aida_arrive();
                         }, 100);
                     }
                 }
