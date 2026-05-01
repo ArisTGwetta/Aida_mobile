@@ -665,39 +665,40 @@ window.addEventListener("load", () => {
             holoBeam.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: "forwards" });
         }, 3000);
     
-        /* -----------------------------------------------------------
-           Phase 5 — Flash + UI Reveal (3.8 → 4.2s)
-           ----------------------------------------------------------- */
+        /* Phase 5 — Flash + Blackout Pause + UI Reveal (3.8 → 4.6s) */
         setTimeout(() => {
-    
-            // Flash on veil
+        
+            // 1. Flash on veil
             veil.style.background = "white";
             veil.style.opacity = "1";
-    
+        
+            // 2. Fade back to black (quick)
             setTimeout(() => {
-                // Fade veil back to black before dropping
                 veil.style.background = "black";
             }, 120);
-    
-            // Blink effect
-            holoFace.animate(
-                [{ opacity: 1 }, { opacity: 0.2 }, { opacity: 1 }],
-                { duration: 300, easing: "ease-in-out" }
-            );
-    
-            // Fade UI back in
-            uiDock.style.opacity = "1";
-            dataStack.style.opacity = "1";
-            flickerGrid.style.opacity = "1";
-            portraitPane.style.opacity = "1";
-    
-            // Drop veil
+        
+            // 3. Fade hologram face out AFTER the flash
+            setTimeout(() => {
+                holoFace.style.opacity = "0";
+            }, 200);
+        
+            // 4. Blackout pause (Aida fully gone, UI still hidden)
+            setTimeout(() => {
+                // UI fade-in happens AFTER the blackout
+                uiDock.style.opacity = "1";
+                dataStack.style.opacity = "1";
+                flickerGrid.style.opacity = "1";
+                portraitPane.style.opacity = "1";
+            }, 500);
+        
+            // 5. Drop veil LAST
             setTimeout(() => {
                 veil.style.opacity = "0";
                 veil.style.pointerEvents = "none";
-            }, 200);
-    
+            }, 600);
+        
         }, 3800);
+
     };
 
 
