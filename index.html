@@ -172,7 +172,7 @@
             background: rgba(0,0,0,0.7);
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.2s ease;
+            transition: opacity 0.6s ease;
             z-index: 999;
         }
 
@@ -186,8 +186,8 @@
             position: absolute;
             inset: 0;
             display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            grid-template-rows: repeat(5, 1fr);
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(4, 1fr);
             z-index: 998;
             pointer-events: none;
         }
@@ -195,7 +195,7 @@
         .pixel-grid div {
             opacity: 0;
             transform: translate(0,0);
-            transition: opacity 0.25s ease, transform 0.25s ease;
+            transition: opacity 0.6s ease, transform 0.6s ease;
         }
 
         /* assemble */
@@ -229,8 +229,8 @@
 
         .spark {
             position: absolute;
-            width: 3px;
-            height: 3px;
+            width: 10px;
+            height: 10px;
             background: white;
             border-radius: 50%;
             opacity: 0;
@@ -420,7 +420,7 @@
         function buildSparks() {
             const layer = document.getElementById("sparkLayer");
             layer.innerHTML = "";
-            for (let i = 0; i < 12; i++) {
+            for (let i = 0; i < 40; i++) {
                 const s = document.createElement("div");
                 s.className = "spark";
                 s.style.left = Math.random() * 100 + "%";
@@ -467,7 +467,7 @@ window.addEventListener("load", () => {
             veil.classList.remove("active");
             sparks.classList.remove("active");
             grid.classList.remove("assemble");
-        }, 900);
+        }, 1500);
     };
 
     window.aida_depart = function() {
@@ -781,7 +781,7 @@ async def py_sync_soul(token):
     # ⭐ Aida materializes into the realm
     window.aida_arrive()
     # ⭐ Let the animation finish
-    await asyncio.sleep(1)
+    await asyncio.sleep(2)
 
     # ⭐ Now she wakes up and speaks (ONCE)
     await generate_wake_line()
