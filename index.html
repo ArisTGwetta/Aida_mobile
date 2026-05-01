@@ -779,8 +779,7 @@ async def py_sync_soul(token):
 
 
     # ⭐ Aida materializes into the realm
-    aida_arrive()
-
+    window.aida_arrive()
     # ⭐ Let the animation finish
     await asyncio.sleep(1)
 
@@ -895,7 +894,7 @@ async def aida_sleep(e=None, silent=False):
     if not silent:
         pulse("Stitching Sleep Parcel...")
 
-    aida_depart();
+    window.aida_depart()
 
     try:
         current_pin = window.document.getElementById("scramble-pin").value
