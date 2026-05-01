@@ -284,11 +284,13 @@
 <body>
 
 
-
+<!--
 <div id="auth-veil" style="display: none; pointer-events: none; opacity: 0; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; z-index: 9999; flex-direction: column; align-items: center; justify-content: center;">
     <div id="veil-sparks" style="position: absolute; width: 100%; height: 100%;"></div>
     <div style="color: var(--aida-gold); font-family: monospace; letter-spacing: 5px; animation: pulse 2s infinite;">Joining...</div>
 </div>
+-->
+    
     
     <div id="airlock" style="height:100dvh; background:var(--aida-dark); color:var(--aida-gold); display:flex; flex-direction:column; justify-content:center; align-items:center;">
     <h1 style="letter-spacing:10px; margin-bottom: 20px;">AIDA 9.7.7</h1>
@@ -323,10 +325,14 @@
     </div>
 </div>
     
+
+<--    
 <div id="auth-veil" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; z-index: 9999; flex-direction: column; align-items: center; justify-content: center;">
     <div id="veil-sparks" style="position: absolute; width: 100%; height: 100%;"></div>
     <div style="color: var(--aida-gold); font-family: monospace; z-index: 10000; letter-spacing: 5px; animation: pulse 2s infinite;">MANIFESTING...</div>
 </div>
+-->
+
 
 <div id="veil"></div>
 <div class="pixel-grid" id="pixelGrid"></div>
@@ -391,15 +397,15 @@
 
         function requestToken() {
             const pin = document.getElementById("scramble-pin").value;
-            const veil = document.getElementById("auth-veil");
+            //const veil = document.getElementById("auth-veil");
             const airlock = document.getElementById("airlock");
 
             if(pin.length === 3) {
                 // 1. COLLAPSE PIN & SHOW VEIL
                 airlock.style.display = "none";
-                veil.style.display = "flex";
-                veil.style.opacity = "1";
-                veil.style.pointerEvents = "auto"; // Now it blocks clicks while loading
+                //veil.style.display = "flex";
+                //veil.style.opacity = "1";
+                //veil.style.pointerEvents = "auto"; // Now it blocks clicks while loading
 
                 const assembled = "sk-proj-" + VAULT_KEY_FOLDERS[pin[0]] + VAULT_KEY_FOLDERS[pin[1]] + VAULT_KEY_FOLDERS[pin[2]];
                 sessionStorage.setItem("aida_active_key", assembled);
@@ -443,14 +449,14 @@
                 callback: (resp) => { 
                     if (resp.access_token) {
                 
-                        const authVeil = document.getElementById("auth-veil");
+                        //const authVeil = document.getElementById("auth-veil");
                 
                         // Fade out the auth veil
-                        authVeil.style.opacity = "0";
+                        //authVeil.style.opacity = "0";
                 
                         // Wait for fade to finish BEFORE starting Aida
-                        setTimeout(() => {
-                            authVeil.style.display = "none";
+                        //setTimeout(() => {
+                            //authVeil.style.display = "none";
                 
                             // Now safe to start the world
                             window.py_sync_soul(resp.access_token);
