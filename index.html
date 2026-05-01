@@ -1,4 +1,4 @@
-    <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -448,31 +448,21 @@
                 scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
                 callback: (resp) => { 
                     if (resp.access_token) {
-                
-                        //const authVeil = document.getElementById("auth-veil");
-                
-                        // Fade out the auth veil
-                        //authVeil.style.opacity = "0";
-                
-                        // Wait for fade to finish BEFORE starting Aida
-                        //setTimeout(() => {
-                            //authVeil.style.display = "none";
-                
-                            // Now safe to start the world
-                            window.py_sync_soul(resp.access_token);
-                
-                            // And only AFTER Python sync completes, call arrival
-                            setTimeout(() => {
-                                window.aida_arrive();
-                            }, 100); // tiny buffer
-                        }
+        
+                        // AUTH VEIL DISABLED FOR DEBUGGING
+                        // (We removed the fade-out logic temporarily)
+        
+                        // Sync soul
+                        window.py_sync_soul(resp.access_token);
+        
+                        // Trigger hologram arrival
+                        setTimeout(() => {
+                            window.aida_arrive();
+                        }, 100);
                     }
-                
-
-            },
+                }
             });
-        }
-
+        };
 
 /* -----------------------------------------------------------
    AIDA HOLOGRAM RITUAL — FULL ARRIVAL (4s) + DEPARTURE (3s)
