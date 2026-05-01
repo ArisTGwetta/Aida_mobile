@@ -583,9 +583,9 @@ window.addEventListener("load", () => {
        ARRIVAL — 4 seconds
        ----------------------------------------------------------- */
     window.aida_arrive = function() {
-
+    
         console.log("AIDA ARRIVE TRIGGERED");
-
+    
         /* Hide UI + flicker + pixel grid during ritual */
         uiDock.style.opacity = "0";
         dataStack.style.opacity = "0";
@@ -593,29 +593,39 @@ window.addEventListener("load", () => {
         pixelGrid.style.opacity = "0";
         sparkLayer.style.opacity = "0";
         portraitPane.style.opacity = "0";
-
+    
         /* Full blackout */
         veil.style.background = "black";
         veil.style.opacity = "1";
         veil.style.pointerEvents = "auto";
-
-        /* Phase 1 — Scanline (0.5 → 1.5s) */
+    
+        /* -----------------------------------------------------------
+           Phase 1 — Scanline (0.5 → 1.5s)
+           Full sweep from top → bottom → return
+           ----------------------------------------------------------- */
         setTimeout(() => {
             holoScanline.style.opacity = "1";
+    
             holoScanline.animate(
-                [{ top: "-20px" }, { top: "300px" }],
-                { duration: 1000, easing: "ease-out" }
+                [
+                    { top: "-20px" },
+                    { top: "100%" },
+                    { top: "-20px" }
+                ],
+                { duration: 1200, easing: "linear", fill: "forwards" }
             );
         }, 500);
-
-        /* Phase 2 — Beam + Cone (1.5 → 2.2s) */
+    
+        /* -----------------------------------------------------------
+           Phase 2 — Beam + Cone (1.5 → 2.2s)
+           ----------------------------------------------------------- */
         setTimeout(() => {
             holoBeam.style.opacity = "1";
             holoBeam.animate(
                 [{ height: "0px" }, { height: "260px" }],
                 { duration: 400, easing: "ease-out", fill: "forwards" }
             );
-
+    
             holoCone.style.opacity = "1";
             holoCone.animate(
                 [
@@ -625,8 +635,10 @@ window.addEventListener("load", () => {
                 { duration: 700, easing: "ease-out", fill: "forwards" }
             );
         }, 1500);
-
-        /* Phase 3 — Silhouette Flicker (2.2 → 3.0s) */
+    
+        /* -----------------------------------------------------------
+           Phase 3 — Silhouette Flicker (2.2 → 3.0s)
+           ----------------------------------------------------------- */
         setTimeout(() => {
             holoFace.style.opacity = "0.3";
             holoFace.animate(
@@ -639,35 +651,55 @@ window.addEventListener("load", () => {
                 { duration: 800, easing: "steps(4)" }
             );
         }, 2200);
-
-        /* Phase 4 — Face Resolution (3.0 → 3.5s) */
+    
+        /* -----------------------------------------------------------
+           Phase 4 — Face Resolution (3.0 → 3.8s)
+           (extended linger time)
+           ----------------------------------------------------------- */
         setTimeout(() => {
             holoFace.style.filter = "grayscale(0) contrast(1) brightness(1)";
             holoFace.style.opacity = "1";
             holoFace.style.transform = "scale(1)";
-
+    
             holoCone.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: "forwards" });
             holoBeam.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: "forwards" });
         }, 3000);
-
-        /* Phase 5 — Blink + UI Reveal (3.5 → 4.0s) */
+    
+        /* -----------------------------------------------------------
+           Phase 5 — Flash + UI Reveal (3.8 → 4.2s)
+           ----------------------------------------------------------- */
         setTimeout(() => {
+    
+            // Flash on veil
+            veil.style.background = "white";
+            veil.style.opacity = "1";
+    
+            setTimeout(() => {
+                // Fade veil back to black before dropping
+                veil.style.background = "black";
+            }, 120);
+    
+            // Blink effect
             holoFace.animate(
                 [{ opacity: 1 }, { opacity: 0.2 }, { opacity: 1 }],
                 { duration: 300, easing: "ease-in-out" }
             );
-
-            /* Fade UI back in */
+    
+            // Fade UI back in
             uiDock.style.opacity = "1";
             dataStack.style.opacity = "1";
             flickerGrid.style.opacity = "1";
             portraitPane.style.opacity = "1";
-
-            /* Remove blackout */
-            veil.style.opacity = "0";
-            veil.style.pointerEvents = "none";
-        }, 3500);
+    
+            // Drop veil
+            setTimeout(() => {
+                veil.style.opacity = "0";
+                veil.style.pointerEvents = "none";
+            }, 200);
+    
+        }, 3800);
     };
+
 
     /* -----------------------------------------------------------
        DEPARTURE — 3 seconds
