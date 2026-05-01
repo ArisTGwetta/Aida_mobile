@@ -173,7 +173,7 @@
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.6s ease;
-            z-index: 999;
+            z-index: 900;
         }
 
         #veil.active {
@@ -442,14 +442,28 @@
                 scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
                 callback: (resp) => { 
                     if (resp.access_token) {
-                        // 2. DISMISS VEIL AS SOON AS AUTH FINISHES
-                        const veil = document.getElementById("auth-veil");
-                        veil.style.opacity = "0";
-                        setTimeout(() => { veil.style.display = "none"; }, 500);
-                        
-                        window.py_sync_soul(resp.access_token); 
+                
+                        const authVeil = document.getElementById("auth-veil");
+                
+                        // Fade out the auth veil
+                        authVeil.style.opacity = "0";
+                
+                        // Wait for fade to finish BEFORE starting Aida
+                        setTimeout(() => {
+                            authVeil.style.display = "none";
+                
+                            // Now safe to start the world
+                            window.py_sync_soul(resp.access_token);
+                
+                            // And only AFTER Python sync completes, call arrival
+                            setTimeout(() => {
+                                window.aida_arrive();
+                            }, 100); // tiny buffer
+                        }, 600);
                     }
-                },
+                }
+
+            },
             });
         }
 
