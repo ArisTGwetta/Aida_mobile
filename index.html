@@ -477,15 +477,19 @@
    Drop‑in replacement for aida_arrive() and aida_depart()
    ----------------------------------------------------------- */
 
+    // DOM references
+    const portraitImg = document.getElementById("aida-portrait");
+    
+    // Preload Aida portrait immediately
+    const preloadPortrait = new Image();
+    preloadPortrait.src = "assets/neutral1.png";   // or "./assets/neutral1.png"
+    preloadPortrait.onload = () => {
+        portraitImg.src = preloadPortrait.src;
+    };
+    
 window.addEventListener("load", () => {
 
     /* Grab all existing layers */
-    // Preload Aida portrait to avoid broken icon
-    const preloadPortrait = new Image();
-    preloadPortrait.src = "assets/neutral1.png";  // same image used for aida-portrait
-    preloadPortrait.onload = () => {
-        document.getElementById("aida-portrait").src = preloadPortrait.src;
-    };
     const veil        = document.getElementById("veil");
     const flickerGrid = document.getElementById("flicker-grid");
     const pixelGrid   = document.getElementById("pixelGrid");
@@ -493,15 +497,16 @@ window.addEventListener("load", () => {
     const portraitPane = document.getElementById("portrait-pane");
     const uiDock      = document.getElementById("input-dock");
     const dataStack   = document.getElementById("data-stack");
-    const portraitImg = document.getElementById("aida-portrait");
+
 
     /* -----------------------------------------------------------
        Inject hologram elements into portrait-pane
        (beam, cone, scanline, silhouette container)
        ----------------------------------------------------------- */
 
+    // SCANLINE
     const holoScanline = document.createElement("div");
-    holoScanline.id = "holo-scanline";
+    holoScanline.id = "holoScanline";
     Object.assign(holoScanline.style, {
         position: "absolute",
         top: "-20px",
@@ -513,9 +518,10 @@ window.addEventListener("load", () => {
         zIndex: "2001",
         pointerEvents: "none"
     });
-
+    
+    // BEAM
     const holoBeam = document.createElement("div");
-    holoBeam.id = "holo-beam";
+    holoBeam.id = "holoBeam";
     Object.assign(holoBeam.style, {
         position: "absolute",
         bottom: "0",
@@ -528,9 +534,10 @@ window.addEventListener("load", () => {
         zIndex: "2002",
         pointerEvents: "none"
     });
-
+    
+    // CONE
     const holoCone = document.createElement("div");
-    holoCone.id = "holo-cone";
+    holoCone.id = "holoCone";
     Object.assign(holoCone.style, {
         position: "absolute",
         bottom: "0",
@@ -546,34 +553,31 @@ window.addEventListener("load", () => {
         zIndex: "2003",
         pointerEvents: "none"
     });
-
-    const holoFace = document.createElement("div");
-    holoFace.id = "holo-face";
+    
+    // FACE (single <img>, no wrapper)
+    const holoFace = document.createElement("img");
+    holoFace.id = "holoFace";
+    holoFace.src = portraitImg.src;
     Object.assign(holoFace.style, {
         position: "absolute",
         inset: "0",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        margin: "auto",
+        maxWidth: "80%",
+        maxHeight: "80%",
+        objectFit: "contain",
         opacity: "0",
         filter: "grayscale(1) contrast(0.6) brightness(0.7)",
         transform: "scale(0.9)",
         zIndex: "2004",
         pointerEvents: "none"
     });
+    
+    // Add hologram elements to VEIL (not portrait pane)
+    veil.appendChild(holoScanline);
+    veil.appendChild(holoBeam);
+    veil.appendChild(holoCone);
+    veil.appendChild(holoFace);
 
-    const holoFaceImg = document.createElement("img");
-    holoFaceImg.src = portraitImg.src;   // use your real portrait
-    holoFaceImg.style.maxWidth = "80%";
-    holoFaceImg.style.maxHeight = "80%";
-    holoFaceImg.style.objectFit = "contain";
-    holoFace.appendChild(holoFaceImg);
-
-    /* Add hologram elements to portrait pane */
-    portraitPane.appendChild(holoScanline);
-    portraitPane.appendChild(holoBeam);
-    portraitPane.appendChild(holoCone);
-    portraitPane.appendChild(holoFace);
 
     /* -----------------------------------------------------------
        ARRIVAL — 4 seconds
