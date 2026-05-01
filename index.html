@@ -448,15 +448,22 @@
                 scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
                 callback: (resp) => { 
                     if (resp.access_token) {
-                
+        
+                        // TEMP: auth veil disabled for debugging
                         window.py_sync_soul(resp.access_token);
-                
+        
+                        // Unhide engine BEFORE hologram
+                        document.getElementById("main-engine").classList.remove("hidden");
+        
+                        // Trigger hologram arrival
                         setTimeout(() => {
-                            document.getElementById("main-engine").classList.remove("hidden");
                             window.aida_arrive();
                         }, 100);
                     }
                 }
+            });
+        };
+
     
 /* -----------------------------------------------------------
    AIDA HOLOGRAM RITUAL — FULL ARRIVAL (4s) + DEPARTURE (3s)
