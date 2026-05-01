@@ -269,7 +269,6 @@
             border-left: 5px solid var(--aida-gold); /* Keeping your gold accent */
             align-self: flex-start;
             padding: 12px;
-            font-size: 12px;   /* ← Add this */
             margin: 5px 0;
             border-radius: 10px;       /* Sharper corners for a more technical look */
         }              
@@ -551,7 +550,7 @@ window.addEventListener("load", () => {
     });
 
     const holoFaceImg = document.createElement("img");
-    holoFaceImg.src = neutral1.png;   // use your real portrait
+    holoFaceImg.src = portraitImg.src;   // use your real portrait
     holoFaceImg.style.maxWidth = "80%";
     holoFaceImg.style.maxHeight = "80%";
     holoFaceImg.style.objectFit = "contain";
@@ -1197,3 +1196,6 @@ asyncio.ensure_future(spark_layer_slow())
 
 </body>
 </html>
+
+
+        
