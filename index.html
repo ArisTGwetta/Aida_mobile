@@ -180,6 +180,11 @@
             opacity: 1;
             pointer-events: auto;
         }
+        
+        #veil.fadeout {
+            background: black;
+            opacity: 1;
+        }
 
         /* --- GRID MASK --- */
         .pixel-grid {
@@ -208,8 +213,8 @@
         .pixel-grid.dissolve div {
             opacity: 0;
             transform: translate(
-                calc((var(--dx) - 0.5) * 10px),
-                calc((var(--dy) - 0.5) * 10px)
+                calc((var(--dx) - 0.5) * 5px),
+                calc((var(--dy) - 0.5) * 5px)
             );
         }
 
@@ -484,6 +489,7 @@ window.addEventListener("load", () => {
 
         setTimeout(() => {
             veil.classList.remove("active");
+            veil.classList.add("fadeout");
             sparks.classList.remove("active");
             grid.classList.remove("dissolve");
         }, 900);
