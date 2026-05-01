@@ -450,47 +450,47 @@
         }
 
 
+window.addEventListener("load", () => {
 
-        /* --- ARRIVAL --- */
-        window.aida_arrive = function() {
-            const veil = document.getElementById("veil");
-            const grid = document.getElementById("pixelGrid");
-            const sparks = document.getElementById("sparkLayer");
+    window.aida_arrive = function() {
+        const veil = document.getElementById("veil");
+        const grid = document.getElementById("pixelGrid");
+        const sparks = document.getElementById("sparkLayer");
 
-            veil.classList.add("active");
+        veil.classList.add("active");
 
-            setTimeout(() => {
-                grid.classList.add("assemble");
-                sparks.classList.add("active");
-            }, 100);
+        setTimeout(() => {
+            grid.classList.add("assemble");
+            sparks.classList.add("active");
+        }, 100);
 
-            setTimeout(() => {
-                veil.classList.remove("active");
-                sparks.classList.remove("active");
-                grid.classList.remove("assemble");
-            }, 900);
-        }
+        setTimeout(() => {
+            veil.classList.remove("active");
+            sparks.classList.remove("active");
+            grid.classList.remove("assemble");
+        }, 900);
+    };
 
-        /* --- DEPARTURE --- */
-        window.aida_depart = function() {
-            const veil = document.getElementById("veil");
-            const grid = document.getElementById("pixelGrid");
-            const sparks = document.getElementById("sparkLayer");
+    window.aida_depart = function() {
+        const veil = document.getElementById("veil");
+        const grid = document.getElementById("pixelGrid");
+        const sparks = document.getElementById("sparkLayer");
 
-            veil.classList.add("active");
+        veil.classList.add("active");
 
-            setTimeout(() => {
-                grid.classList.add("dissolve");
-                sparks.classList.add("active");
-            }, 100);
+        setTimeout(() => {
+            grid.classList.add("dissolve");
+            sparks.classList.add("active");
+        }, 100);
 
-            setTimeout(() => {
-                veil.classList.remove("active");
-                sparks.classList.remove("active");
-                grid.classList.remove("dissolve");
-            }, 900);
-        }
+        setTimeout(() => {
+            veil.classList.remove("active");
+            sparks.classList.remove("active");
+            grid.classList.remove("dissolve");
+        }, 900);
+    };
 
+});
 
 
     </script>        
