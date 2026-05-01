@@ -441,29 +441,23 @@
             }
         }
         buildSparks();
-
+        
         window.onload = function () {
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
                 scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
                 callback: (resp) => { 
                     if (resp.access_token) {
-        
-                        // AUTH VEIL DISABLED FOR DEBUGGING
-                        // (We removed the fade-out logic temporarily)
-        
-                        // Sync soul
+                
                         window.py_sync_soul(resp.access_token);
-        
-                        // Trigger hologram arrival
+                
                         setTimeout(() => {
+                            document.getElementById("main-engine").classList.remove("hidden");
                             window.aida_arrive();
                         }, 100);
                     }
                 }
-            });
-        };
-
+    
 /* -----------------------------------------------------------
    AIDA HOLOGRAM RITUAL — FULL ARRIVAL (4s) + DEPARTURE (3s)
    Drop‑in replacement for aida_arrive() and aida_depart()
@@ -565,6 +559,8 @@ window.addEventListener("load", () => {
        ARRIVAL — 4 seconds
        ----------------------------------------------------------- */
     window.aida_arrive = function() {
+
+        console.log("AIDA ARRIVE TRIGGERED");
 
         /* Hide UI + flicker + pixel grid during ritual */
         uiDock.style.opacity = "0";
