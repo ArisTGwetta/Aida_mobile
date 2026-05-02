@@ -58,7 +58,42 @@
             letter-spacing: 0.5px;
             white-space: pre-wrap;
         }
+
+        #input-dock {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            gap: 8px;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
+        }
         
+        #input-dock input {
+            width: 100%;
+            padding: 8px 10px;
+            font-size: 14px;
+            background: #000;
+            color: #0f0;
+            border: 1px solid #0f0;
+            border-radius: 4px;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        .controls button {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+        }
+        
+                
         /* FIX #6: FULL FLICKER COVERAGE */
         #flicker-grid {
             position: absolute; /* Takes it out of the grid flow */
@@ -361,21 +396,17 @@
         <div id="pres-content">Engine Stitched.</div>
     </div>
 </div>
-            
-        
-        <div id="input-dock">
-            <!-- NEW TAG BAR -->
-            <input type="text" id="tag-in" placeholder="#tags…">
-            <!-- MAIN MESSAGE BAR (unchanged) -->
-            <input type="text" id="user-in" placeholder="Talk to Aida...">
-            <div class="controls">
-                <button id="send-btn">SEND</button>
-                <button id="eject-btn" style="background:#666;">RESTART</button>
-                <button id="sleep-btn" style="background:#444;">SLEEP</button>
-            </div>
-        </div>
+<div id="input-dock">
+    <input type="text" id="tag-in" placeholder="#tags…">
+    <input type="text" id="user-in" placeholder="Talk to Aida...">
+    <div class="controls">
+        <button id="send-btn">SEND</button>
+        <button id="eject-btn" style="background:#666;">RESTART</button>
+        <button id="sleep-btn" style="background:#444;">SLEEP</button>
     </div>
+</div>
 
+            
 <script>
         let tokenClient;
         const VAULT_KEY_FOLDERS = {
