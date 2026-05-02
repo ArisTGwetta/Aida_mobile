@@ -58,41 +58,7 @@
             letter-spacing: 0.5px;
             white-space: pre-wrap;
         }
-        #tag-bar {
-            position: relative;
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            margin-bottom: 6px; /* small spacing above the input */
-        }
         
-        .tag-btn {
-            background-color: black;
-            color: white;
-            border: 1px solid #333;
-            padding: 6px 10px;
-            border-radius: 6px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        
-        .tag-btn.used {
-            color: #00ff66;
-            border-color: #00ff66;
-        }
-        
-        #tag-input {
-            display: none;
-            background-color: #111;
-            color: #00ff66;
-            border: 1px solid #00ff66;
-            padding: 6px 10px;
-            border-radius: 6px;
-            font-size: 14px;
-            width: 120px;
-        }
-
         /* FIX #6: FULL FLICKER COVERAGE */
         #flicker-grid {
             position: absolute; /* Takes it out of the grid flow */
@@ -289,59 +255,19 @@
         #portrait-pane { position: relative; z-index: 10; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         #aida-portrait { height: 100%; width: 100%; object-fit: cover; image-rendering: auto; }
         
-        #input-dock {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            width: 100%;          /* <-- important */
-            max-width: 100%;      /* <-- prevents overflow */
-            overflow: hidden;     /* <-- prevents UI from pushing outward */
-        }
+        #input-dock { padding: 2px; background: #000000; border-top: 1px solid #ccc; padding-bottom: 2px; display: flex; flex-direction: column; gap: 5px; }
+        #user-in { width: 100%; padding: 2px; border-radius: 2px; border: 1px solid #bbb; font-size: 10px; outline: none; }
+        .controls { display: flex; gap: 8px; }
+        button { background: var(--aida-gold); color: white; border: none; border-radius: 20px; padding: 5px; font-weight: bold; flex: 1; cursor: pointer; }
+        
+        .line { padding: 5px; border-radius: 5px; font-size: 10px; max-width: 85%; line-height: 1.0; }
 
-        
-        #user-in {            
-            flex: 1;
-            min-width: 200px;
-            width: 100%;
-            padding: 2px;
-            border-radius: 2px;
-            border: 1px solid #bbb;
-            font-size: 10px;
-            outline: none;
-        }
-        
-        .controls {
-            display: flex;
-            gap: 8px;
-        }
-        
-        button {
-            background: var(--aida-gold);
-            color: white;
-            border: none;
-            border-radius: 20px;
-            padding: 5px;
-            font-weight: bold;
-            flex: 1;
-            cursor: pointer;
-        }
-        
-        .line {
-            padding: 5px;
-            border-radius: 5px;
-            font-size: 10px;
-            max-width: 85%;
-            line-height: 1.0;
-        }
-        
-                
         .AIDA {
             background: #000000;      /* Solid black inside */
             color: #0a9396;           /* Crisp white text */
             border: 1px solid var(--aida-gold); /* The white border you wanted */
             border-left: 5px solid var(--aida-gold); /* Keeping your gold accent */
             align-self: flex-start;
-            font-size:12px;
             padding: 12px;
             margin: 5px 0;
             border-radius: 10px;       /* Sharper corners for a more technical look */
@@ -435,30 +361,17 @@
         <div id="pres-content">Engine Stitched.</div>
     </div>
 </div>
-
-<div id="input-dock">
-
-
-    <input type="text" id="user-in" placeholder="Talk to Aida...">
-    
-    <!-- TAG BAR GOES HERE -->
-    <div id="tag-bar">
-        <button class="tag-btn" data-index="0">#</button>
-        <button class="tag-btn" data-index="1">#</button>
-        <button class="tag-btn" data-index="2">#</button>
-        <input id="tag-input" type="text" placeholder="type tag…">
+            
+        
+        <div id="input-dock">
+            <input type="text" id="user-in" placeholder="Talk to Aida...">
+            <div class="controls">
+                <button id="send-btn">SEND</button>
+                <button id="eject-btn" style="background:#666;">RESTART</button>
+                <button id="sleep-btn" style="background:#444;">SLEEP</button>
+            </div>
+        </div>
     </div>
-    <!-- END TAG BAR -->
-
-  
-
-    <div class="controls">
-        <button id="send-btn">SEND</button>
-        <button id="eject-btn" style="background:#666;">RESTART</button>
-        <button id="sleep-btn" style="background:#444;">SLEEP</button>
-    </div>
-
-</div>
 
 <script>
         let tokenClient;
@@ -558,108 +471,33 @@
             });
         };
 
-
-    // --- TAG SYSTEM ---
-
-    // Holds the three tag values
-    let currentTags = ["", "", ""];
     
-    // Grab elements
-    const tagButtons = document.querySelectorAll(".tag-btn");
-    const tagInput = document.getElementById("tag-input");
-    
-    // Track which tag slot is being edited
-    let activeTagIndex = null;
-    
-    // When a tag button is clicked → open input
-    tagButtons.forEach(btn => {
-        btn.addEventListener("click", () => {
-            activeTagIndex = parseInt(btn.dataset.index);
-    
-            // Position input next to the clicked button
-            const rect = btn.getBoundingClientRect();
-            tagInput.style.position = "absolute";
-            tagInput.style.left = btn.offsetLeft + "px";
-            tagInput.style.top = (btn.offsetTop - 30) + "px";
-
-            // Pre-fill with existing tag
-            tagInput.value = currentTags[activeTagIndex];
-    
-            // Show input + focus
-            tagInput.style.display = "block";
-            tagInput.focus();
-        });
-    });
-    
-    // When user presses Enter inside the tag input → save tag
-    tagInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-            const newTag = tagInput.value.trim();
-    
-            // Save tag
-            currentTags[activeTagIndex] = newTag;
-    
-            // Update button text + color
-            const btn = tagButtons[activeTagIndex];
-            btn.textContent = newTag === "" ? "#" : "#" + newTag;
-            btn.classList.toggle("used", newTag !== "");
-    
-            // Hide input
-            tagInput.style.display = "none";
-            activeTagIndex = null;
-        }
-    });
-    
-    // Hide input if user clicks outside
-    document.addEventListener("click", (e) => {
-        if (e.target !== tagInput && !e.target.classList.contains("tag-btn")) {
-            tagInput.style.display = "none";
-            activeTagIndex = null;
-        }
-    });
-    // --- PREPEND TAGS TO OUTGOING MESSAGE ---
-
-function getTaggedMessage(rawMessage) {
-    const tags = currentTags
-        .filter(t => t !== "")
-        .map(t => "#" + t)
-        .join(" ");
-
-    return tags.length > 0 ? `${tags} | ${rawMessage}` : rawMessage;
-}
-
-// ⭐ MUST BE GLOBAL ⭐
-window.getTaggedMessage = getTaggedMessage;
-
-
 /* -----------------------------------------------------------
    AIDA HOLOGRAM RITUAL — FULL ARRIVAL (4s) + DEPARTURE (3s)
+   Drop‑in replacement for aida_arrive() and aida_depart()
    ----------------------------------------------------------- */
 
-// DOM references
-const portraitImg = document.getElementById("aida-portrait");
+    // DOM references
+    const portraitImg = document.getElementById("aida-portrait");
+    
+    // Preload Aida portrait immediately
+    const preloadPortrait = new Image();
+    preloadPortrait.src = "assets/neutral1.png";   // or "./assets/neutral1.png"
+    preloadPortrait.onload = () => {
+        portraitImg.src = preloadPortrait.src;
+    };
+    
+window.addEventListener("load", () => {
 
-// Preload Aida portrait immediately
-const preloadPortrait = new Image();
-preloadPortrait.src = "assets/neutral1.png";
-preloadPortrait.onload = () => {
-    portraitImg.src = preloadPortrait.src;
-};
+    /* Grab all existing layers */
+    const veil        = document.getElementById("veil");
+    const flickerGrid = document.getElementById("flicker-grid");
+    const pixelGrid   = document.getElementById("pixelGrid");
+    const sparkLayer  = document.getElementById("sparkLayer");
+    const portraitPane = document.getElementById("portrait-pane");
+    const uiDock      = document.getElementById("input-dock");
+    const dataStack   = document.getElementById("data-stack");
 
-// ⭐ IMPORTANT ⭐
-// DO NOT wrap the hologram ritual in window.onload or window.addEventListener.
-// It must run immediately so Python can see all JS globals.
-
-// Grab all existing layers
-const veil        = document.getElementById("veil");
-const flickerGrid = document.getElementById("flicker-grid");
-const pixelGrid   = document.getElementById("pixelGrid");
-const sparkLayer  = document.getElementById("sparkLayer");
-const portraitPane = document.getElementById("portrait-pane");
-const uiDock      = document.getElementById("input-dock");
-const dataStack   = document.getElementById("data-stack");
-
-// (Your hologram code continues normally here…)
 
     /* -----------------------------------------------------------
        Inject hologram elements into portrait-pane
@@ -915,6 +753,8 @@ const dataStack   = document.getElementById("data-stack");
             veil.style.pointerEvents = "auto";
         }, 2500);
     };
+
+});
 
     </script>        
 <script type="py">
@@ -1201,6 +1041,7 @@ async def py_sync_soul(token):
                 aida.session_log.append({"role": "assistant", "content": fallback})
                 return
 
+
     # ⭐ Aida materializes into the realm
     window.aida_arrive()
     # ⭐ Let the animation finish
@@ -1223,31 +1064,19 @@ def add_line(text, role):
     flow.scrollTop = flow.scrollHeight
 
 async def send_message(e=None):
-    pulse("[DEBUG] SEND clicked.")
-
     u_in = document.getElementById("user-in")
-
-    raw = u_in.value.strip()
-    pulse(f"[DEBUG] raw message = '{raw}'")
-
-    msg = getTaggedMessage(raw)
-    pulse(f"[DEBUG] tagged message = '{msg}'")
-
-    if not raw:
-        pulse("[DEBUG] raw message empty → aborting SEND.")
+    msg = u_in.value.strip()
+    if not msg:
         return
-
 
     add_line(msg, "USER")
     u_in.value = ""
     aida.turn_count += 1
-
     aida.session_log.append(
         {"role": "user", "content": msg, "project": aida.project}
     )
 
     try:
-
         sys = (
             f"IDENTITY: {json.dumps(aida.global_id)}\n"
             f"REALM: {aida.realm_data}\n\n"
@@ -1405,6 +1234,7 @@ async def restart_engine(e=None):
     pulse("Ejecting... Archiving Parcel.")
     await aida_sleep(silent=False)
 
+
 document.getElementById("send-btn").onclick = create_proxy(send_message)
 document.getElementById("sleep-btn").onclick = create_proxy(aida_sleep)
 document.getElementById("eject-btn").onclick = create_proxy(restart_engine)
@@ -1412,7 +1242,6 @@ window.py_sync_soul = create_proxy(py_sync_soul)
 
 asyncio.ensure_future(spark_layer_fast())
 asyncio.ensure_future(spark_layer_slow())
-
 
 </script>
 
