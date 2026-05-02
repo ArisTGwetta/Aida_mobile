@@ -865,7 +865,14 @@ async def spark_layer_slow():
 
         await asyncio.sleep(0.8)
 
-
+def add_line(text, role):
+    flow = document.getElementById("chat-flow")
+    div = document.createElement("div")
+    div.className = f"line {role}"
+    div.innerText = text
+    flow.appendChild(div)
+    flow.scrollTop = flow.scrollHeight
+    
 async def update_face_drive(filename):
     try:
         q = f"'{aida.emotion_folder}' in parents and name = '{filename}' and trashed = false"
