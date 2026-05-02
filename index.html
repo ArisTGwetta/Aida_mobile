@@ -506,6 +506,15 @@
             } else { alert("ACCESS DENIED"); }
         }
 
+        // build tags for the user input
+        function getActiveTags() {
+            return [...document.querySelectorAll(".tag-btn.used")]
+                .map(btn => btn.textContent)
+                .join(" ");
+        }
+        
+        window.getActiveTags = getActiveTags;   // ← exposes it to Python
+    
 
         // Build the pixel grid once
         function buildPixelGrid() {
