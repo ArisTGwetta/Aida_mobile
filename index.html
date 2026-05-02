@@ -617,49 +617,49 @@
             activeTagIndex = null;
         }
     });
-    
     // --- PREPEND TAGS TO OUTGOING MESSAGE ---
-    
-    function getTaggedMessage(rawMessage) {
-        const tags = currentTags
-            .filter(t => t !== "")
-            .map(t => "#" + t)
-            .join(" ");
-    
-        if (tags.length > 0) {
-            return `${tags} | ${rawMessage}`;
-        } else {
-            return rawMessage;
-        }
-    }
-    window.getTaggedMessage = getTaggedMessage;   // <-- must be here
-    
+
+function getTaggedMessage(rawMessage) {
+    const tags = currentTags
+        .filter(t => t !== "")
+        .map(t => "#" + t)
+        .join(" ");
+
+    return tags.length > 0 ? `${tags} | ${rawMessage}` : rawMessage;
+}
+
+// ⭐ MUST BE GLOBAL ⭐
+window.getTaggedMessage = getTaggedMessage;
+
+
 /* -----------------------------------------------------------
    AIDA HOLOGRAM RITUAL — FULL ARRIVAL (4s) + DEPARTURE (3s)
-   Drop‑in replacement for aida_arrive() and aida_depart()
    ----------------------------------------------------------- */
 
-    // DOM references
-    const portraitImg = document.getElementById("aida-portrait");
-    
-    // Preload Aida portrait immediately
-    const preloadPortrait = new Image();
-    preloadPortrait.src = "assets/neutral1.png";   // or "./assets/neutral1.png"
-    preloadPortrait.onload = () => {
-        portraitImg.src = preloadPortrait.src;
-    };
-    
-window.addEventListener("load", () => {
+// DOM references
+const portraitImg = document.getElementById("aida-portrait");
 
-    /* Grab all existing layers */
-    const veil        = document.getElementById("veil");
-    const flickerGrid = document.getElementById("flicker-grid");
-    const pixelGrid   = document.getElementById("pixelGrid");
-    const sparkLayer  = document.getElementById("sparkLayer");
-    const portraitPane = document.getElementById("portrait-pane");
-    const uiDock      = document.getElementById("input-dock");
-    const dataStack   = document.getElementById("data-stack");
+// Preload Aida portrait immediately
+const preloadPortrait = new Image();
+preloadPortrait.src = "assets/neutral1.png";
+preloadPortrait.onload = () => {
+    portraitImg.src = preloadPortrait.src;
+};
 
+// ⭐ IMPORTANT ⭐
+// DO NOT wrap the hologram ritual in window.onload or window.addEventListener.
+// It must run immediately so Python can see all JS globals.
+
+// Grab all existing layers
+const veil        = document.getElementById("veil");
+const flickerGrid = document.getElementById("flicker-grid");
+const pixelGrid   = document.getElementById("pixelGrid");
+const sparkLayer  = document.getElementById("sparkLayer");
+const portraitPane = document.getElementById("portrait-pane");
+const uiDock      = document.getElementById("input-dock");
+const dataStack   = document.getElementById("data-stack");
+
+// (Your hologram code continues normally here…)
 
     /* -----------------------------------------------------------
        Inject hologram elements into portrait-pane
