@@ -1302,6 +1302,7 @@ async def send_message(e=None):
             {
                 "role": "assistant",
                 "content": reply,
+                "tags": aida.last_tags,   # ← ADD THIS LINE
                 "project": aida.project,
                 "v": v,
                 "a": a,
