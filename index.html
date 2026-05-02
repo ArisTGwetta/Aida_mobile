@@ -92,7 +92,40 @@
             border: none;
             cursor: pointer;
         }
-        
+
+        #tag-buttons {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        margin-bottom: 6px;
+    }
+    
+    .tag-btn {
+        background: black;
+        color: white;
+        border: 1px solid #333;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    
+    .tag-btn.used {
+        color: #00ff66; /* matrix green */
+        border-color: #00ff66;
+    }
+    
+    #tag-edit {
+        display: none;
+        background: #000;
+        color: #00ff66;
+        border: 1px solid #00ff66;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+  
                 
         /* FIX #6: FULL FLICKER COVERAGE */
         #flicker-grid {
@@ -403,14 +436,31 @@
         
     <!-- ✅ NOW input-dock is under the whole engine -->  
     <div id="input-dock">
-        <input type="text" id="tag-in" placeholder="#tags…">
+    
+        <!-- Old tag bar (now disabled) -->
+        <!-- <input type="text" id="tag-in" placeholder="#tags…"> -->
+    
+        <div id="tag-buttons">
+            <button class="tag-btn" data-index="0">#</button>
+            <button class="tag-btn" data-index="1">#</button>
+            <button class="tag-btn" data-index="2">#</button>
+            <button class="tag-btn" data-index="3">#</button>
+            <button class="tag-btn" data-index="4">#</button>
+            <button class="tag-btn" data-index="5">#</button>
+    
+            <input id="tag-edit" type="text" placeholder="type tag…" />
+        </div>
+    
         <input type="text" id="user-in" placeholder="Talk to Aida...">
+    
         <div class="controls">
             <button id="send-btn">SEND</button>
             <button id="eject-btn" style="background:#666;">RESTART</button>
             <button id="sleep-btn" style="background:#444;">SLEEP</button>
         </div>
+    
     </div>
+
     
                     
 <script>
@@ -594,8 +644,39 @@ window.addEventListener("load", () => {
         zIndex: "2003",
         pointerEvents: "none"
     });
-    
         
+    const tagButtons = document.querySelectorAll(".tag-btn");
+    const tagEdit = document.getElementById("tag-edit");
+    let activeTagIndex = null;
+    
+    tagButtons.forEach(btn => {
+        btn.addEventListener("click", () => {
+            activeTagIndex = btn.dataset.index;
+            tagEdit.value = btn.textContent === "#" ? "" : btn.textContent;
+            tagEdit.style.display = "inline-block";
+            tagEdit.focus();
+        });
+    });
+    
+    tagEdit.addEventListener("blur", () => {
+        if (activeTagIndex === null) return;
+    
+        const btn = document.querySelector(`.tag-btn[data-index="${activeTagIndex}"]`);
+        const val = tagEdit.value.trim();
+    
+        if (val) {
+            btn.textContent = val;
+            btn.classList.add("used");
+        } else {
+            btn.textContent = "#";
+            btn.classList.remove("used");
+        }
+    
+        tagEdit.style.display = "none";
+        activeTagIndex = null;
+    });
+
+    
     // FACE (single <img>, no wrapper)
     const holoFace = document.createElement("img");
     holoFace.id = "holoFace";
@@ -1111,9 +1192,8 @@ async def send_message(e=None):
     if not raw:
         return
 
-    # --- READ TAG INPUT ---
-    tag_in = document.getElementById("tag-in")
-    tag_raw = tag_in.value.strip()
+    # --- READ TAGS FROM BUTTONS ---
+    tag_raw = window.getActiveTags()
 
     # --- COMBINE ---
     if tag_raw:
@@ -1132,7 +1212,7 @@ async def send_message(e=None):
 
     # --- CLEAR INPUTS ---
     u_in.value = ""
-    tag_in.value = ""
+
 
     # --- ADD TO UI LOG (SHOW FULL STRING) ---
     add_line(combined, "USER")
