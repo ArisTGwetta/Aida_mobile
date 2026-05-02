@@ -364,6 +364,9 @@
             
         
         <div id="input-dock">
+            <!-- NEW TAG BAR -->
+            <input type="text" id="tag-in" placeholder="#tags…">
+            <!-- MAIN MESSAGE BAR (unchanged) -->
             <input type="text" id="user-in" placeholder="Talk to Aida...">
             <div class="controls">
                 <button id="send-btn">SEND</button>
@@ -1055,27 +1058,50 @@ async def py_sync_soul(token):
     document.getElementById("main-engine").classList.remove("hidden")
 
 
-def add_line(text, role):
-    flow = document.getElementById("chat-flow")
-    div = document.createElement("div")
-    div.className = f"line {role}"
-    div.innerText = text
-    flow.appendChild(div)
-    flow.scrollTop = flow.scrollHeight
-
 async def send_message(e=None):
+    # --- READ MAIN INPUT ---
     u_in = document.getElementById("user-in")
-    msg = u_in.value.strip()
-    if not msg:
+    raw = u_in.value.strip()
+    if not raw:
         return
 
-    add_line(msg, "USER")
+    # --- READ TAG INPUT ---
+    tag_in = document.getElementById("tag-in")
+    tag_raw = tag_in.value.strip()
+
+    # --- COMBINE ---
+    if tag_raw:
+        combined = f"{tag_raw} | {raw}"
+    else:
+        combined = raw
+
+    # --- PARSE TAGS ---
+    if "|" in combined:
+        tag_part, content = combined.split("|", 1)
+        tags = tag_part.strip()
+        content = content.strip()
+    else:
+        tags = ""
+        content = combined.strip()
+
+    # --- CLEAR INPUTS ---
     u_in.value = ""
+    tag_in.value = ""
+
+    # --- ADD TO UI LOG (SHOW FULL STRING) ---
+    add_line(combined, "USER")
+
+    # --- ADD TO SESSION LOG (STORE TAGS SEPARATELY) ---
     aida.turn_count += 1
     aida.session_log.append(
-        {"role": "user", "content": msg, "project": aida.project}
+        {
+            "role": "user",
+            "content": content,   # what the LLM sees
+            "tags": tags,         # metadata for you
+            "project": aida.project
+        }
     )
-
+    
     try:
         sys = (
             f"IDENTITY: {json.dumps(aida.global_id)}\n"
