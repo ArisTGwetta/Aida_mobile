@@ -58,7 +58,40 @@
             letter-spacing: 0.5px;
             white-space: pre-wrap;
         }
+        #tag-bar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 6px; /* small spacing above the input */
+        }
         
+        .tag-btn {
+            background-color: black;
+            color: white;
+            border: 1px solid #333;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        
+        .tag-btn.used {
+            color: #00ff66;
+            border-color: #00ff66;
+        }
+        
+        #tag-input {
+            display: none;
+            background-color: #111;
+            color: #00ff66;
+            border: 1px solid #00ff66;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            width: 120px;
+        }
+
         /* FIX #6: FULL FLICKER COVERAGE */
         #flicker-grid {
             position: absolute; /* Takes it out of the grid flow */
@@ -361,17 +394,27 @@
         <div id="pres-content">Engine Stitched.</div>
     </div>
 </div>
-            
-        
-        <div id="input-dock">
-            <input type="text" id="user-in" placeholder="Talk to Aida...">
-            <div class="controls">
-                <button id="send-btn">SEND</button>
-                <button id="eject-btn" style="background:#666;">RESTART</button>
-                <button id="sleep-btn" style="background:#444;">SLEEP</button>
-            </div>
-        </div>
+
+<div id="input-dock">
+
+    <!-- TAG BAR GOES HERE -->
+    <div id="tag-bar">
+        <button class="tag-btn" data-index="0">#</button>
+        <button class="tag-btn" data-index="1">#</button>
+        <button class="tag-btn" data-index="2">#</button>
+        <input id="tag-input" type="text" placeholder="type tag…">
     </div>
+    <!-- END TAG BAR -->
+
+    <input type="text" id="user-in" placeholder="Talk to Aida...">
+
+    <div class="controls">
+        <button id="send-btn">SEND</button>
+        <button id="eject-btn" style="background:#666;">RESTART</button>
+        <button id="sleep-btn" style="background:#444;">SLEEP</button>
+    </div>
+
+</div>
 
 <script>
         let tokenClient;
@@ -471,6 +514,81 @@
             });
         };
 
+
+    // --- TAG SYSTEM ---
+
+    // Holds the three tag values
+    let currentTags = ["", "", ""];
+    
+    // Grab elements
+    const tagButtons = document.querySelectorAll(".tag-btn");
+    const tagInput = document.getElementById("tag-input");
+    
+    // Track which tag slot is being edited
+    let activeTagIndex = null;
+    
+    // When a tag button is clicked → open input
+    tagButtons.forEach(btn => {
+        btn.addEventListener("click", () => {
+            activeTagIndex = parseInt(btn.dataset.index);
+    
+            // Position input next to the clicked button
+            const rect = btn.getBoundingClientRect();
+            tagInput.style.position = "absolute";
+            tagInput.style.left = rect.left + "px";
+            tagInput.style.top = (rect.top - 30) + "px";
+    
+            // Pre-fill with existing tag
+            tagInput.value = currentTags[activeTagIndex];
+    
+            // Show input + focus
+            tagInput.style.display = "block";
+            tagInput.focus();
+        });
+    });
+    
+    // When user presses Enter inside the tag input → save tag
+    tagInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            const newTag = tagInput.value.trim();
+    
+            // Save tag
+            currentTags[activeTagIndex] = newTag;
+    
+            // Update button text + color
+            const btn = tagButtons[activeTagIndex];
+            btn.textContent = newTag === "" ? "#" : "#" + newTag;
+            btn.classList.toggle("used", newTag !== "");
+    
+            // Hide input
+            tagInput.style.display = "none";
+            activeTagIndex = null;
+        }
+    });
+    
+    // Hide input if user clicks outside
+    document.addEventListener("click", (e) => {
+        if (e.target !== tagInput && !e.target.classList.contains("tag-btn")) {
+            tagInput.style.display = "none";
+            activeTagIndex = null;
+        }
+    });
+    
+    // --- PREPEND TAGS TO OUTGOING MESSAGE ---
+    
+    function getTaggedMessage(rawMessage) {
+        const tags = currentTags
+            .filter(t => t !== "")
+            .map(t => "#" + t)
+            .join(" ");
+    
+        if (tags.length > 0) {
+            return `${tags} | ${rawMessage}`;
+        } else {
+            return rawMessage;
+        }
+    }
+    
     
 /* -----------------------------------------------------------
    AIDA HOLOGRAM RITUAL — FULL ARRIVAL (4s) + DEPARTURE (3s)
@@ -1065,18 +1183,23 @@ def add_line(text, role):
 
 async def send_message(e=None):
     u_in = document.getElementById("user-in")
-    msg = u_in.value.strip()
-    if not msg:
+
+    raw = u_in.value.strip()
+    msg = getTaggedMessage(raw)   # <-- prepend tags here
+
+    if not raw:
         return
 
     add_line(msg, "USER")
     u_in.value = ""
     aida.turn_count += 1
+
     aida.session_log.append(
         {"role": "user", "content": msg, "project": aida.project}
     )
 
     try:
+
         sys = (
             f"IDENTITY: {json.dumps(aida.global_id)}\n"
             f"REALM: {aida.realm_data}\n\n"
