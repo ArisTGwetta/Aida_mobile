@@ -50,6 +50,52 @@
             --debug-green: #00ff66;
         }
         
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .modal.hidden {
+            display: none;
+        }
+        
+        .modal-content {
+            background: #111;
+            padding: 20px;
+            border-radius: 10px;
+            width: 320px;
+            color: white;
+            border: 1px solid #444;
+        }
+        
+        #briefcase-list button {
+            width: 100%;
+            margin: 6px 0;
+            padding: 8px;
+            background: #222;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        
+        #briefcase-list button:hover {
+            background: #333;
+        }
+        
+        #briefcase-confirm {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
         #log-content .debug-line {
             color: var(--debug-green);
             font-family: monospace;
@@ -458,7 +504,19 @@
             <button id="eject-btn" style="background:#666;">RESTART</button>
             <button id="sleep-btn" style="background:#444;">SLEEP</button>
         </div>
-    
+
+        <div id="briefcase-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2>Select a Briefcase</h2>
+                <div id="briefcase-list"></div>
+        
+                <div id="briefcase-confirm" class="hidden">
+                    <p id="briefcase-selected"></p>
+                    <button id="briefcase-confirm-btn">Confirm</button>
+                    <button id="briefcase-cancel-btn">Cancel</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     
@@ -506,6 +564,52 @@
             } else { alert("ACCESS DENIED"); }
         }
 
+
+    // --- RESET BUTTON HANDLER ---
+document.getElementById("eject-btn").onclick = async function () {
+    // Ask Python for the list of briefcases
+    const list = await window.py_list_briefcases();
+
+    // Populate the modal
+    const container = document.getElementById("briefcase-list");
+    container.innerHTML = "";
+
+    list.forEach(name => {
+        const btn = document.createElement("button");
+        btn.textContent = name;
+        btn.onclick = () => selectBriefcase(name);
+        container.appendChild(btn);
+    });
+
+    // Show modal
+    document.getElementById("briefcase-modal").classList.remove("hidden");
+};
+
+
+// --- SELECT A BRIEFCASE ---
+function selectBriefcase(name) {
+    document.getElementById("briefcase-selected").textContent =
+        `Switch to project: ${name}?`;
+
+    document.getElementById("briefcase-confirm").classList.remove("hidden");
+
+    document.getElementById("briefcase-confirm-btn").onclick = () => {
+        window.reset_with_briefcase(name);
+        closeBriefcaseModal();
+    };
+
+    document.getElementById("briefcase-cancel-btn").onclick = closeBriefcaseModal;
+}
+
+
+// --- CLOSE MODAL ---
+function closeBriefcaseModal() {
+    document.getElementById("briefcase-modal").classList.add("hidden");
+    document.getElementById("briefcase-confirm").classList.add("hidden");
+}
+
+
+    
         // build tags for the user input
         function getActiveTags() {
             return [...document.querySelectorAll(".tag-btn.used")]
@@ -948,6 +1052,21 @@ class AidaChassis:
 
 aida = AidaChassis()
 
+
+
+
+    def py_list_briefcases():
+        # TEMP: return placeholder list until we wire real Drive data
+        return ["CORE", "ASTRA", "RPG", "MOBILE", "DEBUG"]
+    window.py_list_briefcases = py_list_briefcases
+
+    async def reset_with_briefcase(name):
+        pulse(f"[RESET] Switching to project: {name}")
+        # We'll fill this in next step
+    window.reset_with_briefcase = create_proxy(reset_with_briefcase)
+
+
+    
 
 async def spark_layer_fast():
     while True:
