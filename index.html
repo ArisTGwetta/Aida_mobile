@@ -306,9 +306,11 @@
             padding: 12px;
             margin: 5px 0;
             border-radius: 10px;       /* Sharper corners for a more technical look */
+            font-size: 15px;
+            line-height: 1.4;
         }              
         
-        .USER { background: var(--aida-gold); align-self: flex-end; color: white; }
+        .USER { background: var(--aida-gold); align-self: flex-end; font-size: 15px; color: white; }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -378,35 +380,39 @@
     
     <div id="main-engine" class="hidden">
         <div id="chat-flow"></div>
+        
         <div id="aida-display">
-    <div id="portrait-pane">
-        <div id="flicker-grid"></div>
-        <div class="tint-layer debug-green"></div>
-        <div class="tint-layer alert-o"></div>
-        <img id="aida-portrait" src="">
-    </div>
-
-<div id="data-stack" style="display: flex; flex-direction: column; width: 100%; height: 100%; grid-column: 2; position: relative; z-index: 30;">
-    <div id="debug-pane">
-        <div id="log-content">Initializing...</div>
-    </div> 
-    
-    <div id="presentation-pane">
-        <div id="realm-tag" style="font-weight:bold; font-size:12px; margin-bottom:8px;"></div>
-        <div id="pres-content">Engine Stitched.</div>
-    </div>
-</div>
-<div id="input-dock">
-    <input type="text" id="tag-in" placeholder="#tags…">
-    <input type="text" id="user-in" placeholder="Talk to Aida...">
-    <div class="controls">
-        <button id="send-btn">SEND</button>
-        <button id="eject-btn" style="background:#666;">RESTART</button>
-        <button id="sleep-btn" style="background:#444;">SLEEP</button>
-    </div>
-</div>
-
+            <div id="portrait-pane">
+                <div id="flicker-grid"></div>
+                <div class="tint-layer debug-green"></div>
+                <div class="tint-layer alert-o"></div>
+                <img id="aida-portrait" src="">
+            </div>
+        
+        <div id="data-stack" style="display: flex; flex-direction: column; width: 100%; height: 100%; grid-column: 2; position: relative; z-index: 30;">
+            <div id="debug-pane">
+                <div id="log-content">Initializing...</div>
+            </div> 
             
+            <div id="presentation-pane">
+                <div id="realm-tag" style="font-weight:bold; font-size:12px; margin-bottom:8px;"></div>
+                <div id="pres-content">Engine Stitched.</div>
+            </div>
+        </div>
+    </div> <!-- ✅ CLOSE aida-display HERE -->
+        
+    <!-- ✅ NOW input-dock is under the whole engine -->  
+    <div id="input-dock">
+        <input type="text" id="tag-in" placeholder="#tags…">
+        <input type="text" id="user-in" placeholder="Talk to Aida...">
+        <div class="controls">
+            <button id="send-btn">SEND</button>
+            <button id="eject-btn" style="background:#666;">RESTART</button>
+            <button id="sleep-btn" style="background:#444;">SLEEP</button>
+        </div>
+    </div>
+    
+                    
 <script>
         let tokenClient;
         const VAULT_KEY_FOLDERS = {
@@ -581,13 +587,15 @@ window.addEventListener("load", () => {
         borderLeft: "0 solid transparent",
         borderRight: "0 solid transparent",
         borderTop: "0 solid rgba(75,227,255,0.15)",
-        transform: "translateX(-50%)",
+        transform: "translateX(-50%) scaleY(1.25)",
+        transformOrigin: "bottom center",
         opacity: "0",
         filter: "blur(2px)",
         zIndex: "2003",
         pointerEvents: "none"
     });
     
+        
     // FACE (single <img>, no wrapper)
     const holoFace = document.createElement("img");
     holoFace.id = "holoFace";
