@@ -1203,7 +1203,6 @@ async def py_sync_soul(token):
                 aida.session_log.append({"role": "assistant", "content": fallback})
                 return
 
-
     # ⭐ Aida materializes into the realm
     window.aida_arrive()
     # ⭐ Let the animation finish
@@ -1226,13 +1225,20 @@ def add_line(text, role):
     flow.scrollTop = flow.scrollHeight
 
 async def send_message(e=None):
+    pulse("[DEBUG] SEND clicked.")
+
     u_in = document.getElementById("user-in")
 
     raw = u_in.value.strip()
-    msg = getTaggedMessage(raw)   # <-- prepend tags here
+    pulse(f"[DEBUG] raw message = '{raw}'")
+
+    msg = getTaggedMessage(raw)
+    pulse(f"[DEBUG] tagged message = '{msg}'")
 
     if not raw:
+        pulse("[DEBUG] raw message empty → aborting SEND.")
         return
+
 
     add_line(msg, "USER")
     u_in.value = ""
@@ -1401,7 +1407,6 @@ async def restart_engine(e=None):
     pulse("Ejecting... Archiving Parcel.")
     await aida_sleep(silent=False)
 
-
 document.getElementById("send-btn").onclick = create_proxy(send_message)
 document.getElementById("sleep-btn").onclick = create_proxy(aida_sleep)
 document.getElementById("eject-btn").onclick = create_proxy(restart_engine)
@@ -1409,6 +1414,7 @@ window.py_sync_soul = create_proxy(py_sync_soul)
 
 asyncio.ensure_future(spark_layer_fast())
 asyncio.ensure_future(spark_layer_slow())
+
 
 </script>
 
