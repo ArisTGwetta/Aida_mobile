@@ -293,9 +293,15 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            width: 100%;          /* <-- important */
+            max-width: 100%;      /* <-- prevents overflow */
+            overflow: hidden;     /* <-- prevents UI from pushing outward */
         }
+
         
-        #user-in {
+        #user-in {            
+            flex: 1;
+            min-width: 200px;
             width: 100%;
             padding: 2px;
             border-radius: 2px;
@@ -575,7 +581,7 @@
             tagInput.style.position = "absolute";
             tagInput.style.left = btn.offsetLeft + "px";
             tagInput.style.top = (btn.offsetTop - 30) + "px";
-    
+
             // Pre-fill with existing tag
             tagInput.value = currentTags[activeTagIndex];
     
@@ -626,9 +632,7 @@
             return rawMessage;
         }
     }
-
-    // Make available to Python
-    window.getTaggedMessage = getTaggedMessage;
+    window.getTaggedMessage = getTaggedMessage;   // <-- must be here
     
 /* -----------------------------------------------------------
    AIDA HOLOGRAM RITUAL — FULL ARRIVAL (4s) + DEPARTURE (3s)
