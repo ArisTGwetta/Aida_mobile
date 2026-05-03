@@ -102,6 +102,10 @@
         }
         
         .modal-content {
+            display: flex;
+            flex-direction: column;
+            max-height: 80vh;     /* prevents overflow on small screens */
+            overflow: hidden;     /* keeps layout stable */
             background: #111;
             padding: 20px;
             border-radius: 10px;
@@ -538,6 +542,12 @@
         <div id="briefcase-modal" class="modal hidden">
             <div class="modal-content">
                 <h2>Choose Realm</h2>
+
+                <div id="briefcase-confirm" class="hidden">
+                    <p id="briefcase-selected"></p>
+                    <button id="briefcase-confirm-btn">Load</button>
+                    <button id="briefcase-cancel-btn">Cancel</button>
+                </div>
             
                 <input
                     type="text"
@@ -546,13 +556,8 @@
                     style="width:100%; padding:6px 8px; margin-bottom:10px; background:#111; color:#fff; border:1px solid #444; border-radius:6px; font-size:12px;"
                 />
             
-                <div id="briefcase-list" style="max-height:200px; overflow-y:auto;"></div>
+                <div id="briefcase-list" style="max-height: 200px; overflow-y: auto;"></div>
             
-                <div id="briefcase-confirm" class="hidden">
-                    <p id="briefcase-selected"></p>
-                    <button id="briefcase-confirm-btn">Load</button>
-                    <button id="briefcase-cancel-btn">Cancel</button>
-                </div>
             </div>
         </div>
     </div>
