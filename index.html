@@ -429,11 +429,7 @@
             </div>
         </div>
 
-        <select id="project-tag" style="width:100%; margin-top:20px; padding:12px; background:#111; color:white; border-radius:10px; border: 1px solid #444;">
-            <option value="CORE">CORE</option>
-            <option value="ASTRA">ASTRA</option>
-            <option value="DEBUG">DEBUG</option>
-        </select>
+        
     </div>
 </div>
     
@@ -1049,19 +1045,19 @@ def clear_rolling_summaries():
         pulse(f"[RESET] Error clearing summaries: {e}")
 
 
-# --- RESET WITH NEW BRIEFCASE (FINAL VERSION) ---
+# --- RESET WITH NEW BRIEFCASE (FINAL FILENAME VERSION) ---
 async def reset_with_briefcase(name):
     """
     Full RESET flow:
     1. Send current session to Butler (stub)
     2. Clear rolling summaries
     3. Clear session log (UI stays intact)
-    4. Switch project
-    5. Update UI dropdown + realm tag
+    4. Switch realm (set briefcase filename)
+    5. Update UI realm tag
     6. Reload Aida's soul using py_sync_soul()
     """
 
-    pulse(f"[RESET] Switching to project: {name}")
+    pulse(f"[RESET] Switching to realm: {name}")
 
     # 1. Send current session to Butler (stub)
     await send_to_butler(aida.session_log)
@@ -1074,14 +1070,13 @@ async def reset_with_briefcase(name):
     aida.turn_count = 0
     aida.blocks = []
 
-    # 4. Switch project
-    aida.project = name
+    # 4. Switch realm (filename-based)
+    aida.briefcase_filename = name
 
-    # 5. Update UI so py_sync_soul() does NOT fall back to CORE
-    document.getElementById("project-tag").value = name
+    # 5. Update UI to show the active briefcase
     document.getElementById("realm-tag").innerText = name
 
-    pulse(f"[RESET] Project set to: {aida.project}")
+    pulse(f"[RESET] Realm set to: {aida.briefcase_filename}")
 
     # 6. Reload Aida's soul
     try:
@@ -1149,6 +1144,14 @@ async def reset_with_briefcase(name):
 
 window.reset_with_briefcase = create_proxy(reset_with_briefcase)
 
+# --- EXPOSE BRIEFCASE LIST TO JS ---
+async def py_list_briefcases():
+    """
+    Return the list of briefcase filenames discovered in py_sync_soul.
+    """
+    return aida.briefcase_list
+
+window.py_list_briefcases = create_proxy(py_list_briefcases)
     
 
 async def spark_layer_fast():
@@ -1233,6 +1236,7 @@ async def py_sync_soul(token):
     grid_div = document.getElementById("flicker-grid")
     grid_div.innerHTML = ""
     aida.blocks = []
+    aida.briefcase_list = []
 
     # Build flicker grid
     for _ in range(2000):
@@ -1252,25 +1256,13 @@ async def py_sync_soul(token):
     aida.openai_key = window.sessionStorage.getItem("aida_active_key")
     aida.openai_headers = {"Authorization": f"Bearer {aida.openai_key}"}
 
-    # --- PROJECT SELECTION FIX ---
-    # Read UI dropdown value
-    ui_value = document.getElementById("project-tag").value
+    # --- FILENAME-BASED REALM SELECTION ---
+    # Default briefcase on first load
+    if not hasattr(aida, "briefcase_filename"):
+        aida.briefcase_filename = "REALM_CORE.json"
 
-    # If RESET already set aida.project, keep it.
-    # If first load, use UI default.
-    if not aida.project:
-        aida.project = ui_value
-
-    # Update UI to reflect active project
-    document.getElementById("project-tag").value = aida.project
-    document.getElementById("realm-tag").innerText = aida.project
-
-    # Debug display mode
-    display = document.getElementById("aida-display")
-    if aida.project == "DEBUG":
-        display.classList.add("is-debug")
-    else:
-        display.classList.remove("is-debug")
+    # Update UI to show the active briefcase
+    document.getElementById("realm-tag").innerText = aida.briefcase_filename
 
     pulse("Downloading Briefcases...")
 
@@ -1287,7 +1279,9 @@ async def py_sync_soul(token):
 
         for f in res.get("files", []):
             pulse(f"[BRIEFCASE] Found: {f['name']}")
-        
+            aida.briefcase_list.append(f["name"])
+
+            # --- GLOBAL BRIEFCASE (always loads) ---
             if "global_briefcase" in f["name"].lower():
                 c = await pyfetch(
                     url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media",
@@ -1296,18 +1290,20 @@ async def py_sync_soul(token):
                 )
                 aida.global_id = json.loads(await c.string()).get("identity", {})
                 pulse("[BRIEFCASE] Loaded global identity.")
-        
-            elif aida.project.lower() in f["name"].lower():
+
+            # --- REALM BRIEFCASE (load the exact filename selected in RESET) ---
+            elif f["name"] == aida.briefcase_filename:
                 c = await pyfetch(
                     url=f"https://www.googleapis.com/drive/v3/files/{f['id']}?alt=media",
                     method="GET",
                     headers=aida.google_headers,
                 )
                 aida.realm_data = await c.string()
-                pulse(f"[BRIEFCASE] Loaded realm briefcase for {aida.project}.")            
+                pulse(f"[BRIEFCASE] Loaded realm briefcase: {aida.briefcase_filename}")
 
         await update_face_drive("neutral1.png")
         pulse("Handshake Complete.")
+
 
     except Exception:
         add_line("Aida blinks awake, but something feels fuzzy…", "AIDA")
@@ -1447,7 +1443,8 @@ async def send_message(e=None):
             "role": "user",
             "content": content,   # what the LLM sees
             "tags": tags,         # metadata for you
-            "project": aida.project
+            "briefcase": aida.briefcase_filename
+
         }
     )
     
@@ -1517,7 +1514,7 @@ async def send_message(e=None):
                 "role": "assistant",
                 "content": reply,
                 "tags": aida.last_tags,   # ← ADD THIS LINE
-                "project": aida.project,
+                "briefcase": aida.briefcase_filename,
                 "v": v,
                 "a": a,
             }
@@ -1528,7 +1525,6 @@ async def send_message(e=None):
 
     except Exception:
         pulse("Logic Break.")
-
 
 async def aida_sleep(e=None, silent=False):
     if not silent:
@@ -1543,10 +1539,18 @@ async def aida_sleep(e=None, silent=False):
             pulse("PIN Missing or Incomplete.")
             return
 
+        # Use the briefcase filename as the realm source
+        realm_name = aida.briefcase_filename.replace(".json", "")
+
         now = window.Date.new().toISOString().replace(":", "-").split(".")[0]
-        filename = f"{aida.project}_SLEEP_{now}.json"
+        filename = f"{realm_name}_SLEEP_{now}.json"
+
         metadata = {"name": filename, "parents": [aida.inbox_id]}
-        parcel = {"realm_source": aida.project, "interactions": aida.session_log}
+        parcel = {
+            "realm_source": aida.briefcase_filename,
+            "interactions": aida.session_log
+        }
+
         boundary = "AidaSleep"
 
         body = (
