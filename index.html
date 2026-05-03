@@ -1246,7 +1246,13 @@ async def py_sync_soul(token):
     aida.openai_key = window.sessionStorage.getItem("aida_active_key")
     aida.openai_headers = {"Authorization": f"Bearer {aida.openai_key}"}
     
-    aida.project = document.getElementById("project-tag").value
+    # If RESET already set aida.project, use that.
+    # Otherwise, use the UI default (first load).
+    ui_value = document.getElementById("project-tag").value
+        if not aida.project or aida.project == "CORE":
+        aida.project = ui_value
+        # Always update UI to reflect the active project
+    document.getElementById("project-tag").value = aida.project
     document.getElementById("realm-tag").innerText = aida.project
 
     display = document.getElementById("aida-display")
