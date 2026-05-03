@@ -1054,17 +1054,18 @@ aida = AidaChassis()
 
 
 
+def py_list_briefcases():
+    # TEMP: return placeholder list until we wire real Drive data
+    return ["CORE", "ASTRA", "RPG", "MOBILE", "DEBUG"]
 
-    def py_list_briefcases():
-        # TEMP: return placeholder list until we wire real Drive data
-        return ["CORE", "ASTRA", "RPG", "MOBILE", "DEBUG"]
-    window.py_list_briefcases = py_list_briefcases
+window.py_list_briefcases = py_list_briefcases
 
-    async def reset_with_briefcase(name):
-        pulse(f"[RESET] Switching to project: {name}")
-        # We'll fill this in next step
-    window.reset_with_briefcase = create_proxy(reset_with_briefcase)
 
+async def reset_with_briefcase(name):
+    pulse(f"[RESET] Switching to project: {name}")
+    # We'll fill this in next step
+
+window.reset_with_briefcase = create_proxy(reset_with_briefcase)
 
     
 
