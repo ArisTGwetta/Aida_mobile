@@ -1010,7 +1010,84 @@ def pulse(msg):
         log.parentElement.scrollTop = log.parentElement.scrollHeight
         log.parentElement.scrollTop = log.parentElement.scrollHeight
 
+# --- LIST BRIEFCASES FOR RESET MENU ---
+def py_list_briefcases():
+    """
+    Returns the list of briefcases already discovered during boot.
+    These are stored in aida.blocks (your debug panel uses the same list).
+    """
+    try:
+        return aida.blocks
+    except Exception as e:
+        pulse(f"[RESET] Could not list briefcases: {e}")
+        return []
 
+window.py_list_briefcases = py_list_briefcases
+
+
+# --- SEND SESSION TO BUTLER (MVP stub) ---
+async def send_to_butler(log):
+    """
+    MVP: non-breaking stub.
+    Later you can replace this with your real Drive upload.
+    """
+    pulse("[RESET] Sending current session to Butler… (stub)")
+    # TODO: implement real upload
+    await asyncio.sleep(0.1)
+
+
+# --- CLEAR ROLLING SUMMARIES ---
+def clear_rolling_summaries():
+    """
+    Clears the rolling summaries so the new project can overwrite them.
+    """
+    try:
+        aida.global_id = {}
+        aida.realm_data = ""
+        pulse("[RESET] Rolling summaries cleared.")
+    except Exception as e:
+        pulse(f"[RESET] Error clearing summaries: {e}")
+
+
+# --- RESET WITH NEW BRIEFCASE ---
+async def reset_with_briefcase(name):
+    """
+    Full MVP RESET:
+    1. Send current session to Butler
+    2. Clear rolling summaries
+    3. Clear session log (but NOT UI)
+    4. Switch project
+    5. Reload Aida's soul using py_sync_soul()
+    """
+
+    pulse(f"[RESET] Switching to project: {name}")
+
+    # 1. Send current session to Butler
+    await send_to_butler(aida.session_log)
+
+    # 2. Clear rolling summaries
+    clear_rolling_summaries()
+
+    # 3. Clear session log (UI stays intact)
+    aida.session_log = []
+    aida.turn_count = 0
+    aida.blocks = []
+
+    # 4. Switch project
+    aida.project = name
+    pulse(f"[RESET] Project set to: {aida.project}")
+
+    # 5. Reload Aida's soul
+    try:
+        await window.py_sync_soul(aida.clean_key)
+        pulse("[RESET] Soul reloaded successfully.")
+    except Exception as e:
+        pulse(f"[RESET] Error reloading soul: {e}")
+
+window.reset_with_briefcase = create_proxy(reset_with_briefcase)
+
+
+    
 class AidaChassis:
     def __init__(self):
         self.headers = {}
