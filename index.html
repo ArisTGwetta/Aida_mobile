@@ -1248,12 +1248,12 @@ async def py_sync_soul(token):
     aida.openai_headers = {"Authorization": f"Bearer {aida.openai_key}"}
 
     # --- PROJECT SELECTION FIX ---
-    # Read UI value
+    # Read UI dropdown value
     ui_value = document.getElementById("project-tag").value
 
     # If RESET already set aida.project, keep it.
     # If first load, use UI default.
-    if not aida.project or aida.project == "CORE":
+    if not aida.project:
         aida.project = ui_value
 
     # Update UI to reflect active project
