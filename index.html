@@ -935,16 +935,16 @@ window.addEventListener("load", () => {
     Object.assign(holoFace.style, {
         position: "absolute",
         inset: "0",
-        margin: "auto",
-        maxWidth: "80%",
-        maxHeight: "80%",
-        objectFit: "contain",
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",     // ← fills the whole screen
         opacity: "0",
         filter: "grayscale(1) contrast(0.6) brightness(0.7)",
-        transform: "scale(0.9)",
+        transform: "scale(1.05)",   // ← slight overscale for cinematic bleed
         zIndex: "2004",
         pointerEvents: "none"
     });
+
     
     // Add hologram elements to VEIL (not portrait pane)
     veil.appendChild(holoScanline);
