@@ -615,8 +615,14 @@ document.getElementById("eject-btn").onclick = async function () {
     const list = await window.py_list_briefcases();
     briefcaseCache = list || [];
 
+    // Reset UI state
+    document.getElementById("briefcase-confirm").classList.add("hidden");
+    document.getElementById("briefcase-selected").textContent = "";
+
+    // Render full list
     renderBriefcaseList(briefcaseCache);
 
+    // Wire search
     const search = document.getElementById("briefcase-search");
     search.value = "";
     search.oninput = () => {
@@ -627,9 +633,12 @@ document.getElementById("eject-btn").onclick = async function () {
         renderBriefcaseList(filtered);
     };
 
+    // Show modal
     document.getElementById("briefcase-modal").classList.remove("hidden");
 };
 
+
+// --- RENDER LIST (with click protection) ---
 function renderBriefcaseList(list) {
     const container = document.getElementById("briefcase-list");
     container.innerHTML = "";
@@ -637,10 +646,17 @@ function renderBriefcaseList(list) {
     list.forEach(name => {
         const btn = document.createElement("button");
         btn.textContent = name;
-        btn.onclick = () => selectBriefcase(name);
+
+        btn.onclick = (event) => {
+            event.stopPropagation();  // ← prevents search from re-triggering
+            document.getElementById("briefcase-search").blur(); // ← stops auto-refresh
+            selectBriefcase(name);
+        };
+
         container.appendChild(btn);
     });
 }
+
 
 // --- SELECT A BRIEFCASE ---
 function selectBriefcase(name) {
@@ -657,13 +673,12 @@ function selectBriefcase(name) {
     document.getElementById("briefcase-cancel-btn").onclick = closeBriefcaseModal;
 }
 
+
 // --- CLOSE MODAL ---
 function closeBriefcaseModal() {
     document.getElementById("briefcase-modal").classList.add("hidden");
     document.getElementById("briefcase-confirm").classList.add("hidden");
 }
-
-
     
         // build tags for the user input
         function getActiveTags() {
