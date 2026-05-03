@@ -543,11 +543,12 @@
             <div class="modal-content">
                 <h2>Choose Realm</h2>
 
-                <div id="briefcase-confirm" class="hidden">
+                <div id="briefcase-confirm">
                     <p id="briefcase-selected"></p>
                     <button id="briefcase-confirm-btn">Load</button>
                     <button id="briefcase-cancel-btn">Cancel</button>
                 </div>
+
             
                 <input
                     type="text"
@@ -609,20 +610,19 @@
 
 
 let briefcaseCache = [];
+let selectedRealm = null;
 
 // --- RESET / REALM BUTTON HANDLER ---
 document.getElementById("eject-btn").onclick = async function () {
     const list = await window.py_list_briefcases();
     briefcaseCache = list || [];
 
-    // Reset UI state
-    document.getElementById("briefcase-confirm").classList.add("hidden");
-    document.getElementById("briefcase-selected").textContent = "";
+    // Default selection: none
+    selectedRealm = null;
+    document.getElementById("briefcase-selected").textContent = "No realm selected yet.";
 
-    // Render full list
     renderBriefcaseList(briefcaseCache);
 
-    // Wire search
     const search = document.getElementById("briefcase-search");
     search.value = "";
     search.oninput = () => {
@@ -633,12 +633,11 @@ document.getElementById("eject-btn").onclick = async function () {
         renderBriefcaseList(filtered);
     };
 
-    // Show modal
     document.getElementById("briefcase-modal").classList.remove("hidden");
 };
 
 
-// --- RENDER LIST (with click protection) ---
+// --- RENDER LIST ---
 function renderBriefcaseList(list) {
     const container = document.getElementById("briefcase-list");
     container.innerHTML = "";
@@ -647,10 +646,10 @@ function renderBriefcaseList(list) {
         const btn = document.createElement("button");
         btn.textContent = name;
 
-        btn.onclick = (event) => {
-            event.stopPropagation();  // ← prevents search from re-triggering
-            document.getElementById("briefcase-search").blur(); // ← stops auto-refresh
-            selectBriefcase(name);
+        btn.onclick = () => {
+            selectedRealm = name;
+            document.getElementById("briefcase-selected").textContent =
+                `Switch to realm: ${name}`;
         };
 
         container.appendChild(btn);
@@ -658,27 +657,24 @@ function renderBriefcaseList(list) {
 }
 
 
-// --- SELECT A BRIEFCASE ---
-function selectBriefcase(name) {
-    document.getElementById("briefcase-selected").textContent =
-        `Switch to realm: ${name}?`;
+// --- CONFIRM / CANCEL BUTTONS ---
+document.getElementById("briefcase-confirm-btn").onclick = () => {
+    if (!selectedRealm) {
+        alert("Please choose a realm first.");
+        return;
+    }
+    window.reset_with_briefcase(selectedRealm);
+    closeBriefcaseModal();
+};
 
-    document.getElementById("briefcase-confirm").classList.remove("hidden");
-
-    document.getElementById("briefcase-confirm-btn").onclick = () => {
-        window.reset_with_briefcase(name);
-        closeBriefcaseModal();
-    };
-
-    document.getElementById("briefcase-cancel-btn").onclick = closeBriefcaseModal;
-}
+document.getElementById("briefcase-cancel-btn").onclick = closeBriefcaseModal;
 
 
 // --- CLOSE MODAL ---
 function closeBriefcaseModal() {
     document.getElementById("briefcase-modal").classList.add("hidden");
-    document.getElementById("briefcase-confirm").classList.add("hidden");
 }
+
     
         // build tags for the user input
         function getActiveTags() {
