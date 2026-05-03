@@ -32,7 +32,41 @@
             display: flex;
             flex-direction: column;
             height: 100dvh;
-            overflow-y: auto;   /* ← the magic line */
+            overflow: hidden;          /* engine itself doesn’t scroll */
+        }
+        
+        #chat-flow {
+            flex: 1;
+            overflow-y: auto;          /* only the chat scrolls */
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: #000000;
+            border-bottom: 2px solid var(--aida-gold);
+        }
+        
+        #aida-display {
+            flex: 0 0 30dvh;
+            background: #000;
+            display: grid;
+            grid-template-columns: 1.6fr 1fr;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* keep input dock pinned to bottom of the viewport */
+        #input-dock {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 6px;
+            gap: 6px;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(4px);
+            position: sticky;
+            bottom: 0;
+            z-index: 50;
         }
         
         #chat-flow {
@@ -497,18 +531,26 @@
     
         <div class="controls">
             <button id="send-btn">SEND</button>
-            <button id="eject-btn" style="background:#666;">RESTART</button>
+            <button id="eject-btn" style="background:#666;">REALMS</button>
             <button id="sleep-btn" style="background:#444;">SLEEP</button>
         </div>
 
         <div id="briefcase-modal" class="modal hidden">
             <div class="modal-content">
-                <h2>Select a Briefcase</h2>
-                <div id="briefcase-list"></div>
-        
+                <h2>Choose Realm</h2>
+            
+                <input
+                    type="text"
+                    id="briefcase-search"
+                    placeholder="Search realms..."
+                    style="width:100%; padding:6px 8px; margin-bottom:10px; background:#111; color:#fff; border:1px solid #444; border-radius:6px; font-size:12px;"
+                />
+            
+                <div id="briefcase-list" style="max-height:200px; overflow-y:auto;"></div>
+            
                 <div id="briefcase-confirm" class="hidden">
                     <p id="briefcase-selected"></p>
-                    <button id="briefcase-confirm-btn">Confirm</button>
+                    <button id="briefcase-confirm-btn">Load</button>
                     <button id="briefcase-cancel-btn">Cancel</button>
                 </div>
             </div>
@@ -561,12 +603,29 @@
         }
 
 
-    // --- RESET BUTTON HANDLER ---
-document.getElementById("eject-btn").onclick = async function () {
-    // Ask Python for the list of briefcases
-    const list = await window.py_list_briefcases();
+let briefcaseCache = [];
 
-    // Populate the modal
+// --- RESET / REALM BUTTON HANDLER ---
+document.getElementById("eject-btn").onclick = async function () {
+    const list = await window.py_list_briefcases();
+    briefcaseCache = list || [];
+
+    renderBriefcaseList(briefcaseCache);
+
+    const search = document.getElementById("briefcase-search");
+    search.value = "";
+    search.oninput = () => {
+        const q = search.value.toLowerCase();
+        const filtered = briefcaseCache.filter(name =>
+            name.toLowerCase().includes(q)
+        );
+        renderBriefcaseList(filtered);
+    };
+
+    document.getElementById("briefcase-modal").classList.remove("hidden");
+};
+
+function renderBriefcaseList(list) {
     const container = document.getElementById("briefcase-list");
     container.innerHTML = "";
 
@@ -576,16 +635,12 @@ document.getElementById("eject-btn").onclick = async function () {
         btn.onclick = () => selectBriefcase(name);
         container.appendChild(btn);
     });
-
-    // Show modal
-    document.getElementById("briefcase-modal").classList.remove("hidden");
-};
-
+}
 
 // --- SELECT A BRIEFCASE ---
 function selectBriefcase(name) {
     document.getElementById("briefcase-selected").textContent =
-        `Switch to project: ${name}?`;
+        `Switch to realm: ${name}?`;
 
     document.getElementById("briefcase-confirm").classList.remove("hidden");
 
@@ -596,7 +651,6 @@ function selectBriefcase(name) {
 
     document.getElementById("briefcase-cancel-btn").onclick = closeBriefcaseModal;
 }
-
 
 // --- CLOSE MODAL ---
 function closeBriefcaseModal() {
@@ -1093,7 +1147,7 @@ class AidaChassis:
         self.headers = {}
         self.clean_key = ""
         self.session_log = []
-        self.project = "CORE"
+        self.briefcase_filename = "REALM_CORE.json"
         self.strike_count = 0
         self.turn_count = 0
         self.blocks = []
