@@ -1049,20 +1049,21 @@ def clear_rolling_summaries():
         pulse(f"[RESET] Error clearing summaries: {e}")
 
 
-# --- RESET WITH NEW BRIEFCASE ---
+# --- RESET WITH NEW BRIEFCASE (FINAL VERSION) ---
 async def reset_with_briefcase(name):
     """
-    Full MVP RESET:
-    1. Send current session to Butler
+    Full RESET flow:
+    1. Send current session to Butler (stub)
     2. Clear rolling summaries
-    3. Clear session log (but NOT UI)
+    3. Clear session log (UI stays intact)
     4. Switch project
-    5. Reload Aida's soul using py_sync_soul()
+    5. Update UI dropdown + realm tag
+    6. Reload Aida's soul using py_sync_soul()
     """
 
     pulse(f"[RESET] Switching to project: {name}")
 
-    # 1. Send current session to Butler
+    # 1. Send current session to Butler (stub)
     await send_to_butler(aida.session_log)
 
     # 2. Clear rolling summaries
@@ -1075,9 +1076,14 @@ async def reset_with_briefcase(name):
 
     # 4. Switch project
     aida.project = name
+
+    # 5. Update UI so py_sync_soul() does NOT fall back to CORE
+    document.getElementById("project-tag").value = name
+    document.getElementById("realm-tag").innerText = name
+
     pulse(f"[RESET] Project set to: {aida.project}")
 
-    # 5. Reload Aida's soul
+    # 6. Reload Aida's soul
     try:
         await window.py_sync_soul(aida.clean_key)
         pulse("[RESET] Soul reloaded successfully.")
@@ -1085,7 +1091,6 @@ async def reset_with_briefcase(name):
         pulse(f"[RESET] Error reloading soul: {e}")
 
 window.reset_with_briefcase = create_proxy(reset_with_briefcase)
-
 
     
 class AidaChassis:
