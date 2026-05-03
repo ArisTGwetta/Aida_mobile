@@ -1229,6 +1229,7 @@ async def py_sync_soul(token):
     grid_div.innerHTML = ""
     aida.blocks = []
 
+    # Build flicker grid
     for _ in range(2000):
         b = document.createElement("div")
         b.className = "block"
@@ -1241,20 +1242,25 @@ async def py_sync_soul(token):
 
     # Google token (for Drive)
     aida.google_headers = {"Authorization": f"Bearer {token}"}
-    
+
     # OpenAI key (for LLM)
     aida.openai_key = window.sessionStorage.getItem("aida_active_key")
     aida.openai_headers = {"Authorization": f"Bearer {aida.openai_key}"}
-    
-    # If RESET already set aida.project, use that.
-    # Otherwise, use the UI default (first load).
+
+    # --- PROJECT SELECTION FIX ---
+    # Read UI value
     ui_value = document.getElementById("project-tag").value
-        if not aida.project or aida.project == "CORE":
+
+    # If RESET already set aida.project, keep it.
+    # If first load, use UI default.
+    if not aida.project or aida.project == "CORE":
         aida.project = ui_value
-        # Always update UI to reflect the active project
+
+    # Update UI to reflect active project
     document.getElementById("project-tag").value = aida.project
     document.getElementById("realm-tag").innerText = aida.project
 
+    # Debug display mode
     display = document.getElementById("aida-display")
     if aida.project == "DEBUG":
         display.classList.add("is-debug")
