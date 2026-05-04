@@ -1027,53 +1027,76 @@ window.addEventListener("load", () => {
         }, 2200);
     
         /* -----------------------------------------------------------
-           Phase 4 — Face Resolution (3.0 → 3.8s)
-           (extended linger time)
+           Phase 4 — Face Resolution (Small & Fuzzy)
            ----------------------------------------------------------- */
         setTimeout(() => {
-            holoFace.style.filter = "grayscale(0) contrast(1) brightness(1)";
-            holoFace.style.opacity = "1";
-            holoFace.style.transform = "scale(1)";
-    
+            // Apply the "Fuzzy Halo" and position her at the top of the cone
+            Object.assign(holoFace.style, {
+                bottom: "200px",           // Sits at the top of the 200px cone
+                left: "50%",
+                width: "160px",            // Width matches the cone base
+                height: "auto",
+                transform: "translateX(-50%)",
+                opacity: "1",
+                filter: "grayscale(0) contrast(1.1) brightness(1.2) drop-shadow(0 0 15px rgba(75,227,255,0.6))",
+                webkitMaskImage: "radial-gradient(circle, black 40%, transparent 80%)",
+                maskImage: "radial-gradient(circle, black 40%, transparent 80%)"
+            });
+
+            // Fade out the light beams as she stabilizes
             holoCone.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: "forwards" });
             holoBeam.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: "forwards" });
         }, 3000);
     
-        /* Phase 5 — Flash + Blackout Pause + UI Reveal (3.8 → 4.6s) */
+        /* -----------------------------------------------------------
+           Phase 5 — The Double Flash (Small -> HUGE -> UI)
+           ----------------------------------------------------------- */
         setTimeout(() => {
         
-            // 1. Flash on veil
+            // --- FLASH 1: The Expansion ---
             veil.style.background = "white";
             veil.style.opacity = "1";
         
-            // 2. Fade back to black (quick)
             setTimeout(() => {
+                // While screen is white: make her huge and remove the fuzzy mask
+                Object.assign(holoFace.style, {
+                    bottom: "0",
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    transform: "translateX(-50%) scale(1.05)",
+                    webkitMaskImage: "none",
+                    maskImage: "none",
+                    filter: "none"
+                });
                 veil.style.background = "black";
-            }, 120);
+            }, 150);
         
-            // 3. Fade hologram face out AFTER the flash
+            // --- FLASH 2: The Reveal ---
             setTimeout(() => {
-                holoFace.style.opacity = "0";
-            }, 200);
-        
-            // 4. Blackout pause (Aida fully gone, UI still hidden)
-            setTimeout(() => {
-                // UI fade-in happens AFTER the blackout
-                uiDock.style.opacity = "1";
-                dataStack.style.opacity = "1";
-                flickerGrid.style.opacity = "1";
-                portraitPane.style.opacity = "1";
-            }, 500);
-        
-            // 5. Drop veil LAST
-            setTimeout(() => {
-                veil.style.opacity = "0";
-                veil.style.pointerEvents = "none";
-            }, 600);
+                veil.style.background = "white";
+                
+                setTimeout(() => {
+                    // Final Clean up: Hide hologram, show real UI
+                    holoFace.style.opacity = "0";
+                    veil.style.background = "black";
+                    
+                    uiDock.style.opacity = "1";
+                    dataStack.style.opacity = "1";
+                    flickerGrid.style.opacity = "1";
+                    portraitPane.style.opacity = "1";
+                    
+                    // Final veil drop
+                    setTimeout(() => {
+                        veil.style.opacity = "0";
+                        veil.style.pointerEvents = "none";
+                    }, 300);
+                }, 120); // Duration of the second white flash
+                
+            }, 700); // Time spent as "Huge Aida" before final UI flash
         
         }, 3800);
 
-    };
 
 
     /* -----------------------------------------------------------
