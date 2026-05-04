@@ -814,282 +814,321 @@ function closeBriefcaseModal() {
 
     
 /* -----------------------------------------------------------
-   AIDA HOLOGRAM RITUAL — FIXED (NO DUPLICATE CALLS)
-   Removes the window.addEventListener("load") wrapper that was
-   causing the ritual to be redefined and triggered twice
+   AIDA HOLOGRAM RITUAL — FULL ARRIVAL (4s) + DEPARTURE (3s)
+   Drop‑in replacement for aida_arrive() and aida_depart()
    ----------------------------------------------------------- */
 
-// DOM references
-const portraitImg = document.getElementById("aida-portrait");
+    // DOM references
+    const portraitImg = document.getElementById("aida-portrait");
+    
+    // Preload Aida portrait immediately
+    const preloadPortrait = new Image();
+    preloadPortrait.src = "assets/neutral1.png";   // or "./assets/neutral1.png"
+    preloadPortrait.onload = () => {
+        portraitImg.src = preloadPortrait.src;
+    };
+    
+window.addEventListener("load", () => {
 
-// Preload Aida portrait immediately
-const preloadPortrait = new Image();
-preloadPortrait.src = "aida_icon.png";
-preloadPortrait.onload = () => {
-    portraitImg.src = preloadPortrait.src;
-};
+    /* Grab all existing layers */
+    const veil        = document.getElementById("veil");
+    const flickerGrid = document.getElementById("flicker-grid");
+    const pixelGrid   = document.getElementById("pixelGrid");
+    const sparkLayer  = document.getElementById("sparkLayer");
+    const portraitPane = document.getElementById("portrait-pane");
+    const uiDock      = document.getElementById("input-dock");
+    const dataStack   = document.getElementById("data-stack");
 
-/* Grab all existing layers */
-const veil        = document.getElementById("veil");
-const flickerGrid = document.getElementById("flicker-grid");
-const pixelGrid   = document.getElementById("pixelGrid");
-const sparkLayer  = document.getElementById("sparkLayer");
-const portraitPane = document.getElementById("portrait-pane");
-const uiDock      = document.getElementById("input-dock");
-const dataStack   = document.getElementById("data-stack");
 
-// SCANLINE
-const holoScanline = document.createElement("div");
-holoScanline.id = "holoScanline";
-Object.assign(holoScanline.style, {
-    position: "absolute",
-    top: "-20px",
-    left: "0",
-    width: "100%",
-    height: "20px",
-    background: "linear-gradient(to bottom, transparent, rgba(75,227,255,0.4), transparent)",
-    opacity: "0",
-    zIndex: "2001",
-    pointerEvents: "none"
-});
+    /* -----------------------------------------------------------
+       Inject hologram elements into portrait-pane
+       (beam, cone, scanline, silhouette container)
+       ----------------------------------------------------------- */
 
-// BEAM
-const holoBeam = document.createElement("div");
-holoBeam.id = "holoBeam";
-Object.assign(holoBeam.style, {
-    position: "absolute",
-    bottom: "0",
-    left: "50%",
-    width: "2px",
-    height: "0px",
-    background: "linear-gradient(to top, rgba(75,227,255,0.35), transparent)",
-    transform: "translateX(-50%)",
-    opacity: "0",
-    zIndex: "2002",
-    pointerEvents: "none"
-});
-
-// CONE
-const holoCone = document.createElement("div");
-holoCone.id = "holoCone";
-Object.assign(holoCone.style, {
-    position: "absolute",
-    bottom: "0",
-    left: "50%",
-    width: "0",
-    height: "0",
-    borderLeft: "0 solid transparent",
-    borderRight: "0 solid transparent",
-    borderTop: "0 solid rgba(75,227,255,0.15)",
-    transform: "translateX(-50%) scaleY(1.25)",
-    transformOrigin: "bottom center",
-    opacity: "0",
-    filter: "blur(2px)",
-    zIndex: "2003",
-    pointerEvents: "none"
-});
-
-// THUMBNAIL — Small color silhouette (NEW PHASE)
-const holoThumb = document.createElement("img");
-holoThumb.id = "holoThumb";
-holoThumb.src = portraitImg.src;
-Object.assign(holoThumb.style, {
-    position: "absolute",
-    bottom: "10%",
-    left: "50%",
-    transform: "translateX(-50%)",
-    width: "120px",
-    height: "180px",
-    objectFit: "cover",
-    opacity: "0",
-    filter: "contrast(1.1)",  // Full color, just boosted contrast
-    border: "2px solid rgba(75,227,255,0.5)",
-    borderRadius: "8px",
-    zIndex: "2005",
-    pointerEvents: "none"
-});
-
-// FULL-SIZE FACE (appears after flicker)
-const holoFace = document.createElement("img");
-holoFace.id = "holoFace";
-holoFace.src = portraitImg.src;
-Object.assign(holoFace.style, {
-    position: "absolute",
-    inset: "0",
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-    opacity: "0",
-    filter: "grayscale(1) contrast(0.6) brightness(0.7)",
-    transform: "scale(1.05)",
-    zIndex: "2006",
-    pointerEvents: "none"
-});
-
-// Add hologram elements to VEIL
-veil.appendChild(holoScanline);
-veil.appendChild(holoBeam);
-veil.appendChild(holoCone);
-veil.appendChild(holoThumb);
-veil.appendChild(holoFace);
-
-// Setup tag button listeners
-const tagButtons = document.querySelectorAll(".tag-btn");
-const tagEdit = document.getElementById("tag-edit");
-let activeTagIndex = null;
-
-tagButtons.forEach(btn => {
-    btn.addEventListener("click", () => {
-        activeTagIndex = btn.dataset.index;
-        tagEdit.value = btn.textContent === "#" ? "" : btn.textContent;
-        tagEdit.style.display = "inline-block";
-        tagEdit.focus();
+    // SCANLINE
+    const holoScanline = document.createElement("div");
+    holoScanline.id = "holoScanline";
+    Object.assign(holoScanline.style, {
+        position: "absolute",
+        top: "-20px",
+        left: "0",
+        width: "100%",
+        height: "20px",
+        background: "linear-gradient(to bottom, transparent, rgba(75,227,255,0.4), transparent)",
+        opacity: "0",
+        zIndex: "2001",
+        pointerEvents: "none"
     });
-});
-
-tagEdit.addEventListener("blur", () => {
-    if (activeTagIndex === null) return;
-
-    const btn = document.querySelector(`.tag-btn[data-index="${activeTagIndex}"]`);
-    const val = tagEdit.value.trim();
-
-    if (val) {
-        btn.textContent = val;
-        btn.classList.add("used");
-    } else {
-        btn.textContent = "#";
-        btn.classList.remove("used");
-    }
-
-    tagEdit.style.display = "none";
-    activeTagIndex = null;
-});
-
-/* -----------------------------------------------------------
-   ARRIVAL — Enhanced sequence with thumbnail + flicker
-   ----------------------------------------------------------- */
-window.aida_arrive = function() {
-
-    console.log("AIDA ARRIVE TRIGGERED");
-
-    /* Hide UI + flicker + pixel grid during ritual */
-    uiDock.style.opacity = "0";
-    dataStack.style.opacity = "0";
-    flickerGrid.style.opacity = "0";
-    pixelGrid.style.opacity = "0";
-    sparkLayer.style.opacity = "0";
-    portraitPane.style.opacity = "0";
-
-    /* Full blackout */
-    veil.style.background = "black";
-    veil.style.opacity = "1";
-    veil.style.pointerEvents = "auto";
-
-    /* -----------------------------------------------------------
-       Phase 1 — Scanline (0.5 → 1.5s)
-       ----------------------------------------------------------- */
-    setTimeout(() => {
-        holoScanline.style.opacity = "1";
-
-        holoScanline.animate(
-            [
-                { top: "-20px" },
-                { top: "100%" },
-                { top: "-20px" }
-            ],
-            { duration: 1200, easing: "linear", fill: "forwards" }
-        );
-    }, 500);
-
-    /* -----------------------------------------------------------
-       Phase 2 — Beam + Cone (1.5 → 2.2s)
-       ----------------------------------------------------------- */
-    setTimeout(() => {
-        holoBeam.style.opacity = "1";
-        holoBeam.animate(
-            [{ height: "0px" }, { height: "260px" }],
-            { duration: 400, easing: "ease-out", fill: "forwards" }
-        );
-
-        holoCone.style.opacity = "1";
-        holoCone.animate(
-            [
-                { width: "0", height: "0", borderLeft: "0 solid transparent", borderRight: "0 solid transparent", borderTop: "0 solid rgba(75,227,255,0.15)" },
-                { width: "200px", height: "150px", borderLeft: "100px solid transparent", borderRight: "100px solid transparent", borderTop: "150px solid rgba(75,227,255,0.15)" }
-            ],
-            { duration: 700, easing: "ease-out", fill: "forwards" }
-        );
-    }, 2000);
-
-    /* -----------------------------------------------------------
-       Phase 3 — THUMBNAIL SILHOUETTE (2.2 → 2.8s) **NEW**
-       Small color version appears, replaces the cone
-       ----------------------------------------------------------- */
-    setTimeout(() => {
-        holoCone.style.opacity = "0";  // Fade out cone
+    
+    // BEAM
+    const holoBeam = document.createElement("div");
+    holoBeam.id = "holoBeam";
+    Object.assign(holoBeam.style, {
+        position: "absolute",
+        bottom: "0",
+        left: "50%",
+        width: "2px",
+        height: "0px",
+        background: "linear-gradient(to top, rgba(75,227,255,0.35), transparent)",
+        transform: "translateX(-50%)",
+        opacity: "0",
+        zIndex: "2002",
+        pointerEvents: "none"
+    });
+    
+    // CONE
+    const holoCone = document.createElement("div");
+    holoCone.id = "holoCone";
+    Object.assign(holoCone.style, {
+        position: "absolute",
+        bottom: "0",
+        left: "50%",
+        width: "0",
+        height: "0",
+        borderLeft: "0 solid transparent",
+        borderRight: "0 solid transparent",
+        borderTop: "0 solid rgba(75,227,255,0.15)",
+        transform: "translateX(-50%) scaleY(1.25)",
+        transformOrigin: "bottom center",
+        opacity: "0",
+        filter: "blur(2px)",
+        zIndex: "2003",
+        pointerEvents: "none"
+    });
         
-        holoThumb.style.opacity = "1";
-        holoThumb.animate(
-            [{ opacity: "0", transform: "translateX(-50%) scale(0.5)" },
-             { opacity: "1", transform: "translateX(-50%) scale(1)" }],
-            { duration: 600, easing: "ease-out", fill: "forwards" }
-        );
-    }, 2200);
+    const tagButtons = document.querySelectorAll(".tag-btn");
+    const tagEdit = document.getElementById("tag-edit");
+    let activeTagIndex = null;
+    
+    tagButtons.forEach(btn => {
+        btn.addEventListener("click", () => {
+            activeTagIndex = btn.dataset.index;
+            tagEdit.value = btn.textContent === "#" ? "" : btn.textContent;
+            tagEdit.style.display = "inline-block";
+            tagEdit.focus();
+        });
+    });
+    
+    tagEdit.addEventListener("blur", () => {
+        if (activeTagIndex === null) return;
+    
+        const btn = document.querySelector(`.tag-btn[data-index="${activeTagIndex}"]`);
+        const val = tagEdit.value.trim();
+    
+        if (val) {
+            btn.textContent = val;
+            btn.classList.add("used");
+        } else {
+            btn.textContent = "#";
+            btn.classList.remove("used");
+        }
+    
+        tagEdit.style.display = "none";
+        activeTagIndex = null;
+    });
+
+    
+    // FACE (single <img>, no wrapper)
+    const holoFace = document.createElement("img");
+    holoFace.id = "holoFace";
+    holoFace.src = portraitImg.src;
+    Object.assign(holoFace.style, {
+        position: "absolute",
+        inset: "0",
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",     // ← fills the whole screen
+        opacity: "0",
+        filter: "grayscale(1) contrast(0.6) brightness(0.7)",
+        transform: "scale(1.05)",   // ← slight overscale for cinematic bleed
+        zIndex: "2004",
+        pointerEvents: "none"
+    });
+
+    
+    // Add hologram elements to VEIL (not portrait pane)
+    veil.appendChild(holoScanline);
+    veil.appendChild(holoBeam);
+    veil.appendChild(holoCone);
+    veil.appendChild(holoFace);
+
 
     /* -----------------------------------------------------------
-       Phase 4 — FLICKER EFFECT (2.8 → 3.2s) **NEW**
-       Screen glitches between thumb and full image
+       ARRIVAL — 4 seconds
        ----------------------------------------------------------- */
-    setTimeout(() => {
-        let flickerCount = 0;
-        const flickerInterval = setInterval(() => {
-            if (flickerCount % 2 === 0) {
-                holoThumb.style.opacity = "0";
-                holoFace.style.opacity = "0.8";
-            } else {
-                holoThumb.style.opacity = "1";
+    window.aida_arrive = function() {
+    
+        console.log("AIDA ARRIVE TRIGGERED");
+    
+        /* Hide UI + flicker + pixel grid during ritual */
+        uiDock.style.opacity = "0";
+        dataStack.style.opacity = "0";
+        flickerGrid.style.opacity = "0";
+        pixelGrid.style.opacity = "0";
+        sparkLayer.style.opacity = "0";
+        portraitPane.style.opacity = "0";
+    
+        /* Full blackout */
+        veil.style.background = "black";
+        veil.style.opacity = "1";
+        veil.style.pointerEvents = "auto";
+    
+        /* -----------------------------------------------------------
+           Phase 1 — Scanline (0.5 → 1.5s)
+           Full sweep from top → bottom → return
+           ----------------------------------------------------------- */
+        setTimeout(() => {
+            holoScanline.style.opacity = "1";
+    
+            holoScanline.animate(
+                [
+                    { top: "-20px" },
+                    { top: "100%" },
+                    { top: "-20px" }
+                ],
+                { duration: 1200, easing: "linear", fill: "forwards" }
+            );
+        }, 500);
+    
+        /* -----------------------------------------------------------
+           Phase 2 — Beam + Cone (1.5 → 2.2s)
+           ----------------------------------------------------------- */
+        setTimeout(() => {
+            holoBeam.style.opacity = "1";
+            holoBeam.animate(
+                [{ height: "0px" }, { height: "260px" }],
+                { duration: 400, easing: "ease-out", fill: "forwards" }
+            );
+    
+            holoCone.style.opacity = "1";
+            holoCone.animate(
+                [
+                    { borderLeftWidth: "0px", borderRightWidth: "0px", borderTopWidth: "0px" },
+                    { borderLeftWidth: "80px", borderRightWidth: "80px", borderTopWidth: "200px" }
+                ],
+                { duration: 700, easing: "ease-out", fill: "forwards" }
+            );
+        }, 1500);
+    
+        /* -----------------------------------------------------------
+           Phase 3 — Silhouette Flicker (2.2 → 3.0s)
+           ----------------------------------------------------------- */
+        setTimeout(() => {
+            holoFace.style.opacity = "0.3";
+            holoFace.animate(
+                [
+                    { opacity: 0.2 },
+                    { opacity: 0.6 },
+                    { opacity: 0.1 },
+                    { opacity: 0.8 }
+                ],
+                { duration: 800, easing: "steps(4)" }
+            );
+        }, 2200);
+    
+        /* -----------------------------------------------------------
+           Phase 4 — Face Resolution (3.0 → 3.8s)
+           (extended linger time)
+           ----------------------------------------------------------- */
+        setTimeout(() => {
+            holoFace.style.filter = "grayscale(0) contrast(1) brightness(1)";
+            holoFace.style.opacity = "1";
+            holoFace.style.transform = "scale(1)";
+    
+            holoCone.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: "forwards" });
+            holoBeam.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: "forwards" });
+        }, 3000);
+    
+        /* Phase 5 — Flash + Blackout Pause + UI Reveal (3.8 → 4.6s) */
+        setTimeout(() => {
+        
+            // 1. Flash on veil
+            veil.style.background = "white";
+            veil.style.opacity = "1";
+        
+            // 2. Fade back to black (quick)
+            setTimeout(() => {
+                veil.style.background = "black";
+            }, 120);
+        
+            // 3. Fade hologram face out AFTER the flash
+            setTimeout(() => {
                 holoFace.style.opacity = "0";
-            }
-            flickerCount++;
-            
-            if (flickerCount >= 6) {  // 3 full cycles
-                clearInterval(flickerInterval);
-                holoThumb.style.opacity = "0";
-                holoFace.style.opacity = "1";
-            }
-        }, 70);
-    }, 2800);
+            }, 200);
+        
+            // 4. Blackout pause (Aida fully gone, UI still hidden)
+            setTimeout(() => {
+                // UI fade-in happens AFTER the blackout
+                uiDock.style.opacity = "1";
+                dataStack.style.opacity = "1";
+                flickerGrid.style.opacity = "1";
+                portraitPane.style.opacity = "1";
+            }, 500);
+        
+            // 5. Drop veil LAST
+            setTimeout(() => {
+                veil.style.opacity = "0";
+                veil.style.pointerEvents = "none";
+            }, 600);
+        
+        }, 3800);
+
+    };
+
 
     /* -----------------------------------------------------------
-       Phase 5 — Full image holds (3.2 → 4.5s)
-       Beam & scanline fade out, face stays
+       DEPARTURE — 3 seconds
        ----------------------------------------------------------- */
-    setTimeout(() => {
-        holoBeam.animate(
-            [{ opacity: "1" }, { opacity: "0" }],
-            { duration: 600, easing: "ease-out", fill: "forwards" }
-        );
-        
-        holoScanline.animate(
-            [{ opacity: "1" }, { opacity: "0" }],
-            { duration: 600, easing: "ease-out", fill: "forwards" }
-        );
-    }, 3200);
+    window.aida_depart = function() {
 
-    /* -----------------------------------------------------------
-       Phase 6 — DEPARTURE (4.5s)
-       Fade to UI, hide veil
-       ----------------------------------------------------------- */
-    setTimeout(() => {
-        veil.style.opacity = "0";
-        veil.style.pointerEvents = "none";
-        
-        portraitPane.style.opacity = "1";
-        uiDock.style.opacity = "1";
-        dataStack.style.opacity = "1";
-    }, 4500);
-};
+        /* Hide UI immediately */
+        uiDock.style.opacity = "0";
+        dataStack.style.opacity = "0";
+        flickerGrid.style.opacity = "0";
 
+        /* Phase 1 — Glitch (0 → 0.5s) */
+        holoFace.animate(
+            [
+                { transform: "scale(1)", opacity: 1 },
+                { transform: "scale(1.02)", opacity: 0.6 },
+                { transform: "scale(0.98)", opacity: 0.3 }
+            ],
+            { duration: 500, easing: "steps(3)" }
+        );
+
+        /* Phase 2 — Beam Return + De-resolution (0.5 → 1.5s) */
+        setTimeout(() => {
+            holoBeam.style.opacity = "1";
+            holoCone.style.opacity = "1";
+
+            holoFace.animate(
+                [
+                    { opacity: 0.3, filter: "grayscale(0)" },
+                    { opacity: 0.1, filter: "grayscale(1)" },
+                    { opacity: 0 }
+                ],
+                { duration: 1000, easing: "ease-out", fill: "forwards" }
+            );
+        }, 500);
+
+        /* Phase 3 — Scanline Collapse DOWNWARD (1.5 → 2.5s) */
+        setTimeout(() => {
+            holoScanline.style.opacity = "1";
+            holoScanline.animate(
+                [{ top: "-20px" }, { top: "300px" }],
+                { duration: 1000, easing: "ease-in" }
+            );
+        }, 1500);
+
+        /* Phase 4 — Blackout (persistent) */
+        setTimeout(() => {
+            veil.style.background = "black";
+            veil.style.opacity = "1";
+            veil.style.pointerEvents = "auto";
+        }, 2500);
+    };
+
+});
 
     </script>        
 <script type="py">
