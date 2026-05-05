@@ -823,7 +823,7 @@ function closeBriefcaseModal() {
     
     // Preload Aida portrait immediately
     const preloadPortrait = new Image();
-    preloadPortrait.src = "assets/neutral1.png";   // or "./assets/neutral1.png"
+    preloadPortrait.src = "./assets/neutral1.png";   // or "assets/neutral1.png"
     preloadPortrait.onload = () => {
         portraitImg.src = preloadPortrait.src;
     };
