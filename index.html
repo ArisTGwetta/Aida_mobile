@@ -1032,15 +1032,15 @@ window.addEventListener("load", () => {
         setTimeout(() => {
             // Apply the "Fuzzy Halo" and position her at the top of the cone
             Object.assign(holoFace.style, {
-                bottom: "200px",           // Sits at the top of the 200px cone
+                bottom: "50%",           // Sits at the top of the 200px cone
                 left: "50%",
-                width: "160px",            // Width matches the cone base
+                width: "auto",            // Width matches the cone base
                 height: "auto",
                 transform: "translateX(-50%)",
                 opacity: "1",
                 filter: "grayscale(0) contrast(1.1) brightness(1.2) drop-shadow(0 0 15px rgba(75,227,255,0.6))",
                 webkitMaskImage: "radial-gradient(circle, black 40%, transparent 80%)",
-                maskImage: "radial-gradient(circle, black 40%, transparent 80%)"
+                maskImage: "pradial-gradient(circle, black 40%, transparent 80%)"
             });
 
             // Fade out the light beams as she stabilizes
