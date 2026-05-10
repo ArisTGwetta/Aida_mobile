@@ -1,5 +1,3 @@
-# triad.py (updated for Tetrad)
-
 from identity_organ import IdentityEngine
 from realm_organ import RealmEngine
 from role_organ import RoleEngine
@@ -8,34 +6,26 @@ import json
 from pathlib import Path
 
 
-
 def load_emotion_state(path: Path):
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def assemble_tetrad(core_identity,
-                    realm_config,
-                    role_config,
-                    emotion_state_path: Path):
-    """
-    Builds the unified mind-state for Aida.
-    Now includes the 4th organ: emotion.
-    """
-
-    # 1. Realm (environment)
+def assemble_tetrad(
+    core_identity,
+    realm_config,
+    role_config,
+    emotion_state_path: Path
+):
     realm_engine = RealmEngine(realm_config)
     realm_ctx = realm_engine.get_resolved_realm()
 
-    # 2. Role (mode)
     role_engine = RoleEngine(role_config)
     role_ctx = role_engine.get_resolved_role()
 
-    # 3. Identity (self)
     identity_engine = IdentityEngine(core_identity, realm_ctx, role_ctx)
     identity_ctx = identity_engine.get_resolved_identity()
 
-    # 4. Emotion (valence/arousal → label + face)
     emotion_state = load_emotion_state(emotion_state_path)
     selector = EmotionSelector()
     emo_result = selector.select_emotion(
@@ -47,7 +37,7 @@ def assemble_tetrad(core_identity,
         "valence": emotion_state["valence"],
         "arousal": emotion_state["arousal"],
         "label": emo_result["label"],
-        "    "face": emo_result["face"] or "neutral1.png",
+        "face": emo_result["face"] or "neutral1.png",
         "gap_candidate": emo_result["gap_candidate"],
         "between_labels": emo_result["between_labels"],
         "distance": emo_result["distance"],
@@ -55,7 +45,6 @@ def assemble_tetrad(core_identity,
         "mode": emotion_state.get("mode", "")
     }
 
-    # Final unified mind-state
     tetrad = {
         "identity": identity_ctx,
         "realm": realm_ctx,
