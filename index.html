@@ -5220,25 +5220,41 @@ out = tool.run(payload_path="${payloadFile}", output_path="${outputFile}")
 
 
 <!-- ===================================================== -->
-<!--  BLOCK 36 — PYTHON SOURCE LOADER                     -->
+<!--  BLOCK 36 — PYTHON SOURCE LOADER (REVISED)            -->
 <!-- ===================================================== -->
 
 <script>
 window.python_sources = (function() {
 
+    // Canonical organ map — filename in GitHub → filename inside Pyodide
     const SRC_MAP = {
-        butler:    "/py/butler.py",
-        librarian: "/py/librarian.py",
-        crawler:   "/py/crawler.py"
+        butler:                   "/Py/butler.py",
+        crawler:                  "/Py/crawler.py",
+        librarian:                "/Py/librarian.py",
+        emotion_selector:         "/Py/emotion_selector.py",
+        emotion_selector_launch:  "/Py/emotion_selector-LAUNCH.py",
+        identity_organ:           "/Py/identity_organ.py",
+        realm_organ:              "/Py/realm_organ.py",
+        role_organ:               "/Py/role_organ.py",
+        soul_sync_engine:         "/Py/soul_sync_engine.py",
+        tetrad_chassis:           "/Py/tetrad_chassis.py"
     };
 
     async function loadAll() {
         await py_runtime.init();
 
         for (const [name, url] of Object.entries(SRC_MAP)) {
-            const resp = await fetch(url);
-            const text = await resp.text();
-            await py_runtime.writeFile(`${name}.py`, text);
+            try {
+                const resp = await fetch(url);
+                if (!resp.ok) {
+                    console.error(`Failed to fetch ${url}:`, resp.status);
+                    continue;
+                }
+                const text = await resp.text();
+                await py_runtime.writeFile(`${name}.py`, text);
+            } catch (err) {
+                console.error(`Error loading ${url}:`, err);
+            }
         }
     }
 
