@@ -3684,7 +3684,11 @@ window.hologram_sync = (function() {
     // Face update
     // -----------------------------------------------------
     function updateFace(ctx) {
-        if (!faceImg) return;
+        if (!ctx.face || ctx.face.trim() === "") {
+            console.warn("[Hologram] Empty face received — using neutral1.png");
+            face_loader.load("neutral1.png", 0);
+            return;
+        }
         if (ctx.face && ctx.face !== faceImg.src) {
             faceImg.src = ctx.face;
         }
