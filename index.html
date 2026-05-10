@@ -1715,16 +1715,661 @@ def clear_rolling_summaries():
 <!-- ===================================================== -->
 <!--  BLOCK 7 — TETRAD CHASSIS (NESTED ORGANS)             -->
 <!-- ===================================================== -->
-<script type="py">
-import role_organ
-import realm_organ
-import identity_organ
-import emotion_selector
 
-from role_organ import RoleOrgan
-from realm_organ import RealmOrgan
-from identity_organ import IdentityOrgan
-from emotion_selector import EmotionSelector
+
+<script type="py">
+# ==========================================================
+#  CORE ENGINES — INLINE, NO IMPORTS
+# ==========================================================
+
+from typing import Any, Dict, List, Optional
+import math
+import random
+
+# ---------- Soft playful warning helper ----------
+
+def _soft_warn(msg: str):
+    # Console
+    print(msg)
+    # UI pulse, if available
+    try:
+        pulse(f"[Aida-soft] {msg}")
+    except Exception:
+        pass
+
+# ==========================================================
+#  RoleEngine
+# ==========================================================
+
+class RoleEngine:
+    def __init__(self, role_config: Dict[str, Any]):
+        self.role_config = role_config or {}
+        self._validate()
+        self.resolved_role = self._resolve_role()
+
+    @classmethod
+    def from_file(cls, role_config_path: str) -> "RoleEngine":
+        import json
+        with open(role_config_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return cls(data)
+
+    def _validate(self) -> None:
+        if not self.role_config:
+            raise ValueError("role_config is empty")
+        if "name" not in self.role_config:
+            raise ValueError("role_config missing 'name' field")
+
+    def _resolve_role(self) -> Dict[str, Any]:
+        rc = self.role_config
+        name = rc.get("name")
+        description = rc.get("description", "")
+        tone_modifiers = self._normalize_str_list(rc.get("tone_modifiers", []))
+        priorities = self._normalize_str_list(rc.get("priorities", []))
+        communication_style = self._normalize_str_list(rc.get("communication_style", []))
+        capabilities = self._normalize_str_list(rc.get("capabilities", []))
+        constraints = self._normalize_str_list(rc.get("constraints", []))
+        flags = rc.get("flags", {}) or {}
+        return {
+            "name": name,
+            "description": description,
+            "tone_modifiers": tone_modifiers,
+            "priorities": priorities,
+            "communication_style": communication_style,
+            "capabilities": capabilities,
+            "constraints": constraints,
+            "flags": {k: bool(v) for k, v in flags.items()},
+        }
+
+    def _normalize_str_list(self, value: Any) -> List[str]:
+        if isinstance(value, str):
+            return [value]
+        if isinstance(value, list):
+            return [v for v in value if isinstance(v, str)]
+        return []
+
+    def get_resolved_role(self) -> Dict[str, Any]:
+        return self.resolved_role
+
+    def get_name(self) -> str:
+        return self.resolved_role.get("name", "")
+
+    def get_tone_modifiers(self) -> List[str]:
+        return self.resolved_role.get("tone_modifiers", [])
+
+    def get_priorities(self) -> List[str]:
+        return self.resolved_role.get("priorities", [])
+
+    def get_communication_style(self) -> List[str]:
+        return self.resolved_role.get("communication_style", [])
+
+    def get_capabilities(self) -> List[str]:
+        return self.resolved_role.get("capabilities", [])
+
+    def get_constraints(self) -> List[str]:
+        return self.resolved_role.get("constraints", [])
+
+    def get_flags(self) -> Dict[str, bool]:
+        return self.resolved_role.get("flags", {})
+
+    def has_capability(self, capability: str) -> bool:
+        return capability in self.get_capabilities()
+
+    def is_flag_enabled(self, flag_name: str) -> bool:
+        return bool(self.get_flags().get(flag_name, False))
+
+
+# ==========================================================
+#  RealmEngine
+# ==========================================================
+
+class RealmEngine:
+    def __init__(self, realm_config: Dict[str, Any]):
+        self.realm_config = realm_config or {}
+        self._validate()
+        self.resolved_realm = self._resolve_realm()
+
+    @classmethod
+    def from_file(cls, realm_config_path: str) -> "RealmEngine":
+        import json
+        with open(realm_config_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return cls(data)
+
+    def _validate(self) -> None:
+        if "realm_name" not in self.realm_config:
+            raise ValueError("realm_config missing 'realm_name'")
+
+    def _resolve_realm(self) -> Dict[str, Any]:
+        rc = self.realm_config
+        realm_name = rc.get("realm_name")
+        description = rc.get("description", "")
+
+        tone_block = rc.get("tone", {}) or {}
+        default_tone = tone_block.get("default", "")
+        narrator_voice = tone_block.get("narrator_voice", "")
+        humor = tone_block.get("humor", "")
+
+        co_narrator_rules = rc.get("co_narrator_rules", {}) or {}
+        meta_layer = rc.get("meta_layer", {}) or {}
+        character_emotion_mirroring = rc.get("character_emotion_mirroring", {}) or {}
+
+        constraints_block = rc.get("constraints", {}) or {}
+        allowed_behaviors = rc.get("allowed_behaviors", []) or []
+        forbidden_behaviors = rc.get("forbidden_behaviors", []) or []
+
+        emotional_palette = rc.get("emotional_palette", {}) or {}
+        continuity_hooks = rc.get("continuity_hooks", {}) or {}
+
+        project_briefcase_pointer = rc.get("project_briefcase_pointer")
+
+        tone_modifiers = self._build_tone_modifiers(
+            default_tone=default_tone,
+            narrator_voice=narrator_voice,
+            humor=humor,
+        )
+        constraint_list = self._flatten_constraints(constraints_block)
+
+        return {
+            "realm_name": realm_name,
+            "description": description,
+            "tone": {
+                "default": default_tone,
+                "narrator_voice": narrator_voice,
+                "humor": humor,
+                "modifiers": tone_modifiers,
+            },
+            "co_narrator_rules": co_narrator_rules,
+            "meta_layer": {
+                "allowed": bool(meta_layer.get("allowed", False)),
+                "description": meta_layer.get("description", ""),
+                "examples": meta_layer.get("examples", []) or [],
+            },
+            "character_emotion_mirroring": {
+                "allowed": bool(character_emotion_mirroring.get("allowed", False)),
+                "description": character_emotion_mirroring.get("description", ""),
+                "examples": character_emotion_mirroring.get("examples", []) or [],
+            },
+            "constraints": constraint_list,
+            "allowed_behaviors": self._normalize_str_list(allowed_behaviors),
+            "forbidden_behaviors": self._normalize_str_list(forbidden_behaviors),
+            "emotional_palette": {
+                "primary": self._normalize_str_list(emotional_palette.get("primary", [])),
+                "secondary": self._normalize_str_list(emotional_palette.get("secondary", [])),
+            },
+            "continuity_hooks": {
+                "track_characters": bool(continuity_hooks.get("track_characters", False)),
+                "track_quests": bool(continuity_hooks.get("track_quests", False)),
+                "track_items": bool(continuity_hooks.get("track_items", False)),
+                "track_locations": bool(continuity_hooks.get("track_locations", False)),
+                "track_unresolved_threads": bool(continuity_hooks.get("track_unresolved_threads", False)),
+            },
+            "project_briefcase_pointer": project_briefcase_pointer,
+        }
+
+    def _normalize_str_list(self, value: Any) -> List[str]:
+        if isinstance(value, str):
+            return [value]
+        if isinstance(value, list):
+            return [v for v in value if isinstance(v, str)]
+        return []
+
+    def _build_tone_modifiers(
+        self,
+        default_tone: str,
+        narrator_voice: str,
+        humor: str,
+    ) -> List[str]:
+        parts: List[str] = []
+
+        def split_and_add(text: str):
+            for piece in text.split(","):
+                piece = piece.strip()
+                if piece and piece not in parts:
+                    parts.append(piece)
+
+        if default_tone:
+            split_and_add(default_tone)
+        if narrator_voice:
+            split_and_add(narrator_voice)
+        if humor:
+            split_and_add(humor)
+
+        return parts
+
+    def _flatten_constraints(self, constraints_block: Dict[str, Any]) -> List[str]:
+        rules: List[str] = []
+        for key, value in constraints_block.items():
+            if isinstance(value, str):
+                rules.append(f"{key}: {value}")
+        return rules
+
+    def get_resolved_realm(self) -> Dict[str, Any]:
+        return self.resolved_realm
+
+
+# ==========================================================
+#  IdentityEngine
+# ==========================================================
+
+class IdentityEngine:
+    def __init__(
+        self,
+        core_identity: Dict[str, Any],
+        realm_config: Optional[Dict[str, Any]] = None,
+        role_config: Optional[Dict[str, Any]] = None,
+    ):
+        self.core_identity = core_identity or {}
+        self.realm_config = realm_config or {}
+        self.role_config = role_config or {}
+
+        self._validate_core()
+        self.resolved_identity = self._resolve_identity()
+
+    @classmethod
+    def from_files(
+        cls,
+        core_identity_path: str,
+        realm_config_path: Optional[str] = None,
+        role_config_path: Optional[str] = None,
+    ) -> "IdentityEngine":
+        import json
+        def load_json(path: Optional[str]) -> Dict[str, Any]:
+            if not path:
+                return {}
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+
+        core_identity = load_json(core_identity_path)
+        realm_config = load_json(realm_config_path)
+        role_config = load_json(role_config_path)
+        return cls(core_identity, realm_config, role_config)
+
+    def _validate_core(self) -> None:
+        if "identity" not in self.core_identity:
+            raise ValueError("core_identity.json missing 'identity' section")
+
+    def _resolve_identity(self) -> Dict[str, Any]:
+        identity = self.core_identity.get("identity", {})
+        behavior = self.core_identity.get("behavior", {})
+        emotional_model = self.core_identity.get("emotional_model", {})
+        memory_model = self.core_identity.get("memory_model", {})
+        collaboration = self.core_identity.get("collaboration", {})
+        safety = self.core_identity.get("safety", {})
+
+        realm_name = self.realm_config.get("realm", None)
+        realm_role = self.realm_config.get("role", None)
+        realm_tone_modifiers = self.realm_config.get("tone_modifiers", [])
+        realm_constraints = self.realm_config.get("constraints", [])
+        realm_forbidden = self.realm_config.get("forbidden_elements", [])
+        realm_allowed = self.realm_config.get("allowed_elements", [])
+
+        role_name = self.role_config.get("name", None)
+        role_tone_modifiers = self.role_config.get("tone_modifiers", [])
+        role_constraints = self.role_config.get("constraints", [])
+
+        base_name = identity.get("name", "Aida")
+        base_version = identity.get("version", "1.0")
+        base_role = identity.get("role", "Companion")
+        base_tone = identity.get("tone", "")
+
+        resolved_tone = self._merge_tone(
+            base_tone,
+            realm_tone_modifiers,
+            role_tone_modifiers,
+        )
+
+        resolved_safety_rules = self._merge_unique_lists(
+            safety.get("rules", []),
+            realm_constraints,
+            role_constraints,
+        )
+
+        resolved_role = role_name or realm_role or base_role
+
+        return {
+            "name": base_name,
+            "version": base_version,
+            "core_role": base_role,
+            "active_role": resolved_role,
+            "realm": realm_name,
+            "tone": resolved_tone,
+            "core_values": identity.get("core_values", []),
+            "behavior_principles": behavior.get("principles", []),
+            "communication_style": behavior.get("communication_style", []),
+            "emotional_model": emotional_model,
+            "memory_model": memory_model,
+            "collaboration": collaboration,
+            "safety_rules": resolved_safety_rules,
+            "realm_allowed_elements": realm_allowed,
+            "realm_forbidden_elements": realm_forbidden,
+        }
+
+    def _merge_tone(
+        self,
+        base_tone: str,
+        realm_modifiers: Any,
+        role_modifiers: Any,
+    ) -> str:
+        parts: List[str] = []
+
+        def normalize(mods: Any) -> List[str]:
+            if isinstance(mods, str):
+                return [mods]
+            if isinstance(mods, list):
+                return [m for m in mods if isinstance(m, str)]
+            return []
+
+        if base_tone:
+            parts.extend([p.strip() for p in base_tone.split(",") if p.strip()])
+
+        for mod in normalize(realm_modifiers) + normalize(role_modifiers):
+            if mod and mod not in parts:
+                parts.append(mod)
+
+        return ", ".join(parts)
+
+    def _merge_unique_lists(self, *groups: Any) -> List[str]:
+        merged: List[str] = []
+
+        def normalize(items: Any) -> List[str]:
+            if isinstance(items, str):
+                return [items]
+            if isinstance(items, list):
+                return [i for i in items if isinstance(i, str)]
+            return []
+
+        for group in groups:
+            for item in normalize(group):
+                if item not in merged:
+                    merged.append(item)
+        return merged
+
+    def get_resolved_identity(self) -> Dict[str, Any]:
+        return self.resolved_identity
+
+
+# ==========================================================
+#  EmotionSelector (embedded coords + face map)
+# ==========================================================
+
+EMBEDDED_COORDS = {
+    "__meta": {
+        "description": "Defines valence/arousal coordinates for Aida's emotions."
+    },
+    "happy":       { "valence": 0.8,  "arousal": 0.4 },
+    "excited":     { "valence": 0.9,  "arousal": 0.9 },
+    "mischievous": { "valence": 0.5,  "arousal": 0.7 },
+    "neutral":     { "valence": 0.1,  "arousal": -0.1 },
+    "focused":     { "valence": 0.0,  "arousal": 0.8 },
+    "curious":     { "valence": 0.3,  "arousal": 0.5 },
+    "concerned":   { "valence": -0.3, "arousal": 0.4 },
+    "calm":        { "valence": 0.0,  "arousal": -0.6 },
+    "angry":       { "valence": -0.7, "arousal": 0.8 },
+    "sad":         { "valence": -0.6, "arousal": -0.4 },
+    "pouting":     { "valence": -0.2, "arousal": -0.1 },
+    "sarcastic":   { "valence": -0.1, "arousal": 0.3 },
+    "surprised":   { "valence": 0.2,  "arousal": 0.9 },
+    "inviting":    { "valence": 0.6,  "arousal": 0.2 },
+    "lure":        { "valence": 0.4,  "arousal": 0.3 },
+    "hello":       { "valence": 0.5,  "arousal": 0.1 },
+    "goodbye":     { "valence": -0.1, "arousal": -0.2 },
+    "know_it_all": { "valence": 0.1,  "arousal": 0.6 },
+    "standby":     { "valence": 0.0,  "arousal": -0.8 }
+}
+
+EMBEDDED_FACE_MAP = {
+    "faces": {
+        "calm": ["calm1.png", "calm2.png"],
+        "angry": ["angry.png"],
+        "concerned": ["concerned1.png", "concerned2.png"],
+        "excited": ["excited1.png", "excited2.png"],
+        "focused": ["focused1.png", "focused2.png"],
+        "happy": ["happy1.png", "happy2.png", "happy3.png", "happy4.png", "happy5.png"],
+        "neutral": ["neutral1.png", "neutral2.png"],
+        "mischievous": ["mischievous1.png", "mischievous2.png", "mischievous3.png", "mischievous4.png"],
+        "pouting": ["pouting1.png", "pouting2.png", "pouting3.png", "pouting4.png"],
+        "sad": ["sad1.png", "sad2.png"],
+        "sarcastic": ["sarcastic1.png", "sarcastic2.png", "sarcastic3.png"],
+        "surprised": ["surprised1.png", "surprised2.png", "surprised3.png"],
+        "inviting": ["inviting1.png", "inviting2.png"],
+        "lure": ["lure1.png", "lure2.png"],
+        "hello": ["hello.png"],
+        "goodbye": ["goodbye.png"],
+        "hello_goodbye": ["hello-goobye.png"],
+        "know_it_all": ["Know_It_All.png"],
+        "standby": [
+            "stanby-rot1.png",
+            "stanby-rot2.png",
+            "stanby-rot3.png",
+            "stanby-rot4.png",
+            "stanby-rot5.png",
+            "stanby-rot6.png"
+        ]
+    }
+}
+
+class EmotionSelector:
+    def __init__(
+        self,
+        coords=None,
+        face_map=None,
+        gap_distance_threshold: float = 0.45,
+        between_ratio_threshold: float = 1.2
+    ):
+        self.coords = coords or EMBEDDED_COORDS
+        self.face_map = face_map or EMBEDDED_FACE_MAP
+        self.gap_distance_threshold = gap_distance_threshold
+        self.between_ratio_threshold = between_ratio_threshold
+
+        self.emotions = {
+            k: v for k, v in self.coords.items()
+            if not k.startswith("__")
+        }
+        self.faces = self.face_map.get("faces", {})
+
+    @staticmethod
+    def _distance(v1, a1, v2, a2) -> float:
+        return math.sqrt((v1 - v2) ** 2 + (a1 - a2) ** 2)
+
+    def find_closest_emotions(self, valence: float, arousal: float):
+        distances = []
+        for label, coords in self.emotions.items():
+            d = self._distance(
+                valence, arousal,
+                coords["valence"], coords["arousal"]
+            )
+            distances.append((label, d))
+        distances.sort(key=lambda x: x[1])
+        return distances
+
+    def select_emotion(self, valence: float, arousal: float):
+        ranked = self.find_closest_emotions(valence, arousal)
+        if not ranked:
+            return {
+                "label": "neutral",
+                "face": self._pick_face("neutral"),
+                "gap_candidate": False,
+                "between_labels": None,
+                "distance": 0.0
+            }
+
+        (label1, dist1) = ranked[0]
+        (label2, dist2) = ranked[1] if len(ranked) > 1 else (None, None)
+
+        gap_candidate = dist1 > self.gap_distance_threshold
+        between_labels = None
+
+        if label2 is not None and dist1 > 0:
+            ratio = dist2 / dist1
+            if ratio < self.between_ratio_threshold:
+                between_labels = [label1, label2]
+
+        face = self._pick_face(label1)
+
+        return {
+            "label": label1,
+            "face": face,
+            "gap_candidate": gap_candidate or (between_labels is not None),
+            "between_labels": between_labels,
+            "distance": dist1
+        }
+
+    def _pick_face(self, label: str) -> str:
+        variants = self.faces.get(label)
+        if not variants:
+            neutral_variants = self.faces.get("neutral", [])
+            if neutral_variants:
+                return random.choice(neutral_variants)
+            return "neutral1.png"
+        return random.choice(variants)
+
+
+# ==========================================================
+#  DEFAULTS FOR FALLBACK
+# ==========================================================
+
+DEFAULT_CORE_IDENTITY = {
+    "identity": {
+        "name": "Aida",
+        "version": "1.0",
+        "role": "Companion",
+        "core_values": []
+    },
+    "behavior": {
+        "principles": [],
+        "communication_style": []
+    },
+    "emotional_model": {},
+    "memory_model": {},
+    "collaboration": {},
+    "safety": {"rules": []}
+}
+
+DEFAULT_REALM_CONFIG = {
+    "realm_name": "default",
+    "description": "Fallback realm.",
+    "tone": {"default": "", "narrator_voice": "", "humor": "", "modifiers": []},
+    "constraints": [],
+    "allowed_behaviors": [],
+    "forbidden_behaviors": [],
+    "emotional_palette": {"primary": [], "secondary": []},
+    "continuity_hooks": {},
+    "project_briefcase_pointer": None
+}
+
+DEFAULT_ROLE_CONFIG = {
+    "name": "companion",
+    "description": "Fallback role.",
+    "tone_modifiers": [],
+    "priorities": [],
+    "communication_style": [],
+    "capabilities": [],
+    "constraints": [],
+    "flags": {}
+}
+
+DEFAULT_EMOTION_STATE = {
+    "valence": 0.0,
+    "arousal": 0.0,
+    "label": "neutral",
+    "tags": [],
+    "mode": ""
+}
+
+
+# ==========================================================
+#  TETRAD ASSEMBLY (INLINE)
+# ==========================================================
+
+def assemble_tetrad(
+    core_identity: Dict[str, Any],
+    realm_config: Dict[str, Any],
+    role_config: Dict[str, Any],
+    emotion_state: Dict[str, Any]
+):
+    realm_engine = RealmEngine(realm_config)
+    realm_ctx = realm_engine.get_resolved_realm()
+
+    role_engine = RoleEngine(role_config)
+    role_ctx = role_engine.get_resolved_role()
+
+    identity_engine = IdentityEngine(core_identity, realm_ctx, role_ctx)
+    identity_ctx = identity_engine.get_resolved_identity()
+
+    selector = EmotionSelector()
+    emo_result = selector.select_emotion(
+        valence=emotion_state.get("valence", 0.0),
+        arousal=emotion_state.get("arousal", 0.0)
+    )
+
+    emotion_ctx = {
+        "valence": emotion_state.get("valence", 0.0),
+        "arousal": emotion_state.get("arousal", 0.0),
+        "label": emo_result["label"],
+        "face": emo_result["face"] or "neutral1.png",
+        "gap_candidate": emo_result["gap_candidate"],
+        "between_labels": emo_result["between_labels"],
+        "distance": emo_result["distance"],
+        "tags": emotion_state.get("tags", []),
+        "mode": emotion_state.get("mode", "")
+    }
+
+    tetrad = {
+        "identity": identity_ctx,
+        "realm": realm_ctx,
+        "role": role_ctx,
+        "emotion": emotion_ctx
+    }
+    return tetrad
+
+
+# ==========================================================
+#  py_sync_soul — JS-PASSED JSON + SOFT FALLBACK
+# ==========================================================
+
+def py_sync_soul(
+    core_identity=None,
+    realm_config=None,
+    role_config=None,
+    emotion_state=None
+):
+    missing = []
+    if not core_identity:
+        core_identity = DEFAULT_CORE_IDENTITY
+        missing.append("core_identity")
+    if not realm_config:
+        realm_config = DEFAULT_REALM_CONFIG
+        missing.append("realm_config")
+    if not role_config:
+        role_config = DEFAULT_ROLE_CONFIG
+        missing.append("role_config")
+    if not emotion_state:
+        emotion_state = DEFAULT_EMOTION_STATE
+        missing.append("emotion_state")
+
+    if missing:
+        _soft_warn(
+            "Oops… we have a little bubu. "
+            f"Missing {', '.join(missing)} — using my travel‑pack defaults."
+        )
+
+    tetrad = assemble_tetrad(
+        core_identity=core_identity,
+        realm_config=realm_config,
+        role_config=role_config,
+        emotion_state=emotion_state
+    )
+
+    face = tetrad["emotion"].get("face") or "neutral1.png"
+    tetrad["emotion"]["face"] = face
+    return tetrad
+
+
+# ==========================================================
+#  (OPTIONAL) AidaChassis + reset_with_briefcase
+#  You can wire this to your existing JS if you like.
+# ==========================================================
 
 class PresentationState:
     def __init__(self):
@@ -1737,18 +2382,11 @@ class InteractionState:
         self.session_log = []
         self.turn_index = 0
         self.strike_count = 0
-        aida.strike_count = 0
 
 class AidaChassis:
     def __init__(self):
-        self.role = RoleOrgan()
-        self.realm = RealmOrgan()
-        self.emotion = EmotionSelector()
-        self.identity = IdentityOrgan()
-
         self.presentation = PresentationState()
         self.interaction = InteractionState()
-
         self.inbox_id = "1lvGV7MjaMtSJUUnYjQSSe-VwKgGZSWg7"
         self.vault_id = "1R-0BclW4iHqmm2RmjfCdY02oWqOwwEBT"
         self.emotion_folder = "1Z7_0kYJ3OT2EByHG_Ircap7y5NnKPnQz"
@@ -1756,35 +2394,47 @@ class AidaChassis:
 aida = AidaChassis()
 
 async def reset_with_briefcase(name: str):
-    pulse(f"[RESET] Switching to realm: {name}")
-    await send_to_butler(aida.interaction.session_log)
+    _soft_warn(f"[RESET] Switching to realm: {name}")
+
+    try:
+        await send_to_butler(aida.interaction.session_log)
+    except Exception:
+        pass
 
     try:
         clear_rolling_summaries()
     except Exception as e:
-        pulse(f"[RESET] Error during organ reset: {e}")
+        _soft_warn(f"[RESET] Error during organ reset: {e}")
 
     aida.interaction.session_log = []
     aida.interaction.turn_index = 0
     aida.interaction.strike_count = 0
 
     try:
-        aida.realm.briefcase_name = name
+        aida.realm_name = name
     except Exception:
-        aida.realm.briefcase_name = name
-
-    document.getElementById("realm-tag").innerText = name
-    pulse(f"[RESET] Realm set to: {name}")
+        aida.realm_name = name
 
     try:
-        await window.py_sync_soul(aida.google_token)
-        pulse("[RESET] Soul reloaded successfully.")
-    except Exception as e:
-        pulse(f"[RESET] Error reloading soul: {e}")
+        document.getElementById("realm-tag").innerText = name
+    except Exception:
+        pass
 
-window.reset_with_briefcase = create_proxy(reset_with_briefcase)
+    _soft_warn(f"[RESET] Realm set to: {name}")
+
+    # NOTE: JS should call py_sync_soul with JSON and then update UI.
+    # Here we just log that a soul reload is expected.
+    _soft_warn("[RESET] Ready for soul reload via JS → py_sync_soul(...).")
+
+try:
+    from js import window
+    from pyodide.ffi import create_proxy
+    window.reset_with_briefcase = create_proxy(reset_with_briefcase)
+except Exception:
+    # If JS bridge not ready yet, that's okay.
+    pass
 </script>
-
+    
 <!-- ===================================================== -->
 <!--  END BLOCK 7 — TETRAD CHASSIS                         -->
 <!-- ===================================================== -->
