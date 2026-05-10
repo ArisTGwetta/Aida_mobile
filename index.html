@@ -951,7 +951,7 @@
 
 
 <!-- =============================== -->
-<!--  START BLOCK 5: AUTH + GLOBALS  -->
+<!--  START : AUTH + GLOBALS  -->
 <!-- =============================== -->
 
 <script>
@@ -1018,7 +1018,7 @@
 </script>
 
 <!-- =============================== -->
-<!--  END BLOCK 5: AUTH + GLOBALS    -->
+<!--  END : AUTH + GLOBALS    -->
 <!-- =============================== -->
 
 <!-- ======================================= -->
@@ -1209,11 +1209,10 @@
 
 
 <!-- ===================================================== -->
-<!--  CONTINUING BLOCK 5: GOOGLE OAUTH + HOLOGRAM SETUP     -->
+<!--  CONTINUING BLOCK 5: GOOGLE OAUTH + HOLOGRAM SETUP    -->
 <!-- ===================================================== -->
 
 <script>
-
     /* -------------------------------------------------- */
     /*  GOOGLE OAUTH TOKEN CLIENT INITIALIZATION          */
     /* -------------------------------------------------- */
@@ -1243,26 +1242,27 @@
         });
     };
 
-
     /* -------------------------------------------------- */
     /*  AIDA HOLOGRAM RITUAL — ARRIVAL + DEPARTURE        */
     /* -------------------------------------------------- */
 
     // DOM references
-    const portraitImg = document.getElementById("aida-portrait");
+    const portraitImg = document.getElementById("aida-portrait"); 
+    // ^ make sure your HTML uses id="aida-portrait"
 
     // Preload Aida portrait immediately
     const preloadPortrait = new Image();
-    preloadPortrait.src = "assets/neutral1.png";   // or "./assets/neutral1.png"
+    preloadPortrait.src = "assets/neutral1.png";   // ensure this file exists
     preloadPortrait.onload = () => {
         portraitImg.src = preloadPortrait.src;
     };
+</script>
+
+<!-- ===================================================== -->
+<!--  BLOCK 5 — HOLOGRAM ENGINE (GLOBAL SCOPE)            -->
+<!-- ===================================================== -->
 
 <script>
-/* ===================================================== */
-/*  BLOCK 5 — HOLOGRAM ENGINE (GLOBAL SCOPE)             */
-/* ===================================================== */
-
 /* -------------------------------------------------- */
 /*  HOLOGRAM LAYER REFERENCES                         */
 /* -------------------------------------------------- */
@@ -1273,9 +1273,12 @@ const sparkLayer   = document.getElementById("sparkLayer");
 const portraitPane = document.getElementById("portrait-pane");
 const uiDock       = document.getElementById("input-dock");
 const dataStack    = document.getElementById("data-stack");
-const portraitImg  = document.getElementById("portrait-img"); // ensure this exists
 
+// Use the same portrait element consistently:
+const portraitImgGlobal = document.getElementById("aida-portrait");
+</script>
 
+    
 /* -----------------------------------------------------------
    Inject hologram elements into VEIL
 ----------------------------------------------------------- */
