@@ -1719,7 +1719,7 @@ def clear_rolling_summaries():
 
 <script type="py" src="role_organ.py"></script>
 <script type="py" src="realm_organ.py"></script>
-<script type="py" src="emotion_organ.py"></script>
+<script type="py" src="emotion_selector.py"></script>
 <script type="py" src="identity_organ.py"></script>
 <script type="py" src="emotion_selector.py"></script>
 
@@ -1736,7 +1736,7 @@ def clear_rolling_summaries():
 # Adjust these imports to match your actual .py filenames.
 from role_organ import RoleOrgan
 from realm_organ import RealmOrgan
-from emotion_organ import EmotionOrgan
+from emotion_selector import EmotionSelector
 from identity_organ import IdentityOrgan
 
 # Optional: if you have separate modules for these, import instead of defining here.
@@ -1764,7 +1764,7 @@ class AidaChassis:
         # Core organs (empty shells until soul sync)
         self.role = RoleOrgan()
         self.realm = RealmOrgan()
-        self.emotion = EmotionOrgan()
+        self.emotion = EmotionSelector()
         self.identity = IdentityOrgan()
 
         # Presentation + interaction layers
