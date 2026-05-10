@@ -1712,25 +1712,19 @@ def clear_rolling_summaries():
 <!--  END BLOCK 6 — PYTHON RUNTIME                         -->
 <!-- ===================================================== -->
 
-    
-<!-- ===================================================== -->
-<!--  LOAD PYTHON MODULES (pre 7) (ORGANS + SELECTOR)      -->
-<!-- ===================================================== -->
-
-<script type="py" src="role_organ.py"></script>
-<script type="py" src="realm_organ.py"></script>
-<script type="py" src="identity_organ.py"></script>
-<script type="py" src="emotion_selector.py"></script>
-
 <!-- ===================================================== -->
 <!--  BLOCK 7 — TETRAD CHASSIS (NESTED ORGANS)             -->
 <!-- ===================================================== -->
-
 <script type="py">
+import role_organ
+import realm_organ
+import identity_organ
+import emotion_selector
+
 from role_organ import RoleOrgan
 from realm_organ import RealmOrgan
-from emotion_selector import EmotionSelector
 from identity_organ import IdentityOrgan
+from emotion_selector import EmotionSelector
 
 class PresentationState:
     def __init__(self):
@@ -1760,10 +1754,6 @@ class AidaChassis:
         self.emotion_folder = "1Z7_0kYJ3OT2EByHG_Ircap7y5NnKPnQz"
 
 aida = AidaChassis()
-
-# ==========================================================
-#  RESET WITH NEW BRIEFCASE (TETRAD-AWARE)
-# ==========================================================
 
 async def reset_with_briefcase(name: str):
     pulse(f"[RESET] Switching to realm: {name}")
