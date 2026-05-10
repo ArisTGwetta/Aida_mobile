@@ -1221,31 +1221,53 @@
     /*  GOOGLE OAUTH TOKEN CLIENT INITIALIZATION          */
     /* -------------------------------------------------- */
     window.onload = function () {
+        console.log("[DEBUG] window.onload fired, initializing tokenClient…");
+    
         tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
             scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
             callback: (resp) => { 
+                console.log("[DEBUG] OAuth callback response:", resp);
+    
                 if (resp.access_token) {
-
+                    console.log("[DEBUG] Access token length:", resp.access_token.length);
+    
                     // TEMP: auth veil disabled for debugging
-                    window.py_sync_soul(resp.access_token);
-
+                    try {
+                        console.log("[DEBUG] Calling window.py_sync_soul from OAuth callback…");
+                        const p = window.py_sync_soul(resp.access_token);
+                        if (p && typeof p.then === "function") {
+                            p.then(() => {
+                                console.log("[DEBUG] py_sync_soul resolved from OAuth callback.");
+                            }).catch(err => {
+                                console.error("[DEBUG] py_sync_soul rejected from OAuth callback:", err);
+                            });
+                        } else {
+                            console.log("[DEBUG] py_sync_soul returned non-promise:", p);
+                        }
+                    } catch (e) {
+                        console.error("[DEBUG] Error calling window.py_sync_soul:", e);
+                    }
+    
                     // Reveal engine BEFORE hologram
                     document.getElementById("main-engine").classList.remove("hidden");
-
+    
                     // Trigger hologram arrival
                     setTimeout(() => {
+                        console.log("[DEBUG] Triggering aida_arrive after auth…");
+    
                         // 1. Reveal engine
                         document.getElementById("main-engine").classList.remove("hidden");
-
+    
                         // 2. Run hologram ritual
                         window.aida_arrive();
                     }, 100);
+                } else {
+                    console.warn("[DEBUG] OAuth callback without access_token.");
                 }
             }
         });
     };
-
     /* -------------------------------------------------- */
     /*  AIDA HOLOGRAM RITUAL — ARRIVAL + DEPARTURE        */
     /* -------------------------------------------------- */
@@ -1822,7 +1844,13 @@ from pyodide.ffi import create_proxy
 # We assume:
 # - global `aida` is an instance of AidaChassis (from BLOCK 7)
 # - each organ exposes a `.load_from_dict(data: dict)` method
-#   (adjust names if your organ APIs differ)
+
+
+def pulse(msg: str):
+    try:
+        window.console.log(f"[PULSE] {msg}")
+    except Exception:
+        pass
 
 
 async def _fetch_briefcase_json(briefcase_name: str) -> dict:
@@ -1834,10 +1862,6 @@ async def _fetch_briefcase_json(briefcase_name: str) -> dict:
         pulse(f"[SOUL] Fetching briefcase: {briefcase_name}")
 
         # TODO: replace this with your real fetch logic.
-        # Example (if you expose an endpoint):
-        # resp = await pyfetch(f"/briefcases/{briefcase_name}", method="GET")
-        # text = await resp.text()
-        # return json.loads(text)
 
         # Temporary stub: empty Tetrad
         return {
@@ -1866,6 +1890,10 @@ async def py_sync_soul(google_token: str):
     """
 
     pulse("[SOUL] Starting soul sync…")
+    try:
+        window.console.log(f"[DEBUG] py_sync_soul called with token length: {len(google_token) if google_token else 0}")
+    except Exception:
+        pass
 
     # 1. Determine which briefcase to load
     briefcase_name = getattr(aida.realm, "briefcase_name", "REALM_CORE.json")
@@ -1874,12 +1902,16 @@ async def py_sync_soul(google_token: str):
     # 2. (Optional) store token if you want it on the chassis
     try:
         aida.google_token = google_token
-    except Exception:
-        # If you don't want it on the chassis, ignore
-        pass
+        pulse("[SOUL] Stored google_token on chassis.")
+    except Exception as e:
+        pulse(f"[SOUL] Could not store google_token on chassis: {e}")
 
     # 3. Fetch briefcase data
     briefcase_data = await _fetch_briefcase_json(briefcase_name)
+    try:
+        window.console.log("[DEBUG] Briefcase data received in py_sync_soul:", briefcase_data)
+    except Exception:
+        pass
 
     # 4. Populate organs from briefcase
     try:
@@ -1888,7 +1920,6 @@ async def py_sync_soul(google_token: str):
         emotion_data = briefcase_data.get("emotion", {})
         identity_data = briefcase_data.get("identity", {})
 
-        # Each organ is responsible for interpreting its own dict
         try:
             aida.role.load_from_dict(role_data)
             pulse("[SOUL] Role organ loaded.")
@@ -1917,10 +1948,19 @@ async def py_sync_soul(google_token: str):
         pulse(f"[SOUL] Error applying briefcase data: {e}")
 
     pulse("[SOUL] Soul sync complete.")
+    try:
+        window.console.log("[DEBUG] py_sync_soul finished.")
+    except Exception:
+        pass
+
 
 # Expose to JS so reset_with_briefcase (and others) can call:
 # await window.py_sync_soul(aida.google_token)
 window.py_sync_soul = create_proxy(py_sync_soul)
+try:
+    window.console.log("[DEBUG] window.py_sync_soul proxy registered.")
+except Exception:
+    pass
 
 </script>
 
@@ -3538,33 +3578,16 @@ window.expression_engine = (function() {
 <!--  END BLOCK 21 — EXPRESSION ENGINE                    -->
 <!-- ===================================================== -->
 
-
-
 <!-- ===================================================== -->
-<!--  BLOCK 22 — HOLOGRAM SYNC ENGINE                     -->
+<!--  BLOCK 22 — HOLOGRAM SYNC ENGINE (DEBUG)             -->
 <!-- ===================================================== -->
 
 <script>
 /*
-   Hologram Sync Engine
-   --------------------
-   Responsibilities:
-     - Listen for emotion_ctx updates from EmotionEngine (Py)
-     - Compute Δemotion (distance between old and new emotional vectors)
-     - Trigger adaptive hologram reactions:
-         * micro twinkle
-         * soft ripple
-         * warm pulse
-         * cinematic bloom
-     - Update:
-         * face image
-         * glow tint
-         * aura intensity
-         * beam color
-         * scanline shimmer
-     - Blend emotional accents with realm palette (never override)
-     - Provide hooks for future Expression Engine (Block 21)
+   Hologram Sync Engine — DEBUG INSTRUMENTED
 */
+
+console.log("[DEBUG][22] Installing Hologram Sync Engine…");
 
 window.hologram_sync = (function() {
 
@@ -3582,6 +3605,10 @@ window.hologram_sync = (function() {
         faceImg = document.getElementById("aida-face");
         aura = document.getElementById("aida-aura");
         glow = document.getElementById("aida-glow");
+
+        console.log("[DEBUG][22] init() DOM refs:", {
+            holo, faceImg, aura, glow
+        });
     }
 
     // -----------------------------------------------------
@@ -3590,23 +3617,34 @@ window.hologram_sync = (function() {
     function computeDeltaEmotion(v, a) {
         const dv = v - prevValence;
         const da = a - prevArousal;
-        return Math.sqrt(dv*dv + da*da);
+        const delta = Math.sqrt(dv*dv + da*da);
+
+        console.log("[DEBUG][22] computeDeltaEmotion:", {
+            prevValence, prevArousal, v, a, delta
+        });
+
+        return delta;
     }
 
     // -----------------------------------------------------
     // Reaction tiers
     // -----------------------------------------------------
     function applyReaction(delta, ctx) {
+        console.log("[DEBUG][22] applyReaction tier:", delta, ctx.label);
+
         if (!holo) return;
 
-        // Tier thresholds
         if (delta < 0.05) {
+            console.log("[DEBUG][22] → tinyTwinkle");
             tinyTwinkle(ctx);
         } else if (delta < 0.15) {
+            console.log("[DEBUG][22] → softRipple");
             softRipple(ctx);
         } else if (delta < 0.30) {
+            console.log("[DEBUG][22] → warmPulse");
             warmPulse(ctx);
         } else {
+            console.log("[DEBUG][22] → cinematicBloom");
             cinematicBloom(ctx);
         }
     }
@@ -3665,12 +3703,13 @@ window.hologram_sync = (function() {
     // Emotional accent color blending
     // -----------------------------------------------------
     function applyEmotionalTint(ctx) {
+        console.log("[DEBUG][22] applyEmotionalTint:", ctx.label);
+
         if (!aura) return;
 
         const label = ctx.label;
         let tint = "rgba(255,255,255,0.2)";
 
-        // Soft emotional tinting
         if (label === "happy" || label === "inviting") tint = "rgba(255,220,150,0.35)";
         if (label === "concerned") tint = "rgba(150,180,255,0.35)";
         if (label === "sad") tint = "rgba(120,150,255,0.30)";
@@ -3684,12 +3723,16 @@ window.hologram_sync = (function() {
     // Face update
     // -----------------------------------------------------
     function updateFace(ctx) {
+        console.log("[DEBUG][22] updateFace received:", ctx.face);
+
         if (!ctx.face || ctx.face.trim() === "") {
-            console.warn("[Hologram] Empty face received — using neutral1.png");
+            console.warn("[DEBUG][22] Empty face received — forcing neutral1.png");
             face_loader.load("neutral1.png", 0);
             return;
         }
+
         if (ctx.face && ctx.face !== faceImg.src) {
+            console.log("[DEBUG][22] Setting faceImg.src to:", ctx.face);
             faceImg.src = ctx.face;
         }
     }
@@ -3698,10 +3741,14 @@ window.hologram_sync = (function() {
     // Main update entry point
     // -----------------------------------------------------
     function update(ctx) {
+        console.log("[DEBUG][22] hologram_sync.update(ctx):", ctx);
+
         if (!holo) init();
 
         const v = ctx.valence;
         const a = ctx.arousal;
+
+        console.log("[DEBUG][22] valence/arousal:", v, a);
 
         const delta = computeDeltaEmotion(v, a);
 
@@ -3711,6 +3758,8 @@ window.hologram_sync = (function() {
 
         prevValence = v;
         prevArousal = a;
+
+        console.log("[DEBUG][22] hologram_sync.update complete.");
     }
 
     return { update };
@@ -3719,8 +3768,10 @@ window.hologram_sync = (function() {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 22 — HOLOGRAM SYNC ENGINE                 -->
+<!--  END BLOCK 22 — HOLOGRAM SYNC ENGINE (DEBUG)         -->
 <!-- ===================================================== -->
+
+
 
 
 <!-- ===================================================== -->
@@ -4490,24 +4541,15 @@ window.wake_engine = (function() {
 <!--  END BLOCK 28 — WAKE + BOOT ENGINE                   -->
 <!-- ===================================================== -->
 
-<!-- ===================================================== -->
-<!--  BLOCK 29 — FACE LOADER (Soft Iris Dissolve)         -->
-<!-- ===================================================== -->
-
+    
+    
 <!-- ===================================================== -->
 <!--  BLOCK 29 — FACE LOADER (Soft Iris Dissolve)         -->
 <!-- ===================================================== -->
 
 <script>
 /*
-   Face Loader + Soft Iris Dissolve
-   --------------------------------
-   Responsibilities:
-     - Load face PNGs from Drive (binary)
-     - Convert to base64
-     - Apply soft iris dissolve transition
-     - Swap hologram face smoothly
-     - Emotion-aware transition speed
+   Face Loader + Soft Iris Dissolve — DEBUG INSTRUMENTED
 */
 
 window.face_loader = (function() {
@@ -4518,27 +4560,37 @@ window.face_loader = (function() {
     function init() {
         faceImg = document.getElementById("aida-face");
         irisMask = document.getElementById("aida-face-mask");
+
+        console.log("[DEBUG][29] init(): faceImg, irisMask:", { faceImg, irisMask });
     }
 
     // -----------------------------------------------------
     // Convert Uint8Array → base64
     // -----------------------------------------------------
     function toBase64(uint8) {
+        console.log("[DEBUG][29] toBase64() called. Uint8 length:", uint8?.length);
+
         let binary = "";
         for (let i = 0; i < uint8.length; i++) {
             binary += String.fromCharCode(uint8[i]);
         }
-        return btoa(binary);
+
+        const b64 = btoa(binary);
+        console.log("[DEBUG][29] base64 length:", b64.length);
+        return b64;
     }
 
     // -----------------------------------------------------
     // Soft iris transition
     // -----------------------------------------------------
     async function irisTransition(newSrc, deltaEmotion) {
+        console.log("[DEBUG][29] irisTransition() newSrc:", newSrc.substring(0, 80), "…");
+        console.log("[DEBUG][29] irisTransition() deltaEmotion:", deltaEmotion);
+
         if (!faceImg || !irisMask) init();
 
-        // Emotion-aware speed
         const speed = 400 - Math.min(deltaEmotion * 200, 200);
+        console.log("[DEBUG][29] irisTransition speed:", speed);
 
         // 1. Iris-out old face
         irisMask.style.transition = `clip-path ${speed}ms ease-out`;
@@ -4547,6 +4599,7 @@ window.face_loader = (function() {
         await new Promise(r => setTimeout(r, speed));
 
         // 2. Swap face
+        console.log("[DEBUG][29] irisTransition: setting faceImg.src to:", newSrc.substring(0, 80), "…");
         faceImg.src = newSrc;
 
         // 3. Iris-in new face
@@ -4558,30 +4611,47 @@ window.face_loader = (function() {
     // Load face from Drive + apply transition
     // -----------------------------------------------------
     async function load(faceFilename, deltaEmotion = 0.1) {
+        console.log("[DEBUG][29] face_loader.load() called with:", faceFilename, "delta:", deltaEmotion);
+
         if (!faceImg) init();
 
         // 1. Find file in Drive
+        console.log("[DEBUG][29] Listing files in:", window.AIDA_EMOTION_FOLDER);
         const files = await drive_sync.listFiles(window.AIDA_EMOTION_FOLDER);
+        console.log("[DEBUG][29] Files returned:", files);
+
         const match = files.find(f => f.name === faceFilename);
+        console.log("[DEBUG][29] File match:", match);
 
         if (!match) {
-            console.warn("[FaceLoader] Face not found:", faceFilename);
+            console.warn("[DEBUG][29] Face not found:", faceFilename);
             return;
         }
 
         // 2. Download binary
+        console.log("[DEBUG][29] Downloading binary for:", match.id);
         const binary = await drive_sync.downloadBinary(match.id);
+
         if (!binary) {
-            console.warn("[FaceLoader] Failed to download:", faceFilename);
+            console.warn("[DEBUG][29] Failed to download:", faceFilename);
             return;
         }
+
+        console.log("[DEBUG][29] Binary downloaded. Length:", binary.length);
 
         // 3. Convert to base64
         const base64 = toBase64(binary);
         const src = `data:image/png;base64,${base64}`;
 
+        console.log("[DEBUG][29] Final src URL:", src.substring(0, 120), "…");
+
         // 4. Apply iris dissolve
-        await irisTransition(src, deltaEmotion);
+        try {
+            await irisTransition(src, deltaEmotion);
+            console.log("[DEBUG][29] irisTransition completed.");
+        } catch (e) {
+            console.error("[DEBUG][29] irisTransition ERROR:", e);
+        }
     }
 
     return { load };
@@ -4594,21 +4664,16 @@ window.face_loader = (function() {
 <!-- ===================================================== -->
 
 
-
 <!-- ===================================================== -->
-<!--  BLOCK 29B — FACE INTEGRATION LAYER                  -->
+<!--  BLOCK 29B — FACE INTEGRATION LAYER (DEBUG)          -->
 <!-- ===================================================== -->
 
 <script>
 /*
-   Face Integration Layer
-   ----------------------
-   Responsibilities:
-     - Connect Emotion Engine → Face Loader
-     - Trigger iris dissolve on face change
-     - Realm-adaptive softness (optional)
-     - Fallback face handling
+   Face Integration Layer — DEBUG INSTRUMENTED
 */
+
+console.log("[DEBUG][29B] Installing face_integration layer…");
 
 window.face_integration = (function() {
 
@@ -4619,9 +4684,12 @@ window.face_integration = (function() {
     // -----------------------------------------------------
     function realmSoftness() {
         const realm = briefcase_engine.realm;
+        console.log("[DEBUG][29B] realmSoftness() realm:", realm);
+
         if (!realm) return 0.75;
 
         const tone = realm.identity?.tone?.toLowerCase() || "";
+        console.log("[DEBUG][29B] realmSoftness() tone:", tone);
 
         if (tone.includes("cozy")) return 0.85;
         if (tone.includes("mythic")) return 0.95;
@@ -4636,15 +4704,34 @@ window.face_integration = (function() {
     // Called by Hologram Sync Engine
     // -----------------------------------------------------
     async function updateFace(ctx) {
+        console.log("[DEBUG][29B] updateFace(ctx) called:", ctx);
+
         const faceName = ctx.face;
         const delta = ctx.distance;
 
-        if (!faceName) return;
-        if (faceName === lastFace) return;
+        console.log("[DEBUG][29B] faceName:", faceName, "delta:", delta);
+        console.log("[DEBUG][29B] lastFace:", lastFace);
+
+        if (!faceName) {
+            console.warn("[DEBUG][29B] updateFace: NO faceName — skipping.");
+            return;
+        }
+
+        if (faceName === lastFace) {
+            console.log("[DEBUG][29B] updateFace: face unchanged — skipping.");
+            return;
+        }
 
         lastFace = faceName;
+        console.log("[DEBUG][29B] updateFace: new face accepted:", faceName);
 
-        await face_loader.load(faceName, delta);
+        try {
+            console.log("[DEBUG][29B] Calling face_loader.load:", faceName, delta);
+            await face_loader.load(faceName, delta);
+            console.log("[DEBUG][29B] face_loader.load resolved for:", faceName);
+        } catch (e) {
+            console.error("[DEBUG][29B] face_loader.load ERROR:", e);
+        }
     }
 
     return { updateFace };
@@ -4653,7 +4740,7 @@ window.face_integration = (function() {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 29B — FACE INTEGRATION LAYER              -->
+<!--  END BLOCK 29B — FACE INTEGRATION LAYER (DEBUG)      -->
 <!-- ===================================================== -->
 
 
@@ -4663,11 +4750,26 @@ window.face_integration = (function() {
 <!-- ===================================================== -->
 
 <script>
+console.log("[DEBUG][29C] Installing hologram_sync.update hook…");
+
 const oldHoloUpdate = hologram_sync.update;
 
 hologram_sync.update = function(ctx) {
-    oldHoloUpdate(ctx);
-    face_integration.updateFace(ctx);
+    console.log("[DEBUG][29C] hologram_sync.update called with ctx:", ctx);
+
+    try {
+        oldHoloUpdate(ctx);
+        console.log("[DEBUG][29C] oldHoloUpdate completed.");
+    } catch (e) {
+        console.error("[DEBUG][29C] oldHoloUpdate ERROR:", e);
+    }
+
+    try {
+        console.log("[DEBUG][29C] Passing ctx to face_integration.updateFace:", ctx.face, ctx.distance);
+        face_integration.updateFace(ctx);
+    } catch (e) {
+        console.error("[DEBUG][29C] face_integration.updateFace ERROR:", e);
+    }
 };
 </script>
 
