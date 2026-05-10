@@ -1,40 +1,43 @@
-# 1. Load realm
-realm_engine = RealmEngine(realm_config)
-realm_ctx = realm_engine.get_resolved_realm()
+# soul_sync_engine.py
 
+import json
+from pathlib import Path
 
-from realm_engine import RealmEngine
+from tetrad_chassis import assemble_tetrad
+from identity_organ import IdentityEngine
+from realm_organ import RealmEngine
+from role_organ import RoleEngine
 
-rpg_config = load_json("realm_rpg.json")
-realm_engine = RealmEngine(rpg_config)
-realm_ctx = realm_engine.get_resolved_realm()
-tone_mods = realm_engine.get_tone_modifiers()
-constraints = realm_engine.get_constraints()
+BASE = Path(__file__).parent
 
+def _load_json(name, default=None):
+    path = BASE / name
+    if not path.exists():
+        return default or {}
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
+def py_sync_soul():
+    """
+    Main entrypoint called from JavaScript.
+    Builds the full Tetrad (realm, role, identity, emotion)
+    and returns a dict safe for the hologram engine.
+    """
 
+    core_identity = _load_json("core_identity.json", {})
+    realm_config  = _load_json("realm_config.json", {})
+    role_config   = _load_json("role_config.json", {})
+    emotion_state_path = BASE / "emotion_state.json"
 
+    tetrad = assemble_tetrad(
+        core_identity=core_identity,
+        realm_config=realm_config,
+        role_config=role_config,
+        emotion_state_path=emotion_state_path
+    )
 
-# 2. Load identity
-identity_engine = IdentityEngine(core_identity, realm_ctx, role_ctx)
-identity_ctx = identity_engine.get_resolved_identity()
+    # --- Safety: ensure face is never empty ---
+    face = tetrad["emotion"].get("face") or "neutral1.png"
+    tetrad["emotion"]["face"] = face
 
-
-from identity_engine import IdentityEngine
-
-engine = IdentityEngine(core_identity, realm_config, role_config)
-identity_ctx = engine.get_resolved_identity()
-tone = engine.get_tone()
-safety = engine.get_safety_rules()
-role = engine.get_active_role()
-
-
-
-
-
-
-triad = assemble_triad(
-    core_identity=core_identity_json,
-    realm_config=realm_json,
-    role_config=role_json
-)
+    return tetrad

@@ -101,14 +101,17 @@ class EmotionSelector:
             "distance": dist1
         }
 
-    def _pick_face(self, label: str) -> str:
-        variants = self.faces.get(label)
-        if not variants:
-            # Fallback to neutral if no faces defined
-            neutral_variants = self.faces.get("neutral", [])
-            if neutral_variants:
-                return random.choice(neutral_variants)
-            return ""  # last resort
+def _pick_face(self, label: str) -> str:
+    variants = self.faces.get(label)
+    if not variants:
+        # Fallback to neutral if no faces defined
+        neutral_variants = self.faces.get("neutral", [])
+        if neutral_variants:
+            return random.choice(neutral_variants)
+        # Last resort: hard-coded neutral
+        return "neutral1.png"
 
-        return random.choice(variants)
+    return random.choice(variants)
+
+
 

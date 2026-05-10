@@ -1,11 +1,12 @@
 # triad.py (updated for Tetrad)
 
-from identity_engine import IdentityEngine
-from realm_engine import RealmEngine
-from role_engine import RoleEngine
+from identity_organ import IdentityEngine
+from realm_organ import RealmEngine
+from role_organ import RoleEngine
 from emotion_selector import EmotionSelector
 import json
 from pathlib import Path
+
 
 
 def load_emotion_state(path: Path):
@@ -46,7 +47,7 @@ def assemble_tetrad(core_identity,
         "valence": emotion_state["valence"],
         "arousal": emotion_state["arousal"],
         "label": emo_result["label"],
-        "face": emo_result["face"],
+        "    "face": emo_result["face"] or "neutral1.png",
         "gap_candidate": emo_result["gap_candidate"],
         "between_labels": emo_result["between_labels"],
         "distance": emo_result["distance"],
