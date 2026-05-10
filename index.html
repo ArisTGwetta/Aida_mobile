@@ -1018,11 +1018,11 @@
 </script>
 
 <!-- =============================== -->
-<!--  END : AUTH + GLOBALS    -->
+<!--  END Block 5: AUTH + GLOBALS    -->
 <!-- =============================== -->
 
 <!-- ======================================= -->
-<!--  CONTINUING BLOCK 5: REALM JS ENGINE    -->
+<!--  CONTINUING BLOCK 5b: REALM JS ENGINE    -->
 <!-- ======================================= -->
 
 <script>
@@ -1134,16 +1134,20 @@
 </script>
 
 <!-- ======================================= -->
-<!--  END CONTINUING BLOCK 5                 -->
+<!--  END CONTINUING BLOCK 5b                 -->
 <!-- ======================================= -->
 
 
 <!-- ======================================= -->
-<!--  CONTINUING BLOCK 5: UI BUILDERS        -->
+<!--  CONTINUING BLOCK 5c: UI BUILDERS        -->
 <!-- ======================================= -->
 
 <script>
 
+
+    document.getElementById("aida-portrait").src = "assets/neutral1.png";
+
+    
     /* ----------------------------- */
     /*  CANCEL REALM MODAL           */
     /* ----------------------------- */
@@ -1204,12 +1208,12 @@
 </script>
 
 <!-- ======================================= -->
-<!--  END CONTINUING BLOCK 5                -->
+<!--  END CONTINUING BLOCK 5c                -->
 <!-- ======================================= -->
 
 
 <!-- ===================================================== -->
-<!--  CONTINUING BLOCK 5: GOOGLE OAUTH + HOLOGRAM SETUP    -->
+<!--  CONTINUING BLOCK 5d: GOOGLE OAUTH + HOLOGRAM SETUP    -->
 <!-- ===================================================== -->
 
 <script>
@@ -1259,7 +1263,7 @@
 </script>
 
 <!-- ===================================================== -->
-<!--  BLOCK 5 — HOLOGRAM ENGINE (GLOBAL SCOPE)            -->
+<!--  BLOCK 5d — HOLOGRAM ENGINE (GLOBAL SCOPE)            -->
 <!-- ===================================================== -->
 
 <script>
@@ -1277,6 +1281,19 @@ const dataStack    = document.getElementById("data-stack");
 // Use the same portrait element consistently:
 const portraitImgGlobal = document.getElementById("aida-portrait");
 </script>
+
+
+
+    
+<!-- ===================================================== -->
+<!--  END BLOCK 5D — Google OAuth + Hologram Setup      -->
+<!-- ===================================================== -->
+
+
+
+<!-- ===================================================== -->
+<!--  BLOCK 5E — Hologram Engine (Global Scope)          -->
+<!-- ===================================================== -->
 
     
 /* -----------------------------------------------------------
@@ -1578,6 +1595,16 @@ window.aida_depart = function() {
 };
 
 </script>
+
+
+<!-- ===================================================== -->
+<!--  END BLOCK 5e — Hologram engine                         -->
+<!-- ===================================================== -->
+
+
+<!-- ===================================================== -->
+<!--  END BLOCK 5 —                        -->
+<!-- ===================================================== -->
 
 
 
