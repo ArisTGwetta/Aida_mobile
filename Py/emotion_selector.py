@@ -10,26 +10,18 @@ FACE_MAP_PATH = BASE_DIR / "face_map.json"
 
 
 class EmotionSelector:
-    def __init__(self,
-                 coords_path: Path = EMOTION_COORDS_PATH,
-                 face_map_path: Path = FACE_MAP_PATH,
-                 gap_distance_threshold: float = 0.45,
-                 between_ratio_threshold: float = 1.2):
-        """
-        gap_distance_threshold:
-            If the closest emotion is farther than this distance,
-            we consider it a 'gap' region.
-
-        between_ratio_threshold:
-            If dist2 / dist1 < this ratio, we consider Aida to be
-            'between' two emotions (candidate for a new label).
-        """
+    def __init__(
+        self,
+        coords_path: Path = EMOTION_COORDS_PATH,
+        face_map_path: Path = FACE_MAP_PATH,
+        gap_distance_threshold: float = 0.45,
+        between_ratio_threshold: float = 1.2
+    ):
         self.coords = self._load_json(coords_path)
         self.face_map = self._load_json(face_map_path)
         self.gap_distance_threshold = gap_distance_threshold
         self.between_ratio_threshold = between_ratio_threshold
 
-        # Strip meta blocks if present
         self.emotions = {
             k: v for k, v in self.coords.items()
             if not k.startswith("__")
@@ -56,19 +48,9 @@ class EmotionSelector:
             distances.append((label, d))
 
         distances.sort(key=lambda x: x[1])
-        return distances  # list of (label, distance)
+        return distances
 
     def select_emotion(self, valence: float, arousal: float):
-        """
-        Returns:
-            {
-              "label": str,
-              "face": str,
-              "gap_candidate": bool,
-              "between_labels": [str, str] | None,
-              "distance": float
-            }
-        """
         ranked = self.find_closest_emotions(valence, arousal)
         if not ranked:
             return {
@@ -88,7 +70,6 @@ class EmotionSelector:
         if label2 is not None and dist1 > 0:
             ratio = dist2 / dist1
             if ratio < self.between_ratio_threshold:
-                # Aida is 'between' two emotions
                 between_labels = [label1, label2]
 
         face = self._pick_face(label1)
@@ -101,17 +82,12 @@ class EmotionSelector:
             "distance": dist1
         }
 
-def _pick_face(self, label: str) -> str:
-    variants = self.faces.get(label)
-    if not variants:
-        # Fallback to neutral if no faces defined
-        neutral_variants = self.faces.get("neutral", [])
-        if neutral_variants:
-            return random.choice(neutral_variants)
-        # Last resort: hard-coded neutral
-        return "neutral1.png"
+    def _pick_face(self, label: str) -> str:
+        variants = self.faces.get(label)
+        if not variants:
+            neutral_variants = self.faces.get("neutral", [])
+            if neutral_variants:
+                return random.choice(neutral_variants)
+            return "neutral1.png"
 
-    return random.choice(variants)
-
-
-
+        return random.choice(variants)
