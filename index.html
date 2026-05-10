@@ -4494,6 +4494,10 @@ window.wake_engine = (function() {
 <!--  BLOCK 29 — FACE LOADER (Soft Iris Dissolve)         -->
 <!-- ===================================================== -->
 
+<!-- ===================================================== -->
+<!--  BLOCK 29 — FACE LOADER (Soft Iris Dissolve)         -->
+<!-- ===================================================== -->
+
 <script>
 /*
    Face Loader + Soft Iris Dissolve
@@ -4534,8 +4538,7 @@ window.face_loader = (function() {
         if (!faceImg || !irisMask) init();
 
         // Emotion-aware speed
-        const speed = 400 - Math.min(deltaEmotion * 200, 200);  
-        // Range: 400ms → 200ms
+        const speed = 400 - Math.min(deltaEmotion * 200, 200);
 
         // 1. Iris-out old face
         irisMask.style.transition = `clip-path ${speed}ms ease-out`;
@@ -4590,6 +4593,8 @@ window.face_loader = (function() {
 <!--  END BLOCK 29 — FACE LOADER                          -->
 <!-- ===================================================== -->
 
+
+
 <!-- ===================================================== -->
 <!--  BLOCK 29B — FACE INTEGRATION LAYER                  -->
 <!-- ===================================================== -->
@@ -4614,7 +4619,7 @@ window.face_integration = (function() {
     // -----------------------------------------------------
     function realmSoftness() {
         const realm = briefcase_engine.realm;
-        if (!realm) return 0.75; // default iris radius
+        if (!realm) return 0.75;
 
         const tone = realm.identity?.tone?.toLowerCase() || "";
 
@@ -4631,15 +4636,14 @@ window.face_integration = (function() {
     // Called by Hologram Sync Engine
     // -----------------------------------------------------
     async function updateFace(ctx) {
-        const faceName = ctx.face;  // e.g. "happy3.png"
-        const delta = ctx.distance; // Δemotion
+        const faceName = ctx.face;
+        const delta = ctx.distance;
 
         if (!faceName) return;
         if (faceName === lastFace) return;
 
         lastFace = faceName;
 
-        // Load with emotion-aware speed
         await face_loader.load(faceName, delta);
     }
 
@@ -4652,8 +4656,10 @@ window.face_integration = (function() {
 <!--  END BLOCK 29B — FACE INTEGRATION LAYER              -->
 <!-- ===================================================== -->
 
+
+
 <!-- ===================================================== -->
-<!--  BLOCK 29C — Hologram Sync Hook                  -->
+<!--  BLOCK 29C — Hologram Sync Hook                      -->
 <!-- ===================================================== -->
 
 <script>
