@@ -1714,12 +1714,11 @@ def clear_rolling_summaries():
 
     
 <!-- ===================================================== -->
-<!--  LOAD PYTHON MODULES (pre 7) (ORGANS + SELECTOR)              -->
+<!--  LOAD PYTHON MODULES (pre 7) (ORGANS + SELECTOR)      -->
 <!-- ===================================================== -->
 
 <script type="py" src="role_organ.py"></script>
 <script type="py" src="realm_organ.py"></script>
-<script type="py" src="emotion_selector.py"></script>
 <script type="py" src="identity_organ.py"></script>
 <script type="py" src="emotion_selector.py"></script>
 
@@ -1727,22 +1726,15 @@ def clear_rolling_summaries():
 <!--  BLOCK 7 — TETRAD CHASSIS (NESTED ORGANS)             -->
 <!-- ===================================================== -->
 
-<!-- ===================================================== -->
-<!--  LOAD PYTHON MODULES (ORGANS + SELECTOR)              -->
-<!-- ===================================================== -->
-    
 <script type="py">
-# NOTE:
-# Adjust these imports to match your actual .py filenames.
 from role_organ import RoleOrgan
 from realm_organ import RealmOrgan
 from emotion_selector import EmotionSelector
 from identity_organ import IdentityOrgan
 
-# Optional: if you have separate modules for these, import instead of defining here.
 class PresentationState:
     def __init__(self):
-        self.mode = "idle"          # e.g., "arriving", "present", "departing"
+        self.mode = "idle"
         self.last_arrival = None
         self.last_departure = None
 
@@ -1751,93 +1743,56 @@ class InteractionState:
         self.session_log = []
         self.turn_index = 0
         self.strike_count = 0
-        aida.strike_count = 0;
-
-
+        aida.strike_count = 0
 
 class AidaChassis:
-    """
-    Root container for the four Tetrad organs + presentation + interaction.
-    Organs start empty; soul sync populates them.
-    """
     def __init__(self):
-        # Core organs (empty shells until soul sync)
         self.role = RoleOrgan()
         self.realm = RealmOrgan()
         self.emotion = EmotionSelector()
         self.identity = IdentityOrgan()
 
-        # Presentation + interaction layers
         self.presentation = PresentationState()
         self.interaction = InteractionState()
 
-        # Drive / storage IDs (keep if still used by your new flow)
         self.inbox_id = "1lvGV7MjaMtSJUUnYjQSSe-VwKgGZSWg7"
         self.vault_id = "1R-0BclW4iHqmm2RmjfCdY02oWqOwwEBT"
         self.emotion_folder = "1Z7_0kYJ3OT2EByHG_Ircap7y5NnKPnQz"
 
-
-# Global chassis instance
 aida = AidaChassis()
-
 
 # ==========================================================
 #  RESET WITH NEW BRIEFCASE (TETRAD-AWARE)
 # ==========================================================
+
 async def reset_with_briefcase(name: str):
-    """
-    Tetrad-aware RESET flow:
-    1. Send current session to Butler (stub)
-    2. Clear rolling summaries (now handled by organs / state)
-    3. Clear interaction history
-    4. Switch realm (via RealmOrgan)
-    5. Update UI realm tag
-    6. Reload Aida's soul using py_sync_soul() with the REAL Google token
-    """
-
     pulse(f"[RESET] Switching to realm: {name}")
-
-    # 1. Send current session to Butler (stub)
     await send_to_butler(aida.interaction.session_log)
 
-    # 2. Clear rolling summaries (organ-level reset)
     try:
-        # If your organs expose explicit reset methods, call them here:
-        # aida.role.reset()
-        # aida.realm.reset()
-        # aida.emotion.reset()
-        # aida.identity.reset()
         clear_rolling_summaries()
     except Exception as e:
         pulse(f"[RESET] Error during organ reset: {e}")
 
-    # 3. Clear interaction history
     aida.interaction.session_log = []
     aida.interaction.turn_index = 0
     aida.interaction.strike_count = 0
 
-    # 4. Switch realm via RealmOrgan
     try:
-        # Assuming your RealmOrgan exposes a method or field like this:
         aida.realm.briefcase_name = name
     except Exception:
-        # Fallback: simple attribute if not yet wired
         aida.realm.briefcase_name = name
 
-    # 5. Update UI to show the active realm / briefcase
     document.getElementById("realm-tag").innerText = name
     pulse(f"[RESET] Realm set to: {name}")
 
-    # 6. Reload Aida's soul using the REAL Google token
     try:
         await window.py_sync_soul(aida.google_token)
         pulse("[RESET] Soul reloaded successfully.")
     except Exception as e:
         pulse(f"[RESET] Error reloading soul: {e}")
 
-# Expose to JS
 window.reset_with_briefcase = create_proxy(reset_with_briefcase)
-
 </script>
 
 <!-- ===================================================== -->
