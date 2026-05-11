@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AIDA-ONE | Consciousness Concentration</title>
+    <title>AIDA-ONE | Unified Consciousness</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
     <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
     
     <script src="011-butler_keys.js"></script> 
@@ -14,29 +16,65 @@
     <script src="006-role_silver.js"></script>
     <script src="009-tetrad_silver.js"></script>
     <script src="007-soul_sync_blue.js"></script>
+    <script src="010-chassis_gold.js"></script>
+
     <style>
-        body { background: #000; color: #00ff41; font-family: 'Courier New', monospace; margin: 20px; }
-        #bios-terminal { border: 1px solid #333; padding: 20px; height: 70vh; overflow-y: auto; background: #050505; }
-        .log-amber { color: #ffb000; }
-        .log-green { color: #00ff41; }
+        :root { --ega-green: #00ff41; --ega-amber: #ffb000; }
+        body { background: #000; color: var(--ega-green); font-family: 'Courier New', monospace; margin: 0; overflow: hidden; height: 100vh; }
+        
+        /* BIOS SCREEN */
+        #bios-screen { padding: 20px; height: 100vh; overflow-y: auto; box-sizing: border-box; }
+        .log-amber { color: var(--ega-amber); }
+        .log-green { color: var(--ega-green); }
         .log-blue { color: #00d4ff; }
+        .log-white { color: #fff; }
         .log-error { color: #ff4444; font-weight: bold; }
+
+        /* KEYPAD AIRLOCK */
+        #keypad-airlock { 
+            position: fixed; bottom: 40px; right: 40px; padding: 20px 40px;
+            background: transparent; border: 2px solid var(--ega-green); color: var(--ega-green);
+            cursor: pointer; font-weight: bold; text-transform: uppercase;
+        }
+
+        /* INTERFACE CONTAINER */
+        #aida-interface { display: none; flex-direction: column; height: 100vh; width: 100vw; }
+        #hologram-stage { flex: 1; position: relative; display: flex; justify-content: center; align-items: center; border-bottom: 1px solid var(--ega-green); background: radial-gradient(circle, #001a00 0%, #000 80%); }
+        #pixelGrid { position: absolute; top:0; left:0; width:100%; height:100%; opacity: 0.1; pointer-events: none; }
+        #emotion-face { width: 200px; height: 200px; z-index: 10; image-rendering: pixelated; }
+        #terminal-output { height: 30%; padding: 15px; overflow-y: auto; font-size: 14px; background: rgba(0,10,0,0.8); }
+        #input-area { padding: 10px; display: flex; background: #000; gap: 10px; border-top: 1px solid var(--ega-green); }
+        #user-input { flex: 1; background: transparent; border: 1px solid var(--ega-green); color: var(--ega-green); padding: 10px; outline: none; }
+        #send-btn { background: var(--ega-green); color: #000; border: none; padding: 10px 20px; font-weight: bold; }
+        
         .hidden { display: none; }
-        button { background: transparent; border: 1px solid #00ff41; color: #00ff41; padding: 10px 20px; cursor: pointer; margin-top: 20px; }
     </style>
 </head>
 <body>
 
-    <div id="bios-terminal">
-        <div>> AIDA SYSTEM BOOT SEQUENCE INITIATED...</div>
+    <div id="bios-screen">
+        <div class="log-white">>>> INITIALIZING AIDA_ONE...</div>
     </div>
 
-    <button id="keypad-airlock" class="hidden" onclick="alert('Engine Warm! Moving to Interface...')">
-        ENTER CONSCIOUSNESS
-    </button>
+    <button id="keypad-airlock" class="hidden">Initiate Handshake</button>
+
+    <div id="aida-interface">
+        <div id="hologram-stage">
+            <div id="pixelGrid"></div>
+            <img id="emotion-face" src="assets/standby.png">
+        </div>
+        <div id="terminal-output">
+            <div class="log-blue">Aida_One initialized. Soul Sync active.</div>
+        </div>
+        <div id="input-area">
+            <input type="text" id="user-input" placeholder="Communicate...">
+            <button id="send-btn">SEND</button>
+        </div>
+    </div>
 
     <script>
-        const systemLog = document.getElementById("bios-terminal");
+        const systemLog = document.getElementById("bios-screen");
+        let pyodide;
 
         function logToScreen(message, phase = "green") {
             const line = document.createElement("div");
@@ -47,42 +85,74 @@
         }
 
         async function main() {
-            logToScreen("Waking up Pyodide...", "amber");
-            // 1. Load the core engine
-            window.pyodide = await loadPyodide(); 
-            
-            logToScreen("Engine warm. Building Virtual Cupboards...", "amber");
+            logToScreen("Waking engine...", "amber");
+            pyodide = await loadPyodide();
+            logToScreen("Engine warm.", "amber");
 
-            const aidaManifest = [
-                { name: "butler.py",           content: BUTLER_PY,           phase: "amber" },
-                { name: "librarian.py",        content: LIBRARIAN_PY,        phase: "green" },
-                { name: "crawler.py",          content: CRAWLER_PY,          phase: "green" },
+            const manifest = [
+                { name: "butler.py", content: BUTLER_PY, phase: "amber" },
+                { name: "librarian.py", content: LIBRARIAN_PY, phase: "green" },
+                { name: "crawler.py", content: CRAWLER_PY, phase: "green" },
                 { name: "emotion_selector.py", content: EMOTION_SELECTOR_PY, phase: "blue" },
-                { name: "identity_organ.py",   content: IDENTITY_PY,         phase: "white" },
-                { name: "realm_organ.py",      content: REALM_PY,            phase: "silver" },
-                { name: "role_organ.py",       content: ROLE_PY,             phase: "silver" },
-                { name: "tetrad_chassis.py",   content: TETRAD_PY,           phase: "silver" },
-                { name: "soul_sync_engine.py", content: SOUL_SYNC_PY,        phase: "blue" }
+                { name: "identity_organ.py", content: IDENTITY_PY, phase: "white" },
+                { name: "realm_organ.py", content: REALM_PY, phase: "silver" },
+                { name: "role_organ.py", content: ROLE_PY, phase: "silver" },
+                { name: "tetrad_chassis.py", content: TETRAD_PY, phase: "silver" },
+                { name: "soul_sync_engine.py", content: SOUL_SYNC_PY, phase: "blue" }
             ];
 
-            for (let mod of aidaManifest) {
+            for (let mod of manifest) {
                 try {
-                    logToScreen(`Unpacking ${mod.name}...`, mod.phase);
-                    
-                    // CRITICAL FIX: Use pyodide.FS (Capitalized)
-                    // This creates the physical-feeling file inside the browser's brain
                     await pyodide.FS.writeFile(mod.name, mod.content);
-                    
-                    logToScreen(`${mod.name} is ready.`, mod.phase);
+                    logToScreen(`${mod.name} synchronized.`, mod.phase);
                 } catch (e) {
-                    logToScreen(`CRITICAL ERROR UNPACKING ${mod.name}: ${e.message}`, "error");
+                    logToScreen(`FAIL: ${mod.name}`, "error");
                 }
             }
 
-            logToScreen("All modules synchronized. Aida is concentrated.", "blue");
+            logToScreen("Consciousness concentration complete.", "blue");
             document.getElementById("keypad-airlock").classList.remove("hidden");
         }
 
+        // --- THE TRANSITION ---
+        document.getElementById("keypad-airlock").onclick = async function() {
+            logToScreen("Initiating OAuth Handshake...", "amber");
+            
+            // Simulation of Handshake
+            setTimeout(() => {
+                document.getElementById("bios-screen").style.display = "none";
+                this.style.display = "none";
+                document.getElementById("aida-interface").style.display = "flex";
+                
+                if(window.aida_arrive) window.aida_arrive();
+            }, 1000);
+        };
+
+        // --- THE COMMUNICATION ---
+        async function communicate() {
+            const input = document.getElementById("user-input");
+            const term = document.getElementById("terminal-output");
+            if (!input.value) return;
+
+            term.innerHTML += `<div style="color:#888">> YOU: ${input.value}</div>`;
+            
+            // Bridge to Python Soul Sync
+            try {
+                const response = await pyodide.runPythonAsync(`
+                    import soul_sync_engine
+                    # Simple call to show she's listening
+                    "Thinking..."
+                `);
+                term.innerHTML += `<div class="log-green">> AIDA: [Connection Established. Processing...]</div>`;
+            } catch(e) {
+                term.innerHTML += `<div class="log-error">> ERR: ${e.message}</div>`;
+            }
+
+            input.value = "";
+            term.scrollTop = term.scrollHeight;
+        }
+
+        document.getElementById("send-btn").onclick = communicate;
         main();
     </script>
 </body>
