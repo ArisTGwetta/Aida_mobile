@@ -147,23 +147,29 @@
     }
 
     window.onload = function () {
-        // We don't need renderKeypad() because your HTML 
-        // already has the buttons typed out manually!
-        
-        tokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
-            scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
-            callback: (resp) => { 
-                if (resp.access_token) {
-                    // Logic to hide BIOS/Airlock and show Interface
-                    document.getElementById("airlock").style.display = "none";
-                    document.getElementById("bios-screen").style.display = "none";
-                    document.getElementById("aida-interface").style.display = "flex";
-                    // Call the soul sync from your external modules
-                    if(window.py_sync_soul) window.py_sync_soul(resp.access_token);
-                }
-            },
-        });
+window.onload = function () {
+        // Wait for the Google script to be ready
+        const checkGoogle = setInterval(() => {
+            if (typeof google !== 'undefined') {
+                clearInterval(checkGoogle);
+                console.log(">>> Google Identity Services Loaded.");
+                
+                tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
+                    scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
+                    callback: (resp) => { 
+                        if (resp.access_token) {
+                            document.getElementById("airlock").style.display = "none";
+                            document.getElementById("bios-screen").style.display = "none";
+                            document.getElementById("aida-interface").style.display = "flex";
+                            if(window.py_sync_soul) window.py_sync_soul(resp.access_token);
+                        }
+                    },
+                });
+            } else {
+                console.log(">>> Waiting for Google...");
+            }
+        }, 100); // Check every 100ms
     };
 </script>    
 </body>
