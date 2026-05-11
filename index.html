@@ -107,48 +107,8 @@
     </div>
 <script>
     let tokenClient;
-
-    // Use 'var' or direct assignment to avoid the "already declared" crash
-    // This will overwrite the one from butler_keys.js if it exists
-    window.VAULT_FRAGMENTS = {
-        "1": "iv8Og2duxxyD5r1Jg4xGy4wO3", 
-        "2": "iv8Og2duxxyD5r1Jg4xHy4wO3",
-        "3": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8NuD8Ca7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
-        "4": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8Nu8DCa7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
-        "5": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8NuD8Ca7lattkZaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
-        "6": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x9NuD8Ca7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
-        "7": "CFTIx2gyqqX4E27BcyGtEC5tc2qmoEUIgPtj9GaO",
-        "8": "CFTIx2gyqqX4E72BcyGtEC5tc2qmoEUIgPtj9GaO",
-        "9": "CFTIx2gyqqX4E72BcyGtEC5tc2qnoEUIgPtj9GaO"
-    };
-
-    function requestToken() {
-        const input = document.getElementById("scramble-pin");
-        const rawPin = input.value;
-        const pin = rawPin.replace(/0/g, ''); 
-        if(pin.length === 3) {
-            const fragments = window.VAULT_FRAGMENTS;
-            const assembled = "sk-proj-" + fragments[pin[0]] + fragments[pin[1]] + fragments[pin[2]];
-            sessionStorage.setItem("aida_active_key", assembled);
-            tokenClient.requestAccessToken();
-        } else { 
-            alert("ACCESS DENIED"); 
-        }
-    }
-
-    // This matches the logic your buttons are actually calling (pressKey)
-    function pressKey(val) {
-        const input = document.getElementById("scramble-pin");
-        if (val === 'C') {
-            input.value = "";
-        } else {
-            if (input.value.length < 8) input.value += val;
-        }
-    }
-
+    
     window.onload = function () {
-window.onload = function () {
-        // Wait for the Google script to be ready
         const checkGoogle = setInterval(() => {
             if (typeof google !== 'undefined') {
                 clearInterval(checkGoogle);
@@ -159,18 +119,23 @@ window.onload = function () {
                     scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
                     callback: (resp) => { 
                         if (resp.access_token) {
+                            // Match the IDs in your HTML (airlock and main-engine)
                             document.getElementById("airlock").style.display = "none";
-                            document.getElementById("bios-screen").style.display = "none";
-                            document.getElementById("aida-interface").style.display = "flex";
-                            if(window.py_sync_soul) window.py_sync_soul(resp.access_token);
+                            document.getElementById("main-engine").classList.remove("hidden");
+                            document.getElementById("main-engine").style.display = "flex";
+                            
+                            if(window.py_sync_soul) {
+                                window.py_sync_soul(resp.access_token);
+                            }
                         }
                     },
                 });
+                console.log(">>> Token Client Initialized.");
             } else {
                 console.log(">>> Waiting for Google...");
             }
-        }, 100); // Check every 100ms
+        }, 100); 
     };
-</script>    
+</script>
 </body>
 </html>
