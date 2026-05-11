@@ -6,6 +6,7 @@
     
     <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
     
+    <!-- External Logic Modules -->
     <script src="011-butler_keys.js"></script> 
     <script src="001-buttler_amber.js"></script>
     <script src="002-librarian_green.js"></script>
@@ -19,19 +20,34 @@
     <script src="010-chassis_gold.js"></script>
 
     <style>
-        :root { --ega-green: #00ff41; --ega-amber: #ffb000; }
+        :root { --ega-green: #00ff41; --ega-amber: #ffb000; --ega-blue: #00d4ff; }
         body { background: #000; color: var(--ega-green); font-family: 'Courier New', monospace; margin: 0; overflow: hidden; height: 100vh; }
         
         /* BIOS SCREEN */
         #bios-screen { padding: 20px; height: 100vh; overflow-y: auto; box-sizing: border-box; }
         .log-amber { color: var(--ega-amber); }
         .log-green { color: var(--ega-green); }
-        .log-blue { color: #00d4ff; }
+        .log-blue { color: var(--ega-blue); }
         .log-white { color: #fff; }
         .log-error { color: #ff4444; font-weight: bold; }
 
         /* KEYPAD AIRLOCK */
-        #keypad-airlock { 
+        #airlock { 
+            position: fixed; inset: 0; background: #000; z-index: 100; 
+            display: none; flex-direction: column; align-items: center; justify-content: center; 
+        }
+        #scramble-pin { 
+            background: transparent; border: none; color: var(--ega-amber); 
+            font-size: 2.5rem; text-align: center; width: 100%; outline: none; margin-bottom: 20px;
+        }
+        .keypad-grid { display: grid; grid-template-columns: repeat(3, 80px); gap: 15px; }
+        .key-btn { 
+            padding: 20px; border: 1px solid var(--ega-green); background: transparent; 
+            color: var(--ega-green); font-family: 'Courier New'; cursor: pointer; font-size: 1.2rem;
+        }
+        .key-btn:active { background: var(--ega-green); color: #000; }
+
+        #keypad-launch-btn { 
             position: fixed; bottom: 40px; right: 40px; padding: 20px 40px;
             background: transparent; border: 2px solid var(--ega-green); color: var(--ega-green);
             cursor: pointer; font-weight: bold; text-transform: uppercase;
@@ -40,10 +56,9 @@
         /* INTERFACE CONTAINER */
         #aida-interface { display: none; flex-direction: column; height: 100vh; width: 100vw; }
         #hologram-stage { flex: 1; position: relative; display: flex; justify-content: center; align-items: center; border-bottom: 1px solid var(--ega-green); background: radial-gradient(circle, #001a00 0%, #000 80%); }
-        #pixelGrid { position: absolute; top:0; left:0; width:100%; height:100%; opacity: 0.1; pointer-events: none; }
         #emotion-face { width: 200px; height: 200px; z-index: 10; image-rendering: pixelated; }
-        #terminal-output { height: 30%; padding: 15px; overflow-y: auto; font-size: 14px; background: rgba(0,10,0,0.8); }
-        #input-area { padding: 10px; display: flex; background: #000; gap: 10px; border-top: 1px solid var(--ega-green); }
+        #terminal-output { height: 35%; padding: 15px; overflow-y: auto; font-size: 14px; background: rgba(0,10,0,0.8); border-top: 1px solid var(--ega-green); }
+        #input-area { padding: 10px; display: flex; background: #000; gap: 10px; }
         #user-input { flex: 1; background: transparent; border: 1px solid var(--ega-green); color: var(--ega-green); padding: 10px; outline: none; }
         #send-btn { background: var(--ega-green); color: #000; border: none; padding: 10px 20px; font-weight: bold; }
         
@@ -56,11 +71,30 @@
         <div class="log-white">>>> INITIALIZING AIDA_ONE...</div>
     </div>
 
-    <button id="keypad-airlock" class="hidden">Initiate Handshake</button>
+    <!-- THE AIRLOCK KEYPAD -->
+    <div id="airlock">
+        <div class="log-amber" style="margin-bottom:10px;">SECURE HANDSHAKE REQUIRED</div>
+        <input type="text" id="scramble-pin" readonly placeholder="***">
+        <div class="keypad-grid">
+            <button class="key-btn" onclick="pressKey('1')">1</button>
+            <button class="key-btn" onclick="pressKey('2')">2</button>
+            <button class="key-btn" onclick="pressKey('3')">3</button>
+            <button class="key-btn" onclick="pressKey('4')">4</button>
+            <button class="key-btn" onclick="pressKey('5')">5</button>
+            <button class="key-btn" onclick="pressKey('6')">6</button>
+            <button class="key-btn" onclick="pressKey('7')">7</button>
+            <button class="key-btn" onclick="pressKey('8')">8</button>
+            <button class="key-btn" onclick="pressKey('9')">9</button>
+            <button class="key-btn" onclick="pressKey('C')">C</button>
+            <button class="key-btn" onclick="pressKey('0')">0</button>
+            <button class="key-btn" style="color:var(--ega-amber); border-color:var(--ega-amber);" onclick="requestToken()">OK</button>
+        </div>
+    </div>
+
+    <button id="keypad-launch-btn" class="hidden">Initiate Handshake</button>
 
     <div id="aida-interface">
         <div id="hologram-stage">
-            <div id="pixelGrid"></div>
             <img id="emotion-face" src="assets/standby.png">
         </div>
         <div id="terminal-output">
@@ -73,6 +107,13 @@
     </div>
 
     <script>
+        const VAULT_FRAGMENTS = {
+            "1": "iv8Og2duxxyD5r1Jg4xGy4wO3",
+            "2": "iv8Og2duxxyD5r1Jg4xHy4wO3",
+            "3": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8NuD8Ca7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA"
+            // Add other fragments here...
+        };
+
         const systemLog = document.getElementById("bios-screen");
         let pyodide;
 
@@ -91,14 +132,8 @@
 
             const manifest = [
                 { name: "butler.py", content: BUTLER_PY, phase: "amber" },
-                { name: "librarian.py", content: LIBRARIAN_PY, phase: "green" },
-                { name: "crawler.py", content: CRAWLER_PY, phase: "green" },
-                { name: "emotion_selector.py", content: EMOTION_SELECTOR_PY, phase: "blue" },
-                { name: "identity_organ.py", content: IDENTITY_PY, phase: "white" },
-                { name: "realm_organ.py", content: REALM_PY, phase: "silver" },
-                { name: "role_organ.py", content: ROLE_PY, phase: "silver" },
-                { name: "tetrad_chassis.py", content: TETRAD_PY, phase: "silver" },
                 { name: "soul_sync_engine.py", content: SOUL_SYNC_PY, phase: "blue" }
+                // ... (add others as needed)
             ];
 
             for (let mod of manifest) {
@@ -111,43 +146,67 @@
             }
 
             logToScreen("Consciousness concentration complete.", "blue");
-            document.getElementById("keypad-airlock").classList.remove("hidden");
+            document.getElementById("keypad-launch-btn").classList.remove("hidden");
         }
 
-        // --- THE TRANSITION ---
-        document.getElementById("keypad-airlock").onclick = async function() {
-            logToScreen("Initiating OAuth Handshake...", "amber");
-            
-            // Simulation of Handshake
-            setTimeout(() => {
-                document.getElementById("bios-screen").style.display = "none";
-                this.style.display = "none";
-                document.getElementById("aida-interface").style.display = "flex";
-                
-                if(window.aida_arrive) window.aida_arrive();
-            }, 1000);
+        // --- KEYPAD LOGIC ---
+        function pressKey(val) {
+            const box = document.getElementById("scramble-pin");
+            if (val === 'C') box.value = "";
+            else if (val === '0') return; // The Distractor Rule
+            else if (box.value.length < 3) box.value += val;
+        }
+
+        function requestToken() {
+            const pin = document.getElementById("scramble-pin").value;
+            if (pin.length === 3) {
+                try {
+                    const secret = "sk-proj-" + 
+                        VAULT_FRAGMENTS[pin[0]] + 
+                        VAULT_FRAGMENTS[pin[1]] + 
+                        VAULT_FRAGMENTS[pin[2]];
+                    
+                    sessionStorage.setItem("aida_active_key", secret);
+                    
+                    // Final Transition
+                    document.getElementById("airlock").style.display = "none";
+                    document.getElementById("bios-screen").style.display = "none";
+                    document.getElementById("aida-interface").style.display = "flex";
+                    
+                    if(window.aida_arrive) window.aida_arrive();
+                } catch(e) {
+                    alert("FRAGMENT ERROR: CHECK PIN DIGITS");
+                }
+            } else {
+                logToScreen("INVALID CLEARANCE: PIN INCOMPLETE", "error");
+            }
+        }
+
+        document.getElementById("keypad-launch-btn").onclick = function() {
+            this.style.display = "none";
+            document.getElementById("airlock").style.display = "flex";
         };
 
-        // --- THE COMMUNICATION ---
+        // --- COMMUNICATION ---
         async function communicate() {
             const input = document.getElementById("user-input");
             const term = document.getElementById("terminal-output");
-            if (!input.value) return;
+            const key = sessionStorage.getItem("aida_active_key");
 
+            if (!input.value) return;
             term.innerHTML += `<div style="color:#888">> YOU: ${input.value}</div>`;
             
-            // Bridge to Python Soul Sync
+            if (!key) {
+                term.innerHTML += `<div class="log-error">> ERR: NO LLM KEY FOUND. REBOOT REQUIRED.</div>`;
+                return;
+            }
+
             try {
-                const response = await pyodide.runPythonAsync(`
-                    import soul_sync_engine
-                    # Simple call to show she's listening
-                    "Thinking..."
-                `);
-                term.innerHTML += `<div class="log-green">> AIDA: [Connection Established. Processing...]</div>`;
+                // In the future, pass the 'key' to your python soul_sync here
+                term.innerHTML += `<div class="log-green">> AIDA: [Key Verified. Thinking...]</div>`;
             } catch(e) {
                 term.innerHTML += `<div class="log-error">> ERR: ${e.message}</div>`;
             }
-
             input.value = "";
             term.scrollTop = term.scrollHeight;
         }
