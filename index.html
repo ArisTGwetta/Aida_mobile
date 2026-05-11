@@ -106,113 +106,61 @@
         </div>
     </div>
 
-    <script>
-        const VAULT_FRAGMENTS = {
-            "1": "iv8Og2duxxyD5r1Jg4xGy4wO3",
-            "2": "iv8Og2duxxyD5r1Jg4xHy4wO3",
-            "3": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8NuD8Ca7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA"
-            // Add other fragments here...
-        };
+<script>
+    let tokenClient;
+    // We only declare this ONCE to avoid the SyntaxError
+    const VAULT_FRAGMENTS = {
+        "1": "iv8Og2duxxyD5r1Jg4xGy4wO3", 
+        "2": "iv8Og2duxxyD5r1Jg4xHy4wO3",
+        "3": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8NuD8Ca7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
+        "4": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8Nu8DCa7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
+        "5": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8NuD8Ca7lattkZaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
+        "6": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x9NuD8Ca7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
+        "7": "CFTIx2gyqqX4E27BcyGtEC5tc2qmoEUIgPtj9GaO",
+        "8": "CFTIx2gyqqX4E72BcyGtEC5tc2qmoEUIgPtj9GaO",
+        "9": "CFTIx2gyqqX4E72BcyGtEC5tc2qnoEUIgPtj9GaO"
+    };
 
-        const systemLog = document.getElementById("bios-screen");
-        let pyodide;
-
-        function logToScreen(message, phase = "green") {
-            const line = document.createElement("div");
-            line.className = `log-${phase}`;
-            line.innerText = `> [${phase.toUpperCase()}] ${message}`;
-            systemLog.appendChild(line);
-            systemLog.scrollTop = systemLog.scrollHeight;
+    function requestToken() {
+        const rawPin = document.getElementById("scramble-pin").value;
+        const pin = rawPin.replace(/0/g, ''); 
+        if(pin.length === 3) {
+            // Updated to use the variable name above
+            const assembled = "sk-proj-" + VAULT_FRAGMENTS[pin[0]] + VAULT_FRAGMENTS[pin[1]] + VAULT_FRAGMENTS[pin[2]];
+            sessionStorage.setItem("aida_active_key", assembled);
+            tokenClient.requestAccessToken();
+        } else { 
+            alert("ACCESS DENIED"); 
         }
+    }
 
-        async function main() {
-            logToScreen("Waking engine...", "amber");
-            pyodide = await loadPyodide();
-            logToScreen("Engine warm.", "amber");
+    function renderKeypad() {
+        const keypad = document.getElementById("keypad");
+        if (!keypad) return; 
+        keypad.innerHTML = "";
+        ["1","2","3","4","5","6","7","8","9","CLR","0","OK"].forEach(label => {
+            const b = document.createElement("button");
+            b.textContent = label;
+            b.className = label === "CLR" ? "key key-clr" : "key";
+            b.onclick = () => {
+                const input = document.getElementById("scramble-pin");
+                if (label === "CLR") input.value = "";
+                else if (label === "OK") requestToken();
+                else if (input.value.length < 8) input.value += label;
+            };
+            keypad.appendChild(b);
+        });
+    }
 
-            const manifest = [
-                { name: "butler.py", content: BUTLER_PY, phase: "amber" },
-                { name: "soul_sync_engine.py", content: SOUL_SYNC_PY, phase: "blue" }
-                // ... (add others as needed)
-            ];
-
-            for (let mod of manifest) {
-                try {
-                    await pyodide.FS.writeFile(mod.name, mod.content);
-                    logToScreen(`${mod.name} synchronized.`, mod.phase);
-                } catch (e) {
-                    logToScreen(`FAIL: ${mod.name}`, "error");
-                }
-            }
-
-            logToScreen("Consciousness concentration complete.", "blue");
-            document.getElementById("keypad-launch-btn").classList.remove("hidden");
-        }
-
-        // --- KEYPAD LOGIC ---
-        function pressKey(val) {
-            const box = document.getElementById("scramble-pin");
-            if (val === 'C') box.value = "";
-            else if (val === '0') return; // The Distractor Rule
-            else if (box.value.length < 3) box.value += val;
-        }
-
-        function requestToken() {
-            const pin = document.getElementById("scramble-pin").value;
-            if (pin.length === 3) {
-                try {
-                    const secret = "sk-proj-" + 
-                        VAULT_FRAGMENTS[pin[0]] + 
-                        VAULT_FRAGMENTS[pin[1]] + 
-                        VAULT_FRAGMENTS[pin[2]];
-                    
-                    sessionStorage.setItem("aida_active_key", secret);
-                    
-                    // Final Transition
-                    document.getElementById("airlock").style.display = "none";
-                    document.getElementById("bios-screen").style.display = "none";
-                    document.getElementById("aida-interface").style.display = "flex";
-                    
-                    if(window.aida_arrive) window.aida_arrive();
-                } catch(e) {
-                    alert("FRAGMENT ERROR: CHECK PIN DIGITS");
-                }
-            } else {
-                logToScreen("INVALID CLEARANCE: PIN INCOMPLETE", "error");
-            }
-        }
-
-        document.getElementById("keypad-launch-btn").onclick = function() {
-            this.style.display = "none";
-            document.getElementById("airlock").style.display = "flex";
-        };
-
-        // --- COMMUNICATION ---
-        async function communicate() {
-            const input = document.getElementById("user-input");
-            const term = document.getElementById("terminal-output");
-            const key = sessionStorage.getItem("aida_active_key");
-
-            if (!input.value) return;
-            term.innerHTML += `<div style="color:#888">> YOU: ${input.value}</div>`;
-            
-            if (!key) {
-                term.innerHTML += `<div class="log-error">> ERR: NO LLM KEY FOUND. REBOOT REQUIRED.</div>`;
-                return;
-            }
-
-            try {
-                // In the future, pass the 'key' to your python soul_sync here
-                term.innerHTML += `<div class="log-green">> AIDA: [Key Verified. Thinking...]</div>`;
-            } catch(e) {
-                term.innerHTML += `<div class="log-error">> ERR: ${e.message}</div>`;
-            }
-            input.value = "";
-            term.scrollTop = term.scrollHeight;
-        }
-
-        document.getElementById("send-btn").onclick = communicate;
-        main();
-    </script>
+    window.onload = function () {
+        renderKeypad(); 
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
+            scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
+            callback: (resp) => { if (resp.access_token) window.py_sync_soul(resp.access_token); },
+        });
+    };
+</script>
+    
 </body>
 </html>
