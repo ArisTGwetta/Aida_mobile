@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AIDA-ONE | Regrouping consciousness...</title>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+    
+    <script src="001-butler_amber.js"></script>
+    <script src="002-librarian_green.js"></script>
+    <script src="008-crawler_green.js"></script>
+    <script src="003-emotion_blue.js"></script>
+    <script src="004-identity_white.js"></script>
+    <script src="005-realm_silver.js"></script>
+    <script src="006-role_silver.js"></script>
+    <script src="009-tetrad_silver.js"></script>
+    <script src="007-soul_sync_blue.js"></script>
+
+    <style>
+        body { background: #000; color: #00ff41; font-family: 'Courier New', monospace; overflow: hidden; }
+        #bios-terminal { padding: 20px; height: 80vh; overflow-y: auto; font-size: 14px; text-shadow: 0 0 5px #00ff41; }
+        .log-amber { color: #ffb000; }
+        .log-green { color: #00ff41; }
+        .log-silver { color: #c0c0c0; }
+        .log-white { color: #ffffff; }
+        .log-blue { color: #00e5ff; }
+        .log-error { color: #ff0000; font-weight: bold; }
+        
+        #keypad-airlock.hidden { display: none; }
+        .crt-overlay { pointer-events: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                       background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                       linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); 
+                       background-size: 100% 2px, 3px 100%; z-index: 99; }
+    </style>
+</head>
+<body>
+    <div class="crt-overlay"></div>
+    <div id="bios-terminal"></div>
+
+    <div id="keypad-airlock" class="hidden">
+        <h2 style="text-align: center;">SYSTEM READY. ENTER CREDENTIALS.</h2>
+    </div>
+
+    <script>
+        const systemLog = document.getElementById("bios-terminal");
+        
+        const aidaManifest = [
+            { name: "butler.py", content: BUTLER_PY, phase: "amber", critical: true },
+            { name: "librarian.py", content: LIBRARIAN_PY, phase: "green", critical: true },
+            { name: "crawler.py", content: CRAWLER_PY, phase: "green", critical: false },
+            { name: "realm_organ.py", content: REALM_PY, phase: "silver", critical: true },
+            { name: "role_organ.py", content: ROLE_PY, phase: "silver", critical: true },
+            { name: "tetrad_chassis.py", content: TETRAD_PY, phase: "silver", critical: true },
+            { name: "identity_organ.py", content: IDENTITY_PY, phase: "white", critical: true },
+            { name: "emotion_selector.py", content: EMOTION_SELECTOR_PY, phase: "blue", critical: true },
+            { name: "soul_sync_engine.py", content: SOUL_SYNC_PY, phase: "blue", critical: true }
+        ];
+
+        function logToScreen(message, phase = "green") {
+            const line = document.createElement("div");
+            line.className = `log-${phase}`;
+            line.innerText = `> ${new Date().toLocaleTimeString()} | [${phase.toUpperCase()}] ${message}`;
+            systemLog.appendChild(line);
+            systemLog.scrollTop = systemLog.scrollHeight;
+        }
+
+        async function main() {
+            let pyodide = await loadPyodide();
+            logToScreen("Cognitive environment initialized.", "amber");
+
+            for (let mod of aidaManifest) {
+                try {
+                    logToScreen(`Regrouping ${mod.name}...`, mod.phase);
+                    await pyodide.fs.writeFile(mod.name, mod.content);
+                    // Import to verify wiring
+                    await pyodide.runPythonAsync(`import ${mod.name.replace('.py','')}`);
+                    logToScreen(`${mod.name} wired and synchronized.`, mod.phase);
+                } catch (e) {
+                    logToScreen(`FAIL in ${mod.name}: ${e.message}`, "error");
+                    if (mod.critical) return;
+                }
+            }
+
+            logToScreen("Consciousness concentration complete. Aida is concentrated.", "blue");
+            document.getElementById("keypad-airlock").classList.remove("hidden");
+        }
+
+        main();
+    </script>
+</body>
+</html>

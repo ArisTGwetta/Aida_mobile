@@ -1,0 +1,20 @@
+from PIL import Image, ImageTk
+import tkinter as tk
+import os
+
+window = tk.Tk()
+label = tk.Label(window)
+label.pack()
+
+# Make path absolute relative to this script
+base_dir = os.path.dirname(os.path.abspath(__file__))
+img_path = os.path.join(base_dir, "calm2.png")
+
+img = Image.open(img_path)
+img = img.resize((300,300))
+photo = ImageTk.PhotoImage(img)
+
+label.config(image=photo)
+label.image = photo
+window.update()
+window.mainloop()

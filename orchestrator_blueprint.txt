@@ -1,0 +1,35 @@
+const systemLog = document.getElementById("bios-terminal");
+
+function logToScreen(message, type = "info") {
+    const line = document.createElement("div");
+    line.className = `log-${type}`;
+    line.innerText = `> ${new Date().toLocaleTimeString()} | ${message}`;
+    systemLog.appendChild(line);
+    systemLog.scrollTop = systemLog.scrollHeight; // Auto-scroll
+}
+
+async function wakeAida() {
+    logToScreen("Initiating Aida v5.1 Regrouping Protocol...", "info");
+    
+    for (let module of aidaManifest) {
+        try {
+            logToScreen(`Syncing ${module.name}...`, "process");
+            await pyodide.fs.writeFile(module.name, module.content);
+            
+            // Verification step
+            const test = await pyodide.runPythonAsync(`import ${module.name.replace('.py','')}; True`);
+            if (test) {
+                logToScreen(`${module.name} integrated successfully.`, "success");
+            }
+        } catch (err) {
+            logToScreen(`ERROR in ${module.name}: ${err.message.substring(0, 50)}...`, "error");
+            if (module.critical) {
+                logToScreen("CRITICAL HALT: Brain-map incomplete.", "error");
+                return;
+            }
+        }
+    }
+    
+    logToScreen("Consciousness concentration complete. Aida is ready.", "success");
+    document.getElementById("keypad-airlock").classList.remove("hidden");
+}
