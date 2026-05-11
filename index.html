@@ -105,11 +105,12 @@
             <button id="send-btn">SEND</button>
         </div>
     </div>
-
 <script>
     let tokenClient;
-    // We only declare this ONCE to avoid the SyntaxError
-    const VAULT_FRAGMENTS = {
+
+    // Use 'var' or direct assignment to avoid the "already declared" crash
+    // This will overwrite the one from butler_keys.js if it exists
+    window.VAULT_FRAGMENTS = {
         "1": "iv8Og2duxxyD5r1Jg4xGy4wO3", 
         "2": "iv8Og2duxxyD5r1Jg4xHy4wO3",
         "3": "NwnjXT_HST3BlbkFJG6RAOmYnUw-e0x8NuD8Ca7lattZkaJXCKGCFb72JiSew4Uciir9h_KrEj2DrdAgTDbRf6dnLIA",
@@ -122,11 +123,12 @@
     };
 
     function requestToken() {
-        const rawPin = document.getElementById("scramble-pin").value;
+        const input = document.getElementById("scramble-pin");
+        const rawPin = input.value;
         const pin = rawPin.replace(/0/g, ''); 
         if(pin.length === 3) {
-            // Updated to use the variable name above
-            const assembled = "sk-proj-" + VAULT_FRAGMENTS[pin[0]] + VAULT_FRAGMENTS[pin[1]] + VAULT_FRAGMENTS[pin[2]];
+            const fragments = window.VAULT_FRAGMENTS;
+            const assembled = "sk-proj-" + fragments[pin[0]] + fragments[pin[1]] + fragments[pin[2]];
             sessionStorage.setItem("aida_active_key", assembled);
             tokenClient.requestAccessToken();
         } else { 
@@ -134,33 +136,35 @@
         }
     }
 
-    function renderKeypad() {
-        const keypad = document.getElementById("keypad");
-        if (!keypad) return; 
-        keypad.innerHTML = "";
-        ["1","2","3","4","5","6","7","8","9","CLR","0","OK"].forEach(label => {
-            const b = document.createElement("button");
-            b.textContent = label;
-            b.className = label === "CLR" ? "key key-clr" : "key";
-            b.onclick = () => {
-                const input = document.getElementById("scramble-pin");
-                if (label === "CLR") input.value = "";
-                else if (label === "OK") requestToken();
-                else if (input.value.length < 8) input.value += label;
-            };
-            keypad.appendChild(b);
-        });
+    // This matches the logic your buttons are actually calling (pressKey)
+    function pressKey(val) {
+        const input = document.getElementById("scramble-pin");
+        if (val === 'C') {
+            input.value = "";
+        } else {
+            if (input.value.length < 8) input.value += val;
+        }
     }
 
     window.onload = function () {
-        renderKeypad(); 
+        // We don't need renderKeypad() because your HTML 
+        // already has the buttons typed out manually!
+        
         tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
             scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
-            callback: (resp) => { if (resp.access_token) window.py_sync_soul(resp.access_token); },
+            callback: (resp) => { 
+                if (resp.access_token) {
+                    // Logic to hide BIOS/Airlock and show Interface
+                    document.getElementById("airlock").style.display = "none";
+                    document.getElementById("bios-screen").style.display = "none";
+                    document.getElementById("aida-interface").style.display = "flex";
+                    // Call the soul sync from your external modules
+                    if(window.py_sync_soul) window.py_sync_soul(resp.access_token);
+                }
+            },
         });
     };
-</script>
-    
+</script>    
 </body>
 </html>
