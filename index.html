@@ -6,6 +6,8 @@
     
     <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
     
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
     <!-- External Logic Modules -->
     <script src="011-butler_keys.js"></script> 
     <script src="001-buttler_amber.js"></script>
@@ -105,37 +107,79 @@
             <button id="send-btn">SEND</button>
         </div>
     </div>
+
+    
+    
+    
 <script>
     let tokenClient;
-    
+
+    // 1. The Keypad logic (Restored)
+    function pressKey(val) {
+        const input = document.getElementById("scramble-pin");
+        if (val === 'C') input.value = "";
+        else if (input.value.length < 8) input.value += val;
+    }
+
+    // 2. The Token Request (Restored)
+    function requestToken() {
+        const rawPin = document.getElementById("scramble-pin").value;
+        const pin = rawPin.replace(/0/g, ''); 
+        if(pin.length === 3) {
+            // Re-assembling from your fragments
+            const assembled = "sk-proj-" + VAULT_FRAGMENTS[pin[0]] + VAULT_FRAGMENTS[pin[1]] + VAULT_FRAGMENTS[pin[2]];
+            sessionStorage.setItem("aida_active_key", assembled);
+            tokenClient.requestAccessToken();
+        } else { alert("ACCESS DENIED"); }
+    }
+
+    // 3. The Orchestrator (Restored with Validations)
     window.onload = function () {
+        console.log(">>> SYSTEM: Beginning Boot Sequence...");
+        
+        // This simulates the "Color Checks" you saw this morning
+        setTimeout(() => console.log("%c>>> AMBER: Butler Keys Loaded", "color: #ffb000"), 500);
+        setTimeout(() => console.log("%c>>> GREEN: Librarian Active", "color: #00ff41"), 1000);
+        setTimeout(() => {
+            console.log("%c>>> BLUE: Soul Sync Ready", "color: #00d4ff");
+            // Only show the initiate button once the modules are 'ready'
+            document.getElementById("keypad-launch-btn").classList.remove("hidden");
+        }, 1500);
+
+        // The Initiate Button reveals the Airlock
+        document.getElementById("keypad-launch-btn").onclick = () => {
+            document.getElementById("airlock").style.display = "flex";
+        };
+
+        // The Google Wait Loop (Now with a safety exit)
+        let attempts = 0;
         const checkGoogle = setInterval(() => {
+            attempts++;
             if (typeof google !== 'undefined') {
                 clearInterval(checkGoogle);
-                console.log(">>> Google Identity Services Loaded.");
-                
                 tokenClient = google.accounts.oauth2.initTokenClient({
                     client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
                     scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
                     callback: (resp) => { 
                         if (resp.access_token) {
-                            // Match the IDs in your HTML (airlock and main-engine)
                             document.getElementById("airlock").style.display = "none";
-                            document.getElementById("main-engine").classList.remove("hidden");
-                            document.getElementById("main-engine").style.display = "flex";
-                            
-                            if(window.py_sync_soul) {
-                                window.py_sync_soul(resp.access_token);
-                            }
+                            document.getElementById("bios-screen").style.display = "none";
+                            document.getElementById("aida-interface").style.display = "flex";
+                            if(window.py_sync_soul) window.py_sync_soul(resp.access_token);
                         }
                     },
                 });
-                console.log(">>> Token Client Initialized.");
-            } else {
-                console.log(">>> Waiting for Google...");
             }
-        }, 100); 
+            if (attempts > 100) clearInterval(checkGoogle);
+        }, 100);
     };
 </script>
+
+
+
 </body>
 </html>
+
+
+
+
