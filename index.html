@@ -48,11 +48,11 @@
 
         async function main() {
             logToScreen("Waking up Pyodide...", "amber");
-            let pyodide = await loadPyodide();
-            logToScreen("Engine warm.", "amber");
+            // 1. Load the core engine
+            window.pyodide = await loadPyodide(); 
+            
+            logToScreen("Engine warm. Building Virtual Cupboards...", "amber");
 
-            // THE MANIFEST: This maps your JS variables to virtual Python files
-            // 'name' is what Python sees. 'content' is the variable name inside the .js file.
             const aidaManifest = [
                 { name: "butler.py",           content: BUTLER_PY,           phase: "amber" },
                 { name: "librarian.py",        content: LIBRARIAN_PY,        phase: "green" },
@@ -68,8 +68,11 @@
             for (let mod of aidaManifest) {
                 try {
                     logToScreen(`Unpacking ${mod.name}...`, mod.phase);
-                    // This is the magic step: writing the JS variable string into a virtual .py file
-                    await pyodide.fs.writeFile(mod.name, mod.content);
+                    
+                    // CRITICAL FIX: Use pyodide.FS (Capitalized)
+                    // This creates the physical-feeling file inside the browser's brain
+                    await pyodide.FS.writeFile(mod.name, mod.content);
+                    
                     logToScreen(`${mod.name} is ready.`, mod.phase);
                 } catch (e) {
                     logToScreen(`CRITICAL ERROR UNPACKING ${mod.name}: ${e.message}`, "error");
