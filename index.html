@@ -111,22 +111,26 @@
             <div id="pixelGrid"></div>
             <div id="sparkLayer"></div>
             
-            <div id="veil" style="position:absolute; inset:0; background:#000; z-index:20; pointer-events:none;"></div>
+            <div id="veil" style="position:absolute; inset:0; background:#000; z-index:20; transition: opacity 1s;"></div>
             <div id="holoScanline" style="position:absolute; top:0; left:0; width:100%; height:2px; background:var(--ega-green); opacity:0; z-index:21;"></div>
-            
-            <img id="emotion-face" src="assets/standby.png">
+            <div id="holoBeam" style="position:absolute; inset:0; background:linear-gradient(transparent, var(--ega-green)); opacity:0; z-index:19; pointer-events:none;"></div>
+            <div id="holoCone" style="position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:0; height:0; border-left:100px solid transparent; border-right:100px solid transparent; border-bottom:300px solid rgba(0,255,65,0.1); opacity:0; z-index:18;"></div>
+    
+            <img id="holoFace" src="assets/standby.png" style="width:200px; height:200px; z-index:10; opacity:0; image-rendering: pixelated;">
         </div>
-        
-        </div>
-        <div id="terminal-output">
-            <div class="log-blue">Aida_One initialized. Soul Sync active.</div>
-        </div>
-        <div id="input-area">
-            <input type="text" id="user-input" placeholder="Communicate...">
-            <button id="send-btn">SEND</button>
+    
+        <div id="main-engine" class="hidden">
+            <div id="terminal-output">
+                <div class="log-blue">Aida_One initialized. Soul Sync active.</div>
+            </div>
+            <div id="input-area">
+                <input type="text" id="user-input" placeholder="Communicate...">
+                <button id="send-btn">SEND</button>
+            </div>
         </div>
     </div>
 
+    
 <script>
     let tokenClient;
     let pyodide;
