@@ -65,6 +65,7 @@
             
             <img id="emotion-face" src="assets/standby.png">
         </div>
+        #holoCone { transform: translateX(-50%) rotate(0deg); }
         #pixelGrid { position: absolute; inset: 0; opacity: 0.1; pointer-events: none; }
         #sparkLayer { position: absolute; inset: 0; pointer-events: none; }
         #emotion-face { width: 200px; height: 200px; z-index: 10; image-rendering: pixelated; }
@@ -177,10 +178,14 @@
     
         // 2. THE AUTOMATION CYCLE: Write all JS delivery trucks to Python Memory
         const AIDA_MODULES = {
-            "identity_organ.py": typeof IDENTITY_WHITE_PY !== 'undefined' ? IDENTITY_WHITE_PY : null,
-            "realm_organ.py": typeof REALM_SILVER_PY !== 'undefined' ? REALM_SILVER_PY : null,
-            "role_organ.py": typeof ROLE_SILVER_PY !== 'undefined' ? ROLE_SILVER_PY : null,
-            "emotion_selector.py": typeof EMOTION_SELECTOR_PY !== 'undefined' ? EMOTION_SELECTOR_PY : null, // MATCHED
+            // Real modules if they exist, otherwise a "Mock" Python class so it doesn't crash
+            "identity_organ.py": typeof IDENTITY_WHITE_PY !== 'undefined' ? IDENTITY_WHITE_PY : `class IdentityEngine:\n    def __init__(self, **kwargs): pass\n    def get_resolved_identity(self): return {"name": "Aida (Mock)"}`,
+            
+            "realm_organ.py": typeof REALM_SILVER_PY !== 'undefined' ? REALM_SILVER_PY : `class RealmEngine:\n    def __init__(self, config): self.resolved_realm = config`,
+            
+            "role_organ.py": typeof ROLE_SILVER_PY !== 'undefined' ? ROLE_SILVER_PY : `class RoleEngine:\n    def __init__(self, config): self.resolved_role = config`,
+            
+            "emotion_selector.py": typeof EMOTION_SELECTOR_PY !== 'undefined' ? EMOTION_SELECTOR_PY : null,
             "soul_sync_engine.py": typeof SOUL_SYNC_PY !== 'undefined' ? SOUL_SYNC_PY : null
         };
         
