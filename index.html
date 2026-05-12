@@ -233,18 +233,25 @@
         input.value = "";
     
         try {
-            // We run a Python snippet that calls your synced engine
+            // We ensure Pyodide is ready and explicitly call the module
             const response = await pyodide.runPythonAsync(`
-    from soul_sync_engine import py_sync_soul
-    import json
+    import js
+    try:
+        # We look for the function we loaded from 007-soul_sync_blue.js
+        from soul_sync_engine import py_sync_soul
+        
+        # Simple handshake for the first 'live' response
+        # We'll feed it your message as the 'context'
+        state = py_sync_soul({"id":"Aida"}, {"msg":"${userMsg}"}, {}, {"valence":0.8})
+        reply = f"Handshake confirmed. State: {state['emotion']['label']}. I hear you clearly."
+    except Exception as e:
+        reply = f"Cognitive Sync Error: {str(e)}"
     
-    # Fetching a mock state to start the conversation
-    state = py_sync_soul({"identity":{"name":"Aida"}}, {}, {}, {"valence":0.6, "arousal":0.3})
-    f"Sync Complete. Mood: {state['emotion']['label']}. Ready for the '${userMsg}' protocol."
+    reply
             `);
             term.innerHTML += `<div class="log-green">> AIDA: ${response}</div>`;
         } catch(e) {
-            term.innerHTML += `<div class="log-error">> ERR: Soul Sync Interrupted.</div>`;
+            term.innerHTML += `<div class="log-error">> ERR: Soul Sync Engine Cold. (Check 007 load)</div>`;
         }
         term.scrollTop = term.scrollHeight;
     };
