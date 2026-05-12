@@ -176,24 +176,26 @@
         uiLog("Engine Warmed.", "log-amber");
     
         // 2. THE AUTOMATION CYCLE: Write all JS delivery trucks to Python Memory
-        // Add every module you want Aida to "know" here.
         const AIDA_MODULES = {
-            "identity_organ.py": IDENTITY_PY,
-            "realm_organ.py": REALM_PY,
-            "role_organ.py": ROLE_PY,
-            "emotion_selector.py": EMOTION_PY,
-            "soul_sync_engine.py": SOUL_SYNC_PY
+            "identity_organ.py": typeof IDENTITY_WHITE_PY !== 'undefined' ? IDENTITY_WHITE_PY : null,
+            "realm_organ.py": typeof REALM_SILVER_PY !== 'undefined' ? REALM_SILVER_PY : null,
+            "role_organ.py": typeof ROLE_SILVER_PY !== 'undefined' ? ROLE_SILVER_PY : null,
+            "emotion_selector.py": typeof EMOTION_SELECTOR_PY !== 'undefined' ? EMOTION_SELECTOR_PY : null, // MATCHED
+            "soul_sync_engine.py": typeof SOUL_SYNC_PY !== 'undefined' ? SOUL_SYNC_PY : null
         };
-    
+        
         try {
             for (const [filename, content] of Object.entries(AIDA_MODULES)) {
-                await pyodide.FS.writeFile(filename, content);
-                console.log(`>>> FS: ${filename} synchronized.`);
+                if (content) {
+                    await pyodide.FS.writeFile(filename, content);
+                    console.log(`%c>>> FS: ${filename} synchronized.`, "color: #00d4ff");
+                } else {
+                    console.warn(`>>> FS: Skipping ${filename} (Variable not defined)`);
+                }
             }
             uiLog("Cognitive Organs Synchronized.", "log-blue");
         } catch (err) {
-            uiLog("FS Error: Check module definitions.", "log-error");
-            console.error(err);
+            uiLog("FS Error: Critical failure.", "log-error");
         }
     
         // 3. Final UI Readiness
