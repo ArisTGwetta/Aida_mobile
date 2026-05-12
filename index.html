@@ -287,6 +287,7 @@
     
 
     // BRIDGE TO SOUL SYNC
+    // --- THE FINAL BRIDGE: SEND BUTTON (AIDA-ONE ACTIVATE) ---
     document.getElementById("send-btn").onclick = async function() {
         const input = document.getElementById("user-input");
         const term = document.getElementById("terminal-output");
@@ -294,40 +295,51 @@
     
         const userMsg = input.value;
         
-        // 1. TELEMETRY: Trace the outbound message
-        term.innerHTML += `<div class="log-white" style="opacity:0.5; font-size:0.8em;">[TELEMETRY] Outbound: "${userMsg}" -> Soul Sync Engine</div>`;
+        // 1. TELEMETRY: Trace the outbound
+        term.innerHTML += `<div class="log-white" style="opacity:0.5; font-size:0.8em;">[TELEMETRY] Requesting Sanctuary Context...</div>`;
         term.innerHTML += `<div style="color:#888">> YOU: ${userMsg}</div>`;
         input.value = "";
     
         try {
-            // 2. THE HANDSHAKE: Calling Python
+            // 2. RETRIEVE THE KEY: From your keypad's assembly point
+            const activeKey = sessionStorage.getItem("aida_active_key");
+            
+            if (!activeKey) {
+                throw new Error("Keypad Airlock not cleared. Aida's voice is locked.");
+            }
+    
+            // 3. THE HANDSHAKE: Python execution
             const responseData = await pyodide.runPythonAsync(`
-    from soul_sync_engine import py_sync_soul
     import json
+    from soul_sync_engine import py_sync_soul
+    from llm_engine_v1 import call_llm
     
-    # Input Telemetry (Python side)
-    print(f">>> ENGINE: Received payload: ${userMsg}")
+    # A. Synchronize the Soul (Defaults to Sanctuary if {} passed)
+    # This uses the new Vanilla 4, 5, and 6 logic we just built
+    state = py_sync_soul({}, {}, {}, {"valence": 0.5, "arousal": 0.3})
     
-    # Process through the Tetrad
-    state = py_sync_soul({"id":"Aida"}, {"msg":"${userMsg}"}, {}, {"valence": 0.5, "arousal": 0.5})
+    # B. Call the LLM with the Key and the Message
+    # We pass the message and the key directly into your Python Voice Box
+    reply_text = await call_llm("""${userMsg}""", "${activeKey}")
     
-    # Return a structured JSON string for the JS to parse
+    # C. Package for the UI
     json.dumps({
-        "reply": f"Processing protocol: ${userMsg}",
+        "reply": reply_text,
         "emotion": state['emotion']['label'],
-        "status": state['status']
+        "status": "Connected"
     })
             `);
     
-            // 3. TELEMETRY: Trace the inbound response
+            // 4. UI UPDATE: The Inbound Response
             const data = JSON.parse(responseData);
-            term.innerHTML += `<div class="log-white" style="opacity:0.5; font-size:0.8em;">[TELEMETRY] Inbound: Emotion=${data.emotion} | Status=${data.status}</div>`;
+            term.innerHTML += `<div class="log-white" style="opacity:0.5; font-size:0.8em;">[TELEMETRY] Inbound: Emotion=${data.emotion}</div>`;
             term.innerHTML += `<div class="log-green">> AIDA: ${data.reply}</div>`;
     
         } catch(e) {
             term.innerHTML += `<div class="log-error">> [X] SOUL SYNC FATAL ERROR: ${e.message}</div>`;
-            console.error("Full Traceback:", e);
+            console.error("Aida Sync Error:", e);
         }
+        
         term.scrollTop = term.scrollHeight;
     };
     
