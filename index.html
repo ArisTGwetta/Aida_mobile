@@ -210,9 +210,25 @@
             document.getElementById("keypad-launch-btn").classList.remove("hidden");
         }, 1500);
     
-        // ... (Keep your existing Google Handshake and Button Logic below this) ...
-    };
-
+        // At the very bottom of your window.onload function
+        const launchBtn = document.getElementById("keypad-launch-btn");
+        
+        launchBtn.onclick = function() {
+            console.log(">>> AIRLOCK: Handshake Initiated. Opening Keypad...");
+            
+            // 1. Hide the BIOS terminal
+            document.getElementById("bios-screen").style.display = "none";
+            this.classList.add("hidden"); 
+        
+            // 2. Reveal the Keypad Airlock
+            const airlock = document.getElementById("airlock");
+            airlock.style.display = "flex";
+            
+            // 3. Clear any old PIN data
+            const pinInput = document.getElementById("scramble-pin");
+            pinInput.value = "";
+            pinInput.dataset.realPin = "";
+        };
         // Google Handshake
         const checkGoogle = setInterval(() => {
             if (typeof google !== 'undefined') {
