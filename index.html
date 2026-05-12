@@ -123,8 +123,17 @@
 
     function pressKey(val) {
         const input = document.getElementById("scramble-pin");
-        if (val === 'C') input.value = "";
-        else if (input.value.length < 8) input.value += val;
+        // We store the real sequence in a data attribute
+        if (!input.dataset.realPin) input.dataset.realPin = "";
+        
+        if (val === 'C') {
+            input.value = "";
+            input.dataset.realPin = "";
+        } else if (input.dataset.realPin.length < 12) {
+            input.dataset.realPin += val;
+            // The user only sees stars, keeping the "Secure Handshake" vibe
+            input.value = "*".repeat(input.dataset.realPin.length);
+        }
     }
 
     function requestToken() {
@@ -164,16 +173,26 @@
                     scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
                     callback: (resp) => { 
                         if (resp.access_token) {
-                            // KILL BIOS & BUTTONS
-                            document.getElementById("airlock").classList.add("hidden");
-                            document.getElementById("bios-screen").classList.add("hidden");
-                            document.getElementById("keypad-launch-btn").classList.add("hidden");
+                            // 1. CLEAR THE DECKS (Kill BIOS, Keypad, and Launch Button)
+                            document.getElementById("airlock").style.display = "none";
+                            document.getElementById("bios-screen").style.display = "none";
+                            document.getElementById("keypad-launch-btn").style.display = "none";
                             
-                            // WAKE INTERFACE
-                            document.getElementById("aida-interface").style.display = "flex";
+                            // 2. REVEAL THE SOUL (Show the Interface)
+                            const interface = document.getElementById("aida-interface");
+                            interface.style.display = "flex";
                             
-                            // TRIGGER CHASSIS GOLD ARRIVAL
-                            if(window.aida_arrive) window.aida_arrive();
+                            // 3. IGNITE THE CHASSIS (Trigger the arrival animation)
+                            // We use a tiny delay (50ms) to make sure the interface is 
+                            // "drawn" on the screen before the sparks start flying.
+                            setTimeout(() => {
+                                if(window.aida_arrive) {
+                                    console.log(">>> CHASSIS: Igniting Hologram...");
+                                    window.aida_arrive();
+                                } else {
+                                    console.error(">>> CHASSIS: 010-chassis_gold.js not found!");
+                                }
+                            }, 50);
                         }
                     },
                 });
@@ -186,16 +205,31 @@
         const input = document.getElementById("user-input");
         const term = document.getElementById("terminal-output");
         if (!input.value) return;
-
-        term.innerHTML += `<div style="color:#888">> YOU: ${input.value}</div>`;
-        
-        try {
-            // This is where we call the Python engine you synchronized earlier
-            term.innerHTML += `<div class="log-green">> AIDA: [Handshake recognized. Syncing Soul...]</div>`;
-        } catch(e) {
-            term.innerHTML += `<div class="log-error">> ERR: ${e.message}</div>`;
-        }
+    
+        const userMsg = input.value;
+        term.innerHTML += `<div style="color:#888">> YOU: ${userMsg}</div>`;
         input.value = "";
+    
+        try {
+            // CALLING THE ACTUAL SOUL SYNC
+            // This runs the Python engine and returns her state
+            const aidaResponse = await pyodide.runPythonAsync(`
+    import json
+    from soul_sync_engine import py_sync_soul
+    
+    # Temporary state for the bridge
+    mock_id = {"identity": {"name": "Aida", "tone": "playful"}}
+    mock_emo = {"valence": 0.5, "arousal": 0.1}
+    
+    # Execute the sync
+    state = py_sync_soul(mock_id, {}, {}, mock_emo)
+    f"Identity Synced. Current Mood: {state['emotion']['label']}. I am ready for the ${userMsg} protocol."
+            `);
+    
+            term.innerHTML += `<div class="log-green">> AIDA: ${aidaResponse}</div>`;
+        } catch(e) {
+            term.innerHTML += `<div class="log-error">> SYNC ERROR: Engine is cold.</div>`;
+        }
         term.scrollTop = term.scrollHeight;
     };
 </script>
