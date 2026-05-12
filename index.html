@@ -65,7 +65,12 @@
             
             <img id="emotion-face" src="assets/standby.png">
         </div>
+        
         #holoCone { transform: translateX(-50%) rotate(0deg); }
+        #hologram-stage img {
+            transform: none !important;
+            image-rendering: pixelated; /* Makes the standby face look 'Retro-Tech' */
+        }
         #pixelGrid { position: absolute; inset: 0; opacity: 0.1; pointer-events: none; }
         #sparkLayer { position: absolute; inset: 0; pointer-events: none; }
         #emotion-face { width: 200px; height: 200px; z-index: 10; image-rendering: pixelated; }
@@ -159,14 +164,29 @@
             input.value = "*".repeat(input.dataset.realPin.length);
         }
     }
+
     function requestToken() {
-        const rawPin = document.getElementById("scramble-pin").value;
-        const pin = rawPin.replace(/0/g, ''); 
-        if(pin.length === 3) {
-            const assembled = "sk-proj-" + VAULT_FRAGMENTS[pin[0]] + VAULT_FRAGMENTS[pin[1]] + VAULT_FRAGMENTS[pin[2]];
+        const rawPin = document.getElementById("scramble-pin").dataset.realPin || "";
+        
+        // We strip the zeros FIRST, then check the length
+        const cleanPin = rawPin.replace(/0/g, ''); 
+        
+        if(cleanPin.length === 3) {
+            uiLog("Handshake recognized. Syncing Soul...", "log-blue");
+            
+            const assembled = "sk-proj-" + 
+                VAULT_FRAGMENTS[cleanPin[0]] + 
+                VAULT_FRAGMENTS[cleanPin[1]] + 
+                VAULT_FRAGMENTS[cleanPin[2]];
+                
             sessionStorage.setItem("aida_active_key", assembled);
             tokenClient.requestAccessToken();
-        } else { alert("ACCESS DENIED"); }
+        } else { 
+            // This handles cases where they typed too many or too few real digits
+            alert(`ACCESS DENIED: Required 3 fragments, found ${cleanPin.length}.`); 
+            document.getElementById("scramble-pin").dataset.realPin = "";
+            document.getElementById("scramble-pin").value = "";
+        }
     }
 
     window.onload = async function () {
@@ -273,29 +293,40 @@
         if (!input.value) return;
     
         const userMsg = input.value;
+        
+        // 1. TELEMETRY: Trace the outbound message
+        term.innerHTML += `<div class="log-white" style="opacity:0.5; font-size:0.8em;">[TELEMETRY] Outbound: "${userMsg}" -> Soul Sync Engine</div>`;
         term.innerHTML += `<div style="color:#888">> YOU: ${userMsg}</div>`;
         input.value = "";
     
         try {
-            // We ensure Pyodide is ready and explicitly call the module
-            const response = await pyodide.runPythonAsync(`
-    import js
-    try:
-        # We look for the function we loaded from 007-soul_sync_blue.js
-        from soul_sync_engine import py_sync_soul
-        
-        # Simple handshake for the first 'live' response
-        # We'll feed it your message as the 'context'
-        state = py_sync_soul({"id":"Aida"}, {"msg":"${userMsg}"}, {}, {"valence":0.8})
-        reply = f"Handshake confirmed. State: {state['emotion']['label']}. I hear you clearly."
-    except Exception as e:
-        reply = f"Cognitive Sync Error: {str(e)}"
+            // 2. THE HANDSHAKE: Calling Python
+            const responseData = await pyodide.runPythonAsync(`
+    from soul_sync_engine import py_sync_soul
+    import json
     
-    reply
+    # Input Telemetry (Python side)
+    print(f">>> ENGINE: Received payload: ${userMsg}")
+    
+    # Process through the Tetrad
+    state = py_sync_soul({"id":"Aida"}, {"msg":"${userMsg}"}, {}, {"valence": 0.5, "arousal": 0.5})
+    
+    # Return a structured JSON string for the JS to parse
+    json.dumps({
+        "reply": f"Processing protocol: ${userMsg}",
+        "emotion": state['emotion']['label'],
+        "status": state['status']
+    })
             `);
-            term.innerHTML += `<div class="log-green">> AIDA: ${response}</div>`;
+    
+            // 3. TELEMETRY: Trace the inbound response
+            const data = JSON.parse(responseData);
+            term.innerHTML += `<div class="log-white" style="opacity:0.5; font-size:0.8em;">[TELEMETRY] Inbound: Emotion=${data.emotion} | Status=${data.status}</div>`;
+            term.innerHTML += `<div class="log-green">> AIDA: ${data.reply}</div>`;
+    
         } catch(e) {
-            term.innerHTML += `<div class="log-error">> ERR: Soul Sync Engine Cold. (Check 007 load)</div>`;
+            term.innerHTML += `<div class="log-error">> [X] SOUL SYNC FATAL ERROR: ${e.message}</div>`;
+            console.error("Full Traceback:", e);
         }
         term.scrollTop = term.scrollHeight;
     };
