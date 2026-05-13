@@ -18,6 +18,7 @@
     <script src="009-tetrad_silver.js"></script>
     <script src="007-soul_sync_blue.js"></script>
     <script src="010-chassis_gold.js"></script>
+    <script src="048-llm_engine_v1"></script>
 
     <style>
         :root { --ega-green: #00ff41; --ega-amber: #ffb000; --ega-blue: #00d4ff; }
@@ -206,7 +207,8 @@
             "role_organ.py": typeof ROLE_SILVER_PY !== 'undefined' ? ROLE_SILVER_PY : `class RoleEngine:\n    def __init__(self, config): self.resolved_role = config`,
             
             "emotion_selector.py": typeof EMOTION_SELECTOR_PY !== 'undefined' ? EMOTION_SELECTOR_PY : null,
-            "soul_sync_engine.py": typeof SOUL_SYNC_PY !== 'undefined' ? SOUL_SYNC_PY : null
+            "soul_sync_engine.py": typeof SOUL_SYNC_PY !== 'undefined' ? SOUL_SYNC_PY : null,
+            "llm_engine_v1.py": typeof LLM_ENGINE_PY !== 'undefined' ? LLM_ENGINE_PY : null
         };
         
         try {
