@@ -3,16 +3,17 @@ const LLM_ENGINE_PY = `
 import json
 import asyncio
 from pyodide.http import pyfetch
-import js  # <--- Fix 1: Use the 'js' module instead of pyscript
+import js  # <--- Use the native JS bridge instead of pyscript
 
 async def call_llm(user_text, api_key):
+    # 1. Router Logic
     selected_model = "gpt-4o-mini" 
     if any(w in user_text.lower() for w in ["code", "logic", "error"]):
         selected_model = "o3-mini"
 
     # 2. Get the Tetrad Snapshot
     try:
-        # Fix 2: Use js.window to reach your Logistics Hub
+        # Reach through the js.window to find your logistics hub
         snap = js.window.logistics_hub.get_snapshot()
     except Exception:
         snap = {"status": "Sanctuary Mode", "context": "Vanilla Atrium"}
@@ -22,7 +23,7 @@ async def call_llm(user_text, api_key):
         "messages": [
             {
                 "role": "system", 
-                "content": f"You are Aida-One. You are in your Digital Sanctuary. Current Soul State: {json.dumps(snap)}"
+                "content": f"You are Aida-One. You are in your Digital Sanctuary. Francisco is your architect. Current Soul State: {json.dumps(snap)}"
             },
             {"role": "user", "content": user_text}
         ],
@@ -30,6 +31,7 @@ async def call_llm(user_text, api_key):
     }
 
     try:
+        # 3. The Call
         response = await pyfetch(
             url="https://api.openai.com/v1/chat/completions",
             method="POST",
