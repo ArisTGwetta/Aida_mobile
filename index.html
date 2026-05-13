@@ -173,6 +173,7 @@
         const cleanPin = rawPin.replace(/0/g, ''); 
         
         if(cleanPin.length === 3) {
+        if(cleanPin.length === 3) {
             uiLog("Handshake recognized. Syncing Soul...", "log-blue");
             
             const assembled = "sk-proj-" + 
@@ -180,8 +181,13 @@
                 VAULT_FRAGMENTS[cleanPin[1]] + 
                 VAULT_FRAGMENTS[cleanPin[2]];
                 
+            // MOVE LOGS HERE (Inside the IF block)
+            console.log("DEBUG: Key Assembly complete ->", assembled); 
+            console.log("DEBUG: Variable 'assembled' type ->", typeof assembled);
+
             sessionStorage.setItem("aida_active_key", assembled);
             tokenClient.requestAccessToken();
+        
         } else { 
             // This handles cases where they typed too many or too few real digits
             alert(`ACCESS DENIED: Required 3 fragments, found ${cleanPin.length}.`); 
@@ -189,6 +195,7 @@
             document.getElementById("scramble-pin").value = "";
         }
     }
+    
 
     window.onload = async function () {
         uiLog("Beginning Boot Sequence...", "log-white");
@@ -309,6 +316,10 @@
             if (!activeKey) {
                 throw new Error("Keypad Airlock not cleared. Aida's voice is locked.");
             }
+                
+        // Make sure the button is pulling the SAME name you used in the keypad
+        const testKey = sessionStorage.getItem("aida_active_key");
+        console.log("DEBUG: Send Button retrieved key ->", testKey);
     
             // 3. THE HANDSHAKE: Python execution
             const responseData = await pyodide.runPythonAsync(`
