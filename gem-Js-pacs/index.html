@@ -52,25 +52,60 @@
             cursor: pointer; font-weight: bold; text-transform: uppercase; z-index: 50;
         }
 
-        /* INTERFACE */
-        #aida-interface { display: none; flex-direction: column; height: 100vh; width: 100vw; position: relative; }
+        /* INTERFACE REFINEMENT */
+        #aida-interface { 
+            display: none; 
+            flex-direction: column; 
+            height: 100vh; 
+            width: 100vw; 
+            background: #000; /* Fix 1: Ensure total black around the stage */
+        }
         
-        /* CHASSIS ELEMENTS FOR 010-CHASSIS_GOLD */
-        #hologram-stage { flex: 1; position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden; }
-        <div id="hologram-stage">
-            <div id="pixelGrid"></div>
-            <div id="sparkLayer"></div>
-            
-            <div id="veil" style="position:absolute; inset:0; background:#000; z-index:20; pointer-events:none;"></div>
-            <div id="holoScanline" style="position:absolute; top:0; left:0; width:100%; height:2px; background:var(--ega-green); opacity:0; z-index:21;"></div>
-            
-            <img id="emotion-face" src="assets/standby.png">
-        </div>
+        #hologram-stage { 
+            flex: 0 0 45%; /* Fix 2: Less space for holo, more for text */
+            position: relative; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            overflow: hidden;
+            background: #000;
+        }
         
-        #holoCone { transform: translateX(-50%) rotate(0deg); }
-        #hologram-stage img {
-            transform: none !important;
-            image-rendering: pixelated; /* Makes the standby face look 'Retro-Tech' */
+        /* The Iris/Blur Effect */
+        #hologram-stage::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            box-shadow: inset 0 0 80px 30px #000; /* Softens the square edges of the image */
+            z-index: 25;
+            pointer-events: none;
+        }
+        
+        /* The Inverted HoloCone (Quick Win #2) */
+        #holoCone { 
+            position: absolute; 
+            bottom: 0; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            width: 0; 
+            height: 0; 
+            /* Flip the logic: Transparent on bottom/sides, colored on top */
+            border-left: 150px solid transparent; 
+            border-right: 150px solid transparent; 
+            border-bottom: 0 solid transparent; 
+            border-top: 400px solid rgba(0, 255, 65, 0.15); /* The beam now "grows" upward */
+            opacity: 0.6; 
+            z-index: 5;
+            filter: blur(5px);
+        }
+        
+        #holoFace { 
+            width: 220px; 
+            height: auto; 
+            z-index: 10; 
+            opacity: 0.8; 
+            image-rendering: pixelated; 
+            filter: drop-shadow(0 0 10px var(--ega-green));
         }
         #pixelGrid { position: absolute; inset: 0; opacity: 0.1; pointer-events: none; }
         #sparkLayer { position: absolute; inset: 0; pointer-events: none; }
@@ -117,16 +152,11 @@
         <div id="hologram-stage">
             <div id="pixelGrid"></div>
             <div id="sparkLayer"></div>
-            
-            <div id="veil" style="position:absolute; inset:0; background:#000; z-index:20; transition: opacity 1s;"></div>
-            <div id="holoScanline" style="position:absolute; top:0; left:0; width:100%; height:2px; background:var(--ega-green); opacity:0; z-index:21;"></div>
-            <div id="holoBeam" style="position:absolute; inset:0; background:linear-gradient(transparent, var(--ega-green)); opacity:0; z-index:19; pointer-events:none;"></div>
-            <div id="holoCone" style="position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:0; height:0; border-left:100px solid transparent; border-right:100px solid transparent; border-bottom:300px solid rgba(0,255,65,0.1); opacity:0; z-index:18;"></div>
-    
-            <img id="holoFace" src="assets/standby.png" style="width:200px; height:200px; z-index:10; opacity:0; image-rendering: pixelated;">
+            <div id="holoCone"></div> <div id="veil"></div>
+            <img id="holoFace" src="assets/standby.png">
         </div>
     
-        <div id="main-engine" class="hidden">
+        <div id="main-engine">
             <div id="terminal-output">
                 <div class="log-blue">Aida_One initialized. Soul Sync active.</div>
             </div>
@@ -136,7 +166,6 @@
             </div>
         </div>
     </div>
-
     
 <script>
     let tokenClient;
