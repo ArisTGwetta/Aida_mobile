@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Holo Airlock</title>
+
+<style>
+:root {
+  --bg: #000;
+  --glass: rgba(0, 180, 255, 0.12);
+  --glow: #00b4ff;
+  --text: #7dd9ff;
+  --border: rgba(0,180,255,0.4);
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: black;
+  color: var(--text);
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+#airlock {
+  height: 100dvh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.panel {
+  background: linear-gradient(160deg, rgba(0,180,255,0.12), rgba(0,0,0,0.6));
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 30px;
+  width: 340px;
+  box-shadow:
+    0 0 40px rgba(0,180,255,0.25),
+    inset 0 0 25px rgba(0,180,255,0.15);
+}
+
+.panel h1 {
+  text-align: center;
+  letter-spacing: 8px;
+  font-weight: 300;
+  margin-bottom: 25px;
+}
+
+#scramble-pin {
+  width: 100%;
+  padding: 14px;
+  font-size: 24px;
+  text-align: center;
+  letter-spacing: 14px;
+  background: transparent;
+  color: var(--text);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  outline: none;
+  box-shadow: inset 0 0 20px rgba(0,180,255,0.3);
+}
+
+.keypad {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.keypad button {
+  height: 60px;
+  font-size: 20px;
+  border-radius: 14px;
+  background: rgba(0, 180, 255, 0.15);
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: inset 0 0 20px rgba(0,180,255,0.25);
+}
+
+.keypad button:hover {
+  background: rgba(0,180,255,0.35);
+  box-shadow: 0 0 15px rgba(0,180,255,0.8);
+}
+
+.keypad button:active {
+  transform: scale(0.95);
+}
+
+.control {
+  grid-column: span 3;
+  display: flex;
+  gap: 12px;
+}
+
+.control button {
+  flex: 1;
+}
+
+#ignite {
+  margin-top: 25px;
+  width: 100%;
+  height: 52px;
+  border-radius: 16px;
+  font-size: 18px;
+  color: black;
+  background: linear-gradient(90deg, #00b4ff, #7dd9ff);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 0 25px rgba(0,180,255,0.8);
+}
+
+#ignite:hover {
+  box-shadow: 0 0 45px rgba(0,180,255,1);
+}
+</style>
+</head>
+
+<body>
+<div id="airlock">
+  <div class="panel">
+    <h1>AIRLOCK</h1>
+
+    <input
+      id="scramble-pin"
+      type="password"
+      maxlength="8"
+      inputmode="numeric"
+      autocomplete="off"
+      placeholder="••••"
+    >
+
+    <div class="keypad" id="keypad"></div>
+
+    <button id="ignite">IGNITE</button>
+  </div>
+</div>
+
+<script>
+const input = document.getElementById("scramble-pin");
+const keypad = document.getElementById("keypad");
+
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+function renderKeypad() {
+  keypad.innerHTML = "";
+
+  const digits = shuffle(["0","1","2","3","4","5","6","7","8","9"]);
+
+  digits.forEach(d => {
+    const btn = document.createElement("button");
+    btn.textContent = d;
+    btn.onclick = () => {
+      if (input.value.length < input.maxLength) {
+        input.value += d;
+        input.focus();
+      }
+    };
+    keypad.appendChild(btn);
+  });
+
+  const controls = document.createElement("div");
+  controls.className = "control";
+
+  const clear = document.createElement("button");
+  clear.textContent = "CLEAR";
+  clear.onclick = () => {
+    input.value = "";
+    renderKeypad();
+  };
+
+  const back = document.createElement("button");
+  back.textContent = "⌫";
+  back.onclick = () => {
+    input.value = input.value.slice(0, -1);
+  };
+
+  controls.appendChild(clear);
+  controls.appendChild(back);
+  keypad.appendChild(controls);
+}
+
+function normalizedPin() {
+  return input.value.replace(/0/g, "");
+}
+
+document.getElementById("ignite").onclick = () => {
+  const raw = input.value;
+  const pin = normalizedPin();
+
+  console.log("RAW:", raw);
+  console.log("PIN:", pin);
+
+  if (pin.length !== 3) {
+    alert("ACCESS DENIED");
+    return;
+  }
+
+  alert("ACCESS GRANTED");
+};
+
+renderKeypad();
+</script>
+</body>
+</html>
