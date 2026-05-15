@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AIDA-ONE | Unified Consciousness</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <script src="011-butler_keys.js"></script> 
+    <script src="001-buttler_amber.js"></script>
+    <script src="002-librarian_green.js"></script>
+    <script src="008-crawler_green.js"></script>
+    <script src="003-emotion_blue.js"></script>
+    <script src="004-identity_white.js"></script>
+    <script src="005-realm_silver.js"></script>
+    <script src="006-role_silver.js"></script>
+    <script src="009-tetrad_silver.js"></script>
+    <script src="007-soul_sync_blue.js"></script>
+    <script src="010-chassis_gold.js"></script>
+    <script src="048-llm_engine_v1.js"></script>
+
+    <style>
+        :root { --ega-green: #00ff41; --ega-amber: #ffb000; --ega-blue: #00d4ff; }
+        body { background: #000; color: var(--ega-green); font-family: 'Courier New', monospace; margin: 0; overflow: hidden; height: 100vh; }
+        
+        /* BIOS SCREEN */
+        #bios-screen { padding: 20px; height: 100vh; overflow-y: auto; box-sizing: border-box; }
+        .log-amber { color: var(--ega-amber); }
+        .log-green { color: var(--ega-green); }
+        .log-blue { color: var(--ega-blue); }
+        .log-white { color: #fff; }
+        
+        /* AIRLOCK KEYPAD */
+        #airlock { 
+            position: fixed; inset: 0; background: #000; z-index: 100; 
+            display: none; flex-direction: column; align-items: center; justify-content: center; 
+        }
+        #scramble-pin { 
+            background: transparent; border: none; color: var(--ega-amber); 
+            font-size: 2.5rem; text-align: center; width: 100%; outline: none; margin-bottom: 20px;
+        }
+        .keypad-grid { display: grid; grid-template-columns: repeat(3, 80px); gap: 15px; }
+        .key-btn { 
+            padding: 20px; border: 1px solid var(--ega-green); background: transparent; 
+            color: var(--ega-green); font-family: 'Courier New'; cursor: pointer; font-size: 1.2rem;
+        }
+
+        #keypad-launch-btn { 
+            position: fixed; bottom: 40px; right: 40px; padding: 20px 40px;
+            background: transparent; border: 2px solid var(--ega-green); color: var(--ega-green);
+            cursor: pointer; font-weight: bold; text-transform: uppercase; z-index: 50;
+        }
+
+        /* INTERFACE */
+        #aida-interface { display: none; flex-direction: column; height: 100vh; width: 100vw; position: relative; }
+        
+        /* CHASSIS ELEMENTS FOR 010-CHASSIS_GOLD */
+        #hologram-stage { flex: 1; position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        <div id="hologram-stage">
+            <div id="pixelGrid"></div>
+            <div id="sparkLayer"></div>
+            
+            <div id="veil" style="position:absolute; inset:0; background:#000; z-index:20; pointer-events:none;"></div>
+            <div id="holoScanline" style="position:absolute; top:0; left:0; width:100%; height:2px; background:var(--ega-green); opacity:0; z-index:21;"></div>
+            
+            <img id="emotion-face" src="assets/standby.png">
+        </div>
+        
+        #holoCone { transform: translateX(-50%) rotate(0deg); }
+        #hologram-stage img {
+            transform: none !important;
+            image-rendering: pixelated; /* Makes the standby face look 'Retro-Tech' */
+        }
+        #pixelGrid { position: absolute; inset: 0; opacity: 0.1; pointer-events: none; }
+        #sparkLayer { position: absolute; inset: 0; pointer-events: none; }
+        #emotion-face { width: 200px; height: 200px; z-index: 10; image-rendering: pixelated; }
+
+        #terminal-output { height: 35%; padding: 15px; overflow-y: auto; font-size: 14px; background: rgba(0,10,0,0.9); border-top: 1px solid var(--ega-green); }
+        #input-area { padding: 10px; display: flex; background: #000; gap: 10px; border-top: 1px solid var(--ega-green); }
+        #user-input { flex: 1; background: transparent; border: 1px solid var(--ega-green); color: var(--ega-green); padding: 10px; outline: none; }
+        #send-btn { background: var(--ega-green); color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; }
+        
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="bios-screen">
+        <div id="bios-logs">
+            <div class="log-white">>>> INITIALIZING AIDA_ONE...</div>
+        </div>
+    </div>
+
+    <div id="airlock">
+        <div class="log-amber" style="margin-bottom:10px;">SECURE HANDSHAKE REQUIRED</div>
+        <input type="text" id="scramble-pin" readonly placeholder="***">
+        <div class="keypad-grid">
+            <button class="key-btn" onclick="pressKey('1')">1</button>
+            <button class="key-btn" onclick="pressKey('2')">2</button>
+            <button class="key-btn" onclick="pressKey('3')">3</button>
+            <button class="key-btn" onclick="pressKey('4')">4</button>
+            <button class="key-btn" onclick="pressKey('5')">5</button>
+            <button class="key-btn" onclick="pressKey('6')">6</button>
+            <button class="key-btn" onclick="pressKey('7')">7</button>
+            <button class="key-btn" onclick="pressKey('8')">8</button>
+            <button class="key-btn" onclick="pressKey('9')">9</button>
+            <button class="key-btn" onclick="pressKey('C')">C</button>
+            <button class="key-btn" onclick="pressKey('0')">0</button>
+            <button class="key-btn" style="color:var(--ega-amber); border-color:var(--ega-amber);" onclick="requestToken()">OK</button>
+        </div>
+    </div>
+
+    <button id="keypad-launch-btn" class="hidden">Initiate Handshake</button>
+
+    <div id="aida-interface">
+        <div id="hologram-stage">
+            <div id="pixelGrid"></div>
+            <div id="sparkLayer"></div>
+            
+            <div id="veil" style="position:absolute; inset:0; background:#000; z-index:20; transition: opacity 1s;"></div>
+            <div id="holoScanline" style="position:absolute; top:0; left:0; width:100%; height:2px; background:var(--ega-green); opacity:0; z-index:21;"></div>
+            <div id="holoBeam" style="position:absolute; inset:0; background:linear-gradient(transparent, var(--ega-green)); opacity:0; z-index:19; pointer-events:none;"></div>
+            <div id="holoCone" style="position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:0; height:0; border-left:100px solid transparent; border-right:100px solid transparent; border-bottom:300px solid rgba(0,255,65,0.1); opacity:0; z-index:18;"></div>
+    
+            <img id="holoFace" src="assets/standby.png" style="width:200px; height:200px; z-index:10; opacity:0; image-rendering: pixelated;">
+        </div>
+    
+        <div id="main-engine" class="hidden">
+            <div id="terminal-output">
+                <div class="log-blue">Aida_One initialized. Soul Sync active.</div>
+            </div>
+            <div id="input-area">
+                <input type="text" id="user-input" placeholder="Communicate...">
+                <button id="send-btn">SEND</button>
+            </div>
+        </div>
+    </div>
+
+    
+<script>
+    let tokenClient;
+    let pyodide;
+
+    function uiLog(msg, colorClass) {
+        const div = document.createElement("div");
+        div.className = colorClass;
+        div.innerText = `>>> ${msg}`;
+        document.getElementById("bios-logs").appendChild(div);
+    }
+
+    function pressKey(val) {
+        const input = document.getElementById("scramble-pin");
+        if (!input.dataset.realPin) input.dataset.realPin = "";
+        
+        if (val === 'C') {
+            input.value = "";
+            input.dataset.realPin = "";
+        } else {
+            // We only block if the NON-ZERO digits are already 3
+            const realDigits = input.dataset.realPin.replace(/0/g, '');
+            if (val !== '0' && realDigits.length >= 3) return; 
+            
+            input.dataset.realPin += val;
+            input.value = "*".repeat(input.dataset.realPin.length);
+        }
+    }
+
+    function requestToken() {
+        const rawPin = document.getElementById("scramble-pin").dataset.realPin || "";
+        
+        // We strip the zeros FIRST, then check the length
+        const cleanPin = rawPin.replace(/0/g, ''); 
+        
+        if(cleanPin.length === 3) {
+            uiLog("Handshake recognized. Syncing Soul...", "log-blue");
+            
+            const assembled = "sk-proj-" + 
+                VAULT_FRAGMENTS[cleanPin[0]] + 
+                VAULT_FRAGMENTS[cleanPin[1]] + 
+                VAULT_FRAGMENTS[cleanPin[2]];
+
+
+            sessionStorage.setItem("aida_active_key", assembled);
+            tokenClient.requestAccessToken();
+            
+            // MOVE LOGS HERE (Inside the IF block)
+            console.log("DEBUG: Key Assembly complete ->", assembled); 
+            console.log("DEBUG: Variable 'assembled' type ->", typeof assembled);
+        
+        } else { 
+            // This handles cases where they typed too many or too few real digits
+            alert(`ACCESS DENIED: Required 3 fragments, found ${cleanPin.length}.`); 
+            document.getElementById("scramble-pin").dataset.realPin = "";
+            document.getElementById("scramble-pin").value = "";
+        }
+    }
+    
+
+    window.onload = async function () {
+        uiLog("Beginning Boot Sequence...", "log-white");
+        
+        // 1. Wake the engine
+        pyodide = await loadPyodide();
+        uiLog("Engine Warmed.", "log-amber");
+    
+        // 2. THE AUTOMATION CYCLE: Write all JS delivery trucks to Python Memory
+        const AIDA_MODULES = {
+            // Real modules if they exist, otherwise a "Mock" Python class so it doesn't crash
+            "identity_organ.py": typeof IDENTITY_WHITE_PY !== 'undefined' ? IDENTITY_WHITE_PY : `class IdentityEngine:\n    def __init__(self, **kwargs): pass\n    def get_resolved_identity(self): return {"name": "Aida (Mock)"}`,
+            
+            "realm_organ.py": typeof REALM_SILVER_PY !== 'undefined' ? REALM_SILVER_PY : `class RealmEngine:\n    def __init__(self, config): self.resolved_realm = config`,
+            
+            "role_organ.py": typeof ROLE_SILVER_PY !== 'undefined' ? ROLE_SILVER_PY : `class RoleEngine:\n    def __init__(self, config): self.resolved_role = config`,
+            
+            "emotion_selector.py": typeof EMOTION_SELECTOR_PY !== 'undefined' ? EMOTION_SELECTOR_PY : null,
+            "soul_sync_engine.py": typeof SOUL_SYNC_PY !== 'undefined' ? SOUL_SYNC_PY : null,
+            "llm_engine_v1.py": typeof LLM_ENGINE_PY !== 'undefined' ? LLM_ENGINE_PY : null
+        };
+        
+        try {
+            for (const [filename, content] of Object.entries(AIDA_MODULES)) {
+                if (content) {
+                    await pyodide.FS.writeFile(filename, content);
+                    console.log(`%c>>> FS: ${filename} synchronized.`, "color: #00d4ff");
+                } else {
+                    console.warn(`>>> FS: Skipping ${filename} (Variable not defined)`);
+                }
+            }
+            uiLog("Cognitive Organs Synchronized.", "log-blue");
+        } catch (err) {
+            uiLog("FS Error: Critical failure.", "log-error");
+        }
+    
+        // 3. Final UI Readiness
+        setTimeout(() => uiLog("Librarian Active", "log-green"), 1000);
+        setTimeout(() => {
+            uiLog("Concentration Complete. Awaiting Handshake.", "log-blue");
+            document.getElementById("keypad-launch-btn").classList.remove("hidden");
+        }, 1500);
+    
+        // At the very bottom of your window.onload function
+        const launchBtn = document.getElementById("keypad-launch-btn");
+        
+        launchBtn.onclick = function() {
+            console.log(">>> AIRLOCK: Handshake Initiated. Opening Keypad...");
+            
+            // 1. Hide the BIOS terminal
+            document.getElementById("bios-screen").style.display = "none";
+            this.classList.add("hidden"); 
+        
+            // 2. Reveal the Keypad Airlock
+            const airlock = document.getElementById("airlock");
+            airlock.style.display = "flex";
+            
+            // 3. Clear any old PIN data
+            const pinInput = document.getElementById("scramble-pin");
+            pinInput.value = "";
+            pinInput.dataset.realPin = "";
+        };
+        };
+        // Google Handshake
+        const checkGoogle = setInterval(() => {
+            if (typeof google !== 'undefined') {
+                clearInterval(checkGoogle);
+                tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
+                    scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly',
+                    callback: (resp) => { 
+                        if (resp.access_token) {
+                            // 1. CLEAR THE DECKS (Kill BIOS, Keypad, and Launch Button)
+                            document.getElementById("airlock").style.display = "none";
+                            document.getElementById("bios-screen").style.display = "none";
+                            document.getElementById("keypad-launch-btn").style.display = "none";
+                            
+                            // 2. REVEAL THE SOUL (Show the Interface)
+                            const interface = document.getElementById("aida-interface");
+                            interface.style.display = "flex";
+                            
+                            // 3. IGNITE THE CHASSIS (Trigger the arrival animation)
+                            // We use a tiny delay (50ms) to make sure the interface is 
+                            // "drawn" on the screen before the sparks start flying.
+                            setTimeout(() => {
+                                if(window.aida_arrive) {
+                                    console.log(">>> CHASSIS: Igniting Hologram...");
+                                    window.aida_arrive();
+                                } else {
+                                    console.error(">>> CHASSIS: 010-chassis_gold.js not found!");
+                                }
+                            }, 50);
+                        }
+                    },
+                });
+            }
+        }, 100);
+    
+    document.getElementById("main-engine").classList.remove("hidden");
+        
+    // BRIDGE TO SOUL SYNC
+    // --- THE FINAL BRIDGE: SEND BUTTON (AIDA-ONE ACTIVATE) ---
+    document.getElementById("send-btn").onclick = async function() {
+        const input = document.getElementById("user-input");
+        const term = document.getElementById("terminal-output");
+        if (!input.value) return;
+    
+        const userMsg = input.value;
+        
+        // 1. TELEMETRY: Trace the outbound
+        term.innerHTML += `<div class="log-white" style="opacity:0.5; font-size:0.8em;">[TELEMETRY] Requesting Sanctuary Context...</div>`;
+        term.innerHTML += `<div style="color:#888">> YOU: ${userMsg}</div>`;
+        input.value = "";
+    
+        try {
+            // 2. RETRIEVE THE KEY: From your keypad's assembly point
+            const activeKey = sessionStorage.getItem("aida_active_key");
+            
+            if (!activeKey) {
+                throw new Error("Keypad Airlock not cleared. Aida's voice is locked.");
+            }
+                
+        // Make sure the button is pulling the SAME name you used in the keypad
+        const testKey = sessionStorage.getItem("aida_active_key");
+        console.log("DEBUG: Send Button retrieved key ->", testKey);
+    
+            // 3. THE HANDSHAKE: Python execution
+            const responseData = await pyodide.runPythonAsync(`
+    import json
+    from soul_sync_engine import py_sync_soul
+    from llm_engine_v1 import call_llm
+    
+    # A. Synchronize the Soul (Defaults to Sanctuary if {} passed)
+    # This uses the new Vanilla 4, 5, and 6 logic we just built
+    state = py_sync_soul({}, {}, {}, {"valence": 0.5, "arousal": 0.3})
+    
+    # B. Call the LLM with the Key and the Message
+    # We pass the message and the key directly into your Python Voice Box
+    reply_text = await call_llm("""${userMsg}""", "${activeKey}")
+    
+    # C. Package for the UI
+    json.dumps({
+        "reply": reply_text,
+        "emotion": state['emotion']['label'],
+        "status": "Connected"
+    })
+            `);
+    
+            // 4. UI UPDATE: The Inbound Response
+            const data = JSON.parse(responseData);
+            term.innerHTML += `<div class="log-white" style="opacity:0.5; font-size:0.8em;">[TELEMETRY] Inbound: Emotion=${data.emotion}</div>`;
+            term.innerHTML += `<div class="log-green">> AIDA: ${data.reply}</div>`;
+    
+        } catch(e) {
+            term.innerHTML += `<div class="log-error">> [X] SOUL SYNC FATAL ERROR: ${e.message}</div>`;
+            console.error("Aida Sync Error:", e);
+        }
+        
+        term.scrollTop = term.scrollHeight;
+    };
+    
+</script>
+
+</body>
+</html>
+
