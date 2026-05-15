@@ -34,7 +34,7 @@
         font-family: 'Courier New', monospace; 
         margin: 0; 
         overflow: hidden; 
-        height: 100vh; 
+        height: 100dvh; /* 'dvh' stands for Dynamic Viewport Height */
         display: flex;
         flex-direction: column;
     }
@@ -105,29 +105,37 @@
         image-rendering: pixelated; 
     }
 
-    /* THE ENGINE (Bottom 55%) */
+    /* Ensure the engine fills the remaining 55% and doesn't grow further */
     #main-engine { 
         flex: 1; 
         display: flex; 
         flex-direction: column; 
         background: #000;
         border-top: 1px solid var(--ega-green);
+        overflow: hidden; /* CRITICAL: Prevents the engine from expanding off-screen */
     }
-
+    
+    /* Allow the terminal to take all available space and scroll internally */
     #terminal-output { 
-        flex: 1; 
+        flex: 1; /* Takes all space NOT used by the input-area */
         padding: 15px; 
-        overflow-y: auto; 
+        overflow-y: auto; /* Enables scrolling for the conversation */
         font-size: 14px; 
         background: rgba(0, 5, 0, 1); 
+        display: flex;
+        flex-direction: column; /* Keeps logs flowing top to bottom */
     }
-
+    
+    /* Keep the input area at a steady height at the bottom */
     #input-area { 
+        flex: 0 0 auto; /* Won't shrink or grow; stays fixed size */
         padding: 15px; 
         display: flex; 
         gap: 10px; 
         border-top: 1px solid rgba(0, 255, 65, 0.3); 
+        background: #000; /* Ensures it stays opaque over the scrolling text */
     }
+
 
     #user-input { 
         flex: 1; background: transparent; border: 1px solid var(--ega-green); 
