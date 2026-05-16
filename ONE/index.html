@@ -721,6 +721,7 @@ document.addEventListener("DOMContentLoaded", () => {
 (function injectHologramStyles() {
     const css = `
     #projectorPoint {
+        display: none;
         bottom: 0;
         height: 40px;
         width: 40px;
@@ -2368,37 +2369,48 @@ function collectDiagnostics() {
 <!-- BLOCK 078: DIAGNOSTIC_PANEL_UI                            -->
 <!-- Purpose: Visual debug panel for testing                   -->
 <!-- ========================================================= -->
-
 <style>
+/* DEBUG TOGGLE BUTTON */
+#diagnostic-toggle {
+    position: fixed;
+    bottom: 12px;
+    right: 12px;
+    background: black;
+    color: white;
+    padding: 4px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: monospace;
+    font-size: 10px;
+    opacity: 0.35;
+    transition: opacity 0.2s ease;
+    z-index: 9999;
+}
+
+#diagnostic-toggle:hover {
+    opacity: 0.9;
+}
+
+/* DEBUG PANEL */
 #diagnostic-panel {
     position: fixed;
-    bottom: 10px;
-    right: 10px;
+    bottom: 40px;
+    right: 12px;
     width: 260px;
     max-height: 400px;
     overflow-y: auto;
-    background: rgba(0,0,0,0.75);
-    color: #9fe8ff;
+    background: rgba(0,0,0,0.85);
+    color: white;
     padding: 12px;
     border-radius: 8px;
     font-family: monospace;
     font-size: 12px;
+    border: 1px solid #444;
     z-index: 9999;
     display: none;
 }
-#diagnostic-toggle {
-    position: fixed;
-    bottom: 10px;
-    right: 280px;
-    background: #4be3ff;
-    color: black;
-    padding: 6px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-family: monospace;
-    z-index: 9999;
-}
 </style>
+
 
 <div id="diagnostic-toggle">DEBUG</div>
 <div id="diagnostic-panel"></div>
@@ -2437,6 +2449,13 @@ function startDiagnosticLoop() {
 
     console.log(">>> DIAGNOSTICS: Panel active.");
 }
+</script>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    startDiagnosticLoop();
+});
 </script>
 
 
@@ -2506,13 +2525,20 @@ function getExpansion(type, name) {
 </script>
 
 
-
-
-
-
 <!-- ========================================================= -->
 <!-- END OF SECTION Q — EXPANSION PORTS                        -->
 <!-- ========================================================= -->
+
+
+
+
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    initializeConversationLoop();
+});
+</script>
+
 
 
 </body>
