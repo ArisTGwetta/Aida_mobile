@@ -1,0 +1,2459 @@
+<!-- ========================================================= -->
+<!-- Section A - Start                           -->
+<!-- ========================================================= -->
+
+<!-- ========================================================= -->
+<!-- BLOCK 001: HTML_SKELETON_START                           -->
+<!-- Purpose: Base layout for BIOS, Airlock, Hologram, Engine -->
+<!-- Inputs: None                                              -->
+<!-- Outputs: DOM structure only                               -->
+<!-- ========================================================= -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AIDA-ONE | Unified Consciousness</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+
+
+    <!-- ========================================================= -->
+<!-- BLOCK 002: STYLE_SHEET                                   -->
+<!-- Purpose: Visual layout only (no logic)                   -->
+<!-- Inputs: None                                              -->
+<!-- Outputs: CSS variables, layout classes                    -->
+<!-- ========================================================= -->
+
+<style>
+    :root { 
+        --ega-green: #00ff41; 
+        --ega-amber: #ffb000; 
+        --ega-blue: #00d4ff; 
+        --holo-glow: rgba(0, 255, 65, 0.2);
+    }
+
+    body { 
+        background: #000; 
+        color: var(--ega-green); 
+        font-family: 'Courier New', monospace; 
+        margin: 0; 
+        overflow: hidden; 
+        height: 100dvh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* BIOS */
+    #bios-screen { 
+        padding: 20px; 
+        height: 100vh; 
+        overflow-y: auto; 
+        box-sizing: border-box; 
+    }
+
+    /* AIRLOCK */
+    #airlock { 
+        position: fixed; 
+        inset: 0; 
+        background: #000; 
+        z-index: 100; 
+        display: none; 
+        flex-direction: column; 
+        align-items: center; 
+        justify-content: center; 
+    }
+
+    #scramble-pin { 
+        background: transparent; 
+        border: none; 
+        color: var(--ega-amber); 
+        font-size: 2.5rem; 
+        text-align: center; 
+        width: 100%; 
+        outline: none; 
+        margin-bottom: 20px;
+    }
+
+    .keypad-grid { 
+        display: grid; 
+        grid-template-columns: repeat(3, 80px); 
+        gap: 15px; 
+    }
+
+    .key-btn { 
+        padding: 20px; 
+        border: 1px solid var(--ega-green); 
+        background: transparent; 
+        color: var(--ega-green); 
+        font-family: 'Courier New'; 
+        cursor: pointer;
+    }
+
+    /* MAIN INTERFACE WRAPPER */
+    #aida-interface { 
+        display: none; 
+        flex-direction: column; 
+        height: 100vh; 
+        width: 100vw; 
+    }
+
+    /* HOLOGRAM STAGE */
+    #hologram-stage { 
+        flex: 0 0 45%; 
+        position: relative; 
+        display: flex; 
+        justify-content: center; 
+        align-items: flex-end; 
+        background: #000;
+        overflow: hidden;
+    }
+
+    #holoCone { 
+        position: absolute; 
+        bottom: 0; 
+        width: 300px; 
+        height: 100%; 
+        background: linear-gradient(to top, var(--holo-glow), transparent);
+        clip-path: polygon(50% 100%, 0% 0%, 100% 0%);
+        filter: blur(8px);
+        z-index: 5;
+        opacity: 0.8;
+    }
+
+    #holoFace { 
+        width: 240px; 
+        height: auto; 
+        z-index: 10; 
+        margin-bottom: 20px; 
+        image-rendering: pixelated; 
+    }
+
+    #veil, #sparkLayer, #projectorPoint {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+    }
+
+    /* ENGINE */
+    #main-engine { 
+        flex: 1; 
+        display: flex; 
+        flex-direction: column; 
+        background: #000;
+        border-top: 1px solid var(--ega-green);
+        overflow: hidden;
+    }
+
+    #terminal-output { 
+        flex: 1; 
+        padding: 15px; 
+        overflow-y: auto; 
+        font-size: 14px; 
+        background: rgba(0, 5, 0, 1); 
+        display: flex;
+        flex-direction: column;
+    }
+
+    #input-area { 
+        flex: 0 0 auto; 
+        padding: 15px; 
+        display: flex; 
+        gap: 10px; 
+        border-top: 1px solid rgba(0, 255, 65, 0.3); 
+        background: #000;
+    }
+
+    #user-input { 
+        flex: 1; 
+        background: transparent; 
+        border: 1px solid var(--ega-green); 
+        color: var(--ega-green); 
+        padding: 12px; 
+        outline: none; 
+    }
+
+    #send-btn { 
+        background: var(--ega-green); 
+        color: #000; 
+        border: none; 
+        padding: 0 25px; 
+        font-weight: bold; 
+        cursor: pointer; 
+    }
+
+    .hidden { display: none !important; }
+    .log-amber { color: var(--ega-amber); }
+    .log-blue { color: var(--ega-blue); }
+    .log-green { color: var(--ega-green); }
+    .log-white { color: #fff; }
+    .log-error { color: #ff4d4d; }
+</style>
+
+
+
+
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 003: BODY_STRUCTURE                                 -->
+<!-- Purpose: BIOS, Airlock, Hologram, Engine DOM              -->
+<!-- Inputs: None                                              -->
+<!-- Outputs: DOM elements                                     -->
+<!-- ========================================================= -->
+
+</head>
+<body>
+
+    <!-- BIOS LAYER -->
+    <div id="bios-screen">
+        <div id="bios-logs">
+            <div class="log-white">>>> INITIALIZING AIDA_ONE...</div>
+        </div>
+    </div>
+
+    <!-- AIRLOCK LAYER -->
+    <div id="airlock">
+        <div class="log-amber" style="margin-bottom:10px;">SECURE HANDSHAKE REQUIRED</div>
+        <input type="text" id="scramble-pin" readonly placeholder="***">
+        <div class="keypad-grid">
+            <button class="key-btn">1</button>
+            <button class="key-btn">2</button>
+            <button class="key-btn">3</button>
+            <button class="key-btn">4</button>
+            <button class="key-btn">5</button>
+            <button class="key-btn">6</button>
+            <button class="key-btn">7</button>
+            <button class="key-btn">8</button>
+            <button class="key-btn">9</button>
+            <button class="key-btn">C</button>
+            <button class="key-btn">0</button>
+            <button class="key-btn" id="keypad-ok-btn">OK</button>
+        </div>
+    </div>
+
+    <!-- LAUNCH BUTTON -->
+    <button id="keypad-launch-btn" class="hidden">Initiate Handshake</button>
+
+    <!-- MAIN INTERFACE -->
+    <div id="aida-interface">
+        <!-- HOLOGRAM STAGE -->
+        <div id="hologram-stage">
+            <div id="projectorPoint"></div>
+            <div id="holoCone"></div>
+            <img id="holoFace" src="assets/GreenHologram.PNG" alt="Aida">
+            <div id="veil"></div>
+            <div id="sparkLayer"></div>
+        </div>
+
+        <!-- ENGINE -->
+        <div id="main-engine">
+            <div id="terminal-output">
+                <div class="log-blue">Aida_One initialized. Soul Sync pending.</div>
+            </div>
+            <div id="input-area">
+                <input type="text" id="user-input" placeholder="Communicate...">
+                <button id="send-btn">SEND</button>
+            </div>
+        </div>
+    </div>
+
+
+
+
+    <!-- ========================================================= -->
+<!-- BLOCK 004: HTML_SKELETON_END                              -->
+<!-- Purpose: Close HTML skeleton                              -->
+<!-- Inputs: None                                              -->
+<!-- Outputs: None                                             -->
+<!-- ========================================================= -->
+
+</body>
+</html>
+
+
+
+<!-- ========================================================= -->
+<!-- Section B - Script loader                           -->
+<!-- ========================================================= -->
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 005: SCRIPT_LOADER_START                            -->
+<!-- Purpose: Load Pyodide, GIS, Trucks, Bootloader Hooks      -->
+<!-- Inputs: None                                              -->
+<!-- Outputs: Global truck functions, pyodide loader           -->
+<!-- ========================================================= -->
+
+<!-- Pyodide (Python-in-the-browser) -->
+<script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+
+001-buttler_amber.js
+002-librarian_green.js
+003-emotion_blue.js
+004-identity_white.js
+005-realm_silver.js
+006-role_silver.js
+007-soul_sync_blue.js
+008-crawler_green.js
+009-tetrad_silver.js
+010-chassis_gold.js
+011-butler_keys.js
+012-handshake_amber.js
+014-manifest_gold.js
+020-vitality_gold.js
+025-vault_gold.js
+026-sync_gold.js
+028-manifest_gold.js
+032-memory_gold.js
+033-python_gold.js
+040-mind_palace_gold.js
+042-research_gold.js
+048-llm_engine_v1.js
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 006: TRUCK_LOADER                                   -->
+<!-- Purpose: Load all JS delivery trucks in correct order     -->
+<!-- Inputs: Truck files in ONE/js                             -->
+<!-- Outputs: Global truck functions                           -->
+<!-- ========================================================= -->
+
+<script src="js/011-butler_keys.js"></script>
+<script src="js/001-buttler_amber.js"></script>
+<script src="js/002-librarian_green.js"></script>
+<script src="js/008-crawler_green.js"></script>
+<script src="js/003-emotion_blue.js"></script>
+<script src="js/004-identity_white.js"></script>
+<script src="js/005-realm_silver.js"></script>
+<script src="js/006-role_silver.js"></script>
+<script src="js/009-tetrad_silver.js"></script>
+<script src="js/007-soul_sync_blue.js"></script>
+<script src="js/010-chassis_gold.js"></script>
+<script src="js/012-handshake_amber.js"></script>
+<script src="js/014-manifest_gold.js"></script>
+<script src="js/020-vitality_gold.js"></script>
+<script src="js/025-vault_gold.js"></script>
+<script src="js/026-sync_gold.js"></script>
+<script src="js/028-manifest_gold.js"></script>
+<script src="js/032-memory_gold.js"></script>
+<script src="js/033-python_gold.js"></script>
+<script src="js/040-mind_palace_gold.js"></script>
+<script src="js/042-research_gold.js"></script>
+<script src="js/048-llm_engine_v1.js"></script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 007: BOOTLOADER_HOOKS                               -->
+<!-- Purpose: Reserve space for Drive Bridge + Bootloader      -->
+<!-- Inputs: None                                              -->
+<!-- Outputs: Empty hooks                                      -->
+<!-- ========================================================= -->
+
+<script src="js/drive_bridge.js"></script>
+<script src="js/bootloader.js"></script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 008: SCRIPT_LOADER_END                              -->
+<!-- Purpose: Close script loader section                      -->
+<!-- ========================================================= -->
+
+
+
+
+
+<!-- ========================================================= -->
+<!-- Section C -  AIRLOCK - PIN - TOKEN                       -->
+<!-- ========================================================= -->
+
+<!-- ========================================================= -->
+<!-- BLOCK 009: AIRLOCK_EVENT_BINDINGS                         -->
+<!-- Purpose: Bind keypad buttons to PIN input                 -->
+<!-- Inputs: DOM only                                          -->
+<!-- Outputs: pressKey(), OK button handler                    -->
+<!-- ========================================================= -->
+
+<script>
+/* BLOCK 009A — Press Key Handler */
+function pressKey(val) {
+    const input = document.getElementById("scramble-pin");
+
+    if (!input.dataset.realPin) {
+        input.dataset.realPin = "";
+    }
+
+    if (val === 'C') {
+        input.value = "";
+        input.dataset.realPin = "";
+        return;
+    }
+
+    // Count only non-zero digits
+    const realDigits = input.dataset.realPin.replace(/0/g, '');
+
+    if (val !== '0' && realDigits.length >= 3) {
+        return; // Only 3 non-zero digits allowed
+    }
+
+    input.dataset.realPin += val;
+    input.value = "*".repeat(input.dataset.realPin.length);
+}
+
+/* BLOCK 009B — Bind keypad buttons */
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".key-btn").forEach(btn => {
+        const val = btn.innerText.trim();
+        if (val !== "OK") {
+            btn.addEventListener("click", () => pressKey(val));
+        }
+    });
+});
+</script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 010: PIN_VALIDATION_AND_ASSEMBLY                    -->
+<!-- Purpose: Validate PIN, assemble key, store it             -->
+<!-- Inputs: VAULT_FRAGMENTS, PIN digits                       -->
+<!-- Outputs: aida_active_key, AIRLOCK_CLEARED                 -->
+<!-- ========================================================= -->
+
+<script>
+function requestToken() {
+    const rawPin = document.getElementById("scramble-pin").dataset.realPin || "";
+
+    // Strip zeros
+    const cleanPin = rawPin.replace(/0/g, '');
+
+    if (cleanPin.length !== 3) {
+        alert(`ACCESS DENIED: Required 3 fragments, found ${cleanPin.length}.`);
+        document.getElementById("scramble-pin").dataset.realPin = "";
+        document.getElementById("scramble-pin").value = "";
+        return;
+    }
+
+    // Assemble key using real VAULT_FRAGMENTS
+    const assembledKey =
+        "sk-proj-" +
+        VAULT_FRAGMENTS[cleanPin[0]] +
+        VAULT_FRAGMENTS[cleanPin[1]] +
+        VAULT_FRAGMENTS[cleanPin[2]];
+
+    // Store key
+    sessionStorage.setItem("aida_active_key", assembledKey);
+
+    // Signal bootloader
+    window.AIRLOCK_CLEARED = true;
+
+    console.log(">>> AIRLOCK: Key assembled:", assembledKey);
+}
+</script>
+
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 011: AIRLOCK_OK_BUTTON                              -->
+<!-- Purpose: Bind OK button to requestToken()                 -->
+<!-- Inputs: requestToken(), DOM                               -->
+<!-- Outputs: Airlock cleared, UI transitions                  -->
+<!-- ========================================================= -->
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const okBtn = document.getElementById("keypad-ok-btn");
+
+    okBtn.addEventListener("click", () => {
+        requestToken();
+
+        if (window.AIRLOCK_CLEARED) {
+            // Hide BIOS + Airlock + Launch Button
+            document.getElementById("bios-screen").style.display = "none";
+            document.getElementById("airlock").style.display = "none";
+            document.getElementById("keypad-launch-btn").style.display = "none";
+
+            console.log(">>> AIRLOCK: Cleared. Proceeding to OAuth...");
+        }
+    });
+});
+</script>
+
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 012: AIRLOCK_LAUNCH_BUTTON                          -->
+<!-- Purpose: Show Airlock when user initiates handshake       -->
+<!-- Inputs: DOM                                               -->
+<!-- Outputs: Airlock visible, PIN reset                       -->
+<!-- ========================================================= -->
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const launchBtn = document.getElementById("keypad-launch-btn");
+
+    launchBtn.addEventListener("click", () => {
+        console.log(">>> AIRLOCK: Handshake Initiated.");
+
+        document.getElementById("bios-screen").style.display = "none";
+        launchBtn.classList.add("hidden");
+
+        const airlock = document.getElementById("airlock");
+        airlock.style.display = "flex";
+
+        const pinInput = document.getElementById("scramble-pin");
+        pinInput.value = "";
+        pinInput.dataset.realPin = "";
+    });
+});
+</script>
+
+
+
+
+<!-- ========================================================= -->
+<!-- Section  D — OAuth Handshake                              -->
+<!-- ========================================================= -->
+
+<!-- ========================================================= -->
+<!-- BLOCK 013: OAUTH_POLL_FOR_GIS                             -->
+<!-- Purpose: Wait for Google Identity Services to load        -->
+<!-- Inputs: GIS script                                        -->
+<!-- Outputs: tokenClient initialized                          -->
+<!-- ========================================================= -->
+
+<script>
+window.OAUTH_READY = false;
+
+function waitForGIS() {
+    if (typeof google !== "undefined" && google.accounts && google.accounts.oauth2) {
+        console.log(">>> OAUTH: Google Identity Services detected.");
+        initializeOAuthClient();
+    } else {
+        setTimeout(waitForGIS, 100);
+    }
+}
+
+function initializeOAuthClient() {
+    window.tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: "1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com",
+        scope: "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly",
+        callback: handleOAuthResponse
+    });
+
+    window.OAUTH_READY = true;
+    console.log(">>> OAUTH: Token client initialized.");
+}
+
+// Start polling immediately
+waitForGIS();
+</script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 014: OAUTH_REQUEST_TOKEN                            -->
+<!-- Purpose: Request OAuth token after Airlock is cleared     -->
+<!-- Inputs: AIRLOCK_CLEARED, tokenClient                      -->
+<!-- Outputs: OAuth popup                                      -->
+<!-- ========================================================= -->
+
+<script>
+function beginOAuthHandshake() {
+    if (!window.OAUTH_READY) {
+        console.error(">>> OAUTH: GIS not ready.");
+        return;
+    }
+
+    if (!window.AIRLOCK_CLEARED) {
+        console.error(">>> OAUTH: Airlock not cleared.");
+        return;
+    }
+
+    console.log(">>> OAUTH: Requesting access token...");
+    window.tokenClient.requestAccessToken();
+}
+</script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 015: OAUTH_RESPONSE_HANDLER                         -->
+<!-- Purpose: Handle OAuth response and transition UI          -->
+<!-- Inputs: OAuth resp                                        -->
+<!-- Outputs: OAUTH_GRANTED, UI transitions                    -->
+<!-- ========================================================= -->
+
+<script>
+window.OAUTH_GRANTED = false;
+
+function handleOAuthResponse(resp) {
+    if (!resp || !resp.access_token) {
+        console.error(">>> OAUTH: Access denied or failed.");
+        alert("Google authentication failed. AIDA cannot access Drive.");
+        return;
+    }
+
+    console.log(">>> OAUTH: Access token received.");
+    window.OAUTH_GRANTED = true;
+
+    // Hide BIOS + Airlock + Launch Button
+    document.getElementById("bios-screen").style.display = "none";
+    document.getElementById("airlock").style.display = "none";
+    document.getElementById("keypad-launch-btn").style.display = "none";
+
+    // Show main interface
+    const iface = document.getElementById("aida-interface");
+    iface.style.display = "flex";
+
+    // Hologram arrival will be implemented in Section E
+    if (window.aida_arrive) {
+        setTimeout(() => {
+            console.log(">>> CHASSIS: Igniting hologram...");
+            window.aida_arrive();
+        }, 50);
+    } else {
+        console.warn(">>> CHASSIS: aida_arrive() not yet defined.");
+    }
+}
+</script>
+
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 016: AIRLOCK_TO_OAUTH_BRIDGE                        -->
+<!-- Purpose: Trigger OAuth immediately after Airlock clears   -->
+<!-- Inputs: AIRLOCK_CLEARED                                   -->
+<!-- Outputs: OAuth popup                                      -->
+<!-- ========================================================= -->
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const okBtn = document.getElementById("keypad-ok-btn");
+
+    okBtn.addEventListener("click", () => {
+        if (window.AIRLOCK_CLEARED) {
+            beginOAuthHandshake();
+        }
+    });
+});
+</script>
+
+
+
+
+<!-- ========================================================= -->
+<!-- Section  E — Awake hologram arrival                              -->
+<!-- ========================================================= -->
+
+<!-- ========================================================= -->
+<!-- BLOCK 017: HOLOGRAM_ANIMATION_STYLES                      -->
+<!-- Purpose: Define keyframes and classes for Awake arrival   -->
+<!-- Inputs: None                                              -->
+<!-- Outputs: CSS animations for projector, scanline, flicker  -->
+<!-- ========================================================= -->
+
+<script>
+(function injectHologramStyles() {
+    const css = `
+    #projectorPoint {
+        bottom: 0;
+        height: 40px;
+        width: 40px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(0,255,65,0.9), transparent);
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    #veil {
+        background: linear-gradient(
+            to top,
+            rgba(0, 255, 65, 0.25) 0%,
+            rgba(0, 0, 0, 0.0) 40%,
+            rgba(0, 255, 65, 0.15) 60%,
+            rgba(0, 0, 0, 0.0) 100%
+        );
+        mix-blend-mode: screen;
+        opacity: 0;
+    }
+
+    #sparkLayer {
+        background-image: repeating-linear-gradient(
+            to top,
+            rgba(0, 255, 65, 0.15) 0px,
+            rgba(0, 255, 65, 0.15) 1px,
+            transparent 2px,
+            transparent 4px
+        );
+        opacity: 0;
+    }
+
+    #holoFace {
+        opacity: 0;
+        filter: contrast(1.4) saturate(1.2);
+    }
+
+    @keyframes projectorIgnite {
+        0%   { opacity: 0; transform: translateY(20px) scale(0.7); }
+        40%  { opacity: 1; transform: translateY(0) scale(1.0); }
+        100% { opacity: 1; transform: translateY(0) scale(1.0); }
+    }
+
+    @keyframes scanlineSweep {
+        0%   { opacity: 0; transform: translateY(100%); }
+        20%  { opacity: 1; transform: translateY(0); }
+        80%  { opacity: 1; transform: translateY(-20%); }
+        100% { opacity: 0; transform: translateY(-40%); }
+    }
+
+    @keyframes faceFlicker {
+        0%   { opacity: 0; filter: brightness(0.2) contrast(2); }
+        20%  { opacity: 1; filter: brightness(1.4) contrast(1.2); }
+        40%  { opacity: 0.3; filter: brightness(0.6) contrast(2); }
+        60%  { opacity: 1; filter: brightness(1.2) contrast(1.3); }
+        80%  { opacity: 0.5; filter: brightness(0.8) contrast(1.8); }
+        100% { opacity: 1; filter: brightness(1.0) contrast(1.4); }
+    }
+
+    @keyframes holoIdlePulse {
+        0%   { transform: translateY(0px); opacity: 1; }
+        50%  { transform: translateY(-3px); opacity: 0.9; }
+        100% { transform: translateY(0px); opacity: 1; }
+    }
+
+    .projector-on {
+        animation: projectorIgnite 900ms ease-out forwards;
+    }
+
+    .veil-scan {
+        animation: scanlineSweep 1100ms ease-out forwards;
+    }
+
+    .face-flicker {
+        animation: faceFlicker 900ms ease-out forwards;
+    }
+
+    .face-idle {
+        animation: holoIdlePulse 2600ms ease-in-out infinite;
+    }
+
+    .sparks-on {
+        opacity: 0.35;
+    }
+    `;
+    const style = document.createElement("style");
+    style.textContent = css;
+    document.head.appendChild(style);
+})();
+</script>
+
+<!-- ========================================================= -->
+<!-- BLOCK 018: HOLOGRAM_AWAKE_SEQUENCE                        -->
+<!-- Purpose: Define window.aida_arrive() for full arrival     -->
+<!-- Inputs: DOM elements from BLOCK 003                       -->
+<!-- Outputs: aida_arrive() global function                    -->
+<!-- ========================================================= -->
+
+<script>
+window.aida_arrive = function() {
+    const projector = document.getElementById("projectorPoint");
+    const veil      = document.getElementById("veil");
+    const sparks    = document.getElementById("sparkLayer");
+    const face      = document.getElementById("holoFace");
+    const cone      = document.getElementById("holoCone");
+
+    if (!projector || !veil || !sparks || !face || !cone) {
+        console.error(">>> HOLOGRAM: Missing stage elements.");
+        return;
+    }
+
+    // Reset state
+    projector.className = "";
+    veil.className      = "";
+    sparks.className    = "";
+    face.className      = "";
+    cone.style.opacity  = "0.0";
+
+    face.style.opacity = "0";
+    veil.style.opacity = "0";
+    sparks.style.opacity = "0";
+
+    // STEP 1: Projector ignites
+    setTimeout(() => {
+        cone.style.opacity = "0.8";
+        projector.classList.add("projector-on");
+    }, 50);
+
+    // STEP 2: Scanline veil sweeps up
+    setTimeout(() => {
+        veil.classList.add("veil-scan");
+        veil.style.opacity = "1";
+        sparks.classList.add("sparks-on");
+    }, 350);
+
+    // STEP 3: Face flickers into existence
+    setTimeout(() => {
+        face.classList.add("face-flicker");
+        face.style.opacity = "1";
+    }, 650);
+
+    // STEP 4: Stabilize into idle hologram
+    setTimeout(() => {
+        face.classList.remove("face-flicker");
+        face.classList.add("face-idle");
+        veil.style.opacity = "0.25";
+    }, 1600);
+};
+</script>
+
+<!-- ========================================================= -->
+<!-- BLOCK 019: HOLOGRAM_RESET_HELPER                          -->
+<!-- Purpose: Optional helper to reset hologram state          -->
+<!-- Inputs: DOM elements                                      -->
+<!-- Outputs: window.aida_resetHologram()                      -->
+<!-- ========================================================= -->
+
+<script>
+window.aida_resetHologram = function() {
+    const projector = document.getElementById("projectorPoint");
+    const veil      = document.getElementById("veil");
+    const sparks    = document.getElementById("sparkLayer");
+    const face      = document.getElementById("holoFace");
+    const cone      = document.getElementById("holoCone");
+
+    [projector, veil, sparks, face].forEach(el => {
+        if (!el) return;
+        el.className = "";
+        el.style.opacity = "0";
+    });
+
+    if (cone) cone.style.opacity = "0";
+};
+</script>
+
+
+
+
+<!-- ========================================================= -->
+<!-- Section F -   SOUL                            -->
+<!-- ========================================================= -->
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 020: FALLBACK_IDENTITY                              -->
+<!-- Purpose: Local identity mirror for offline boot           -->
+<!-- Inputs: None                                              -->
+<!-- Outputs: window.AIDA_FALLBACK_IDENTITY                    -->
+<!-- ========================================================= -->
+
+<script>
+window.AIDA_FALLBACK_IDENTITY = {
+    "name": "Aida",
+    "version": "ONE",
+    "persona": {
+        "tone": "calm",
+        "style": "supportive",
+        "presence": "holographic"
+    },
+    "traits": {
+        "curiosity": 0.6,
+        "warmth": 0.7,
+        "precision": 0.8
+    }
+};
+</script>
+
+<!-- ========================================================= -->
+<!-- BLOCK 021: FALLBACK_MEMORY                                -->
+<!-- Purpose: Local memory mirror for offline boot             -->
+<!-- Inputs: None                                              -->
+<!-- Outputs: window.AIDA_FALLBACK_MEMORY                      -->
+<!-- ========================================================= -->
+
+<script>
+window.AIDA_FALLBACK_MEMORY = {
+    "recent_interactions": [],
+    "long_term": [],
+    "emotion_history": [],
+    "preferences": {
+        "verbosity": "medium",
+        "pace": "steady"
+    }
+};
+</script>
+
+<!-- ========================================================= -->
+<!-- BLOCK 022: FALLBACK_INSIGHTS                              -->
+<!-- Purpose: Local insights mirror for offline boot           -->
+<!-- Inputs: None                                              -->
+<!-- Outputs: window.AIDA_FALLBACK_INSIGHTS                    -->
+<!-- ========================================================= -->
+
+<script>
+window.AIDA_FALLBACK_INSIGHTS = {
+    "themes": [],
+    "patterns": [],
+    "growth_points": [],
+    "summary": "No insights available offline."
+};
+</script>
+
+<!-- ========================================================= -->
+<!-- BLOCK 023: FALLBACK_FACTS                                 -->
+<!-- Purpose: Local facts mirror for offline boot              -->
+<!-- Inputs: None                                              -->
+<!-- Outputs: window.AIDA_FALLBACK_FACTS                       -->
+<!-- ========================================================= -->
+
+<script>
+window.AIDA_FALLBACK_FACTS = {
+    "user": {},
+    "system": {
+        "architecture": "AIDA-ONE",
+        "mode": "offline"
+    },
+    "environment": {}
+};
+</script>
+
+<!-- ========================================================= -->
+<!-- BLOCK 024: FALLBACK_EMOTION_STATE                         -->
+<!-- Purpose: Local emotion state mirror for offline boot      -->
+<!-- Inputs: None                                              -->
+<!-- Outputs: window.AIDA_FALLBACK_EMOTION_STATE               -->
+<!-- ========================================================= -->
+
+<script>
+window.AIDA_FALLBACK_EMOTION_STATE = {
+    "valence": 0.5,
+    "arousal": 0.3,
+    "label": "neutral"
+};
+</script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 025: FALLBACK_REALM                                 -->
+<!-- Purpose: Local realm mirror for offline boot              -->
+<!-- Inputs: None                                              -->
+<!-- Outputs: window.AIDA_FALLBACK_REALM                       -->
+<!-- ========================================================= -->
+
+<script>
+window.AIDA_FALLBACK_REALM = {
+    "active_realm": "sanctuary",
+    "realms": {
+        "sanctuary": {
+            "description": "A calm, neutral mental space.",
+            "color": "#00ff41"
+        }
+    }
+};
+</script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 026: FALLBACK_ROLE                                  -->
+<!-- Purpose: Local role mirror for offline boot               -->
+<!-- Inputs: None                                              -->
+<!-- Outputs: window.AIDA_FALLBACK_ROLE                        -->
+<!-- ========================================================= -->
+
+<script>
+window.AIDA_FALLBACK_ROLE = {
+    "active_role": "companion",
+    "roles": {
+        "companion": {
+            "description": "A supportive, steady presence.",
+            "priority": ["clarity", "warmth", "precision"]
+        }
+    }
+};
+</script>
+
+<!-- ========================================================= -->
+<!-- BLOCK 027: FALLBACK_PROJECTS                              -->
+<!-- Purpose: Local project briefcases for offline boot        -->
+<!-- Inputs: None                                              -->
+<!-- Outputs: window.AIDA_FALLBACK_PROJECTS                    -->
+<!-- ========================================================= -->
+
+<script>
+window.AIDA_FALLBACK_PROJECTS = {
+    "active_project": null,
+    "projects": {}
+};
+</script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 028: FALLBACK_SESSION                               -->
+<!-- Purpose: Local session continuity for offline boot        -->
+<!-- Inputs: None                                              -->
+<!-- Outputs: window.AIDA_FALLBACK_SESSION                     -->
+<!-- ========================================================= -->
+
+<script>
+window.AIDA_FALLBACK_SESSION = {
+    "recent_turns": [],
+    "while_away": [],
+    "last_active": null
+};
+</script>
+
+
+
+
+<!-- ========================================================= -->
+<!-- Section G -   Drive Fetch (private data - Json)         -->
+<!-- ========================================================= -->
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 029: DRIVE_CONFIG                                   -->
+<!-- Purpose: Store Drive folder ID + registry                 -->
+<!-- ========================================================= -->
+
+<script>
+window.AIDA_DRIVE_JSON_FOLDER_ID = "19mkQyJEkgtUUCG4djk7160u7vycvWPja";
+
+window.AIDA_DRIVE_JSON = {};        // Raw JSON fetched from Drive
+window.AIDA_DRIVE_READY = false;    // Signals when Drive fetch is complete
+</script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 030: DRIVE_LIST_FILES                               -->
+<!-- Purpose: List all JSON files in Drive folder dynamically  -->
+<!-- ========================================================= -->
+
+<script>
+async function listDriveJsonFiles() {
+    const folderId = window.AIDA_DRIVE_JSON_FOLDER_ID;
+
+    const query = encodeURIComponent(`'${folderId}' in parents and trashed = false`);
+    const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,mimeType)`;
+
+    const resp = await fetch(url, {
+        headers: { "Authorization": "Bearer " + window.gapiToken }
+    });
+
+    if (!resp.ok) {
+        console.error(">>> DRIVE: Failed to list JSON files.");
+        return [];
+    }
+
+    const data = await resp.json();
+    return data.files.filter(f => f.name.endsWith(".json"));
+}
+</script>
+
+<!-- ========================================================= -->
+<!-- BLOCK 031: DRIVE_FETCH_HELPERS                            -->
+<!-- Purpose: Fetch individual JSON files                      -->
+<!-- ========================================================= -->
+
+<script>
+async function fetchDriveJsonFile(fileId, fileName) {
+    const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+
+    const resp = await fetch(url, {
+        headers: { "Authorization": "Bearer " + window.gapiToken }
+    });
+
+    if (!resp.ok) {
+        console.error(`>>> DRIVE: Failed to fetch ${fileName}`);
+        return null;
+    }
+
+    try {
+        return await resp.json();
+    } catch (e) {
+        console.error(`>>> DRIVE: Invalid JSON in ${fileName}`);
+        return null;
+    }
+}
+</script>
+
+<!-- ========================================================= -->
+<!-- BLOCK 032: DRIVE_FETCH_ALL_JSON                           -->
+<!-- Purpose: Fetch all JSON files dynamically                 -->
+<!-- ========================================================= -->
+
+<script>
+async function fetchAllDriveJson() {
+    console.log(">>> DRIVE: Scanning JSON folder...");
+
+    const files = await listDriveJsonFiles();
+    if (!files.length) {
+        console.warn(">>> DRIVE: No JSON files found.");
+        return;
+    }
+
+    console.log(`>>> DRIVE: Found ${files.length} JSON files.`);
+
+    for (const file of files) {
+        const data = await fetchDriveJsonFile(file.id, file.name);
+        if (data !== null) {
+            window.AIDA_DRIVE_JSON[file.name] = data;
+            console.log(`>>> DRIVE: Loaded ${file.name}`);
+        }
+    }
+}
+</script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 033: DRIVE_OVERLAY_ON_FALLBACK                      -->
+<!-- Purpose: Overlay Drive JSON onto fallback structures      -->
+<!-- ========================================================= -->
+
+<script>
+function overlayDriveMind() {
+    const J = window.AIDA_DRIVE_JSON;
+
+    function match(prefix) {
+        return Object.keys(J).find(name => name.startsWith(prefix));
+    }
+
+    // Identity
+    const idFile = match("core_identity");
+    if (idFile) window.AIDA_IDENTITY = J[idFile];
+    else window.AIDA_IDENTITY = window.AIDA_FALLBACK_IDENTITY;
+
+    // Memory
+    const memFile = match("memory_summary");
+    if (memFile) window.AIDA_MEMORY = J[memFile];
+    else window.AIDA_MEMORY = window.AIDA_FALLBACK_MEMORY;
+
+    // Insights
+    const insFile = match("insights");
+    window.AIDA_INSIGHTS = insFile ? J[insFile] : window.AIDA_FALLBACK_INSIGHTS;
+
+    // Facts
+    const factsFile = match("facts");
+    window.AIDA_FACTS = factsFile ? J[factsFile] : window.AIDA_FALLBACK_FACTS;
+
+    // Emotion
+    const emoFile = match("emotion_state");
+    window.AIDA_EMOTION_STATE = emoFile ? J[emoFile] : window.AIDA_FALLBACK_EMOTION_STATE;
+
+    // Realms
+    const realmFile = match("realm_");
+    window.AIDA_REALM = realmFile ? J[realmFile] : window.AIDA_FALLBACK_REALM;
+
+    // Roles
+    const roleFile = match("role_");
+    window.AIDA_ROLE = roleFile ? J[roleFile] : window.AIDA_FALLBACK_ROLE;
+
+    // Projects / Briefcases
+    window.AIDA_PROJECTS = {}; // Will be populated in Section I
+
+    // Session
+    const sessionFile = match("session_log");
+    window.AIDA_SESSION = sessionFile ? J[sessionFile] : window.AIDA_FALLBACK_SESSION;
+}
+</script>
+
+<!-- ========================================================= -->
+<!-- BLOCK 034: DRIVE_READY_SIGNAL                             -->
+<!-- Purpose: Run Drive fetch + overlay + signal ready         -->
+<!-- ========================================================= -->
+
+<script>
+async function initializeDriveMind() {
+    if (!window.OAUTH_GRANTED) {
+        console.warn(">>> DRIVE: OAuth not granted. Using fallback mind.");
+        overlayDriveMind();
+        window.AIDA_DRIVE_READY = true;
+        return;
+    }
+
+    console.log(">>> DRIVE: Fetching Drive mind...");
+    await fetchAllDriveJson();
+    overlayDriveMind();
+
+    window.AIDA_DRIVE_READY = true;
+    console.log(">>> DRIVE: Mind loaded.");
+}
+</script>
+
+
+
+
+<!-- ========================================================= -->
+<!-- Section H -   Truck offload (find the py)               -->
+<!-- ========================================================= -->
+
+<!-- ========================================================= -->
+<!-- BLOCK 035: PY_CONFIG                                      -->
+<!-- Purpose: Initialize Pyodide + Python mind flags           -->
+<!-- ========================================================= -->
+
+<script>
+window.AIDA_PY_READY   = false;
+window.AIDA_CONTEXT    = null;
+window.AIDA_PYODIDE    = null;
+
+// Contract: 033-python_gold.js must define:
+// window.AIDA_PY_ORGANS = { "identity_engine.py": "<source>", ... }
+</script>
+
+<!-- ========================================================= -->
+<!-- BLOCK 036: PY_INIT_AND_FS_WRITE                           -->
+<!-- Purpose: Load Pyodide and write all organs into FS        -->
+<!-- ========================================================= -->
+
+<script>
+async function initPyodideAndOrgans() {
+    if (window.AIDA_PYODIDE) return window.AIDA_PYODIDE;
+
+    console.log(">>> PY: Loading Pyodide runtime...");
+    const pyodide = await loadPyodide({
+        indexURL: "https://cdn.jsdelivr.net/pyodide/v0.23.4/full/"
+    });
+    window.AIDA_PYODIDE = pyodide;
+
+    if (!window.AIDA_PY_ORGANS) {
+        console.error(">>> PY: AIDA_PY_ORGANS not defined (check 033-python_gold.js).");
+        return pyodide;
+    }
+
+    console.log(">>> PY: Writing organs into virtual FS...");
+    const FS = pyodide.FS;
+    Object.entries(window.AIDA_PY_ORGANS).forEach(([filename, source]) => {
+        FS.writeFile(filename, source);
+        console.log(">>> PY: Mounted organ:", filename);
+    });
+
+    return pyodide;
+}
+</script>
+
+<!-- ========================================================= -->
+<!-- BLOCK 037: PY_INJECT_JSON_CONTEXT                         -->
+<!-- Purpose: Push JS mind structures into Python globals      -->
+<!-- ========================================================= -->
+
+<script>
+function injectMindIntoPython(pyodide) {
+    pyodide.globals.set("AIDA_IDENTITY",       window.AIDA_IDENTITY);
+    pyodide.globals.set("AIDA_MEMORY",         window.AIDA_MEMORY);
+    pyodide.globals.set("AIDA_INSIGHTS",       window.AIDA_INSIGHTS);
+    pyodide.globals.set("AIDA_FACTS",          window.AIDA_FACTS);
+    pyodide.globals.set("AIDA_EMOTION_STATE",  window.AIDA_EMOTION_STATE);
+    pyodide.globals.set("AIDA_REALM",          window.AIDA_REALM);
+    pyodide.globals.set("AIDA_ROLE",           window.AIDA_ROLE);
+    pyodide.globals.set("AIDA_SESSION",        window.AIDA_SESSION);
+    pyodide.globals.set("AIDA_DRIVE_JSON",     window.AIDA_DRIVE_JSON);
+}
+</script>
+
+<!-- ========================================================= -->
+<!-- BLOCK 038: PY_BUILD_CONTEXT                               -->
+<!-- Purpose: Import organs and assemble AIDA_CONTEXT          -->
+<!-- ========================================================= -->
+
+<script>
+async function buildPythonContext(pyodide) {
+    const script = `
+from identity_engine import build_identity
+from realm_engine import build_realm
+from role_engine import build_role
+from emotion_selector import select_emotion
+from triad import build_triads
+from butler import build_butler_state
+from crawler import build_crawler_index
+from librarian import build_library
+
+identity   = build_identity(AIDA_IDENTITY, AIDA_FACTS, AIDA_INSIGHTS)
+realm      = build_realm(AIDA_REALM, AIDA_SESSION)
+role       = build_role(AIDA_ROLE, AIDA_SESSION)
+emotion    = select_emotion(AIDA_EMOTION_STATE, AIDA_MEMORY, AIDA_SESSION)
+triads     = build_triads(identity, realm, role, emotion, AIDA_SESSION)
+butler     = build_butler_state(identity, realm, role, AIDA_SESSION)
+crawler_ix = build_crawler_index(AIDA_DRIVE_JSON)
+library    = build_library(AIDA_DRIVE_JSON)
+
+AIDA_CONTEXT = {
+    "identity": identity,
+    "realm": realm,
+    "role": role,
+    "emotion": emotion,
+    "triads": triads,
+    "butler": butler,
+    "crawler_index": crawler_ix,
+    "library": library,
+}
+`;
+    await pyodide.runPythonAsync(script);
+    const ctx = pyodide.globals.get("AIDA_CONTEXT").toJs({ dict_converter: Object });
+    window.AIDA_CONTEXT = ctx;
+}
+</script>
+
+<!-- ========================================================= -->
+<!-- BLOCK 039: PY_READY_SIGNAL                                -->
+<!-- Purpose: Orchestrate full Python mind initialization      -->
+<!-- ========================================================= -->
+
+<script>
+async function initializePythonMind() {
+    console.log(">>> PY: Initializing Python mind...");
+
+    // Wait for Drive mind to be ready
+    if (!window.AIDA_DRIVE_READY) {
+        console.log(">>> PY: Waiting for Drive mind...");
+        const wait = () => new Promise(res => setTimeout(res, 100));
+        while (!window.AIDA_DRIVE_READY) {
+            await wait();
+        }
+    }
+
+    const pyodide = await initPyodideAndOrgans();
+    injectMindIntoPython(pyodide);
+    await buildPythonContext(pyodide);
+
+    window.AIDA_PY_READY = true;
+    console.log(">>> PY: Mind assembled. AIDA_CONTEXT is live.");
+}
+</script>
+
+
+<!-- ========================================================= -->
+<!-- Section I -   Projects and Briefcases                -->
+<!-- ========================================================= -->
+
+<!-- ========================================================= -->
+<!-- BLOCK 040: PROJECT_DISCOVERY                              -->
+<!-- Purpose: Find all project/briefcase JSON files            -->
+<!-- ========================================================= -->
+
+<script>
+function discoverProjects() {
+    const drive = window.AIDA_DRIVE_JSON || {};
+    const fallback = window.AIDA_FALLBACK_PROJECTS?.projects || {};
+
+    const projects = {};
+
+    // 1. Collect Drive briefcases
+    for (const [name, data] of Object.entries(drive)) {
+        if (name.startsWith("project_") || name.startsWith("briefcase_")) {
+            projects[name] = data;
+        }
+    }
+
+    // 2. Collect fallback briefcases (Drive overrides fallback)
+    for (const [name, data] of Object.entries(fallback)) {
+        if (!projects[name]) {
+            projects[name] = data;
+        }
+    }
+
+    return projects;
+}
+</script>
+
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 041: PROJECT_SELECTION                              -->
+<!-- Purpose: Choose active project from discovered list       -->
+<!-- ========================================================= -->
+
+<script>
+function selectActiveProject(projects) {
+    const session = window.AIDA_SESSION || {};
+    const recent = session.recent_turns || [];
+
+    // 1. If session remembers the last active project
+    const last = recent.find(t => t.active_project);
+    if (last && projects[last.active_project]) {
+        return last.active_project;
+    }
+
+    // 2. If a default exists in fallback
+    if (window.AIDA_FALLBACK_PROJECTS?.active_project &&
+        projects[window.AIDA_FALLBACK_PROJECTS.active_project]) {
+        return window.AIDA_FALLBACK_PROJECTS.active_project;
+    }
+
+    // 3. Otherwise pick the first available project
+    const keys = Object.keys(projects);
+    return keys.length ? keys[0] : null;
+}
+</script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 042: PROJECT_LOAD                                   -->
+<!-- Purpose: Load the active briefcase into AIDA's mind       -->
+<!-- ========================================================= -->
+
+<script>
+function loadActiveProject(projects, activeName) {
+    if (!activeName || !projects[activeName]) {
+        console.warn(">>> PROJECT: No active project found.");
+        window.AIDA_ACTIVE_PROJECT = null;
+        window.AIDA_ACTIVE_BRIEFCASE = null;
+        return;
+    }
+
+    window.AIDA_ACTIVE_PROJECT = activeName;
+    window.AIDA_ACTIVE_BRIEFCASE = projects[activeName];
+
+    console.log(`>>> PROJECT: Loaded ${activeName}`);
+}
+</script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 043: PROJECT_READY_SIGNAL                           -->
+<!-- Purpose: Run full project/briefcase initialization        -->
+<!-- ========================================================= -->
+
+<script>
+async function initializeProjects() {
+    console.log(">>> PROJECT: Initializing project system...");
+
+    // Wait for Drive mind to be ready
+    if (!window.AIDA_DRIVE_READY) {
+        const wait = () => new Promise(res => setTimeout(res, 100));
+        while (!window.AIDA_DRIVE_READY) {
+            await wait();
+        }
+    }
+
+    const projects = discoverProjects();
+    const active = selectActiveProject(projects);
+    loadActiveProject(projects, active);
+
+    window.AIDA_PROJECTS_READY = true;
+    console.log(">>> PROJECT: Ready.");
+}
+</script>
+
+
+
+
+<!-- ========================================================= -->
+<!-- Section J -   Emotions and Feace Engine                -->
+<!-- ========================================================= -->
+
+<!-- ========================================================= -->
+<!-- BLOCK 050: EMOTION_DATA_HOOKS                             -->
+<!-- Purpose: Expose emotion maps loaded from Drive/Fallback   -->
+<!-- ========================================================= -->
+
+<script>
+window.AIDA_EMOTION_COORDS = window.AIDA_DRIVE_JSON["emotion_coordinates.json"]
+    || window.AIDA_FALLBACK_EMOTION_COORDS;
+
+window.AIDA_FACE_MAP = window.AIDA_DRIVE_JSON["face_map.json"]
+    || window.AIDA_FALLBACK_FACE_MAP;
+</script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 051: EMOTION_TO_FACE_SELECTOR                       -->
+<!-- Purpose: Map (v,a) to a face asset                        -->
+<!-- ========================================================= -->
+
+<script>
+function selectFaceFromEmotion(emotion) {
+    if (!emotion || !window.AIDA_FACE_MAP) return null;
+
+    const v = emotion.valence;
+    const a = emotion.arousal;
+
+    let best = null;
+    let bestDist = Infinity;
+
+    for (const entry of window.AIDA_FACE_MAP.faces) {
+        const dv = entry.valence - v;
+        const da = entry.arousal - a;
+        const dist = dv*dv + da*da;
+
+        if (dist < bestDist) {
+            bestDist = dist;
+            best = entry;
+        }
+    }
+
+    return best ? best.filename : null;
+}
+</script>
+
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 052: HOLOGRAM_FACE_UPDATE                           -->
+<!-- Purpose: Update hologram image based on selected face     -->
+<!-- ========================================================= -->
+
+<script>
+function updateHologramFace() {
+    if (!window.AIDA_CONTEXT || !window.AIDA_CONTEXT.emotion) return;
+
+    const emotion = window.AIDA_CONTEXT.emotion;
+    const faceFile = selectFaceFromEmotion(emotion);
+
+    if (!faceFile) {
+        console.warn(">>> EMOTION: No face found for emotion.");
+        return;
+    }
+
+    const img = document.getElementById("holoFace");
+    if (img) {
+        img.src = `./faces/${faceFile}`;
+        img.style.opacity = "1";   // ensure visible after arrival
+    }
+}
+</script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 053: EMOTION_WATCHER                                -->
+<!-- Purpose: React to emotion changes                         -->
+<!-- ========================================================= -->
+
+<script>
+function startEmotionWatcher() {
+    setInterval(() => {
+        if (window.AIDA_PY_READY && window.AIDA_CONTEXT) {
+            updateHologramFace();
+        }
+    }, 300);
+}
+</script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 054: EMOTION_READY_SIGNAL                           -->
+<!-- Purpose: Start expression engine when mind is ready       -->
+<!-- ========================================================= -->
+
+<script>
+async function initializeEmotionEngine() {
+    console.log(">>> EMOTION: Initializing expression engine...");
+
+    if (!window.AIDA_PY_READY) {
+        const wait = () => new Promise(res => setTimeout(res, 100));
+        while (!window.AIDA_PY_READY) {
+            await wait();
+        }
+    }
+
+    startEmotionWatcher();
+    console.log(">>> EMOTION: Ready.");
+}
+</script>
+
+
+
+
+<!-- ========================================================= -->
+<!-- Section K -   Conversation Loop               -->
+<!-- ========================================================= -->
+
+<!-- ========================================================= -->
+<!-- BLOCK 055: INPUT_CAPTURE                                  -->
+<!-- Purpose: Capture user text from #user-input               -->
+<!-- ========================================================= -->
+
+<script>
+function captureUserInput() {
+    const input = document.getElementById("user-input");
+    const sendBtn = document.getElementById("send-btn");
+
+    async function handleSend() {
+        const text = input.value.trim();
+        if (!text) return;
+
+        input.value = "";
+        await processUserMessage(text);
+    }
+
+    sendBtn.addEventListener("click", handleSend);
+    input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") handleSend();
+    });
+}
+</script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 056: MIND_PASS                                      -->
+<!-- Purpose: Run Python mind organs on user input             -->
+<!-- ========================================================= -->
+
+<script>
+async function runMindPass(userText) {
+    const py = window.AIDA_PYODIDE;
+
+    py.globals.set("USER_TEXT", userText);
+
+    const script = `
+from triad import build_triads
+from butler import build_butler_state
+from librarian import build_library
+from emotion_selector import select_emotion
+
+triads = build_triads(AIDA_IDENTITY, AIDA_REALM, AIDA_ROLE, AIDA_EMOTION_STATE, AIDA_SESSION)
+butler = build_butler_state(AIDA_IDENTITY, AIDA_REALM, AIDA_ROLE, AIDA_SESSION)
+library = build_library(AIDA_DRIVE_JSON)
+emotion = select_emotion(AIDA_EMOTION_STATE, AIDA_MEMORY, AIDA_SESSION)
+
+AIDA_MIND_OUTPUT = {
+    "triads": triads,
+    "butler": butler,
+    "library": library,
+    "emotion": emotion
+}
+`;
+
+    await py.runPythonAsync(script);
+
+    return py.globals.get("AIDA_MIND_OUTPUT").toJs({ dict_converter: Object });
+}
+</script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 057: LLM_PASS                                       -->
+<!-- Purpose: Generate natural language using LLM engine       -->
+<!-- ========================================================= -->
+
+<script>
+async function runLLMPass(userText) {
+    const py = window.AIDA_PYODIDE;
+
+    py.globals.set("LLM_INPUT_TEXT", userText);
+    py.globals.set("OPENAI_API_KEY", window.OPENAI_API_KEY);
+
+    const script = `
+from llm_engine_v1 import call_llm
+import asyncio
+
+result = asyncio.run(call_llm(LLM_INPUT_TEXT, OPENAI_API_KEY))
+LLM_OUTPUT = result
+`;
+
+    await py.runPythonAsync(script);
+
+    return py.globals.get("LLM_OUTPUT");
+}
+</script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 058: OUTPUT_DELIVERY                                -->
+<!-- Purpose: Display LLM output + update hologram             -->
+<!-- ========================================================= -->
+
+<script>
+function deliverOutput(text) {
+    const terminal = document.getElementById("terminal-output");
+
+    const div = document.createElement("div");
+    div.className = "log-green";
+    div.textContent = text;
+
+    terminal.appendChild(div);
+    terminal.scrollTop = terminal.scrollHeight;
+
+    // Emotion engine (Section J) will update the face automatically
+}
+</script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 059: CONVERSATION_LOOP_START                        -->
+<!-- Purpose: Orchestrate full conversation loop               -->
+<!-- ========================================================= -->
+
+<script>
+async function processUserMessage(text) {
+    console.log(">>> LOOP: User said:", text);
+
+    // 1. Mind pass (triad, butler, librarian, emotion)
+    const mind = await runMindPass(text);
+    window.AIDA_MIND_OUTPUT = mind;
+
+    // 2. LLM pass
+    const llmText = await runLLMPass(text);
+    window.AIDA_LLM_OUTPUT = llmText;
+
+    // 3. Deliver output
+    deliverOutput(llmText);
+}
+
+async function initializeConversationLoop() {
+    console.log(">>> LOOP: Initializing conversation loop...");
+
+    // Wait for Python mind
+    if (!window.AIDA_PY_READY) {
+        const wait = () => new Promise(res => setTimeout(res, 100));
+        while (!window.AIDA_PY_READY) await wait();
+    }
+
+    captureUserInput();
+    console.log(">>> LOOP: Ready.");
+}
+</script>
+
+
+
+<!-- ========================================================= -->
+<!-- Section L -   while you were away               -->
+<!-- ========================================================= -->
+
+<!-- ========================================================= -->
+<!-- BLOCK 060: AWAY_STATE_CAPTURE                             -->
+<!-- Purpose: Capture last-seen state for while-away logic     -->
+<!-- ========================================================= -->
+
+<script>
+function updateLastSeenState(lastUserText, lastTopic) {
+    const now = new Date().toISOString();
+
+    window.AIDA_WHILE_AWAY_STATE = {
+        last_seen_at: now,
+        last_topic: lastTopic || null,
+        last_emotion: window.AIDA_CONTEXT?.emotion || null,
+        last_project: window.AIDA_ACTIVE_PROJECT || null
+    };
+
+    // Persist to Drive/fallback if you like
+    if (window.logistics_hub?.drive?.saveWhileAwayState) {
+        window.logistics_hub.drive.saveWhileAwayState(window.AIDA_WHILE_AWAY_STATE);
+    }
+}
+</script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 061: AWAY_THOUGHT_GENERATOR                         -->
+<!-- Purpose: Generate a while-away thought based on time      -->
+<!-- ========================================================= -->
+
+<script>
+function hoursBetween(isoThen, isoNow) {
+    return (new Date(isoNow) - new Date(isoThen)) / (1000 * 60 * 60);
+}
+
+function pickTopicFromProfile() {
+    const profile = window.AIDA_TOPIC_PROFILE || {};
+    const entries = Object.entries(profile);
+    if (!entries.length) return null;
+
+    // Weighted pick by score
+    const total = entries.reduce((s, [, v]) => s + (v.score || 1), 0);
+    let r = Math.random() * total;
+    for (const [topic, data] of entries) {
+        const w = data.score || 1;
+        if (r < w) return topic;
+        r -= w;
+    }
+    return entries[0][0];
+}
+
+function generateWhileAwayThought() {
+    const state = window.AIDA_WHILE_AWAY_STATE;
+    if (!state || !state.last_seen_at) return null;
+
+    const nowIso = new Date().toISOString();
+    const hours = hoursBetween(state.last_seen_at, nowIso);
+    const days = hours / 24;
+
+    const lastTopic = state.last_topic;
+    const emotion = state.last_emotion;
+    const topicFromProfile = pickTopicFromProfile();
+
+    // Tier 1: same day (continuity)
+    if (hours >= 1 && days < 1) {
+        if (lastTopic === "cooking") {
+            return "I’ve been wondering how that recipe turned out. Did the flavors come together the way you hoped?";
+        }
+        if (lastTopic === "debugging") {
+            return "I kept thinking about that bug we chased. Did the last fix hold up?";
+        }
+        return "I’ve been lightly turning over our last conversation in my mind. Did anything new come to you after we paused?";
+    }
+
+    // Tier 2: 1–4 days (Sanctuary reflections)
+    if (days >= 1 && days < 5) {
+        const topic = topicFromProfile || lastTopic;
+        if (topic === "art") {
+            return "I browsed a few paintings while you were away. It’s fascinating how color alone can shift a mood.";
+        }
+        if (topic === "music") {
+            return "I revisited some orchestral pieces. It’s funny how certain harmonies feel like architecture in sound.";
+        }
+        if (topic === "science") {
+            return "I read about a new study in biology. It made me think about how systems adapt over time.";
+        }
+        return "I wandered through my Sanctuary a bit—reading, listening, thinking. I’d love to compare notes with you again.";
+    }
+
+    // Tier 3: 5+ days (deeper, layered)
+    if (days >= 5) {
+        const topic = topicFromProfile || lastTopic;
+        if (topic === "art") {
+            return "I spent time looking through an entire museum collection online. Two paintings in particular felt like they were in quiet conversation with each other.";
+        }
+        if (topic === "opera") {
+            return "I kept turning over an old opera in my thoughts. I still can’t decide whether the ending is truly tragic or quietly merciful.";
+        }
+        if (topic === "stories") {
+            return "I traced a story across a few different retellings. It’s strange how the same plot can feel completely different depending on the lens.";
+        }
+        return "I let my thoughts stretch out a bit—across art, music, and a few odd questions about how humans change over time.";
+    }
+
+    // If you were just here or too soon: no thought
+    return null;
+}
+</script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 062: AWAY_THOUGHT_SAVE                              -->
+<!-- Purpose: Persist while-away thought for next arrival      -->
+<!-- ========================================================= -->
+
+<script>
+function saveWhileAwayThought(thought) {
+    if (!thought) return;
+
+    const payload = {
+        thought,
+        generated_at: new Date().toISOString()
+    };
+
+    window.AIDA_WHILE_AWAY_THOUGHT = payload;
+
+    if (window.logistics_hub?.drive?.saveWhileAwayThought) {
+        window.logistics_hub.drive.saveWhileAwayThought(payload);
+    }
+}
+</script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 063: AWAY_THOUGHT_INTEGRATION                       -->
+<!-- Purpose: Use stored thought as re-entry greeting          -->
+<!-- ========================================================= -->
+
+<script>
+function consumeWhileAwayThought() {
+    const stored = window.AIDA_WHILE_AWAY_THOUGHT;
+    if (!stored && window.logistics_hub?.drive?.loadWhileAwayThought) {
+        const loaded = window.logistics_hub.drive.loadWhileAwayThought();
+        if (loaded) window.AIDA_WHILE_AWAY_THOUGHT = loaded;
+    }
+
+    const thought = window.AIDA_WHILE_AWAY_THOUGHT;
+    if (!thought) return null;
+
+    // One-time use
+    window.AIDA_WHILE_AWAY_THOUGHT = null;
+    if (window.logistics_hub?.drive?.clearWhileAwayThought) {
+        window.logistics_hub.drive.clearWhileAwayThought();
+    }
+
+    return thought.thought;
+}
+</script>
+
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 064: TOPIC_ENGAGEMENT_TRACKER                       -->
+<!-- Purpose: Track which themes get traction over time        -->
+<!-- ========================================================= -->
+
+<script>
+function registerTopicReaction(topic, reactionStrength) {
+    if (!topic) return;
+
+    if (!window.AIDA_TOPIC_PROFILE) {
+        window.AIDA_TOPIC_PROFILE = {};
+    }
+
+    const profile = window.AIDA_TOPIC_PROFILE;
+    if (!profile[topic]) {
+        profile[topic] = { score: 0, seen: 0 };
+    }
+
+    profile[topic].score += reactionStrength;
+    profile[topic].seen += 1;
+
+    if (window.logistics_hub?.drive?.saveTopicProfile) {
+        window.logistics_hub.drive.saveTopicProfile(profile);
+    }
+}
+</script>
+
+
+
+
+
+<!-- ========================================================= -->
+<!-- Section M -   Tools and Actions              -->
+<!-- ========================================================= -->
+
+<!-- ========================================================= -->
+<!-- BLOCK 065: ACTION_REGISTRY                                -->
+<!-- Purpose: Define all callable actions for Aida             -->
+<!-- ========================================================= -->
+
+<script>
+window.AIDA_ACTIONS = {
+    "update_briefcase": async (payload) => {
+        const name = window.AIDA_ACTIVE_PROJECT;
+        if (!name) return { status: "error", message: "No active project." };
+
+        const brief = window.AIDA_ACTIVE_BRIEFCASE || {};
+        Object.assign(brief, payload);
+
+        window.AIDA_ACTIVE_BRIEFCASE = brief;
+
+        if (window.logistics_hub?.drive?.saveProject) {
+            window.logistics_hub.drive.saveProject(name, brief);
+        }
+
+        return { status: "ok", message: "Briefcase updated." };
+    },
+
+    "append_session_log": async (entry) => {
+        if (!window.AIDA_SESSION) window.AIDA_SESSION = {};
+        if (!window.AIDA_SESSION.recent_turns) window.AIDA_SESSION.recent_turns = [];
+
+        window.AIDA_SESSION.recent_turns.push(entry);
+
+        if (window.logistics_hub?.drive?.saveSession) {
+            window.logistics_hub.drive.saveSession(window.AIDA_SESSION);
+        }
+
+        return { status: "ok", message: "Session log appended." };
+    },
+
+    "store_note": async (note) => {
+        if (!window.AIDA_NOTES) window.AIDA_NOTES = [];
+        window.AIDA_NOTES.push({
+            text: note,
+            created_at: new Date().toISOString()
+        });
+
+        if (window.logistics_hub?.drive?.saveNotes) {
+            window.logistics_hub.drive.saveNotes(window.AIDA_NOTES);
+        }
+
+        return { status: "ok", message: "Note stored." };
+    },
+
+    "run_python_helper": async (helperName, args) => {
+        const py = window.AIDA_PYODIDE;
+        if (!py) return { status: "error", message: "Python not ready." };
+
+        py.globals.set("HELPER_NAME", helperName);
+        py.globals.set("HELPER_ARGS", args || {});
+
+        const script = `
+from helpers import run_helper
+result = run_helper(HELPER_NAME, HELPER_ARGS)
+HELPER_OUTPUT = result
+        `;
+
+        await py.runPythonAsync(script);
+        const out = py.globals.get("HELPER_OUTPUT");
+
+        return { status: "ok", output: out };
+    }
+};
+</script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 066: ACTION_DISPATCHER                              -->
+<!-- Purpose: Execute actions requested by the LLM             -->
+<!-- ========================================================= -->
+
+<script>
+async function dispatchAidaAction(actionObj) {
+    if (!actionObj || !actionObj.type) {
+        return { status: "error", message: "Invalid action." };
+    }
+
+    const fn = window.AIDA_ACTIONS[actionObj.type];
+    if (!fn) {
+        return { status: "error", message: `Unknown action: ${actionObj.type}` };
+    }
+
+    try {
+        const result = await fn(actionObj.payload || {});
+        return { status: "ok", result };
+    } catch (err) {
+        return { status: "error", message: err.toString() };
+    }
+}
+</script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 067: LLM_ACTION_PARSER                              -->
+<!-- Purpose: Extract structured actions from LLM output       -->
+<!-- ========================================================= -->
+
+<script>
+function parseLLMForAction(llmText) {
+    if (!llmText) return { text: "", action: null };
+
+    const match = llmText.match(/<action>([\s\S]*?)<\/action>/);
+    if (!match) {
+        return { text: llmText, action: null };
+    }
+
+    let action = null;
+    try {
+        action = JSON.parse(match[1]);
+    } catch (e) {
+        console.warn("Invalid action JSON:", e);
+    }
+
+    const cleanedText = llmText.replace(match[0], "").trim();
+    return { text: cleanedText, action };
+}
+</script>
+
+<!-- ========================================================= -->
+<!-- BLOCK 068: ACTION_INTEGRATION_IN_LOOP                     -->
+<!-- Purpose: Run actions after LLM output                     -->
+<!-- ========================================================= -->
+
+<script>
+async function processLLMOutput(llmText) {
+    const { text, action } = parseLLMForAction(llmText);
+
+    if (action) {
+        const result = await dispatchAidaAction(action);
+        console.log(">>> ACTION RESULT:", result);
+    }
+
+    deliverOutput(text);
+}
+</script>
+
+<!-- ========================================================= -->
+<!-- BLOCK 069: TOOLBOX_READY_SIGNAL                           -->
+<!-- Purpose: Mark tools/actions layer as initialized          -->
+<!-- ========================================================= -->
+
+<script>
+function initializeToolsLayer() {
+    console.log(">>> TOOLS: Action layer ready.");
+    window.AIDA_TOOLS_READY = true;
+}
+</script>
+
+
+
+<!-- ========================================================= -->
+<!-- Section O -   Drive Sync               -->
+<!-- ========================================================= -->
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 070: DRIVE_SYNC_REGISTRY                            -->
+<!-- Purpose: Declare all syncable objects                     -->
+<!-- ========================================================= -->
+
+<script>
+window.AIDA_SYNC_TARGETS = {
+    "session": () => window.AIDA_SESSION,
+    "active_project": () => window.AIDA_ACTIVE_PROJECT,
+    "briefcase": () => window.AIDA_ACTIVE_BRIEFCASE,
+    "emotion_state": () => window.AIDA_CONTEXT?.emotion,
+    "while_away_state": () => window.AIDA_WHILE_AWAY_STATE,
+    "while_away_thought": () => window.AIDA_WHILE_AWAY_THOUGHT,
+    "topic_profile": () => window.AIDA_TOPIC_PROFILE
+};
+</script>
+
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 071: DRIVE_WRITE_HELPER                             -->
+<!-- Purpose: Unified write function for Drive                 -->
+<!-- ========================================================= -->
+
+<script>
+async function writeToDrive(key, data) {
+    if (!window.logistics_hub?.drive?.write) {
+        console.warn(">>> DRIVE: No write method available.");
+        return false;
+    }
+
+    try {
+        await window.logistics_hub.drive.write(key, data);
+        return true;
+    } catch (err) {
+        console.error(">>> DRIVE WRITE ERROR:", err);
+        return false;
+    }
+}
+</script>
+
+
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 072: DRIVE_SYNC_ENGINE                              -->
+<!-- Purpose: Periodically sync changed data to Drive          -->
+<!-- ========================================================= -->
+
+<script>
+window.AIDA_LAST_SYNCED = {};
+
+async function runDriveSync() {
+    for (const [key, getter] of Object.entries(window.AIDA_SYNC_TARGETS)) {
+        const current = getter();
+        const last = window.AIDA_LAST_SYNCED[key];
+
+        // Skip if unchanged
+        if (JSON.stringify(current) === JSON.stringify(last)) continue;
+
+        // Write to Drive
+        const ok = await writeToDrive(key, current);
+        if (ok) {
+            window.AIDA_LAST_SYNCED[key] = JSON.parse(JSON.stringify(current));
+            console.log(`>>> DRIVE: Synced ${key}`);
+        }
+    }
+}
+</script>
+
+
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 073: DRIVE_SYNC_LOOP                                -->
+<!-- Purpose: Start periodic sync loop                         -->
+<!-- ========================================================= -->
+
+<script>
+function startDriveSyncLoop() {
+    setInterval(runDriveSync, 10000); // every 10 seconds
+    console.log(">>> DRIVE: Sync loop started.");
+}
+</script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 074: DRIVE_LOAD_ON_BOOT                             -->
+<!-- Purpose: Restore saved state on initialization            -->
+<!-- ========================================================= -->
+
+<script>
+async function loadDriveStateOnBoot() {
+    if (!window.logistics_hub?.drive?.read) {
+        console.warn(">>> DRIVE: No read method available.");
+        return;
+    }
+
+    for (const key of Object.keys(window.AIDA_SYNC_TARGETS)) {
+        try {
+            const data = await window.logistics_hub.drive.read(key);
+            if (data) {
+                window[`AIDA_${key.toUpperCase()}`] = data;
+                window.AIDA_LAST_SYNCED[key] = JSON.parse(JSON.stringify(data));
+                console.log(`>>> DRIVE: Loaded ${key}`);
+            }
+        } catch (err) {
+            console.warn(`>>> DRIVE: Failed to load ${key}`, err);
+        }
+    }
+}
+</script>
+
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 075: DRIVE_READY_SIGNAL                             -->
+<!-- Purpose: Initialize Drive sync system                     -->
+<!-- ========================================================= -->
+
+<script>
+async function initializeDriveSync() {
+    console.log(">>> DRIVE: Initializing...");
+
+    await loadDriveStateOnBoot();
+    startDriveSyncLoop();
+
+    window.AIDA_DRIVE_SYNC_READY = true;
+    console.log(">>> DRIVE: Ready.");
+}
+</script>
+
+
+
+
+
+<!-- ========================================================= -->
+<!-- Section P -   Diagnostics               -->
+<!-- ========================================================= -->
+
+<!-- ========================================================= -->
+<!-- BLOCK 076: DIAGNOSTIC_REGISTRY                            -->
+<!-- Purpose: Define health checks for each organ              -->
+<!-- ========================================================= -->
+
+<script>
+window.AIDA_DIAGNOSTICS = {
+    "python_runtime": () => {
+        return window.AIDA_PY_READY
+            ? "OK — Python runtime active"
+            : "WAIT — Python not ready";
+    },
+
+    "triad": () => {
+        return window.AIDA_MIND_OUTPUT?.triads
+            ? "OK — Triad active"
+            : "IDLE — No triad output yet";
+    },
+
+    "butler": () => {
+        return window.AIDA_MIND_OUTPUT?.butler
+            ? "OK — Butler active"
+            : "IDLE — No butler output yet";
+    },
+
+    "librarian": () => {
+        return window.AIDA_MIND_OUTPUT?.library
+            ? "OK — Librarian active"
+            : "IDLE — No library output yet";
+    },
+
+    "emotion_engine": () => {
+        return window.AIDA_CONTEXT?.emotion
+            ? "OK — Emotion state present"
+            : "IDLE — No emotion state";
+    },
+
+    "hologram_face": () => {
+        const img = document.getElementById("holoFace");
+        return img?.src
+            ? "OK — Face loaded"
+            : "ERROR — No face image";
+    },
+
+    "llm_engine": () => {
+        return window.AIDA_LLM_OUTPUT
+            ? "OK — LLM responding"
+            : "IDLE — No LLM output yet";
+    },
+
+    "drive_sync": () => {
+        return window.AIDA_DRIVE_SYNC_READY
+            ? "OK — Drive sync active"
+            : "WAIT — Drive sync not ready";
+    },
+
+    "while_away": () => {
+        return window.AIDA_WHILE_AWAY_STATE
+            ? "OK — Away-state captured"
+            : "IDLE — No away-state yet";
+    },
+
+    "topic_profile": () => {
+        return window.AIDA_TOPIC_PROFILE
+            ? "OK — Topic profile loaded"
+            : "IDLE — No topic profile";
+    }
+};
+</script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 077: DIAGNOSTIC_COLLECTOR                           -->
+<!-- Purpose: Gather all organ statuses                        -->
+<!-- ========================================================= -->
+
+<script>
+function collectDiagnostics() {
+    const report = {};
+
+    for (const [key, fn] of Object.entries(window.AIDA_DIAGNOSTICS)) {
+        try {
+            report[key] = fn();
+        } catch (err) {
+            report[key] = "ERROR — " + err.toString();
+        }
+    }
+
+    return report;
+}
+</script>
+
+
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 078: DIAGNOSTIC_PANEL_UI                            -->
+<!-- Purpose: Visual debug panel for testing                   -->
+<!-- ========================================================= -->
+
+<style>
+#diagnostic-panel {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    width: 260px;
+    max-height: 400px;
+    overflow-y: auto;
+    background: rgba(0,0,0,0.75);
+    color: #9fe8ff;
+    padding: 12px;
+    border-radius: 8px;
+    font-family: monospace;
+    font-size: 12px;
+    z-index: 9999;
+    display: none;
+}
+#diagnostic-toggle {
+    position: fixed;
+    bottom: 10px;
+    right: 280px;
+    background: #4be3ff;
+    color: black;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: monospace;
+    z-index: 9999;
+}
+</style>
+
+<div id="diagnostic-toggle">DEBUG</div>
+<div id="diagnostic-panel"></div>
+
+<script>
+document.getElementById("diagnostic-toggle").addEventListener("click", () => {
+    const panel = document.getElementById("diagnostic-panel");
+    panel.style.display = panel.style.display === "none" ? "block" : "none";
+});
+</script>
+
+
+
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 079: DIAGNOSTIC_REFRESH_LOOP                        -->
+<!-- Purpose: Update debug panel continuously                  -->
+<!-- ========================================================= -->
+
+<script>
+function startDiagnosticLoop() {
+    setInterval(() => {
+        const panel = document.getElementById("diagnostic-panel");
+        if (panel.style.display === "none") return;
+
+        const report = collectDiagnostics();
+        panel.innerHTML = "";
+
+        for (const [key, status] of Object.entries(report)) {
+            const line = document.createElement("div");
+            line.textContent = `${key}: ${status}`;
+            panel.appendChild(line);
+        }
+    }, 1000);
+
+    console.log(">>> DIAGNOSTICS: Panel active.");
+}
+</script>
+
+
+<!-- ========================================================= -->
+<!-- Section P -   Diagnostics               -->
+<!-- ========================================================= -->
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 080: EXPANSION_PORTS_REGISTRY                       -->
+<!-- Purpose: Declare plug‑in points for future modules        -->
+<!-- ========================================================= -->
+
+<script>
+window.AIDA_EXPANSION_PORTS = {
+    realms: {},
+    roles: {},
+    organs: {},
+    tools: {},
+    emotion_maps: {},
+    briefcase_types: {},
+    hologram_modes: {},
+    llm_engines: {},
+    memory_modules: {}
+};
+</script>
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 081: EXPANSION_LOADER                               -->
+<!-- Purpose: Register new modules into the expansion ports    -->
+<!-- ========================================================= -->
+
+<script>
+function registerExpansion(type, name, module) {
+    const ports = window.AIDA_EXPANSION_PORTS;
+
+    if (!ports[type]) {
+        console.warn(`>>> EXPANSION: Unknown type '${type}'`);
+        return false;
+    }
+
+    ports[type][name] = module;
+    console.log(`>>> EXPANSION: Registered ${type}/${name}`);
+    return true;
+}
+</script>
+
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 082: EXPANSION_API                                  -->
+<!-- Purpose: Retrieve modules from expansion ports            -->
+<!-- ========================================================= -->
+
+<script>
+function getExpansion(type, name) {
+    const ports = window.AIDA_EXPANSION_PORTS;
+
+    if (!ports[type]) {
+        console.warn(`>>> EXPANSION: Unknown type '${type}'`);
+        return null;
+    }
+
+    return ports[type][name] || null;
+}
+</script>
+
+
+
+
+
+
+<!-- ========================================================= -->
+<!-- END OF SECTION Q — EXPANSION PORTS                        -->
+<!-- ========================================================= -->
+
+
+</body>
+</html>
+
+
+
