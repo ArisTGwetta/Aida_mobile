@@ -1641,6 +1641,7 @@ function captureUserInput() {
     }
 
     sendBtn.addEventListener("click", handleSend);
+    sendBtn.addEventListener("click", () => console.log("SEND CLICKED"));
     input.addEventListener("keydown", (e) => {
         if (e.key === "Enter") handleSend();
     });
