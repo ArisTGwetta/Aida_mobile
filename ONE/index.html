@@ -419,6 +419,8 @@ function requestToken() {
 
     // Signal bootloader
     window.AIRLOCK_CLEARED = true;
+    // PATCH: Initialize OAuth only after PIN success
+    waitForGIS();
 
     console.log(">>> AIRLOCK: Key assembled:", assembledKey);
 }
@@ -518,8 +520,7 @@ function initializeOAuthClient() {
     console.log(">>> OAUTH: Token client initialized.");
 }
 
-// Start polling immediately
-waitForGIS();
+
 </script>
 
 
