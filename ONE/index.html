@@ -1389,6 +1389,14 @@ async function initializePythonMind() {
 }
 </script>
 
+<script>
+console.log(">>> TEST: Script block reached.");
+document.addEventListener("DOMContentLoaded", () => {
+    console.log(">>> TEST: DOMContentLoaded handler running.");
+    initializePythonMind();
+});
+</script>
+
 
 <!-- ========================================================= -->
 <!-- Section I -   Projects and Briefcases                -->
