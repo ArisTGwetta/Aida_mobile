@@ -267,6 +267,65 @@
         </div>
     </div>
 
+<script>
+// BIOS logging helper
+function biosLog(msg) {
+    const logs = document.getElementById("bios-logs");
+    if (!logs) return;
+    const div = document.createElement("div");
+    div.className = "log-white";
+    div.textContent = ">>> " + msg;
+    logs.appendChild(div);
+}
+
+// Show the Airlock (keypad)
+function showAirlock() {
+    document.getElementById("bios-screen").style.display = "none";
+    const airlock = document.getElementById("airlock");
+    airlock.style.display = "flex";
+    console.log(">>> BIOS: Handing off to Airlock.");
+}
+
+// BIOS boot sequence
+function bootSequence() {
+    const steps = [
+        "Loading Butler...",
+        "Loading Librarian...",
+        "Loading Emotion Engine...",
+        "Loading Identity Engine...",
+        "Loading Realm Engine...",
+        "Loading Role Engine...",
+        "Loading Tetrad Engine...",
+        "Loading Soul Sync...",
+        "Loading Chassis...",
+        "Loading Manifest...",
+        "Loading Vitality...",
+        "Loading Vault...",
+        "Loading Sync Engine...",
+        "Loading Aura Engine...",
+        "Loading Memory Engine...",
+        "Loading Python Engine...",
+        "Loading Mind Palace...",
+        "Loading Research Engine...",
+        "Loading LLM Engine..."
+    ];
+
+    let i = 0;
+    function next() {
+        if (i < steps.length) {
+            biosLog(steps[i]);
+            i++;
+            setTimeout(next, 80); // fast, snappy BIOS feel
+        } else {
+            setTimeout(showAirlock, 300);
+        }
+    }
+    next();
+}
+
+// Start BIOS on page load
+document.addEventListener("DOMContentLoaded", bootSequence);
+</script>
 
 
 
