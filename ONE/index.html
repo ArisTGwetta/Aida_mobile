@@ -205,6 +205,10 @@
 </head>
 <body>
 
+    <!-- PATCH: Aura overlays -->
+    <div id="realm-transition-overlay"></div>
+    <div id="ui-emotion-overlay"></div>
+
     <!-- BIOS LAYER -->
     <div id="bios-screen">
         <div id="bios-logs">
@@ -268,8 +272,7 @@
 <!-- Outputs: None                                             -->
 <!-- ========================================================= -->
 
-</body>
-</html>
+
 
 
 
@@ -290,30 +293,6 @@
 
 <!-- Google Identity Services -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-
-
-001-buttler_amber.js
-002-librarian_green.js
-003-emotion_blue.js
-004-identity_white.js
-005-realm_silver.js
-006-role_silver.js
-007-soul_sync_blue.js
-008-crawler_green.js
-009-tetrad_silver.js
-010-chassis_gold.js
-011-butler_keys.js
-012-handshake_amber.js
-014-manifest_gold.js
-020-vitality_gold.js
-025-vault_gold.js
-026-sync_gold.js
-028-manifest_gold.js
-032-memory_gold.js
-033-python_gold.js
-040-mind_palace_gold.js
-042-research_gold.js
-048-llm_engine_v1.js
 
 
 <!-- ========================================================= -->
@@ -339,7 +318,7 @@
 <script src="js/020-vitality_gold.js"></script>
 <script src="js/025-vault_gold.js"></script>
 <script src="js/026-sync_gold.js"></script>
-<script src="js/028-manifest_gold.js"></script>
+<script src="js/028-aura_gold.js"></script>
 <script src="js/032-memory_gold.js"></script>
 <script src="js/033-python_gold.js"></script>
 <script src="js/040-mind_palace_gold.js"></script>
@@ -597,6 +576,9 @@ function handleOAuthResponse(resp) {
 
     console.log(">>> OAUTH: Access token received.");
     window.OAUTH_GRANTED = true;
+    // PATCH: store token for Drive API
+    window.gapiToken = resp.access_token;
+
 
     // Hide BIOS + Airlock + Launch Button
     document.getElementById("bios-screen").style.display = "none";
@@ -653,6 +635,31 @@ document.addEventListener("DOMContentLoaded", () => {
 <!-- Inputs: None                                              -->
 <!-- Outputs: CSS animations for projector, scanline, flicker  -->
 <!-- ========================================================= -->
+
+<style>
+#realm-transition-overlay,
+#ui-emotion-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 600ms ease;
+    z-index: 500; /* below hologram, above background */
+}
+
+#realm-transition-overlay {
+    background: radial-gradient(circle at center, rgba(0,255,65,0.25), transparent 70%);
+}
+
+#ui-emotion-overlay {
+    background: rgba(0,255,65,0.15);
+    mix-blend-mode: screen;
+}
+</style>
+
 
 <script>
 (function injectHologramStyles() {
@@ -2378,7 +2385,7 @@ function startDiagnosticLoop() {
 
 
 <!-- ========================================================= -->
-<!-- Section P -   Diagnostics               -->
+<!-- Section Q -   Future Proof               -->
 <!-- ========================================================= -->
 
 
