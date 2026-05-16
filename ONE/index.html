@@ -1758,11 +1758,18 @@ async function processUserMessage(text) {
 async function initializeConversationLoop() {
     console.log(">>> LOOP: Initializing conversation loop...");
 
+    // TEMP: log the flag so we see its value
+    console.log(">>> LOOP: AIDA_PY_READY =", window.AIDA_PY_READY);
+
+    // 🚧 TEMPORARY: don't block on Python, just wire the input
+    captureUserInput();
+    console.log(">>> LOOP: Ready (input wired, Python may still be booting).");
+
     // Wait for Python mind
-    if (!window.AIDA_PY_READY) {
-        const wait = () => new Promise(res => setTimeout(res, 100));
-        while (!window.AIDA_PY_READY) await wait();
-    }
+   // if (!window.AIDA_PY_READY) {
+   //     const wait = () => new Promise(res => setTimeout(res, 100));
+   //     while (!window.AIDA_PY_READY) await wait();
+   // }
 
     captureUserInput();
     console.log(">>> LOOP: Ready.");
