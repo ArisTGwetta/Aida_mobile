@@ -26,6 +26,7 @@ window.py_engine = (function() {
         }
 
         isReady = true;
+        window.AIDA_PY_READY = true;
         console.log("[PYTHON] Engine Ready.");
     }
 
