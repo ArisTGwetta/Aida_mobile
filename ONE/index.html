@@ -632,9 +632,9 @@ function handleOAuthResponse(resp) {
 
     console.log(">>> OAUTH: Access token received.");
     window.OAUTH_GRANTED = true;
+
     // PATCH: store token for Drive API
     window.gapiToken = resp.access_token;
-
 
     // Hide BIOS + Airlock + Launch Button
     document.getElementById("bios-screen").style.display = "none";
@@ -645,7 +645,7 @@ function handleOAuthResponse(resp) {
     const iface = document.getElementById("aida-interface");
     iface.style.display = "flex";
 
-    // Hologram arrival will be implemented in Section E
+    // Hologram arrival
     if (window.aida_arrive) {
         setTimeout(() => {
             console.log(">>> CHASSIS: Igniting hologram...");
@@ -654,8 +654,13 @@ function handleOAuthResponse(resp) {
     } else {
         console.warn(">>> CHASSIS: aida_arrive() not yet defined.");
     }
+
+    // ⭐ CRITICAL: Start Drive Mind (which then starts Python Mind)
+    console.log(">>> DRIVE: Starting Drive Mind...");
+    initializeDriveMind();
 }
 </script>
+
 
 
 
