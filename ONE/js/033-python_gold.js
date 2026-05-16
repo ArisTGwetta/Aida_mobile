@@ -14,6 +14,8 @@ window.py_engine = (function() {
         pyodide = await loadPyodide({
             indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/"
         });
+        window.AIDA_PYODIDE = pyodide;   // ⭐ REQUIRED
+        
 
         // Load your scripts (The Organ Map)
         const scripts = ['butler', 'crawler', 'librarian', 'identity_organ', 'soul_sync_engine'];
