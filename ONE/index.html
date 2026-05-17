@@ -1724,10 +1724,9 @@ async function runLLMPass(userText) {
 
     const script = `
 from llm_engine_v1 import call_llm
-import asyncio
 
-result = asyncio.run(call_llm(LLM_INPUT_TEXT, OPENAI_API_KEY))
-LLM_OUTPUT = result
+# IMPORTANT: no asyncio.run() in Pyodide
+LLM_OUTPUT = await call_llm(LLM_INPUT_TEXT, OPENAI_API_KEY)
 `;
 
     await py.runPythonAsync(script);
@@ -1735,6 +1734,7 @@ LLM_OUTPUT = result
     return py.globals.get("LLM_OUTPUT");
 }
 </script>
+
 
 
 <!-- ========================================================= -->
@@ -1789,14 +1789,6 @@ async function initializeConversationLoop() {
     captureUserInput();
     console.log(">>> LOOP: Ready (input wired, Python may still be booting).");
 
-    // Wait for Python mind
-   // if (!window.AIDA_PY_READY) {
-   //     const wait = () => new Promise(res => setTimeout(res, 100));
-   //     while (!window.AIDA_PY_READY) await wait();
-   // }
-
-    captureUserInput();
-    console.log(">>> LOOP: Ready.");
 }
 </script>
 
