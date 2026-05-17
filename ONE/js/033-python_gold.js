@@ -32,6 +32,19 @@
             biosLog("Engine Warmed.", "log-amber");
             console.log("[PYTHON] 033: Pyodide ready.");
 
+            // --- PATCH BUTLER TRUCK TO ADD LEGACY API ---
+            let BUTLER_TRUCK = typeof BUTLER_PY !== "undefined" ? BUTLER_PY : null;
+            if (BUTLER_TRUCK) {
+                BUTLER_TRUCK += `
+def build_butler_state(identity, realm, role, session):
+    # Legacy API bridge: old butler call now instantiates the new Butler
+    try:
+        return Butler(identity, realm, role, session)
+    except Exception as e:
+        return {"error": str(e), "identity": identity, "realm": realm, "role": role, "session": session}
+`;
+            }
+
             // 2. THE AUTOMATION CYCLE: Write all JS delivery trucks to Python Memory
             const AIDA_MODULES = {
                 // CORE IDENTITY / REALM / ROLE / EMOTION / SOUL
@@ -59,8 +72,7 @@
                     typeof TETRAD_PY !== "undefined" ? TETRAD_PY : null,
 
                 // TOOLS: BUTLER / LIBRARIAN / CRAWLER
-                "butler.py":
-                    typeof BUTLER_PY !== "undefined" ? BUTLER_PY : null,
+                "butler.py": BUTLER_TRUCK,
                 "librarian.py":
                     typeof LIBRARIAN_PY !== "undefined" ? LIBRARIAN_PY : null,
                 "crawler.py":
@@ -87,35 +99,34 @@
                 throw err;
             }
 
-        // --- TRIAD BRIDGE: legacy triad → new Soul Sync ---
-        try {
-            pyodide.FS.writeFile(
-                "triad.py",
-                `
+            // --- TRIAD BRIDGE: legacy triad → new Soul Sync ---
+            try {
+                pyodide.FS.writeFile(
+                    "triad.py",
+                    `
 from soul_sync_engine import py_sync_soul
 
 def build_triads(identity, realm, role, emotion, session):
     # Legacy API bridge: old triad call now runs Soul Sync
     return py_sync_soul(identity, realm, role, emotion)
 `
-            );
-            console.log(">>> FS: triad.py bridge module synchronized.");
+                );
+                console.log(">>> FS: triad.py bridge module synchronized.");
+            } catch (e) {
+                console.warn(">>> FS: Could not create triad bridge module:", e);
+            }
+
+            window.AIDA_PY_READY = true;
+            console.log("[PYTHON] 033: All organs mounted. AIDA_PY_READY = true.");
+            biosLog("Python Mind Online. Awaiting Handshake.", "log-blue");
+
+            return pyodide;
         } catch (e) {
-            console.warn(">>> FS: Could not create triad bridge module:", e);
+            console.error("[PYTHON] 033: Boot failure:", e);
+            biosLog("Python Boot Failure.", "log-error");
+            throw e;
         }
-
-        window.AIDA_PY_READY = true;
-        console.log("[PYTHON] 033: All organs mounted. AIDA_PY_READY = true.");
-        biosLog("Python Mind Online. Awaiting Handshake.", "log-blue");
-
-        return pyodide;
-    } catch (e) {
-        console.error("[PYTHON] 033: Boot failure:", e);
-        biosLog("Python Boot Failure.", "log-error");
-        throw e;
-    }
-})();
-
+    })();
 
     // ---------------------------------------------------------
     // TOOLS ENGINE: reuse the same Pyodide instance for trucks
