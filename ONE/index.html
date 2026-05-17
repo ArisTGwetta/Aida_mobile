@@ -1239,8 +1239,11 @@ function overlayDriveMind() {
     window.AIDA_EMOTION_STATE = emoFile ? J[emoFile] : window.AIDA_FALLBACK_EMOTION_STATE;
 
     // Realms
-    const realmFile = match("realm_");
-    window.AIDA_REALM = realmFile ? J[realmFile] : window.AIDA_FALLBACK_REALM;
+    if (!window.AIDA_REALM_LOCKED) {
+        const realmFile = match("realm_");
+        window.AIDA_REALM = realmFile ? J[realmFile] : window.AIDA_FALLBACK_REALM;
+    }
+
 
     // Roles
     const roleFile = match("role_");
@@ -1894,6 +1897,8 @@ async function processUserMessage(text) {
         if (match.startsWith("project_briefcase_")) {
             window.AIDA_BRIEFCASE = AIDA_DRIVE_JSON.briefcases[match];
         }
+        
+        window.AIDA_REALM_LOCKED = true;
 
         // Recompute Tetrad
         const snap = await window.py_get_tetrad_snapshot();
