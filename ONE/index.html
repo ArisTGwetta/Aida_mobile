@@ -1423,6 +1423,10 @@ async function initializePythonMind() {
 
     window.AIDA_PY_READY = true;
     console.log(">>> PY: Mind assembled. AIDA_CONTEXT is live.");
+    
+    const snap = await window.py_get_tetrad_snapshot();
+    window.updateTetradInspector(snap);
+
 }
 </script>
 
@@ -1857,32 +1861,40 @@ function deliverOutput(text) {
 async function processUserMessage(text) {
     console.log(">>> LOOP: User said:", text);
     // =========================================================
-    // PROJECT SWITCH COMMAND
+    // FLEXIBLE NATURAL LANGUAGE REALM/PROJECT SWITCH
     // =========================================================
-    if (text.startsWith("/switch ")) {
-        const query = text.replace("/switch ", "").trim().toLowerCase();
+    const lower = text.toLowerCase();
+
+    if (lower.includes("switch")) {
+
+        // Extract the target after the word "switch"
+        let query = lower.split("switch")[1].trim();
+
+        // Remove leading "to", "into", "over to", etc.
+        query = query.replace(/^to\s+/, "")
+                    .replace(/^into\s+/, "")
+                    .replace(/^over to\s+/, "")
+                    .trim();
 
         // Gather all realm + briefcase keys
         const realmKeys = Object.keys(AIDA_DRIVE_JSON.state || {});
         const briefKeys = Object.keys(AIDA_DRIVE_JSON.briefcases || {});
-
-        // Combine into a single searchable list
         const allKeys = [...realmKeys, ...briefKeys];
 
-        // Fuzzy match: find the first key that contains the query
+        // Fuzzy match
         const match = allKeys.find(k => k.toLowerCase().includes(query));
 
         if (!match) {
-            addMessage("system", `No realm or project found matching: "${query}"`);
+            deliverOutput(`[SYSTEM] No realm or project found matching: "${query}"`);
             return;
         }
 
-        // Load realm if matched
+        // Load realm
         if (match.startsWith("realm_")) {
             window.AIDA_REALM = AIDA_DRIVE_JSON.state[match];
         }
 
-        // Load briefcase if matched
+        // Load briefcase
         if (match.startsWith("project_briefcase_")) {
             window.AIDA_BRIEFCASE = AIDA_DRIVE_JSON.briefcases[match];
         }
@@ -1891,9 +1903,11 @@ async function processUserMessage(text) {
         const snap = await window.py_get_tetrad_snapshot();
         window.updateTetradInspector(snap);
 
-        addMessage("system", `Switched to: ${match}`);
+        // Notify user
+        deliverOutput(`[SYSTEM] Switched to: ${match}`);
         return;
     }
+
 
     // 1. Mind pass (triad, butler, librarian, emotion)
     const mind = await runMindPass(text);
