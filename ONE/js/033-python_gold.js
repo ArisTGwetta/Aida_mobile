@@ -85,6 +85,33 @@ def build_crawler_index(identity, realm, role, session, memory=None):
 `;
             }
 
+            // --- PATCH EMOTION SELECTOR TRUCK TO ADD LEGACY API ---
+            let EMOTION_SELECTOR_TRUCK =
+                typeof EMOTION_SELECTOR_PY !== "undefined" ? EMOTION_SELECTOR_PY : null;
+            if (EMOTION_SELECTOR_TRUCK) {
+                EMOTION_SELECTOR_TRUCK += `
+def select_emotion(identity, realm, role, session, memory=None, insights=None, facts=None):
+    # Legacy API bridge: old select_emotion call now uses the new EmotionSelector
+    try:
+        selector = EmotionSelector(
+            identity=identity,
+            realm=realm,
+            role=role,
+            session=session,
+            memory=memory,
+            insights=insights,
+            facts=facts,
+        )
+        return selector.select()
+    except Exception as e:
+        return {"error": str(e)}
+`;
+            }
+
+
+
+
+
             // 2. THE AUTOMATION CYCLE: Write all JS delivery trucks to Python Memory
             const AIDA_MODULES = {
                 // CORE IDENTITY / REALM / ROLE / EMOTION / SOUL
@@ -100,8 +127,8 @@ def build_crawler_index(identity, realm, role, session, memory=None):
                     typeof ROLE_PY !== "undefined"
                         ? ROLE_PY
                         : `class RoleEngine:\n    def __init__(self, config=None): self.resolved_role = config or {"name": "Mock Role"}`,
-                "emotion_selector.py":
-                    typeof EMOTION_SELECTOR_PY !== "undefined" ? EMOTION_SELECTOR_PY : null,
+                "emotion_selector.py": EMOTION_SELECTOR_TRUCK,
+                
                 "soul_sync_engine.py":
                     typeof SOUL_SYNC_PY !== "undefined" ? SOUL_SYNC_PY : null,
 
