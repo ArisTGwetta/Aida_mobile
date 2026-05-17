@@ -238,19 +238,26 @@ def build_triads(identity, realm, role, emotion, session):
             // ---------------------------------------------------------
             // TETRAD SNAPSHOT BRIDGE (JS → Python → JS)
             // ---------------------------------------------------------
+// ---------------------------------------------------------
+// TETRAD SNAPSHOT BRIDGE (JS → Python → JS)
+// ---------------------------------------------------------
 window.py_get_tetrad_snapshot = async function () {
+    console.log(">>> TETRAD BRIDGE: py_get_tetrad_snapshot LOADED (033)");
+
     const py = await window.AIDA_PY_BOOT_PROMISE;
 
     const code = `
 from soul_sync_engine import py_sync_soul
 from js import logistics_hub
 
+print(">>> PY: TETRAD BRIDGE EXECUTING")
+
 # Call the JS function explicitly
 state_js = logistics_hub.getCurrentState()
-
-# If Pyodide wrapped it as a property, call it
 if callable(state_js):
     state_js = state_js()
+
+print(">>> PY: state_js =", state_js)
 
 # Convert JS → Python
 state = state_js.to_py()
@@ -264,10 +271,10 @@ snapshot = py_sync_soul(core_identity, realm_config, role_config, emotion_state)
 snapshot
 `;
 
-    return await py.runPythonAsync(code);
+    const result = await py.runPythonAsync(code);
+    console.log(">>> TETRAD SNAPSHOT (JS):", result);
+    return result;
 };
-
-
 
 
             return pyodide;
