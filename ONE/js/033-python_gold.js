@@ -44,6 +44,7 @@ def build_butler_state(identity, realm, role, session):
         return {"error": str(e), "identity": identity, "realm": realm, "role": role, "session": session}
 `;
             }
+
             // --- PATCH LIBRARIAN TRUCK TO ADD LEGACY API ---
             let LIBRARIAN_TRUCK = typeof LIBRARIAN_PY !== "undefined" ? LIBRARIAN_PY : null;
             if (LIBRARIAN_TRUCK) {
@@ -58,6 +59,25 @@ def build_library(identity, realm, role, session, facts=None, insights=None, mem
             session=session,
             facts=facts,
             insights=insights,
+            memory=memory,
+        )
+    except Exception as e:
+        return {"error": str(e)}
+`;
+            }
+
+            // --- PATCH CRAWLER TRUCK TO ADD LEGACY API ---
+            let CRAWLER_TRUCK = typeof CRAWLER_PY !== "undefined" ? CRAWLER_PY : null;
+            if (CRAWLER_TRUCK) {
+                CRAWLER_TRUCK += `
+def build_crawler_index(identity, realm, role, session, memory=None):
+    # Legacy API bridge: old crawler call now instantiates the new Crawler
+    try:
+        return Crawler(
+            identity=identity,
+            realm=realm,
+            role=role,
+            session=session,
             memory=memory,
         )
     except Exception as e:
@@ -94,8 +114,7 @@ def build_library(identity, realm, role, session, facts=None, insights=None, mem
                 // TOOLS: BUTLER / LIBRARIAN / CRAWLER
                 "butler.py": BUTLER_TRUCK,
                 "librarian.py": LIBRARIAN_TRUCK,
-                "crawler.py":
-                    typeof CRAWLER_PY !== "undefined" ? CRAWLER_PY : null,
+                "crawler.py": CRAWLER_TRUCK,
 
                 // OPTIONAL: LLM ENGINE (if present in this build)
                 "llm_engine_v1.py":
@@ -193,3 +212,5 @@ worker.run(payload_path="${payload}", output_path="${output}")
 
     console.log("[PYTHON] 033: Giant organ pack wired.");
 })();
+
+
