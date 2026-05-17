@@ -1,138 +1,147 @@
 /* 033-python_gold.js
-   THE ENGINE ROOM: PYODIDE & PYTHON TOOLS + ORGAN LOADER
+   THE ENGINE ROOM: GIANT ORGAN PACK (NO .PY FETCHES)
+   - Mounts all Python organs from JS trucks into Pyodide FS
+   - Exposes a shared Pyodide + tools runner
 */
 
-/* ---------------------------------------------------------
- *  A. PYTHON ORGANS FOR THE MIND ENGINE (035–039)
- *  - Preloads .py files into window.AIDA_PY_ORGANS
- *  - Uses correct GitHub Pages path
- * --------------------------------------------------------- */
+(function () {
+    console.log("[PYTHON] 033: Giant organ pack initializing...");
 
-window.AIDA_PY_ORGANS = window.AIDA_PY_ORGANS || {};
+    // Global flags
+    window.AIDA_PYODIDE = null;
+    window.AIDA_PY_READY = false;
 
-(async function preloadPythonOrgans() {
-    console.log("[PYTHON] Preloading Mind organs into AIDA_PY_ORGANS...");
-
-    // GitHub Pages path (your repo structure)
-    const BASE = "/Aida_mobile/ONE/py";
-
-    // Deterministic load order (dependency‑friendly)
-    const organNames = [
-        "identity_engine",
-        "realm_engine",
-        "role_engine",
-        "emotion_selector",
-        "triad",
-        "butler",
-        "crawler",
-        "librarian"
-    ];
-
-    for (const name of organNames) {
-        const filename = `${name}.py`;
-        const url = `${BASE}/${filename}`;
-
-        try {
-            const resp = await fetch(url);
-            if (!resp.ok) {
-                console.warn(`[PYTHON] Failed to fetch organ ${filename}: HTTP ${resp.status}`);
-                continue;
-            }
-            const code = await resp.text();
-            window.AIDA_PY_ORGANS[filename] = code;
-            console.log(`[PYTHON] Loaded organ: ${filename}`);
-        } catch (e) {
-            console.error(`[PYTHON] Error loading organ ${filename}`, e);
-        }
+    // --- BIOS-style logger hook (optional, safe if missing) ---
+    function biosLog(msg, colorClass = "log-white") {
+        const logs = document.getElementById("bios-logs");
+        if (!logs) return;
+        const div = document.createElement("div");
+        div.className = colorClass;
+        div.textContent = ">>> " + msg;
+        logs.appendChild(div);
     }
 
-    console.log("[PYTHON] Organ preload complete. AIDA_PY_ORGANS is ready for 035–039.");
-})();
+    // --- Core boot promise: load Pyodide + mount all organs ---
+    window.AIDA_PY_BOOT_PROMISE = (async function () {
+        try {
+            biosLog("Beginning Python Boot Sequence...", "log-white");
+            console.log("[PYTHON] 033: Loading Pyodide runtime...");
 
-/* ---------------------------------------------------------
- *  B. TOOLS ENGINE (original py_engine wrapper)
- *  - Uses its own Pyodide instance for Drive tools.
- * --------------------------------------------------------- */
+            const pyodide = await loadPyodide();
+            window.AIDA_PYODIDE = pyodide;
+            biosLog("Engine Warmed.", "log-amber");
+            console.log("[PYTHON] 033: Pyodide ready.");
 
-window.py_engine = (function() {
-    let pyodide = null;
-    let isReady = false;
+            // 2. THE AUTOMATION CYCLE: Write all JS delivery trucks to Python Memory
+            const AIDA_MODULES = {
+                // CORE IDENTITY / REALM / ROLE / EMOTION / SOUL
+                "identity_organ.py":
+                    typeof IDENTITY_PY !== "undefined"
+                        ? IDENTITY_PY
+                        : `class IdentityEngine:\n    def __init__(self, **kwargs): pass\n    def get_resolved_identity(self): return {"name": "Aida (Mock)"}`,
+                "realm_organ.py":
+                    typeof REALM_PY !== "undefined"
+                        ? REALM_PY
+                        : `class RealmEngine:\n    def __init__(self, config=None): self.resolved_realm = config or {"realm_name": "Mock Realm"}`,
+                "role_organ.py":
+                    typeof ROLE_PY !== "undefined"
+                        ? ROLE_PY
+                        : `class RoleEngine:\n    def __init__(self, config=None): self.resolved_role = config or {"name": "Mock Role"}`,
+                "emotion_selector.py":
+                    typeof EMOTION_SELECTOR_PY !== "undefined" ? EMOTION_SELECTOR_PY : null,
+                "soul_sync_engine.py":
+                    typeof SOUL_SYNC_PY !== "undefined" ? SOUL_SYNC_PY : null,
 
-    // 1. Ignition: Load the runtime and the "Organs" (.py files) for tools
-    async function boot() {
-        if (isReady) return;
+                // TETRAD / TRIAD CHASSIS (map to both common filenames just in case)
+                "tetrad.py":
+                    typeof TETRAD_PY !== "undefined" ? TETRAD_PY : null,
+                "tetrad_chassis.py":
+                    typeof TETRAD_PY !== "undefined" ? TETRAD_PY : null,
 
-        console.log("[PYTHON] Booting Tools Engine...");
-        pyodide = await loadPyodide({
-            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/"
-        });
-        window.AIDA_PYODIDE = pyodide;
+                // TOOLS: BUTLER / LIBRARIAN / CRAWLER
+                "butler.py":
+                    typeof BUTLER_PY !== "undefined" ? BUTLER_PY : null,
+                "librarian.py":
+                    typeof LIBRARIAN_PY !== "undefined" ? LIBRARIAN_PY : null,
+                "crawler.py":
+                    typeof CRAWLER_PY !== "undefined" ? CRAWLER_PY : null,
 
-        // Tool‑side scripts (subset)
-        const BASE = "/Aida_mobile/ONE/py";
-        const scripts = [
-            "butler",
-            "crawler",
-            "librarian",
-            "identity_organ",
-            "soul_sync_engine"
-        ];
-
-        for (const name of scripts) {
-            const filename = `${name}.py`;
-            const url = `${BASE}/${filename}`;
+                // OPTIONAL: LLM ENGINE (if present in this build)
+                "llm_engine_v1.py":
+                    typeof LLM_ENGINE_PY !== "undefined" ? LLM_ENGINE_PY : null
+            };
 
             try {
-                const resp = await fetch(url);
-                if (!resp.ok) {
-                    console.warn(`[PYTHON] Tools Engine: failed to fetch ${filename}: HTTP ${resp.status}`);
-                    continue;
+                for (const [filename, content] of Object.entries(AIDA_MODULES)) {
+                    if (content) {
+                        await pyodide.FS.writeFile(filename, content);
+                        console.log(`%c>>> FS: ${filename} synchronized.`, "color:#00d4ff");
+                    } else {
+                        console.warn(`>>> FS: Skipping ${filename} (No JS truck defined)`);
+                    }
                 }
-                const code = await resp.text();
-                pyodide.FS.writeFile(filename, code);
-                console.log(`[PYTHON] Tools Engine mounted: ${filename}`);
-            } catch (e) {
-                console.error(`[PYTHON] Tools Engine: failed to load ${filename}`, e);
+                biosLog("Cognitive Organs Synchronized.", "log-blue");
+            } catch (err) {
+                console.error("[PYTHON] 033: FS write error:", err);
+                biosLog("FS Error: Critical failure.", "log-error");
+                throw err;
             }
+
+            window.AIDA_PY_READY = true;
+            console.log("[PYTHON] 033: All organs mounted. AIDA_PY_READY = true.");
+            biosLog("Python Mind Online. Awaiting Handshake.", "log-blue");
+
+            return pyodide;
+        } catch (e) {
+            console.error("[PYTHON] 033: Boot failure:", e);
+            biosLog("Python Boot Failure.", "log-error");
+            throw e;
         }
+    })();
 
-        isReady = true;
-        window.AIDA_PY_READY = true;
-        console.log("[PYTHON] Tools Engine Ready.");
-    }
-
-    // 2. The Conveyor: Drive <-> Python FS
-    const fs = {
-        importFromDrive: async (filename) => {
-            const data = await logistics_hub.drive.downloadJSON_By_Name(filename);
-            pyodide.FS.writeFile(filename, JSON.stringify(data));
-        },
-        exportToDrive: async (filename, folderId) => {
-            const content = pyodide.FS.readFile(filename, { encoding: "utf8" });
-            await logistics_hub.drive.uploadText(folderId, filename, content);
-        }
-    };
-
-    // 3. The Operator: Run a specific tool
-    return {
-        runTool: async function(toolName, className) {
-            await boot();
+    // ---------------------------------------------------------
+    // TOOLS ENGINE: reuse the same Pyodide instance for trucks
+    // ---------------------------------------------------------
+    window.py_engine = {
+        /**
+         * Run a specific Python tool class from a mounted module.
+         * toolName: module name (without .py)
+         * className: class to instantiate inside that module
+         */
+        runTool: async function (toolName, className) {
+            // Ensure core boot is done
+            const pyodide = await window.AIDA_PY_BOOT_PROMISE;
 
             const payload = `${toolName}_payload.json`;
             const output = `${toolName}_output.json`;
 
+            // Simple Drive bridge helpers must exist on window.logistics_hub
+            const fs = {
+                importFromDrive: async (filename) => {
+                    const data = await logistics_hub.drive.downloadJSON_By_Name(filename);
+                    pyodide.FS.writeFile(filename, JSON.stringify(data));
+                },
+                exportToDrive: async (filename, folderId) => {
+                    const content = pyodide.FS.readFile(filename, { encoding: "utf8" });
+                    await logistics_hub.drive.uploadText(folderId, filename, content);
+                }
+            };
+
+            // Bring payload into Pyodide
             await fs.importFromDrive(payload);
 
             const pythonCode = `
 from ${toolName} import ${className}
 worker = ${className}()
 worker.run(payload_path="${payload}", output_path="${output}")
-            `;
-
+`;
+            console.log(`[PYTHON] 033: Running tool ${toolName}.${className}...`);
             await pyodide.runPythonAsync(pythonCode);
 
             await fs.exportToDrive(output, window.AIDA_MEMORY_FOLDER);
-            console.log(`[PYTHON] ${toolName} execution complete.`);
+            console.log(`[PYTHON] 033: ${toolName} execution complete.`);
         }
     };
+
+    console.log("[PYTHON] 033: Giant organ pack wired.");
 })();
