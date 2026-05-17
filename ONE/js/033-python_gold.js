@@ -87,17 +87,35 @@
                 throw err;
             }
 
-            window.AIDA_PY_READY = true;
-            console.log("[PYTHON] 033: All organs mounted. AIDA_PY_READY = true.");
-            biosLog("Python Mind Online. Awaiting Handshake.", "log-blue");
+        // --- TRIAD BRIDGE: legacy triad → new Soul Sync ---
+        try {
+            pyodide.FS.writeFile(
+                "triad.py",
+                `
+from soul_sync_engine import py_sync_soul
 
-            return pyodide;
+def build_triads(identity, realm, role, emotion, session):
+    # Legacy API bridge: old triad call now runs Soul Sync
+    return py_sync_soul(identity, realm, role, emotion)
+`
+            );
+            console.log(">>> FS: triad.py bridge module synchronized.");
         } catch (e) {
-            console.error("[PYTHON] 033: Boot failure:", e);
-            biosLog("Python Boot Failure.", "log-error");
-            throw e;
+            console.warn(">>> FS: Could not create triad bridge module:", e);
         }
-    })();
+
+        window.AIDA_PY_READY = true;
+        console.log("[PYTHON] 033: All organs mounted. AIDA_PY_READY = true.");
+        biosLog("Python Mind Online. Awaiting Handshake.", "log-blue");
+
+        return pyodide;
+    } catch (e) {
+        console.error("[PYTHON] 033: Boot failure:", e);
+        biosLog("Python Boot Failure.", "log-error");
+        throw e;
+    }
+})();
+
 
     // ---------------------------------------------------------
     // TOOLS ENGINE: reuse the same Pyodide instance for trucks
