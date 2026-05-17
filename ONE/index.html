@@ -1871,23 +1871,15 @@ async function processUserMessage(text) {
 
     if (lower.includes("switch")) {
 
-        // Extract the target after the word "switch"
         let query = lower.split("switch")[1].trim();
+        query = query.replace(/^to\s+/, "").trim();
 
-        // Remove leading "to", "into", "over to", etc.
-        query = query.replace(/^to\s+/, "")
-                    .replace(/^into\s+/, "")
-                    .replace(/^over to\s+/, "")
-                    .trim();
-
-        // Gather all realm + briefcase keys
+        // Search realms
         const realmKeys = Object.keys(AIDA_DRIVE_JSON.state || {});
         const briefKeys = Object.keys(AIDA_DRIVE_JSON.briefcases || {});
         const allKeys = [...realmKeys, ...briefKeys];
 
-        // Fuzzy match
         const match = allKeys.find(k => k.toLowerCase().includes(query));
-
         if (!match) {
             deliverOutput(`[SYSTEM] No realm or project found matching: "${query}"`);
             return;
@@ -1907,10 +1899,10 @@ async function processUserMessage(text) {
         const snap = await window.py_get_tetrad_snapshot();
         window.updateTetradInspector(snap);
 
-        // Notify user
         deliverOutput(`[SYSTEM] Switched to: ${match}`);
         return;
     }
+
 
 
     // 1. Mind pass (triad, butler, librarian, emotion)
