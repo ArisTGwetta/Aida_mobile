@@ -241,6 +241,7 @@ def build_triads(identity, realm, role, emotion, session):
 // ---------------------------------------------------------
 // TETRAD SNAPSHOT BRIDGE (JS → Python → JS)
 // ---------------------------------------------------------
+
 window.py_get_tetrad_snapshot = async function () {
     console.log(">>> TETRAD BRIDGE: py_get_tetrad_snapshot LOADED (033)");
 
@@ -252,22 +253,50 @@ from js import logistics_hub
 
 print(">>> PY: TETRAD BRIDGE EXECUTING")
 
-# Call the JS function explicitly
+# 1) Pull JS state
 state_js = logistics_hub.getCurrentState()
 if callable(state_js):
     state_js = state_js()
 
 print(">>> PY: state_js =", state_js)
 
-# Convert JS → Python
+# 2) Convert JS → Python
 state = state_js.to_py()
 
-core_identity = state.get("global", {}).get("core_identity", {})
-realm_config  = state.get("realm", {})
-role_config   = state.get("project", {})
-emotion_state = state.get("realm", {}).get("emotion_state", {"valence": 0.1, "arousal": -0.1})
+# 3) Fallback-safe extraction
+global_state   = state.get("global")  or {}
+realm_state    = state.get("realm")   or {}
+project_state  = state.get("project") or {}
 
+core_identity = global_state.get("core_identity", {
+    "name": "Aida_One",
+    "persona": "Architect Companion in the Digital Sanctuary",
+})
+
+realm_config = realm_state or {
+    "realm_name": "Digital Sanctuary",
+    "mode": "Sanctuary Mode",
+}
+
+role_config = project_state or {
+    "role_name": "Architect Companion",
+    "tone": "warm, playful, steady, co-pilot",
+}
+
+emotion_state = realm_state.get("emotion_state", {
+    "valence": 0.1,
+    "arousal": -0.1,
+    "label": "softly curious",
+})
+
+print(">>> PY: core_identity =", core_identity)
+print(">>> PY: realm_config  =", realm_config)
+print(">>> PY: role_config   =", role_config)
+print(">>> PY: emotion_state =", emotion_state)
+
+# 4) Run Soul Sync → Tetrad snapshot
 snapshot = py_sync_soul(core_identity, realm_config, role_config, emotion_state)
+print(">>> PY: TETRAD SNAPSHOT =", snapshot)
 snapshot
 `;
 
@@ -275,6 +304,7 @@ snapshot
     console.log(">>> TETRAD SNAPSHOT (JS):", result);
     return result;
 };
+
 
 
             return pyodide;
