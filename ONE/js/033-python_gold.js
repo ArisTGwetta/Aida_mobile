@@ -4,9 +4,8 @@
 
 /* ---------------------------------------------------------
  *  A. PYTHON ORGANS FOR THE MIND ENGINE (035–039)
- *  - This runs as soon as this file is loaded.
- *  - It does NOT depend on py_engine or its Pyodide instance.
- *  - It simply fetches .py files and exposes them as strings.
+ *  - Preloads .py files into window.AIDA_PY_ORGANS
+ *  - Uses correct GitHub Pages path
  * --------------------------------------------------------- */
 
 window.AIDA_PY_ORGANS = window.AIDA_PY_ORGANS || {};
@@ -14,7 +13,10 @@ window.AIDA_PY_ORGANS = window.AIDA_PY_ORGANS || {};
 (async function preloadPythonOrgans() {
     console.log("[PYTHON] Preloading Mind organs into AIDA_PY_ORGANS...");
 
-    // Load in a deterministic, dependency‑friendly order
+    // GitHub Pages path (your repo structure)
+    const BASE = "/Aida_mobile/ONE/py";
+
+    // Deterministic load order (dependency‑friendly)
     const organNames = [
         "identity_engine",
         "realm_engine",
@@ -28,8 +30,10 @@ window.AIDA_PY_ORGANS = window.AIDA_PY_ORGANS || {};
 
     for (const name of organNames) {
         const filename = `${name}.py`;
+        const url = `${BASE}/${filename}`;
+
         try {
-            const resp = await fetch(`/py/${filename}`);
+            const resp = await fetch(url);
             if (!resp.ok) {
                 console.warn(`[PYTHON] Failed to fetch organ ${filename}: HTTP ${resp.status}`);
                 continue;
@@ -48,7 +52,6 @@ window.AIDA_PY_ORGANS = window.AIDA_PY_ORGANS || {};
 /* ---------------------------------------------------------
  *  B. TOOLS ENGINE (original py_engine wrapper)
  *  - Uses its own Pyodide instance for Drive tools.
- *  - Kept intact, but can reuse some of the same organs.
  * --------------------------------------------------------- */
 
 window.py_engine = (function() {
@@ -63,9 +66,10 @@ window.py_engine = (function() {
         pyodide = await loadPyodide({
             indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/"
         });
-        window.AIDA_PYODIDE = pyodide;   // ⭐ Tools engine Pyodide handle
+        window.AIDA_PYODIDE = pyodide;
 
-        // Tool‑side scripts (can be a subset; errors are logged, not fatal)
+        // Tool‑side scripts (subset)
+        const BASE = "/Aida_mobile/ONE/py";
         const scripts = [
             "butler",
             "crawler",
@@ -76,8 +80,10 @@ window.py_engine = (function() {
 
         for (const name of scripts) {
             const filename = `${name}.py`;
+            const url = `${BASE}/${filename}`;
+
             try {
-                const resp = await fetch(`/py/${filename}`);
+                const resp = await fetch(url);
                 if (!resp.ok) {
                     console.warn(`[PYTHON] Tools Engine: failed to fetch ${filename}: HTTP ${resp.status}`);
                     continue;
@@ -91,14 +97,14 @@ window.py_engine = (function() {
         }
 
         isReady = true;
-        window.AIDA_PY_READY = true; // Tools engine ready flag (Mind engine uses its own AIDA_PY_READY later)
+        window.AIDA_PY_READY = true;
         console.log("[PYTHON] Tools Engine Ready.");
     }
 
     // 2. The Conveyor: Drive <-> Python FS
     const fs = {
         importFromDrive: async (filename) => {
-            const data = await logistics_hub.drive.downloadJSON_By_Name(filename); // Uses our 026 logic
+            const data = await logistics_hub.drive.downloadJSON_By_Name(filename);
             pyodide.FS.writeFile(filename, JSON.stringify(data));
         },
         exportToDrive: async (filename, folderId) => {
@@ -115,10 +121,8 @@ window.py_engine = (function() {
             const payload = `${toolName}_payload.json`;
             const output = `${toolName}_output.json`;
 
-            // Bring the data into the lab
             await fs.importFromDrive(payload);
 
-            // Execute the Python logic
             const pythonCode = `
 from ${toolName} import ${className}
 worker = ${className}()
@@ -127,7 +131,6 @@ worker.run(payload_path="${payload}", output_path="${output}")
 
             await pyodide.runPythonAsync(pythonCode);
 
-            // Send results back to the Vault
             await fs.exportToDrive(output, window.AIDA_MEMORY_FOLDER);
             console.log(`[PYTHON] ${toolName} execution complete.`);
         }
