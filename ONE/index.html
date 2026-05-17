@@ -1275,8 +1275,8 @@ window.AIDA_PYODIDE    = null;
 </script>
 
 <!-- ========================================================= -->
-<!-- BLOCK 036: PY_INIT_AND_FS_WRITE                           -->
-<!-- Purpose: Load Pyodide and write all organs into FS        -->
+<!-- BLOCK 036: PY_INIT_AND_FS_WRITE (NEW SOUL-SYNC VERSION)   -->
+<!-- Purpose: Load Pyodide, mount organs, apply alias fallback -->
 <!-- ========================================================= -->
 
 <script>
@@ -1289,25 +1289,46 @@ async function initPyodideAndOrgans() {
     });
     window.AIDA_PYODIDE = pyodide;
 
-    if (!window.AIDA_PY_ORGANS) {
-        console.error(">>> PY: AIDA_PY_ORGANS not defined (check 033-python_gold.js).");
-        return pyodide;
-    }
-
-    console.log(">>> PY: Writing organs into virtual FS...");
+    console.log(">>> PY: Mounting giant organ pack...");
     const FS = pyodide.FS;
-    Object.entries(window.AIDA_PY_ORGANS).forEach(([filename, source]) => {
+
+    // Mount all organs from 033 giant pack
+    for (const [filename, source] of Object.entries(window.AIDA_PY_ORGANS || {})) {
         FS.writeFile(filename, source);
         console.log(">>> PY: Mounted organ:", filename);
-    });
+    }
 
+    // ---------------------------------------------------------
+    // Alias fallback system (engine → organ, triad → tetrad)
+    // ---------------------------------------------------------
+    function alias(pyName, target) {
+        try {
+            FS.stat(pyName + ".py");
+            console.log(`>>> PY: Found ${pyName}.py`);
+        } catch {
+            console.warn(`>>> PY: Missing ${pyName}.py — aliasing to ${target}.py`);
+            FS.writeFile(pyName + ".py", `from ${target} import *`);
+        }
+    }
+
+    alias("identity_engine", "identity_organ");
+    alias("realm_engine", "realm_organ");
+    alias("role_engine", "role_organ");
+    alias("emotion_engine", "emotion_selector");
+
+    alias("triad", "tetrad");
+    alias("triad_engine", "tetrad");
+    alias("tetrad_engine", "tetrad");
+
+    alias("soul_engine", "soul_sync_engine");
+
+    console.log(">>> PY: Alias fallback applied.");
     return pyodide;
 }
 </script>
 
 <!-- ========================================================= -->
-<!-- BLOCK 037: PY_INJECT_JSON_CONTEXT                         -->
-<!-- Purpose: Push JS mind structures into Python globals      -->
+<!-- BLOCK 037: PY_INJECT_JSON_CONTEXT (UNCHANGED)             -->
 <!-- ========================================================= -->
 
 <script>
@@ -1324,65 +1345,51 @@ function injectMindIntoPython(pyodide) {
 }
 </script>
 
+
 <!-- ========================================================= -->
-<!-- BLOCK 038: PY_BUILD_CONTEXT                               -->
-<!-- Purpose: Import organs and assemble AIDA_CONTEXT          -->
+<!-- BLOCK 038: PY_BUILD_CONTEXT (NEW SOUL-SYNC VERSION)       -->
+<!-- Purpose: Assemble AIDA_CONTEXT using py_sync_soul         -->
 <!-- ========================================================= -->
 
 <script>
 async function buildPythonContext(pyodide) {
     const script = `
-from identity_engine import build_identity
-from realm_engine import build_realm
-from role_engine import build_role
-from emotion_selector import select_emotion
-from triad import build_triads
-from butler import build_butler_state
-from crawler import build_crawler_index
-from librarian import build_library
+from soul_sync_engine import py_sync_soul
 
-identity   = build_identity(AIDA_IDENTITY, AIDA_FACTS, AIDA_INSIGHTS)
-realm      = build_realm(AIDA_REALM, AIDA_SESSION)
-role       = build_role(AIDA_ROLE, AIDA_SESSION)
-emotion    = select_emotion(AIDA_EMOTION_STATE, AIDA_MEMORY, AIDA_SESSION)
-triads     = build_triads(identity, realm, role, emotion, AIDA_SESSION)
-butler     = build_butler_state(identity, realm, role, AIDA_SESSION)
-crawler_ix = build_crawler_index(AIDA_DRIVE_JSON)
-library    = build_library(AIDA_DRIVE_JSON)
+# Optional: Tetrad (if present)
+try:
+    from tetrad import assemble_tetrad
+except:
+    assemble_tetrad = None
 
-AIDA_CONTEXT = {
-    "identity": identity,
-    "realm": realm,
-    "role": role,
-    "emotion": emotion,
-    "triads": triads,
-    "butler": butler,
-    "crawler_index": crawler_ix,
-    "library": library,
-}
+AIDA_CONTEXT = py_sync_soul(
+    AIDA_IDENTITY,
+    AIDA_REALM,
+    AIDA_ROLE,
+    AIDA_EMOTION_STATE
+)
 `;
     await pyodide.runPythonAsync(script);
+
     const ctx = pyodide.globals.get("AIDA_CONTEXT").toJs({ dict_converter: Object });
     window.AIDA_CONTEXT = ctx;
 }
 </script>
 
+
 <!-- ========================================================= -->
-<!-- BLOCK 039: PY_READY_SIGNAL                                -->
-<!-- Purpose: Orchestrate full Python mind initialization      -->
+<!-- BLOCK 039: PY_READY_SIGNAL (NEW SOUL-SYNC VERSION)        -->
 <!-- ========================================================= -->
 
 <script>
 async function initializePythonMind() {
     console.log(">>> PY: Initializing Python mind...");
 
-    // Wait for Drive mind to be ready
+    // Wait for Drive Mind
     if (!window.AIDA_DRIVE_READY) {
         console.log(">>> PY: Waiting for Drive mind...");
         const wait = () => new Promise(res => setTimeout(res, 100));
-        while (!window.AIDA_DRIVE_READY) {
-            await wait();
-        }
+        while (!window.AIDA_DRIVE_READY) await wait();
     }
 
     const pyodide = await initPyodideAndOrgans();
@@ -1395,12 +1402,12 @@ async function initializePythonMind() {
 </script>
 
 <script>
-console.log(">>> TEST: Script block reached.");
 document.addEventListener("DOMContentLoaded", () => {
     console.log(">>> TEST: DOMContentLoaded handler running.");
     initializePythonMind();
 });
 </script>
+
 
 
 <!-- ========================================================= -->
