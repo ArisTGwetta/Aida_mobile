@@ -1111,7 +1111,7 @@ window.AIDA_FALLBACK_SESSION = {
 <!-- ========================================================= -->
 
 <script>
-window.AIDA_DRIVE_JSON_FOLDER_ID = "19mkQyJEkgtUUCG4djk7160u7vycvWPja";
+window.AIDA_DRIVE_JSON_FOLDER_ID = "18Tt0ajz85V8PqIHLo_AaudeT3gcQrWV9";
 
 window.AIDA_DRIVE_JSON = {};        // Raw JSON fetched from Drive
 window.AIDA_DRIVE_READY = false;    // Signals when Drive fetch is complete
@@ -1124,9 +1124,7 @@ window.AIDA_DRIVE_READY = false;    // Signals when Drive fetch is complete
 <!-- ========================================================= -->
 
 <script>
-async function listDriveJsonFiles() {
-    const folderId = window.AIDA_DRIVE_JSON_FOLDER_ID;
-
+async function listDriveItems(folderId) {
     const query = encodeURIComponent(`'${folderId}' in parents and trashed = false`);
     const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,mimeType)`;
 
@@ -1135,13 +1133,14 @@ async function listDriveJsonFiles() {
     });
 
     if (!resp.ok) {
-        console.error(">>> DRIVE: Failed to list JSON files.");
+        console.error(">>> DRIVE: Failed to list folder items.");
         return [];
     }
 
     const data = await resp.json();
-    return data.files.filter(f => f.name.endsWith(".json"));
+    return data.files;
 }
+
 </script>
 
 <!-- ========================================================= -->
@@ -1177,25 +1176,30 @@ async function fetchDriveJsonFile(fileId, fileName) {
 <!-- ========================================================= -->
 
 <script>
-async function fetchAllDriveJson() {
-    console.log(">>> DRIVE: Scanning JSON folder...");
+async function fetchAllDriveJson(folderId = window.AIDA_DRIVE_JSON_FOLDER_ID, target = window.AIDA_DRIVE_JSON) {
+    console.log(`>>> DRIVE: Scanning folder ${folderId}...`);
 
-    const files = await listDriveJsonFiles();
-    if (!files.length) {
-        console.warn(">>> DRIVE: No JSON files found.");
+    const items = await listDriveItems(folderId);
+    if (!items.length) {
+        console.warn(">>> DRIVE: No items found in folder.");
         return;
     }
 
-    console.log(`>>> DRIVE: Found ${files.length} JSON files.`);
-
-    for (const file of files) {
-        const data = await fetchDriveJsonFile(file.id, file.name);
-        if (data !== null) {
-            window.AIDA_DRIVE_JSON[file.name] = data;
-            console.log(`>>> DRIVE: Loaded ${file.name}`);
+    for (const item of items) {
+        if (item.mimeType === "application/vnd.google-apps.folder") {
+            // Create a sub-object for this folder
+            target[item.name] = {};
+            await fetchAllDriveJson(item.id, target[item.name]);
+        } else if (item.name.endsWith(".json")) {
+            const data = await fetchDriveJsonFile(item.id, item.name);
+            if (data !== null) {
+                target[item.name] = data;
+                console.log(`>>> DRIVE: Loaded ${item.name}`);
+            }
         }
     }
 }
+
 </script>
 
 
