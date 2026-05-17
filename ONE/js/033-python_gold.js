@@ -37,10 +37,11 @@
             if (BUTLER_TRUCK) {
                 BUTLER_TRUCK += `
 def build_butler_state(identity, realm, role, session):
+    # Legacy API bridge: old butler call now instantiates the new Butler
     try:
         return Butler(identity, realm, role, session)
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": str(e), "identity": identity, "realm": realm, "role": role, "session": session}
 `;
             }
 
@@ -48,8 +49,23 @@ def build_butler_state(identity, realm, role, session):
             let LIBRARIAN_TRUCK = typeof LIBRARIAN_PY !== "undefined" ? LIBRARIAN_PY : null;
             if (LIBRARIAN_TRUCK) {
                 LIBRARIAN_TRUCK += `
-def build_library(identity, realm, role, session, facts=None, insights=None, memory=None):
+def build_library(*args, **kwargs):
+    """
+    Legacy API bridge.
+    Old loop typically calls: build_library(identity)
+    New system needs: Librarian(identity, realm, role, session, facts, insights, memory)
+    We reconstruct from AIDA_CONTEXT.
+    """
     try:
+        from soul_sync_engine import AIDA_CONTEXT
+        identity = AIDA_CONTEXT.get("identity")
+        realm = AIDA_CONTEXT.get("realm")
+        role = AIDA_CONTEXT.get("role")
+        session = AIDA_CONTEXT.get("session")
+        facts = AIDA_CONTEXT.get("facts")
+        insights = AIDA_CONTEXT.get("insights")
+        memory = AIDA_CONTEXT.get("memory")
+
         return Librarian(
             identity=identity,
             realm=realm,
@@ -69,6 +85,7 @@ def build_library(identity, realm, role, session, facts=None, insights=None, mem
             if (CRAWLER_TRUCK) {
                 CRAWLER_TRUCK += `
 def build_crawler_index(identity, realm, role, session, memory=None):
+    # Legacy API bridge: old crawler call now instantiates the new Crawler
     try:
         return Crawler(
             identity=identity,
@@ -89,6 +106,7 @@ def build_crawler_index(identity, realm, role, session, memory=None):
             if (EMOTION_SELECTOR_TRUCK) {
                 EMOTION_SELECTOR_TRUCK += `
 def select_emotion(identity, realm, role, session, memory=None, insights=None, facts=None):
+    # Legacy API bridge: old select_emotion call now uses the new EmotionSelector
     try:
         selector = EmotionSelector(
             identity=identity,
@@ -164,6 +182,7 @@ def select_emotion(identity, realm, role, session, memory=None, insights=None, f
 from soul_sync_engine import py_sync_soul
 
 def build_triads(identity, realm, role, emotion, session):
+    # Legacy API bridge: old triad call now runs Soul Sync
     return py_sync_soul(identity, realm, role, emotion)
 `
                 );
@@ -188,12 +207,19 @@ def build_triads(identity, realm, role, emotion, session):
     // TOOLS ENGINE: reuse the same Pyodide instance for trucks
     // ---------------------------------------------------------
     window.py_engine = {
+        /**
+         * Run a specific Python tool class from a mounted module.
+         * toolName: module name (without .py)
+         * className: class to instantiate inside that module
+         */
         runTool: async function (toolName, className) {
+            // Ensure core boot is done
             const pyodide = await window.AIDA_PY_BOOT_PROMISE;
 
             const payload = `${toolName}_payload.json`;
             const output = `${toolName}_output.json`;
 
+            // Simple Drive bridge helpers must exist on window.logistics_hub
             const fs = {
                 importFromDrive: async (filename) => {
                     const data = await logistics_hub.drive.downloadJSON_By_Name(filename);
@@ -205,6 +231,7 @@ def build_triads(identity, realm, role, emotion, session):
                 }
             };
 
+            // Bring payload into Pyodide
             await fs.importFromDrive(payload);
 
             const pythonCode = `
@@ -222,4 +249,3 @@ worker.run(payload_path="${payload}", output_path="${output}")
 
     console.log("[PYTHON] 033: Giant organ pack wired.");
 })();
-
