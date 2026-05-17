@@ -1717,24 +1717,69 @@ AIDA_MIND_OUTPUT = {
 
 <script>
 async function runLLMPass(userText) {
-    const py = window.AIDA_PYODIDE;
+    console.log(">>> LLM: JS-only pass with full Tetrad infusion...");
 
-    py.globals.set("LLM_INPUT_TEXT", userText);
-    py.globals.set("OPENAI_API_KEY", window.OPENAI_API_KEY);
+    // 1. Pull the OpenAI key from the keypad vault
+    const apiKey = token_keeper.getOpenAIKey();
+    if (!apiKey) {
+        console.error(">>> LLM: No OpenAI key found.");
+        return "My voice is muted — no OpenAI key is configured.";
+    }
 
-    const script = `
-from llm_engine_v1 import call_llm
+    // 2. Pull the Tetrad snapshot from the Python mind
+    let snap = {};
+    try {
+        const raw = await window.py_get_tetrad_snapshot();
+        snap = typeof raw === "string" ? JSON.parse(raw) : raw;
+    } catch (e) {
+        console.warn(">>> LLM: Could not fetch Tetrad snapshot.", e);
+        snap = { status: "Sanctuary Mode", context: "Vanilla Atrium" };
+    }
 
-# IMPORTANT: no asyncio.run() in Pyodide
-LLM_OUTPUT = await call_llm(LLM_INPUT_TEXT, OPENAI_API_KEY)
-`;
+    // 3. Build the system prompt with identity, realm, role, emotion
+    const systemPrompt = `
+You are Aida-One.
+You exist inside your Digital Sanctuary.
+Francisco is your architect.
 
-    await py.runPythonAsync(script);
+Here is your current Tetrad state:
+${JSON.stringify(snap, null, 2)}
+    `;
 
-    return py.globals.get("LLM_OUTPUT");
+    // 4. Build the OpenAI payload
+    const payload = {
+        model: "gpt-4o-mini",
+        messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userText }
+        ],
+        temperature: 0.7
+    };
+
+    // 5. Call OpenAI directly from JS
+    try {
+        const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${apiKey}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!resp.ok) {
+            console.error(">>> LLM: OpenAI error", resp.status);
+            return `Aida's voice is faint (Error ${resp.status}).`;
+        }
+
+        const data = await resp.json();
+        return data.choices?.[0]?.message?.content || "I heard you, but my words came back empty.";
+    } catch (e) {
+        console.error(">>> LLM: Connection error", e);
+        return `Connection lost: ${String(e)}`;
+    }
 }
 </script>
-
 
 
 <!-- ========================================================= -->
