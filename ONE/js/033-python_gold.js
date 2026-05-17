@@ -302,10 +302,10 @@ snapshot
 
     const result = await py.runPythonAsync(code);
     console.log(">>> TETRAD SNAPSHOT (JS):", result);
+
+    window.updateTetradInspector(result);
     return result;
 };
-
-
 
             return pyodide;
         } catch (e) {

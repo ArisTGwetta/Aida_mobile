@@ -637,6 +637,17 @@ function beginOAuthHandshake() {
 <script>
 window.OAUTH_GRANTED = false;
 
+window.updateTetradInspector = function (snapshot) {
+    const panel = document.getElementById("tetrad-inspector");
+    const content = document.getElementById("tetrad-inspector-content");
+
+    if (!panel || !content) return;
+
+    panel.style.display = "block";
+
+    content.textContent = JSON.stringify(snapshot, null, 2);
+};
+
 function handleOAuthResponse(resp) {
     if (!resp || !resp.access_token) {
         console.error(">>> OAUTH: Access denied or failed.");
