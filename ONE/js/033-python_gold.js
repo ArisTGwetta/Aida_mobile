@@ -234,6 +234,33 @@ def build_triads(identity, realm, role, emotion, session):
             console.log("[PYTHON] 033: All organs mounted. AIDA_PY_READY = true.");
             biosLog("Python Mind Online. Awaiting Handshake.", "log-blue");
 
+            
+            // ---------------------------------------------------------
+            // TETRAD SNAPSHOT BRIDGE (JS → Python → JS)
+            // ---------------------------------------------------------
+window.py_get_tetrad_snapshot = async function () {
+    const py = await window.AIDA_PY_BOOT_PROMISE;
+
+    const code = `
+from soul_sync_engine import py_sync_soul
+from js import logistics_hub
+
+# Pull the current Drive state from JS
+state = logistics_hub.getCurrentState()
+
+core_identity = state.get("global", {}).get("core_identity", {})
+realm_config  = state.get("realm", {})
+role_config   = state.get("project", {})
+emotion_state = state.get("realm", {}).get("emotion_state", {"valence": 0.1, "arousal": -0.1})
+
+snapshot = py_sync_soul(core_identity, realm_config, role_config, emotion_state)
+snapshot
+`;
+
+    return await py.runPythonAsync(code);
+};
+
+
             return pyodide;
         } catch (e) {
             console.error("[PYTHON] 033: Boot failure:", e);
