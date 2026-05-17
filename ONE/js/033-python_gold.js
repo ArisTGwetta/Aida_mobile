@@ -244,9 +244,10 @@ window.py_get_tetrad_snapshot = async function () {
     const code = `
 from soul_sync_engine import py_sync_soul
 from js import logistics_hub
+from pyodide.ffi import to_py
 
-# Pull the current Drive state from JS
-state = logistics_hub.getCurrentState().to_py()
+# Pull the current Drive state from JS and convert fully
+state = to_py(logistics_hub.getCurrentState())
 
 core_identity = state.get("global", {}).get("core_identity", {})
 realm_config  = state.get("realm", {})
@@ -259,6 +260,7 @@ snapshot
 
     return await py.runPythonAsync(code);
 };
+
 
 
             return pyodide;
