@@ -246,7 +246,7 @@ from soul_sync_engine import py_sync_soul
 from js import logistics_hub
 
 # Pull the current Drive state from JS
-state = logistics_hub.getCurrentState()
+state = logistics_hub.getCurrentState().to_py()
 
 core_identity = state.get("global", {}).get("core_identity", {})
 realm_config  = state.get("realm", {})
