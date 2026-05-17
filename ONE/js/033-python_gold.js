@@ -44,6 +44,26 @@ def build_butler_state(identity, realm, role, session):
         return {"error": str(e), "identity": identity, "realm": realm, "role": role, "session": session}
 `;
             }
+            // --- PATCH LIBRARIAN TRUCK TO ADD LEGACY API ---
+            let LIBRARIAN_TRUCK = typeof LIBRARIAN_PY !== "undefined" ? LIBRARIAN_PY : null;
+            if (LIBRARIAN_TRUCK) {
+                LIBRARIAN_TRUCK += `
+def build_library(identity, realm, role, session, facts=None, insights=None, memory=None):
+    # Legacy API bridge: old librarian call now instantiates the new Librarian
+    try:
+        return Librarian(
+            identity=identity,
+            realm=realm,
+            role=role,
+            session=session,
+            facts=facts,
+            insights=insights,
+            memory=memory,
+        )
+    except Exception as e:
+        return {"error": str(e)}
+`;
+            }
 
             // 2. THE AUTOMATION CYCLE: Write all JS delivery trucks to Python Memory
             const AIDA_MODULES = {
