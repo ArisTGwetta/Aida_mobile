@@ -93,8 +93,7 @@ def build_library(identity, realm, role, session, facts=None, insights=None, mem
 
                 // TOOLS: BUTLER / LIBRARIAN / CRAWLER
                 "butler.py": BUTLER_TRUCK,
-                "librarian.py":
-                    typeof LIBRARIAN_PY !== "undefined" ? LIBRARIAN_PY : null,
+                "librarian.py": LIBRARIAN_TRUCK,
                 "crawler.py":
                     typeof CRAWLER_PY !== "undefined" ? CRAWLER_PY : null,
 
