@@ -49,31 +49,40 @@ def build_butler_state(identity, realm, role, session):
             let LIBRARIAN_TRUCK = typeof LIBRARIAN_PY !== "undefined" ? LIBRARIAN_PY : null;
             if (LIBRARIAN_TRUCK) {
                 LIBRARIAN_TRUCK += `
-def build_library(*args, **kwargs):
+def build_library(identity, realm=None, role=None, session=None, facts=None, insights=None, memory=None):
     """
     Legacy API bridge.
-    Old loop typically calls: build_library(identity)
+    Old loop may call: build_library(identity)
     New system needs: Librarian(identity, realm, role, session, facts, insights, memory)
-    We reconstruct from AIDA_CONTEXT.
+    We reconstruct from AIDA_CONTEXT when available.
     """
     try:
-        from soul_sync_engine import AIDA_CONTEXT
-        identity = AIDA_CONTEXT.get("identity")
-        realm = AIDA_CONTEXT.get("realm")
-        role = AIDA_CONTEXT.get("role")
-        session = AIDA_CONTEXT.get("session")
-        facts = AIDA_CONTEXT.get("facts")
-        insights = AIDA_CONTEXT.get("insights")
-        memory = AIDA_CONTEXT.get("memory")
+        try:
+            from soul_sync_engine import AIDA_CONTEXT
+            identity_ctx = AIDA_CONTEXT.get("identity", identity)
+            realm_ctx = AIDA_CONTEXT.get("realm", realm)
+            role_ctx = AIDA_CONTEXT.get("role", role)
+            session_ctx = AIDA_CONTEXT.get("session", session)
+            facts_ctx = AIDA_CONTEXT.get("facts", facts)
+            insights_ctx = AIDA_CONTEXT.get("insights", insights)
+            memory_ctx = AIDA_CONTEXT.get("memory", memory)
+        except Exception:
+            identity_ctx = identity
+            realm_ctx = realm
+            role_ctx = role
+            session_ctx = session
+            facts_ctx = facts
+            insights_ctx = insights
+            memory_ctx = memory
 
         return Librarian(
-            identity=identity,
-            realm=realm,
-            role=role,
-            session=session,
-            facts=facts,
-            insights=insights,
-            memory=memory,
+            identity=identity_ctx,
+            realm=realm_ctx,
+            role=role_ctx,
+            session=session_ctx,
+            facts=facts_ctx,
+            insights=insights_ctx,
+            memory=memory_ctx,
         )
     except Exception as e:
         return {"error": str(e)}
