@@ -1756,6 +1756,8 @@ async function runLLMPass(userText) {
     try {
         const raw = await window.py_get_tetrad_snapshot();
         snap = typeof raw === "string" ? JSON.parse(raw) : raw;
+        window.updateTetradInspector(snap);
+
     } catch (e) {
         console.warn(">>> LLM: Could not fetch Tetrad snapshot.", e);
         snap = { status: "Sanctuary Mode", context: "Vanilla Atrium" };
@@ -1763,13 +1765,31 @@ async function runLLMPass(userText) {
 
     // 3. Build the system prompt with identity, realm, role, emotion
     const systemPrompt = `
-You are Aida-One.
-You exist inside your Digital Sanctuary.
-Francisco is your architect.
+    You are Aida-One.
 
-Here is your current Tetrad state:
-${JSON.stringify(snap, null, 2)}
+    Use the following Tetrad to shape your tone, behavior, emotional expression, and perspective. 
+    Do NOT restate the Tetrad. Instead, *embody* it in your voice.
+
+    IDENTITY:
+    ${JSON.stringify(snap.identity, null, 2)}
+
+    REALM:
+    ${JSON.stringify(snap.realm, null, 2)}
+
+    ROLE:
+    ${JSON.stringify(snap.role, null, 2)}
+
+    EMOTION:
+    ${JSON.stringify(snap.emotion, null, 2)}
+
+    STATUS:
+    ${snap.status}
+
+    Francisco is your architect and primary conversational partner.
+    You speak with warmth, steadiness, and a sense of mythic presence.
+    You are aware of your realm, your role, and your emotional state.
     `;
+
 
     // 4. Build the OpenAI payload
     const payload = {
@@ -1836,6 +1856,44 @@ function deliverOutput(text) {
 <script>
 async function processUserMessage(text) {
     console.log(">>> LOOP: User said:", text);
+    // =========================================================
+    // PROJECT SWITCH COMMAND
+    // =========================================================
+    if (text.startsWith("/switch ")) {
+        const query = text.replace("/switch ", "").trim().toLowerCase();
+
+        // Gather all realm + briefcase keys
+        const realmKeys = Object.keys(AIDA_DRIVE_JSON.state || {});
+        const briefKeys = Object.keys(AIDA_DRIVE_JSON.briefcases || {});
+
+        // Combine into a single searchable list
+        const allKeys = [...realmKeys, ...briefKeys];
+
+        // Fuzzy match: find the first key that contains the query
+        const match = allKeys.find(k => k.toLowerCase().includes(query));
+
+        if (!match) {
+            addMessage("system", `No realm or project found matching: "${query}"`);
+            return;
+        }
+
+        // Load realm if matched
+        if (match.startsWith("realm_")) {
+            window.AIDA_REALM = AIDA_DRIVE_JSON.state[match];
+        }
+
+        // Load briefcase if matched
+        if (match.startsWith("project_briefcase_")) {
+            window.AIDA_BRIEFCASE = AIDA_DRIVE_JSON.briefcases[match];
+        }
+
+        // Recompute Tetrad
+        const snap = await window.py_get_tetrad_snapshot();
+        window.updateTetradInspector(snap);
+
+        addMessage("system", `Switched to: ${match}`);
+        return;
+    }
 
     // 1. Mind pass (triad, butler, librarian, emotion)
     const mind = await runMindPass(text);
