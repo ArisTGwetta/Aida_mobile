@@ -3,11 +3,6 @@
    - Mounts all Python organs from JS trucks into Pyodide FS
    - Exposes a shared Pyodide + tools runner
 */
-/* 033-python_gold.js
-   THE ENGINE ROOM: GIANT ORGAN PACK (NO .PY FETCHES)
-   - Mounts all Python organs from JS trucks into Pyodide FS
-   - Exposes a shared Pyodide + tools runner
-*/
 
 (function () {
     console.log("[PYTHON] 033: Giant organ pack initializing...");
@@ -289,3 +284,4 @@ worker.run(payload_path="${payload}", output_path="${output}")
 
     console.log("[PYTHON] 033: Giant organ pack wired.");
 })();
+
