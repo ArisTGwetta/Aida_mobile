@@ -137,6 +137,7 @@ def select_emotion(*args, **kwargs):
                 "llm_engine_v1.py": typeof LLM_ENGINE_PY !== "undefined" ? LLM_ENGINE_PY : null
             };
 
+            // 1. Write all modules into Pyodide FS
             for (const [filename, content] of Object.entries(AIDA_MODULES)) {
                 if (content) {
                     await pyodide.FS.writeFile(filename, content);
@@ -146,23 +147,10 @@ def select_emotion(*args, **kwargs):
                 }
             }
 
+            // 2. NOW invalidate caches so Python reloads the new versions
+            pyodide.runPython("import importlib; importlib.invalidate_caches()");
+
             biosLog("Cognitive Organs Synchronized.", "log-blue");
-
-            // --- TRIAD BRIDGE ---
-            try {
-                pyodide.FS.writeFile(
-                    "triad.py",
-                    `
-from soul_sync_engine import py_sync_soul
-
-def build_triads(identity, realm, role, emotion, session):
-    return py_sync_soul(identity, realm, role, emotion)
-`
-                );
-                console.log(">>> FS: triad.py bridge module synchronized.");
-            } catch (e) {
-                console.warn(">>> FS: Could not create triad bridge module:", e);
-            }
 
             // ---------------------------------------------------------
             // ⭐ OVERRIDE logistics_hub WITH REAL JS MIND STATE ⭐

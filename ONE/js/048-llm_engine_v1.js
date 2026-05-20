@@ -82,4 +82,5 @@ async def call_llm(user_text, api_key):
 
 
 window.LLM_ENGINE_PY = LLM_ENGINE_PY;
+console.log(">>> LLM_ENGINE_PY length:", LLM_ENGINE_PY.length);
 
