@@ -235,9 +235,26 @@ def build_triads(identity, realm, role, emotion, session):
             biosLog("Python Mind Online. Awaiting Handshake.", "log-blue");
 
             
-            // ---------------------------------------------------------
-            // TETRAD SNAPSHOT BRIDGE (JS → Python → JS)
-            // ---------------------------------------------------------
+// ---------------------------------------------------------
+// OVERRIDE logistics_hub WITH DRIVE-LOADED MIND
+// ---------------------------------------------------------
+window.logistics_hub = {
+    getCurrentState() {
+        return {
+            global: {
+                core_identity: window.AIDA_IDENTITY
+            },
+            realm: {
+                ...window.AIDA_REALM,
+                emotion_state: window.AIDA_EMOTION_STATE
+            },
+            project: {
+                ...window.AIDA_ROLE
+            }
+        };
+    }
+};
+
 // ---------------------------------------------------------
 // TETRAD SNAPSHOT BRIDGE (JS → Python → JS)
 // ---------------------------------------------------------
