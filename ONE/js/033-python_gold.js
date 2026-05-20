@@ -131,7 +131,10 @@ def select_emotion(*args, **kwargs):
                 "soul_sync_engine.py": typeof SOUL_SYNC_PY !== "undefined" ? SOUL_SYNC_PY : null,
                 "tetrad.py": typeof TETRAD_PY !== "undefined" ? TETRAD_PY : null,
                 "tetrad_chassis.py": typeof TETRAD_PY !== "undefined" ? TETRAD_PY : null,
-                "triad.py": "from tetrad import *",
+                // ⭐ Correct triad shim
+                "triad.py": `
+            from tetrad import assemble_tetrad as build_triads
+            `,
                 "butler.py": BUTLER_TRUCK,
                 "librarian.py": LIBRARIAN_TRUCK,
                 "crawler.py": typeof CRAWLER_PY !== "undefined" ? CRAWLER_PY : null,
