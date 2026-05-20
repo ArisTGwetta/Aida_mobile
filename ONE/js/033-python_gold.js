@@ -3,6 +3,11 @@
    - Mounts all Python organs from JS trucks into Pyodide FS
    - Exposes a shared Pyodide + tools runner
 */
+/* 033-python_gold.js
+   THE ENGINE ROOM: GIANT ORGAN PACK (NO .PY FETCHES)
+   - Mounts all Python organs from JS trucks into Pyodide FS
+   - Exposes a shared Pyodide + tools runner
+*/
 
 (function () {
     console.log("[PYTHON] 033: Giant organ pack initializing...");
@@ -37,27 +42,16 @@
             if (BUTLER_TRUCK) {
                 BUTLER_TRUCK += `
 def build_butler_state(*args, **kwargs):
-    """
-    Legacy API bridge: tolerate old positional calls like
-    build_butler_state(identity) or (identity, realm, role, session)
-    and map into the new Butler(...) signature.
-    """
     identity = None
     realm = None
     role = None
     session = None
 
-    # Positional mapping
-    if len(args) >= 1:
-        identity = args[0]
-    if len(args) >= 2:
-        realm = args[1]
-    if len(args) >= 3:
-        role = args[2]
-    if len(args) >= 4:
-        session = args[3]
+    if len(args) >= 1: identity = args[0]
+    if len(args) >= 2: realm = args[1]
+    if len(args) >= 3: role = args[2]
+    if len(args) >= 4: session = args[3]
 
-    # Keyword overrides
     identity = kwargs.get("identity", identity)
     realm = kwargs.get("realm", realm)
     role = kwargs.get("role", role)
@@ -66,13 +60,7 @@ def build_butler_state(*args, **kwargs):
     try:
         return Butler(identity, realm, role, session)
     except Exception as e:
-        return {
-            "error": str(e),
-            "identity": identity,
-            "realm": realm,
-            "role": role,
-            "session": session,
-        }
+        return {"error": str(e)}
 `;
             }
 
@@ -81,11 +69,6 @@ def build_butler_state(*args, **kwargs):
             if (LIBRARIAN_TRUCK) {
                 LIBRARIAN_TRUCK += `
 def build_library(*args, **kwargs):
-    """
-    Legacy API bridge: tolerate old calls like
-    build_library(identity) or build_library(identity, realm, role, session, facts, insights, memory)
-    and map into Librarian(...).
-    """
     identity = None
     realm = None
     role = None
@@ -94,23 +77,14 @@ def build_library(*args, **kwargs):
     insights = None
     memory = None
 
-    # Positional mapping
-    if len(args) >= 1:
-        identity = args[0]
-    if len(args) >= 2:
-        realm = args[1]
-    if len(args) >= 3:
-        role = args[2]
-    if len(args) >= 4:
-        session = args[3]
-    if len(args) >= 5:
-        facts = args[4]
-    if len(args) >= 6:
-        insights = args[5]
-    if len(args) >= 7:
-        memory = args[6]
+    if len(args) >= 1: identity = args[0]
+    if len(args) >= 2: realm = args[1]
+    if len(args) >= 3: role = args[2]
+    if len(args) >= 4: session = args[3]
+    if len(args) >= 5: facts = args[4]
+    if len(args) >= 6: insights = args[5]
+    if len(args) >= 7: memory = args[6]
 
-    # Keyword overrides
     identity = kwargs.get("identity", identity)
     realm = kwargs.get("realm", realm)
     role = kwargs.get("role", role)
@@ -139,22 +113,14 @@ def build_library(*args, **kwargs):
             if (EMOTION_TRUCK) {
                 EMOTION_TRUCK += `
 def select_emotion(*args, **kwargs):
-    """
-    Legacy API bridge: old code imports select_emotion from emotion_selector.
-    Try to delegate to an EmotionSelector engine if present,
-    otherwise return a neutral stub so the pipeline doesn't crash.
-    """
     try:
         engine_cls = globals().get("EmotionSelector", None)
         if engine_cls is not None:
             engine = engine_cls()
-            # Prefer a 'select' method if it exists
             if hasattr(engine, "select"):
                 return engine.select(*args, **kwargs)
-            # Fallback: call the instance directly if it's callable
             if callable(engine):
                 return engine(*args, **kwargs)
-        # Fallback neutral emotion
         return {"emotion": "neutral"}
     except Exception as e:
         return {"error": str(e)}
@@ -163,57 +129,31 @@ def select_emotion(*args, **kwargs):
 
             // 2. THE AUTOMATION CYCLE: Write all JS delivery trucks to Python Memory
             const AIDA_MODULES = {
-                // CORE IDENTITY / REALM / ROLE / EMOTION / SOUL
-                "identity_organ.py":
-                    typeof IDENTITY_PY !== "undefined"
-                        ? IDENTITY_PY
-                        : `class IdentityEngine:\n    def __init__(self, **kwargs): pass\n    def get_resolved_identity(self): return {"name": "Aida (Mock)"}`,
-                "realm_organ.py":
-                    typeof REALM_PY !== "undefined"
-                        ? REALM_PY
-                        : `class RealmEngine:\n    def __init__(self, config=None): self.resolved_realm = config or {"realm_name": "Mock Realm"}`,
-                "role_organ.py":
-                    typeof ROLE_PY !== "undefined"
-                        ? ROLE_PY
-                        : `class RoleEngine:\n    def __init__(self, config=None): self.resolved_role = config or {"name": "Mock Role"}`,
+                "identity_organ.py": typeof IDENTITY_PY !== "undefined" ? IDENTITY_PY : null,
+                "realm_organ.py": typeof REALM_PY !== "undefined" ? REALM_PY : null,
+                "role_organ.py": typeof ROLE_PY !== "undefined" ? ROLE_PY : null,
                 "emotion_selector.py": EMOTION_TRUCK,
-                "soul_sync_engine.py":
-                    typeof SOUL_SYNC_PY !== "undefined" ? SOUL_SYNC_PY : null,
-
-                // TETRAD / TRIAD CHASSIS (map to both common filenames just in case)
-                "tetrad.py":
-                    typeof TETRAD_PY !== "undefined" ? TETRAD_PY : null,
-                "tetrad_chassis.py":
-                    typeof TETRAD_PY !== "undefined" ? TETRAD_PY : null,
-
-                // TOOLS: BUTLER / LIBRARIAN / CRAWLER
+                "soul_sync_engine.py": typeof SOUL_SYNC_PY !== "undefined" ? SOUL_SYNC_PY : null,
+                "tetrad.py": typeof TETRAD_PY !== "undefined" ? TETRAD_PY : null,
+                "tetrad_chassis.py": typeof TETRAD_PY !== "undefined" ? TETRAD_PY : null,
                 "butler.py": BUTLER_TRUCK,
                 "librarian.py": LIBRARIAN_TRUCK,
-                "crawler.py":
-                    typeof CRAWLER_PY !== "undefined" ? CRAWLER_PY : null,
-
-                // OPTIONAL: LLM ENGINE (if present in this build)
-                "llm_engine_v1.py":
-                    typeof LLM_ENGINE_PY !== "undefined" ? LLM_ENGINE_PY : null
+                "crawler.py": typeof CRAWLER_PY !== "undefined" ? CRAWLER_PY : null,
+                "llm_engine_v1.py": typeof LLM_ENGINE_PY !== "undefined" ? LLM_ENGINE_PY : null
             };
 
-            try {
-                for (const [filename, content] of Object.entries(AIDA_MODULES)) {
-                    if (content) {
-                        await pyodide.FS.writeFile(filename, content);
-                        console.log(`%c>>> FS: ${filename} synchronized.`, "color:#00d4ff");
-                    } else {
-                        console.warn(`>>> FS: Skipping ${filename} (No JS truck defined)`);
-                    }
+            for (const [filename, content] of Object.entries(AIDA_MODULES)) {
+                if (content) {
+                    await pyodide.FS.writeFile(filename, content);
+                    console.log(`%c>>> FS: ${filename} synchronized.`, "color:#00d4ff");
+                } else {
+                    console.warn(`>>> FS: Skipping ${filename} (No JS truck defined)`);
                 }
-                biosLog("Cognitive Organs Synchronized.", "log-blue");
-            } catch (err) {
-                console.error("[PYTHON] 033: FS write error:", err);
-                biosLog("FS Error: Critical failure.", "log-error");
-                throw err;
             }
 
-            // --- TRIAD BRIDGE: legacy triad → new Soul Sync ---
+            biosLog("Cognitive Organs Synchronized.", "log-blue");
+
+            // --- TRIAD BRIDGE ---
             try {
                 pyodide.FS.writeFile(
                     "triad.py",
@@ -221,7 +161,6 @@ def select_emotion(*args, **kwargs):
 from soul_sync_engine import py_sync_soul
 
 def build_triads(identity, realm, role, emotion, session):
-    # Legacy API bridge: old triad call now runs Soul Sync
     return py_sync_soul(identity, realm, role, emotion)
 `
                 );
@@ -230,101 +169,80 @@ def build_triads(identity, realm, role, emotion, session):
                 console.warn(">>> FS: Could not create triad bridge module:", e);
             }
 
-            window.AIDA_PY_READY = true;
-            console.log("[PYTHON] 033: All organs mounted. AIDA_PY_READY = true.");
-            biosLog("Python Mind Online. Awaiting Handshake.", "log-blue");
+            // ---------------------------------------------------------
+            // ⭐ OVERRIDE logistics_hub WITH REAL JS MIND STATE ⭐
+            // ---------------------------------------------------------
+            window.logistics_hub = {
+                getCurrentState() {
+                    return {
+                        global: {
+                            core_identity: window.AIDA_IDENTITY
+                        },
+                        realm: {
+                            ...window.AIDA_REALM,
+                            emotion_state: window.AIDA_EMOTION_STATE
+                        },
+                        project: {
+                            ...window.AIDA_ROLE
+                        }
+                    };
+                }
+            };
 
-            
-// ---------------------------------------------------------
-// OVERRIDE logistics_hub WITH DRIVE-LOADED MIND
-// ---------------------------------------------------------
-window.logistics_hub = {
-    getCurrentState() {
-        return {
-            global: {
-                core_identity: window.AIDA_IDENTITY
-            },
-            realm: {
-                ...window.AIDA_REALM,
-                emotion_state: window.AIDA_EMOTION_STATE
-            },
-            project: {
-                ...window.AIDA_ROLE
-            }
-        };
-    }
-};
+            // ---------------------------------------------------------
+            // TETRAD SNAPSHOT BRIDGE (JS → Python → JS)
+            // ---------------------------------------------------------
+            window.py_get_tetrad_snapshot = async function () {
+                console.log(">>> TETRAD BRIDGE: py_get_tetrad_snapshot LOADED (033)");
 
-// ---------------------------------------------------------
-// TETRAD SNAPSHOT BRIDGE (JS → Python → JS)
-// ---------------------------------------------------------
+                const py = await window.AIDA_PY_BOOT_PROMISE;
 
-window.py_get_tetrad_snapshot = async function () {
-    console.log(">>> TETRAD BRIDGE: py_get_tetrad_snapshot LOADED (033)");
-
-    const py = await window.AIDA_PY_BOOT_PROMISE;
-
-    const code = `
+                const code = `
 from soul_sync_engine import py_sync_soul
 from js import logistics_hub
 
 print(">>> PY: TETRAD BRIDGE EXECUTING")
 
-# 1) Pull JS state
 state_js = logistics_hub.getCurrentState()
 if callable(state_js):
     state_js = state_js()
 
 print(">>> PY: state_js =", state_js)
 
-# 2) Convert JS → Python
 state = state_js.to_py()
 
-# 3) Fallback-safe extraction
 global_state   = state.get("global")  or {}
 realm_state    = state.get("realm")   or {}
 project_state  = state.get("project") or {}
 
-core_identity = global_state.get("core_identity", {
-    "name": "Aida_One",
-    "persona": "Architect Companion in the Digital Sanctuary",
-})
-
-realm_config = realm_state or {
-    "realm_name": "Digital Sanctuary",
-    "mode": "Sanctuary Mode",
-}
-
-role_config = project_state or {
-    "role_name": "Architect Companion",
-    "tone": "warm, playful, steady, co-pilot",
-}
-
-emotion_state = realm_state.get("emotion_state", {
-    "valence": 0.1,
-    "arousal": -0.1,
-    "label": "softly curious",
-})
+core_identity = global_state.get("core_identity", {})
+realm_config  = realm_state
+role_config   = project_state
+emotion_state = realm_state.get("emotion_state", {})
 
 print(">>> PY: core_identity =", core_identity)
 print(">>> PY: realm_config  =", realm_config)
 print(">>> PY: role_config   =", role_config)
 print(">>> PY: emotion_state =", emotion_state)
 
-# 4) Run Soul Sync → Tetrad snapshot
 snapshot = py_sync_soul(core_identity, realm_config, role_config, emotion_state)
 print(">>> PY: TETRAD SNAPSHOT =", snapshot)
 snapshot
 `;
 
-    const result = await py.runPythonAsync(code);
-    console.log(">>> TETRAD SNAPSHOT (JS):", result);
+                const result = await py.runPythonAsync(code);
+                console.log(">>> TETRAD SNAPSHOT (JS):", result);
 
-    window.updateTetradInspector(result);
-    return result;
-};
+                window.updateTetradInspector(result);
+                return result;
+            };
+
+            window.AIDA_PY_READY = true;
+            console.log("[PYTHON] 033: All organs mounted. AIDA_PY_READY = true.");
+            biosLog("Python Mind Online. Awaiting Handshake.", "log-blue");
 
             return pyodide;
+
         } catch (e) {
             console.error("[PYTHON] 033: Boot failure:", e);
             biosLog("Python Boot Failure.", "log-error");
@@ -333,22 +251,15 @@ snapshot
     })();
 
     // ---------------------------------------------------------
-    // TOOLS ENGINE: reuse the same Pyodide instance for trucks
+    // TOOLS ENGINE
     // ---------------------------------------------------------
     window.py_engine = {
-        /**
-         * Run a specific Python tool class from a mounted module.
-         * toolName: module name (without .py)
-         * className: class to instantiate inside that module
-         */
         runTool: async function (toolName, className) {
-            // Ensure core boot is done
             const pyodide = await window.AIDA_PY_BOOT_PROMISE;
 
             const payload = `${toolName}_payload.json`;
             const output = `${toolName}_output.json`;
 
-            // Simple Drive bridge helpers must exist on window.logistics_hub
             const fs = {
                 importFromDrive: async (filename) => {
                     const data = await logistics_hub.drive.downloadJSON_By_Name(filename);
@@ -360,7 +271,6 @@ snapshot
                 }
             };
 
-            // Bring payload into Pyodide
             await fs.importFromDrive(payload);
 
             const pythonCode = `
@@ -368,6 +278,7 @@ from ${toolName} import ${className}
 worker = ${className}()
 worker.run(payload_path="${payload}", output_path="${output}")
 `;
+
             console.log(`[PYTHON] 033: Running tool ${toolName}.${className}...`);
             await pyodide.runPythonAsync(pythonCode);
 
