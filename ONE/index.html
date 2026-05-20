@@ -1329,6 +1329,9 @@ async function fetchAllDriveJson() {
     store.briefcases = await fetchFolderJsonFlat(folders.briefcases);
 
     console.log(">>> DRIVE: All Drive JSON fetched.");
+
+    window.AIDA_DRIVE_JSON = store;
+
 }
 </script>
 
