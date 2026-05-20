@@ -1104,23 +1104,31 @@ window.AIDA_FALLBACK_SESSION = {
 <!-- Section G -   Drive Fetch (private data - Json)         -->
 <!-- ========================================================= -->
 
-
 <!-- ========================================================= -->
 <!-- BLOCK 029: DRIVE_CONFIG                                   -->
-<!-- Purpose: Store Drive folder ID + registry                 -->
+<!-- Purpose: Store Drive folder IDs + registry                -->
 <!-- ========================================================= -->
 
 <script>
-window.AIDA_DRIVE_JSON_FOLDER_ID = "18Tt0ajz85V8PqIHLo_AaudeT3gcQrWV9";
+window.AIDA_DRIVE_FOLDERS = {
+    mind: "19mkQyJEkgtUUCG4djk7160u7vycvWPja",        // /json
+    state: "19FFUu6Lie__G33h4vcwZXf00NyDWbDw4",       // /state
+    briefcases: "1SvobAB5TpyCCmo0_6GaZRIW0Y7BxH7pE"   // /briefcases
+};
 
-window.AIDA_DRIVE_JSON = {};        // Raw JSON fetched from Drive
+window.AIDA_DRIVE_JSON = {
+    mind: {},
+    state: {},
+    briefcases: {}
+};
+
 window.AIDA_DRIVE_READY = false;    // Signals when Drive fetch is complete
 </script>
 
 
 <!-- ========================================================= -->
 <!-- BLOCK 030: DRIVE_LIST_FILES                               -->
-<!-- Purpose: List all JSON files in Drive folder dynamically  -->
+<!-- Purpose: List all JSON files in a given Drive folder      -->
 <!-- ========================================================= -->
 
 <script>
@@ -1133,14 +1141,13 @@ async function listDriveItems(folderId) {
     });
 
     if (!resp.ok) {
-        console.error(">>> DRIVE: Failed to list folder items.");
+        console.error(">>> DRIVE: Failed to list folder items for", folderId);
         return [];
     }
 
     const data = await resp.json();
-    return data.files;
+    return data.files || [];
 }
-
 </script>
 
 <!-- ========================================================= -->
@@ -1157,51 +1164,75 @@ async function fetchDriveJsonFile(fileId, fileName) {
     });
 
     if (!resp.ok) {
-        console.error(`>>> DRIVE: Failed to fetch ${fileName}`);
+        console.error(`>>> DRIVE: Failed to fetch ${fileName} (${fileId})`);
         return null;
     }
 
     try {
         return await resp.json();
     } catch (e) {
-        console.error(`>>> DRIVE: Invalid JSON in ${fileName}`);
+        console.error(`>>> DRIVE: Invalid JSON in ${fileName}`, e);
         return null;
     }
 }
-</script>
 
-<!-- ========================================================= -->
-<!-- BLOCK 032: DRIVE_FETCH_ALL_JSON                           -->
-<!-- Purpose: Fetch all JSON files dynamically                 -->
-<!-- ========================================================= -->
-
-<script>
-async function fetchAllDriveJson(folderId = window.AIDA_DRIVE_JSON_FOLDER_ID, target = window.AIDA_DRIVE_JSON) {
-    console.log(`>>> DRIVE: Scanning folder ${folderId}...`);
-
+/**
+ * Fetch all JSON files in a single flat folder.
+ * Returns an object: { "file_name.json": parsedJson, ... }
+ */
+async function fetchFolderJsonFlat(folderId) {
+    const registry = {};
     const items = await listDriveItems(folderId);
+
     if (!items.length) {
-        console.warn(">>> DRIVE: No items found in folder.");
-        return;
+        console.warn(">>> DRIVE: No items found in folder", folderId);
+        return registry;
     }
 
     for (const item of items) {
-        if (item.mimeType === "application/vnd.google-apps.folder") {
-            // Create a sub-object for this folder
-            target[item.name] = {};
-            await fetchAllDriveJson(item.id, target[item.name]);
-        } else if (item.name.endsWith(".json")) {
+        if (item.mimeType === "application/json" || item.name.endsWith(".json")) {
             const data = await fetchDriveJsonFile(item.id, item.name);
             if (data !== null) {
-                target[item.name] = data;
-                console.log(`>>> DRIVE: Loaded ${item.name}`);
+                registry[item.name] = data;
+                console.log(`>>> DRIVE: Loaded ${item.name} from ${folderId}`);
             }
         }
     }
-}
 
+    return registry;
+}
 </script>
 
+
+<!-- ========================================================= -->
+<!-- BLOCK 032: DRIVE_FETCH_ALL_JSON                           -->
+<!-- Purpose: Fetch mind, state, and briefcases from Drive     -->
+<!-- ========================================================= -->
+
+<script>
+async function fetchAllDriveJson() {
+    const folders = window.AIDA_DRIVE_FOLDERS;
+    const store   = window.AIDA_DRIVE_JSON;
+
+    console.log(">>> DRIVE: Fetching MIND (/json)...");
+    store.mind = await fetchFolderJsonFlat(folders.mind);
+
+    console.log(">>> DRIVE: Fetching STATE (/state)...");
+    store.state = await fetchFolderJsonFlat(folders.state);
+
+    console.log(">>> DRIVE: Fetching BRIEFCASES (/briefcases)...");
+    store.briefcases = await fetchFolderJsonFlat(folders.briefcases);
+
+    console.log(">>> DRIVE: All Drive JSON fetched.");
+}
+</script>
+
+
+
+<!-- ========================================================= -->
+<!-- BLOCK 033: DRIVE_OVERLAY_ON_FALLBACK                      -->
+<!-- Purpose: Overlay Drive JSON onto fallback structures      -->
+<!-- ========================================================= -->
 
 <!-- ========================================================= -->
 <!-- BLOCK 033: DRIVE_OVERLAY_ON_FALLBACK                      -->
@@ -1210,53 +1241,121 @@ async function fetchAllDriveJson(folderId = window.AIDA_DRIVE_JSON_FOLDER_ID, ta
 
 <script>
 function overlayDriveMind() {
-    const J = window.AIDA_DRIVE_JSON;
+    const J = window.AIDA_DRIVE_JSON || {};
+    const MIND  = J.mind  || {};
+    const STATE = J.state || {};
+    const CASES = J.briefcases || {};
 
-    function match(prefix) {
-        return Object.keys(J).find(name => name.startsWith(prefix));
+    function matchIn(obj, prefix) {
+        return Object.keys(obj).find(name => name.startsWith(prefix));
     }
 
-    // Identity
-    const idFile = match("core_identity");
-    if (idFile) window.AIDA_IDENTITY = J[idFile];
-    else window.AIDA_IDENTITY = window.AIDA_FALLBACK_IDENTITY;
+    // -------------------------
+    // IDENTITY
+    // Prefer runtime core_identity from /state, then mind, then fallback
+    // -------------------------
+    const coreIdFileState = matchIn(STATE, "core_identity");
+    const coreIdFileMind  = matchIn(MIND, "core_identity");
 
-    // Memory
-    const memFile = match("memory_summary");
-    if (memFile) window.AIDA_MEMORY = J[memFile];
-    else window.AIDA_MEMORY = window.AIDA_FALLBACK_MEMORY;
+    if (coreIdFileState) {
+        window.AIDA_IDENTITY = STATE[coreIdFileState];
+    } else if (coreIdFileMind) {
+        window.AIDA_IDENTITY = MIND[coreIdFileMind];
+    } else {
+        window.AIDA_IDENTITY = window.AIDA_FALLBACK_IDENTITY;
+    }
 
-    // Insights
-    const insFile = match("insights");
-    window.AIDA_INSIGHTS = insFile ? J[insFile] : window.AIDA_FALLBACK_INSIGHTS;
+    // -------------------------
+    // MEMORY SUMMARY
+    // -------------------------
+    const memFile = matchIn(MIND, "memory_summary");
+    window.AIDA_MEMORY = memFile ? MIND[memFile] : window.AIDA_FALLBACK_MEMORY;
 
-    // Facts
-    const factsFile = match("facts");
-    window.AIDA_FACTS = factsFile ? J[factsFile] : window.AIDA_FALLBACK_FACTS;
+    // -------------------------
+    // INSIGHTS
+    // -------------------------
+    const insFile = matchIn(MIND, "insights");
+    window.AIDA_INSIGHTS = insFile ? MIND[insFile] : window.AIDA_FALLBACK_INSIGHTS;
 
-    // Emotion
-    const emoFile = match("emotion_state");
-    window.AIDA_EMOTION_STATE = emoFile ? J[emoFile] : window.AIDA_FALLBACK_EMOTION_STATE;
+    // -------------------------
+    // FACTS
+    // -------------------------
+    const factsFile = matchIn(MIND, "facts");
+    window.AIDA_FACTS = factsFile ? MIND[factsFile] : window.AIDA_FALLBACK_FACTS;
 
-    // Realms
+    // -------------------------
+    // EMOTION STATE
+    // Prefer /state emotion_ctx or emotion_state, then mind, then fallback
+    // -------------------------
+    const emoCtxFile   = matchIn(STATE, "emotion_ctx");
+    const emoStateFile = matchIn(STATE, "emotion_state") || matchIn(MIND, "emotion_state");
+
+    if (emoCtxFile) {
+        window.AIDA_EMOTION_STATE = STATE[emoCtxFile];
+    } else if (emoStateFile) {
+        const src = STATE[emoStateFile] || MIND[emoStateFile];
+        window.AIDA_EMOTION_STATE = src;
+    } else {
+        window.AIDA_EMOTION_STATE = window.AIDA_FALLBACK_EMOTION_STATE;
+    }
+
+    // -------------------------
+    // REALM
+    // Prefer /state realm_* if present, else /json realm_*, else fallback
+    // Respect AIDA_REALM_LOCKED
+    // -------------------------
     if (!window.AIDA_REALM_LOCKED) {
-        const realmFile = match("realm_");
-        window.AIDA_REALM = realmFile ? J[realmFile] : window.AIDA_FALLBACK_REALM;
+        const realmFileState = matchIn(STATE, "realm_");
+        const realmFileMind  = matchIn(MIND, "realm_");
+
+        if (realmFileState) {
+            window.AIDA_REALM = STATE[realmFileState];
+        } else if (realmFileMind) {
+            window.AIDA_REALM = MIND[realmFileMind];
+        } else {
+            window.AIDA_REALM = window.AIDA_FALLBACK_REALM;
+        }
     }
 
+    // -------------------------
+    // ROLE
+    // Roles live in /json (mind)
+    // -------------------------
+    const roleFile = matchIn(MIND, "role_");
+    window.AIDA_ROLE = roleFile ? MIND[roleFile] : window.AIDA_FALLBACK_ROLE;
 
-    // Roles
-    const roleFile = match("role_");
-    window.AIDA_ROLE = roleFile ? J[roleFile] : window.AIDA_FALLBACK_ROLE;
+    // -------------------------
+    // PROJECTS / BRIEFCASES
+    // Map project_briefcase_*.json into AIDA_PROJECTS
+    // -------------------------
+    window.AIDA_PROJECTS = {};
+    Object.keys(CASES).forEach(name => {
+        if (name.startsWith("project_briefcase_") && name.endsWith(".json")) {
+            const key = name.replace("project_briefcase_", "").replace(".json", "");
+            window.AIDA_PROJECTS[key] = CASES[name];
+        }
+    });
 
-    // Projects / Briefcases
-    window.AIDA_PROJECTS = {}; // Will be populated in Section I
+    // -------------------------
+    // SESSION (LOG)
+    // -------------------------
+    const sessionFile = matchIn(MIND, "session_log");
+    window.AIDA_SESSION = sessionFile ? MIND[sessionFile] : window.AIDA_FALLBACK_SESSION;
 
-    // Session
-    const sessionFile = match("session_log");
-    window.AIDA_SESSION = sessionFile ? J[sessionFile] : window.AIDA_FALLBACK_SESSION;
+    // -------------------------
+    // RECENT TURNS (WORKING MEMORY)
+    // -------------------------
+    const recentFileState = matchIn(STATE, "recent_turns");
+    if (recentFileState) {
+        window.AIDA_RECENT_TURNS = STATE[recentFileState];
+    } else {
+        window.AIDA_RECENT_TURNS = window.AIDA_FALLBACK_RECENT_TURNS || [];
+    }
+
+    console.log(">>> DRIVE: Mind overlay complete.");
 }
 </script>
+
 
 <!-- ========================================================= -->
 <!-- BLOCK 034: DRIVE_READY_SIGNAL                             -->
@@ -1272,16 +1371,19 @@ async function initializeDriveMind() {
         return;
     }
 
-    console.log(">>> DRIVE: Fetching Drive mind...");
+    console.log(">>> DRIVE: Fetching Drive mind (mind/state/briefcases)...");
     await fetchAllDriveJson();
     overlayDriveMind();
 
     window.AIDA_DRIVE_READY = true;
     console.log(">>> DRIVE: Mind ready.");
 
-    // ⭐ Start Python Mind
-    initializePythonMind();
-
+    // ⭐ Start Python Mind (Tetrad, etc.)
+    if (typeof initializePythonMind === "function") {
+        initializePythonMind();
+    } else {
+        console.warn(">>> DRIVE: initializePythonMind() not defined yet.");
+    }
 }
 </script>
 
