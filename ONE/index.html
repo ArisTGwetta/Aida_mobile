@@ -1456,6 +1456,42 @@ function overlayDriveMind() {
     } else {
         window.AIDA_RECENT_TURNS = window.AIDA_FALLBACK_RECENT_TURNS || [];
     }
+    
+    // =========================================================
+    // ACTIVE MIND INITIALIZATION (CRITICAL)
+    // =========================================================
+
+    // 1. Load awake.json pointer
+    const awakeFile = matchIn(MIND, "awake");
+    const awake = awakeFile ? MIND[awakeFile] : {};
+
+    // 2. Identity already set above
+
+    // 3. Realm (use awake pointer if available)
+    if (awake.realm_pointer && STATE[awake.realm_pointer]) {
+        window.AIDA_REALM = STATE[awake.realm_pointer];
+    } else {
+        // fallback: first realm in STATE
+        const realmKey = matchIn(STATE, "realm_");
+        window.AIDA_REALM = realmKey ? STATE[realmKey] : window.AIDA_FALLBACK_REALM;
+    }
+
+    // 4. Role (use awake pointer if available)
+    if (awake.role_pointer && MIND[awake.role_pointer]) {
+        window.AIDA_ROLE = MIND[awake.role_pointer];
+    } else {
+        const roleKey = matchIn(MIND, "role_");
+        window.AIDA_ROLE = roleKey ? MIND[roleKey] : window.AIDA_FALLBACK_ROLE;
+    }
+
+    // 5. Emotion (already set above, but ensure fallback)
+    window.AIDA_EMOTION_STATE = window.AIDA_EMOTION_STATE || window.AIDA_FALLBACK_EMOTION_STATE;
+
+    // 6. Active project (if awake.json defines one)
+    window.AIDA_ACTIVE_PROJECT = awake.project_pointer || null;
+
+    // 7. Unlock realm switching
+    window.AIDA_REALM_LOCKED = false;
 
     console.log(">>> DRIVE: Mind overlay complete.");
 }
