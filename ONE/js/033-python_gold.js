@@ -132,9 +132,7 @@ def select_emotion(*args, **kwargs):
                 "tetrad.py": typeof TETRAD_PY !== "undefined" ? TETRAD_PY : null,
                 "tetrad_chassis.py": typeof TETRAD_PY !== "undefined" ? TETRAD_PY : null,
                 // ⭐ Correct triad shim
-                "triad.py": `
-            from tetrad import assemble_tetrad as build_triads
-            `,
+                "triad.py": "from tetrad import assemble_tetrad as build_triads",
                 "butler.py": BUTLER_TRUCK,
                 "librarian.py": LIBRARIAN_TRUCK,
                 "crawler.py": typeof CRAWLER_PY !== "undefined" ? CRAWLER_PY : null,
