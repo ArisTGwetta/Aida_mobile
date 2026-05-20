@@ -164,82 +164,41 @@ def build_triads(identity, realm, role, emotion, session):
                 console.warn(">>> FS: Could not create triad bridge module:", e);
             }
 
-            // --- Core boot promise: load Pyodide + mount all organs ---
-window.AIDA_PY_BOOT_PROMISE = (async function () {
-    try {
-        biosLog("Beginning Python Boot Sequence...", "log-white");
-        console.log("[PYTHON] 033: Loading Pyodide runtime...");
-
-        const pyodide = await loadPyodide();
-        window.AIDA_PYODIDE = pyodide;
-        biosLog("Engine Warmed.", "log-amber");
-        console.log("[PYTHON] 033: Pyodide ready.");
-
-        // ---------------------------------------------------------
-        // ⭐ OVERRIDE logistics_hub BEFORE LOADING PY MODULES ⭐
-        // ---------------------------------------------------------
-        window.logistics_hub = {
-            getCurrentState() {
-                return {
-                    global: {
-                        core_identity: window.AIDA_IDENTITY
-                    },
-                    realm: {
-                        ...window.AIDA_REALM,
-                        emotion_state: window.AIDA_EMOTION_STATE
-                    },
-                    project: {
-                        ...window.AIDA_ROLE
-                    }
-                };
-            }
-        };
-
-        window.logistics_hub = {
-            // --- Core boot promise: load Pyodide + mount all organs ---
-        window.AIDA_PY_BOOT_PROMISE = (async function () {
-            try {
-                biosLog("Beginning Python Boot Sequence...", "log-white");
-                console.log("[PYTHON] 033: Loading Pyodide runtime...");
-
-                const pyodide = await loadPyodide();
-                window.AIDA_PYODIDE = pyodide;
-                biosLog("Engine Warmed.", "log-amber");
-                console.log("[PYTHON] 033: Pyodide ready.");
-
-                // ---------------------------------------------------------
-                // ⭐ OVERRIDE logistics_hub BEFORE LOADING PY MODULES ⭐
-                // ---------------------------------------------------------
-                window.logistics_hub = {
-                    getCurrentState() {
-                        return {
-                            global: {
-                                core_identity: window.AIDA_IDENTITY
-                            },
-                            realm: {
-                                ...window.AIDA_REALM,
-                                emotion_state: window.AIDA_EMOTION_STATE
-                            },
-                            project: {
-                                ...window.AIDA_ROLE
-                            }
-                        };
-                    }
-                };
-
-                window.logistics_hub.get_snapshot = function () {
-                    return {
-                        identity: window.AIDA_IDENTITY,
-                        realm: window.AIDA_REALM,
-                        role: window.AIDA_ROLE,
-                        emotion: window.AIDA_EMOTION_STATE,
-                        project: window.AIDA_ACTIVE_PROJECT || null,
-                        status: "synchronized"
+            // ---------------------------------------------------------
+            // ⭐ OVERRIDE logistics_hub WITH REAL JS MIND STATE ⭐
+            // ---------------------------------------------------------
+            window.logistics_hub = {
+                getCurrentState() {
+                    const state = {
+                        global: {
+                            core_identity: window.AIDA_IDENTITY
+                        },
+                        realm: {
+                            ...(window.AIDA_REALM || {}),
+                            emotion_state: window.AIDA_EMOTION_STATE
+                        },
+                        project: {
+                            ...(window.AIDA_ROLE || {})
+                        }
                     };
+                    console.log(">>> LOGISTICS_HUB.getCurrentState:", state);
+                    return state;
+                }
+            };
+
+            window.logistics_hub.get_snapshot = function () {
+                const snap = {
+                    identity: window.AIDA_IDENTITY,
+                    realm: window.AIDA_REALM,
+                    role: window.AIDA_ROLE,
+                    emotion: window.AIDA_EMOTION_STATE,
+                    project: window.AIDA_ACTIVE_PROJECT || null,
+                    status: "synchronized"
                 };
+                console.log(">>> LOGISTICS_HUB.get_snapshot:", snap);
+                return snap;
+            };
 
-
-            
             // ---------------------------------------------------------
             // TETRAD SNAPSHOT BRIDGE (JS → Python → JS)
             // ---------------------------------------------------------
@@ -281,10 +240,16 @@ print(">>> PY: TETRAD SNAPSHOT =", snapshot)
 snapshot
 `;
 
+                console.log(">>> JS: Calling py_get_tetrad_snapshot Python block...");
                 const result = await py.runPythonAsync(code);
                 console.log(">>> TETRAD SNAPSHOT (JS):", result);
 
-                window.updateTetradInspector(result);
+                if (typeof window.updateTetradInspector === "function") {
+                    window.updateTetradInspector(result);
+                } else {
+                    console.warn(">>> TETRAD: updateTetradInspector not defined.");
+                }
+
                 return result;
             };
 
