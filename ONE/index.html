@@ -2074,8 +2074,9 @@ function deliverOutput(text) {
 <script>
 async function processUserMessage(text) {
     console.log(">>> LOOP: User said:", text);
+
     // =========================================================
-    // FLEXIBLE NATURAL LANGUAGE REALM/PROJECT SWITCH
+    // FLEXIBLE NATURAL LANGUAGE REALM / PROJECT SWITCH
     // =========================================================
     const lower = text.toLowerCase();
 
@@ -2084,38 +2085,77 @@ async function processUserMessage(text) {
         let query = lower.split("switch")[1].trim();
         query = query.replace(/^to\s+/, "").trim();
 
-        // Search realms
+        // Gather all possible keys
         const realmKeys = Object.keys(AIDA_DRIVE_JSON.state || {});
         const briefKeys = Object.keys(AIDA_DRIVE_JSON.briefcases || {});
         const allKeys = [...realmKeys, ...briefKeys];
 
+        // Find best match
         const match = allKeys.find(k => k.toLowerCase().includes(query));
         if (!match) {
             deliverOutput(`[SYSTEM] No realm or project found matching: "${query}"`);
             return;
         }
 
-        // Load realm
+        console.log(">>> SWITCH MATCH:", match);
+
+        // -----------------------------------------------------
+        // REALM SWITCH
+        // -----------------------------------------------------
         if (match.startsWith("realm_")) {
             window.AIDA_REALM = AIDA_DRIVE_JSON.state[match];
+            console.log(">>> SWITCH: Loaded realm:", match);
         }
 
-        // Load briefcase
+        // -----------------------------------------------------
+        // PROJECT SWITCH (briefcase)
+        // -----------------------------------------------------
         if (match.startsWith("project_briefcase_")) {
-            window.AIDA_BRIEFCASE = AIDA_DRIVE_JSON.briefcases[match];
+            const brief = AIDA_DRIVE_JSON.briefcases[match];
+            window.AIDA_BRIEFCASE = brief;
+
+            console.log(">>> SWITCH: Loaded briefcase:", match);
+
+            // 1. Load realm pointer
+            if (brief.realm_pointer) {
+                window.AIDA_REALM = AIDA_DRIVE_JSON.state[brief.realm_pointer];
+                console.log(">>> SWITCH: Realm pointer ->", brief.realm_pointer);
+            }
+
+            // 2. Load role pointer
+            if (brief.role_pointer) {
+                window.AIDA_ROLE = AIDA_DRIVE_JSON.roles[brief.role_pointer];
+                console.log(">>> SWITCH: Role pointer ->", brief.role_pointer);
+            }
+
+            // 3. Load emotion pointer (optional)
+            if (brief.emotion_pointer) {
+                window.AIDA_EMOTION_STATE = AIDA_DRIVE_JSON.emotions[brief.emotion_pointer];
+                console.log(">>> SWITCH: Emotion pointer ->", brief.emotion_pointer);
+            }
         }
-        
+
+        // -----------------------------------------------------
+        // LOCK REALM (optional)
+        // -----------------------------------------------------
         window.AIDA_REALM_LOCKED = true;
 
-        // Recompute Tetrad
+        // -----------------------------------------------------
+        // RECOMPUTE TETRAD
+        // -----------------------------------------------------
         const snap = await window.py_get_tetrad_snapshot();
+        window.AIDA_CONTEXT = snap;
+
+        // Update inspector
         window.updateTetradInspector(snap);
 
         deliverOutput(`[SYSTEM] Switched to: ${match}`);
         return;
     }
 
-
+    // =========================================================
+    // NORMAL MESSAGE FLOW
+    // =========================================================
 
     // 1. Mind pass (triad, butler, librarian, emotion)
     const mind = await runMindPass(text);
@@ -2131,16 +2171,13 @@ async function processUserMessage(text) {
 
 async function initializeConversationLoop() {
     console.log(">>> LOOP: Initializing conversation loop...");
-
-    // TEMP: log the flag so we see its value
     console.log(">>> LOOP: AIDA_PY_READY =", window.AIDA_PY_READY);
 
-    // 🚧 TEMPORARY: don't block on Python, just wire the input
     captureUserInput();
     console.log(">>> LOOP: Ready (input wired, Python may still be booting).");
-
 }
 </script>
+
 
 
 
