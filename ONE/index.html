@@ -2200,8 +2200,39 @@ async function processUserMessage(text) {
     const mind = await runMindPass(text);
     window.AIDA_MIND_OUTPUT = mind;
 
-    // 2. LLM pass
-    const llmText = await runLLMPass(text);
+    // 2. LLM pass (Python-first, JS fallback)
+    let llmText;
+
+    try {
+        if (window.AIDA_PY_READY && window.AIDA_PYODIDE) {
+            console.log(">>> LLM: Attempting Python engine (048)...");
+
+            const escaped = JSON.stringify(text); 
+            const apiKey = token_keeper.getOpenAIKey();
+
+            const pyResult = await window.AIDA_PYODIDE.runPythonAsync(`
+    from llm_engine_v1 import call_llm
+    await call_llm(${escaped}, "${apiKey}")
+            `);
+
+            if (pyResult && typeof pyResult === "string" && pyResult.trim() !== "") {
+                console.log(">>> LLM: Python engine responded.");
+                llmText = pyResult;
+            } else {
+                console.warn(">>> LLM: Python engine returned empty. Falling back to JS.");
+                llmText = await runLLMPass(text);
+            }
+
+        } else {
+            console.warn(">>> LLM: Python not ready. Using JS fallback.");
+            llmText = await runLLMPass(text);
+        }
+
+    } catch (e) {
+        console.error(">>> LLM: Python engine failed. Fallback to JS.", e);
+        llmText = await runLLMPass(text);
+    }
+
     window.AIDA_LLM_OUTPUT = llmText;
 
     // 3. Deliver output
