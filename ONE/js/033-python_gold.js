@@ -184,6 +184,16 @@ def build_triads(identity, realm, role, emotion, session):
                 }
             };
 
+            window.logistics_hub.get_snapshot = function () {
+                return {
+                    identity: window.AIDA_IDENTITY,
+                    realm: window.AIDA_REALM,
+                    role: window.AIDA_ROLE,
+                    emotion: window.AIDA_EMOTION_STATE,
+                    project: window.AIDA_ACTIVE_PROJECT || null,
+                    status: "synchronized"
+                };
+            };
             // ---------------------------------------------------------
             // TETRAD SNAPSHOT BRIDGE (JS → Python → JS)
             // ---------------------------------------------------------
