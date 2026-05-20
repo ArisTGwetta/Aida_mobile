@@ -645,8 +645,53 @@ window.updateTetradInspector = function (snapshot) {
 
     panel.style.display = "block";
 
-    content.textContent = JSON.stringify(snapshot, null, 2);
+    // Extract fields safely
+    const identity = snapshot.identity || {};
+    const realm    = snapshot.realm || {};
+    const role     = snapshot.role || {};
+    const emotion  = snapshot.emotion || {};
+    const status   = snapshot.status || "unknown";
+
+    // Active project (from Drive briefcases)
+    const activeProject = window.AIDA_REALM?.project_briefcase_pointer
+        || "none";
+
+    // Build a readable inspector
+    const html = `
+        <div class="tetrad-section">
+            <h3>Identity</h3>
+            <pre>${JSON.stringify(identity, null, 2)}</pre>
+        </div>
+
+        <div class="tetrad-section">
+            <h3>Realm</h3>
+            <pre>${JSON.stringify(realm, null, 2)}</pre>
+        </div>
+
+        <div class="tetrad-section">
+            <h3>Role</h3>
+            <pre>${JSON.stringify(role, null, 2)}</pre>
+        </div>
+
+        <div class="tetrad-section">
+            <h3>Emotion</h3>
+            <pre>${JSON.stringify(emotion, null, 2)}</pre>
+        </div>
+
+        <div class="tetrad-section">
+            <h3>Active Project</h3>
+            <pre>${activeProject}</pre>
+        </div>
+
+        <div class="tetrad-section">
+            <h3>Status</h3>
+            <pre>${status}</pre>
+        </div>
+    `;
+
+    content.innerHTML = html;
 };
+
 
 function handleOAuthResponse(resp) {
     if (!resp || !resp.access_token) {
