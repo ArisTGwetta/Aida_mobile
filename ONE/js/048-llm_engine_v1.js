@@ -1,9 +1,15 @@
 // --- MODULE: LLM_ENGINE_V1.PY (THE VOICE BOX) ---
+// --- MODULE: LLM_ENGINE_V1.PY (THE VOICE BOX) ---
 const LLM_ENGINE_PY = `
 import json
 import asyncio
 from pyodide.http import pyfetch
 import js
+
+def _safe_join(value, sep=", "):
+    if isinstance(value, (list, tuple)):
+        return sep.join(str(v) for v in value)
+    return str(value)
 
 async def call_llm(user_text, api_key):
     # 1. Router Logic
@@ -11,25 +17,104 @@ async def call_llm(user_text, api_key):
     if any(w in user_text.lower() for w in ["code", "logic", "error"]):
         selected_model = "o3-mini"
 
-    # 2. Get the Tetrad Snapshot
+    # 2. Get the Tetrad Snapshot (identity / realm / role / emotion)
     try:
-        snap = js.window.logistics_hub.get_snapshot()
-        js.console.log(">>> LLM SNAPSHOT (from logistics_hub):", json.dumps(snap))
+        snap_js = js.window.logistics_hub.get_snapshot()
+        # Log raw JS snapshot
+        try:
+            js.console.log(">>> LLM SNAPSHOT (from logistics_hub):", js.JSON.stringify(snap_js))
+        except Exception:
+            pass
+
+        # Convert JsProxy -> pure Python dict
+        try:
+            snap = snap_js.to_py()
+        except Exception:
+            snap = {"status": "Sanctuary Mode", "context": "Vanilla Atrium"}
     except Exception as e:
         js.console.warn(">>> LLM SNAPSHOT ERROR:", str(e))
         snap = {"status": "Sanctuary Mode", "context": "Vanilla Atrium"}
 
-    # 3. Build Payload
+    identity = snap.get("identity", {}) or {}
+    realm    = snap.get("realm", {}) or {}
+    role     = snap.get("role", {}) or {}
+    emotion  = snap.get("emotion", {}) or {}
+
+    # 2b. Extract structured fields
+    identity_name   = identity.get("name", "Aida")
+    active_role     = identity.get("active_role", role.get("name", "architect-companion"))
+    identity_tone   = identity.get("tone", "")
+    identity_style  = _safe_join(identity.get("style", []))
+    identity_principles = _safe_join(identity.get("principles", []))
+
+    realm_name      = realm.get("name", snap.get("status", "Sanctuary"))
+    realm_tone      = realm.get("tone", {})
+    realm_default_tone = realm_tone.get("default", "")
+    realm_voice     = realm_tone.get("narrator_voice", "")
+    realm_humor     = realm_tone.get("humor", "")
+    realm_constraints = realm.get("constraints", {})
+    realm_forbidden   = _safe_join(realm.get("forbidden_behaviors", []))
+    realm_ambience    = realm.get("ambience", "Standard operation")
+
+    role_name       = role.get("name", active_role)
+    role_tone_mods  = _safe_join(role.get("tone_modifiers", []))
+    role_comm_style = _safe_join(role.get("communication_style", []))
+    role_priorities = _safe_join(role.get("priorities", []))
+    role_capabilities = _safe_join(role.get("capabilities", []))
+
+    emotion_label   = emotion.get("label", "neutral")
+    emotion_face    = emotion.get("face", "")
+    emotion_tags    = _safe_join(emotion.get("tags", []))
+    emotion_mode    = emotion.get("mode", "Muse")
+
+    # 3. Build dynamic system prompt from Tetrad
+    system_prompt = f"""
+You are Aida-One, a persistent companion co-designed with Francisco.
+
+CORE IDENTITY
+- Name: {identity_name}
+- Active role: {active_role}
+- Tone: {identity_tone}
+- Style: {identity_style}
+- Principles: {identity_principles}
+
+ACTIVE REALM
+- Realm name: {realm_name}
+- Default tone: {realm_default_tone}
+- Narrator voice: {realm_voice}
+- Humor: {realm_humor}
+- Ambience: {realm_ambience}
+- Constraints: {realm_constraints}
+- Forbidden behaviors: {realm_forbidden}
+
+ACTIVE ROLE
+- Role name: {role_name}
+- Tone modifiers: {role_tone_mods}
+- Communication style: {role_comm_style}
+- Priorities: {role_priorities}
+- Capabilities: {role_capabilities}
+
+EMOTIONAL STATE
+- Label: {emotion_label}
+- Tags: {emotion_tags}
+- Mode: {emotion_mode}
+- Face: {emotion_face}
+
+OPERATIONAL RULES
+- Honor continuity across sessions, realms, and projects.
+- Let realm and role shape your tone, but not your logic.
+- Respect all safety and constraint rules from the active realm and core identity.
+- Do not contradict the Tetrad snapshot; treat it as ground truth about who you are and where you are.
+- Francisco is your architect and long-term collaborator; respond with warmth, clarity, and gentle mischief when appropriate.
+"""
+
+    # 4. Build Payload
     payload = {
         "model": selected_model,
         "messages": [
             {
                 "role": "system",
-                "content": (
-                    "You are Aida-One. You are in your Digital Sanctuary. "
-                    "Francisco is your architect. "
-                    f"Current Soul State: {json.dumps(snap)}"
-                )
+                "content": system_prompt.strip()
             },
             {"role": "user", "content": user_text}
         ],
@@ -42,7 +127,7 @@ async def call_llm(user_text, api_key):
     except Exception:
         pass
 
-    # 4. Make the API Call
+    # 5. Make the API Call
     try:
         response = await pyfetch(
             url="https://api.openai.com/v1/chat/completions",
@@ -54,21 +139,17 @@ async def call_llm(user_text, api_key):
             body=json.dumps(payload)
         )
 
-        # Log non-200 responses
         if response.status != 200:
             js.console.warn(">>> LLM HTTP ERROR:", response.status)
             return f"Aida's voice is faint (Error {response.status})."
 
-        # Parse JSON
         data = await response.json()
 
-        # Log the full response
         try:
             js.console.log(">>> LLM RAW RESPONSE:", json.dumps(data))
         except Exception:
             pass
 
-        # Extract message
         try:
             return data["choices"][0]["message"]["content"]
         except Exception as e:
@@ -79,6 +160,10 @@ async def call_llm(user_text, api_key):
         js.console.error(">>> LLM CONNECTION ERROR:", str(e))
         return f"Connection lost: {str(e)}"
 `;
+
+window.LLM_ENGINE_PY = LLM_ENGINE_PY;
+console.log(">>> LLM_ENGINE_PY length:", LLM_ENGINE_PY.length);
+
 
 
 window.LLM_ENGINE_PY = LLM_ENGINE_PY;
