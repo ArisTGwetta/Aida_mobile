@@ -1198,6 +1198,19 @@ window.getActiveRolePointer = function(brief) {
     // 4. Final fallback
     return "role_core_identity.json";
 };
+
+window.setRoleOverride = function(roleName) {
+    window.AIDA_ROLE_OVERRIDE = roleName;
+    console.log("[AIDA] Role override set to:", roleName);
+};
+
+window.clearRoleOverride = function() {
+    window.AIDA_ROLE_OVERRIDE = null;
+    console.log("[AIDA] Role override cleared.");
+};
+
+
+
 </script>
 
 
