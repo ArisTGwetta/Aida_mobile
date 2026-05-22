@@ -2145,13 +2145,6 @@ async function processUserMessage(text) {
         if (match.startsWith("realm_")) {
             window.AIDA_REALM = AIDA_DRIVE_JSON.state[match];
             console.log(">>> SWITCH: Loaded realm:", match);
-            if (window.logistics_hub && window.logistics_hub.updateState) {
-            window.logistics_hub.updateState({
-                realm: window.AIDA_REALM,
-                role: window.AIDA_ROLE,
-                emotion: window.AIDA_EMOTION_STATE,
-                project: window.AIDA_BRIEFCASE
-            });
         }
 
         // -----------------------------------------------------
@@ -2179,16 +2172,20 @@ async function processUserMessage(text) {
             if (brief.emotion_pointer) {
                 window.AIDA_EMOTION_STATE = AIDA_DRIVE_JSON.emotions[brief.emotion_pointer];
                 console.log(">>> SWITCH: Emotion pointer ->", brief.emotion_pointer);
-            
-            if (window.logistics_hub && window.logistics_hub.updateState) {
-                window.logistics_hub.updateState({
-                    realm: window.AIDA_REALM,
-                    role: window.AIDA_ROLE,
-                    emotion: window.AIDA_EMOTION_STATE,
-                    project: window.AIDA_BRIEFCASE
-                });
             }
-}
+        }
+
+        // -----------------------------------------------------
+        // UPDATE LOGISTICS HUB (realm/role/emotion/project)
+        // -----------------------------------------------------
+        if (window.logistics_hub && window.logistics_hub.updateState) {
+            window.logistics_hub.updateState({
+                realm: window.AIDA_REALM,
+                role: window.AIDA_ROLE,
+                emotion: window.AIDA_EMOTION_STATE,
+                project: window.AIDA_BRIEFCASE
+            });
+        }
 
         // -----------------------------------------------------
         // LOCK REALM (optional)
@@ -2201,7 +2198,7 @@ async function processUserMessage(text) {
         const snap = await window.py_get_tetrad_snapshot();
         window.AIDA_CONTEXT = snap;
 
-        // Update inspector
+        // Update inspector (PyProxy → JS object)
         const pure = snap && snap.to_py ? snap.to_py() : snap;
         window.updateTetradInspector(pure);
 
@@ -2264,7 +2261,7 @@ async function initializeConversationLoop() {
     // =========================================================
     try {
         console.log(">>> LOOP: Waiting for OpenAI key...");
-        await token_keeper.waitForKey();   // <-- THIS IS THE FIX
+        await token_keeper.waitForKey();
         console.log(">>> LOOP: OpenAI key is ready.");
     } catch (e) {
         console.warn(">>> LOOP: Key wait failed:", e);
@@ -2275,8 +2272,8 @@ async function initializeConversationLoop() {
     captureUserInput();
     console.log(">>> LOOP: Ready (input wired, Python may still be booting).");
 }
-
 </script>
+
 
 
 
