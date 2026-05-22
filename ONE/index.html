@@ -2241,11 +2241,24 @@ async function processUserMessage(text) {
 
 async function initializeConversationLoop() {
     console.log(">>> LOOP: Initializing conversation loop...");
+
+    // =========================================================
+    // WAIT FOR OPENAI KEY BEFORE ALLOWING ANY LLM CALLS
+    // =========================================================
+    try {
+        console.log(">>> LOOP: Waiting for OpenAI key...");
+        await token_keeper.waitForKey();   // <-- THIS IS THE FIX
+        console.log(">>> LOOP: OpenAI key is ready.");
+    } catch (e) {
+        console.warn(">>> LOOP: Key wait failed:", e);
+    }
+
     console.log(">>> LOOP: AIDA_PY_READY =", window.AIDA_PY_READY);
 
     captureUserInput();
     console.log(">>> LOOP: Ready (input wired, Python may still be booting).");
 }
+
 </script>
 
 
