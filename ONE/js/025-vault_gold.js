@@ -32,14 +32,54 @@ window.token_keeper = (function() {
         } : {};
     }
 
+    
     return {
-        init, setDriveToken, setRefreshToken, setOpenAIKey,
-        getDriveToken: () => driveToken,
-        getRefreshToken: () => refreshToken,
-        getOpenAIKey: () => openaiKey,
-        driveHeaders, openaiHeaders
-    };
+    init,
+    setDriveToken,
+    setRefreshToken,
+    setOpenAIKey,
+
+    getDriveToken: () => driveToken,
+    getRefreshToken: () => refreshToken,
+    getOpenAIKey: () => openaiKey,
+
+    driveHeaders,
+    openaiHeaders,
+
+    // =========================================================
+    // WAIT FOR KEY — resolves only when the OpenAI key exists
+    // =========================================================
+    waitForKey: function () {
+        return new Promise((resolve, reject) => {
+            let attempts = 0;
+
+            const check = () => {
+                attempts++;
+
+                try {
+                    const key = openaiKey;
+                    if (key && typeof key === "string" && key.startsWith("sk-")) {
+                        resolve(key);
+                        return;
+                    }
+                } catch (e) {
+                    // ignore and retry
+                }
+
+                if (attempts > 200) {   // ~2 seconds at 10ms
+                    reject("OpenAI key not ready after waiting.");
+                    return;
+                }
+
+                setTimeout(check, 10);
+            };
+
+            check();
+        });
+    }
+};
 })();
+
 
 // Immediate Init
 window.token_keeper.init();
