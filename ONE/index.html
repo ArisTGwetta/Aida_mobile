@@ -1179,27 +1179,27 @@ window.AIDA_FALLBACK_ROLE = {
 <script>
 window.AIDA_ROLE_OVERRIDE = null;
 
-window.setRoleOverride = function(roleName) {
-    window.AIDA_ROLE_OVERRIDE = roleName;
-    console.log("[AIDA] Role override set to:", roleName);
-};
-
-window.clearRoleOverride = function() {
-    window.AIDA_ROLE_OVERRIDE = null;
-    console.log("[AIDA] Role override cleared.");
-};
-
 window.getActiveRolePointer = function(brief) {
+    // 1. Override wins
     if (window.AIDA_ROLE_OVERRIDE) {
         return window.AIDA_ROLE_OVERRIDE;
     }
+
+    // 2. Briefcase default
     if (brief && brief.role_pointer) {
         return brief.role_pointer;
     }
+
+    // 3. If AIDA_ROLE exists, use its pointer
+    if (window.AIDA_ROLE && window.AIDA_ROLE.role_pointer) {
+        return window.AIDA_ROLE.role_pointer;
+    }
+
+    // 4. Final fallback
     return "role_core_identity.json";
 };
-
 </script>
+
 
 <!-- ========================================================= -->
 <!-- BLOCK 027: FALLBACK_PROJECTS                              -->
