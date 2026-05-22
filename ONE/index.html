@@ -1678,7 +1678,9 @@ async function initializePythonMind() {
     console.log(">>> PY: Mind assembled. AIDA_CONTEXT is live.");
     
     const snap = await window.py_get_tetrad_snapshot();
-    window.updateTetradInspector(snap);
+    const pure = snap && snap.to_py ? snap.to_py() : snap;
+    window.updateTetradInspector(pure);
+
 
 }
 </script>
