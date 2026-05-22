@@ -1568,6 +1568,8 @@ async function initializeDriveMind() {
     console.log(">>> AVAILABLE ROLES:", Object.keys(AIDA_DRIVE_JSON.roles || {}));
     console.log(">>> AVAILABLE REALMS:", Object.keys(AIDA_DRIVE_JSON.state || {}));
     console.log(">>> AVAILABLE BRIEFCASES:", Object.keys(AIDA_DRIVE_JSON.briefcases || {}));
+    console.log(">>> DRIVE JSON STRUCTURE:", AIDA_DRIVE_JSON);
+
 
     // ⭐ Start Python Mind (Tetrad, etc.)
     if (typeof initializePythonMind === "function") {
