@@ -2195,14 +2195,17 @@ async function processUserMessage(text) {
         window.AIDA_REALM_LOCKED = true;
 
         // -----------------------------------------------------
-        // RECOMPUTE TETRAD
+        // RECOMPUTE TETRAD (after Logistics Hub update)
         // -----------------------------------------------------
         const snap = await window.py_get_tetrad_snapshot();
         window.AIDA_CONTEXT = snap;
 
-        // Update inspector (PyProxy → JS object)
+        // -----------------------------------------------------
+        // UPDATE INSPECTOR (PyProxy → JS object)
+        // -----------------------------------------------------
         const pure = snap && snap.to_py ? snap.to_py() : snap;
         window.updateTetradInspector(pure);
+
 
         deliverOutput(`[SYSTEM] Switched to: ${match}`);
         return;
