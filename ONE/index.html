@@ -789,6 +789,11 @@ function handleOAuthResponse(resp) {
     console.log(">>> DRIVE: Starting Drive Mind...");
     initializeDriveMind();
 }
+
+console.log(">>> AVAILABLE ROLES:", Object.keys(AIDA_DRIVE_JSON.roles));
+console.log(">>> AVAILABLE REALMS:", Object.keys(AIDA_DRIVE_JSON.state));
+console.log(">>> AVAILABLE BRIEFCASES:", Object.keys(AIDA_DRIVE_JSON.briefcases));
+
 </script>
 
 
@@ -2194,11 +2199,15 @@ async function processUserMessage(text) {
         // -----------------------------------------------------
         // PROJECT SWITCH (briefcase)
         // -----------------------------------------------------
+        
         if (match.startsWith("project_briefcase_")) {
             const brief = AIDA_DRIVE_JSON.briefcases[match];
             window.AIDA_BRIEFCASE = brief;
 
             console.log(">>> SWITCH: Loaded briefcase:", match);
+
+            // CLEAR ROLE OVERRIDE ON PROJECT SWITCH
+            window.clearRoleOverride();
 
             // 1. Load realm pointer
             if (brief.realm_pointer) {
@@ -2207,10 +2216,9 @@ async function processUserMessage(text) {
             }
 
             // 2. Load role pointer (with override)
-                const activeRolePointer = window.getActiveRolePointer(brief);
-                window.AIDA_ROLE = AIDA_DRIVE_JSON.roles[activeRolePointer];
-                console.log(">>> SWITCH: Role pointer ->", activeRolePointer);
-            
+            const activeRolePointer = window.getActiveRolePointer(brief);
+            window.AIDA_ROLE = AIDA_DRIVE_JSON.roles[activeRolePointer];
+            console.log(">>> SWITCH: Role pointer ->", activeRolePointer);
 
             // 3. Load emotion pointer (optional)
             if (brief.emotion_pointer) {
@@ -2218,6 +2226,7 @@ async function processUserMessage(text) {
                 console.log(">>> SWITCH: Emotion pointer ->", brief.emotion_pointer);
             }
         }
+
 
         // -----------------------------------------------------
         // UPDATE LOGISTICS HUB (realm/role/emotion/project)
