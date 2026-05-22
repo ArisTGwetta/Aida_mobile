@@ -1173,6 +1173,35 @@ window.AIDA_FALLBACK_ROLE = {
 </script>
 
 <!-- ========================================================= -->
+<!-- Role Override                        -->
+<!-- ========================================================= -->
+
+<script>
+window.AIDA_ROLE_OVERRIDE = null;
+
+window.setRoleOverride = function(roleName) {
+    window.AIDA_ROLE_OVERRIDE = roleName;
+    console.log("[AIDA] Role override set to:", roleName);
+};
+
+window.clearRoleOverride = function() {
+    window.AIDA_ROLE_OVERRIDE = null;
+    console.log("[AIDA] Role override cleared.");
+};
+
+window.getActiveRolePointer = function(brief) {
+    if (window.AIDA_ROLE_OVERRIDE) {
+        return window.AIDA_ROLE_OVERRIDE;
+    }
+    if (brief && brief.role_pointer) {
+        return brief.role_pointer;
+    }
+    return "role_core_identity.json";
+};
+
+</script>
+
+<!-- ========================================================= -->
 <!-- BLOCK 027: FALLBACK_PROJECTS                              -->
 <!-- Purpose: Local project briefcases for offline boot        -->
 <!-- Inputs: None                                              -->
@@ -2164,11 +2193,11 @@ async function processUserMessage(text) {
                 console.log(">>> SWITCH: Realm pointer ->", brief.realm_pointer);
             }
 
-            // 2. Load role pointer
-            if (brief.role_pointer) {
-                window.AIDA_ROLE = AIDA_DRIVE_JSON.roles[brief.role_pointer];
-                console.log(">>> SWITCH: Role pointer ->", brief.role_pointer);
-            }
+            // 2. Load role pointer (with override)
+                const activeRolePointer = window.getActiveRolePointer(brief);
+                window.AIDA_ROLE = AIDA_DRIVE_JSON.roles[activeRolePointer];
+                console.log(">>> SWITCH: Role pointer ->", activeRolePointer);
+            
 
             // 3. Load emotion pointer (optional)
             if (brief.emotion_pointer) {
@@ -2208,6 +2237,8 @@ async function processUserMessage(text) {
 
 
         deliverOutput(`[SYSTEM] Switched to: ${match}`);
+        window.clearRoleOverride();
+
         return;
     }
 
