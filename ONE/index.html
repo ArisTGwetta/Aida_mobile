@@ -2221,7 +2221,7 @@ async function processUserMessage(text) {
 
             // 2. Load role pointer (with override)
             const activeRolePointer = window.getActiveRolePointer(brief);
-            window.AIDA_ROLE = AIDA_DRIVE_JSON.roles[activeRolePointer];
+            window.AIDA_ROLE = AIDA_DRIVE_JSON.mind[activeRolePointer];
             console.log(">>> SWITCH: Role pointer ->", activeRolePointer);
 
             // 3. Load emotion pointer (optional)
