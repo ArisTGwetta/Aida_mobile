@@ -790,10 +790,6 @@ function handleOAuthResponse(resp) {
     initializeDriveMind();
 }
 
-console.log(">>> AVAILABLE ROLES:", Object.keys(AIDA_DRIVE_JSON.roles));
-console.log(">>> AVAILABLE REALMS:", Object.keys(AIDA_DRIVE_JSON.state));
-console.log(">>> AVAILABLE BRIEFCASES:", Object.keys(AIDA_DRIVE_JSON.briefcases));
-
 </script>
 
 
@@ -1569,6 +1565,10 @@ async function initializeDriveMind() {
     window.AIDA_DRIVE_READY = true;
     console.log(">>> DRIVE: Mind ready.");
 
+    console.log(">>> AVAILABLE ROLES:", Object.keys(AIDA_DRIVE_JSON.roles));
+    console.log(">>> AVAILABLE REALMS:", Object.keys(AIDA_DRIVE_JSON.state));
+    console.log(">>> AVAILABLE BRIEFCASES:", Object.keys(AIDA_DRIVE_JSON.briefcases));
+
     // ⭐ Start Python Mind (Tetrad, etc.)
     if (typeof initializePythonMind === "function") {
         initializePythonMind();
@@ -2194,12 +2194,14 @@ async function processUserMessage(text) {
         if (match.startsWith("realm_")) {
             window.AIDA_REALM = AIDA_DRIVE_JSON.state[match];
             console.log(">>> SWITCH: Loaded realm:", match);
+
+            // CLEAR OVERRIDE ON REALM SWITCH
+            window.clearRoleOverride();
         }
 
         // -----------------------------------------------------
         // PROJECT SWITCH (briefcase)
         // -----------------------------------------------------
-        
         if (match.startsWith("project_briefcase_")) {
             const brief = AIDA_DRIVE_JSON.briefcases[match];
             window.AIDA_BRIEFCASE = brief;
@@ -2226,7 +2228,6 @@ async function processUserMessage(text) {
                 console.log(">>> SWITCH: Emotion pointer ->", brief.emotion_pointer);
             }
         }
-
 
         // -----------------------------------------------------
         // UPDATE LOGISTICS HUB (realm/role/emotion/project)
@@ -2257,10 +2258,7 @@ async function processUserMessage(text) {
         const pure = snap && snap.to_py ? snap.to_py() : snap;
         window.updateTetradInspector(pure);
 
-
         deliverOutput(`[SYSTEM] Switched to: ${match}`);
-        window.clearRoleOverride();
-
         return;
     }
 
