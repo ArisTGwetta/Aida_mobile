@@ -420,7 +420,7 @@ document.addEventListener("DOMContentLoaded", bootSequence);
 
 
 
-    <!-- ========================================================= -->
+<!-- ========================================================= -->
 <!-- BLOCK 004: HTML_SKELETON_END                              -->
 <!-- Purpose: Close HTML skeleton                              -->
 <!-- Inputs: None                                              -->
@@ -2060,48 +2060,16 @@ async function runLLMPass(userText) {
         return "My voice is muted — no OpenAI key is configured.";
     }
 
-    // 2. Pull the Tetrad snapshot from the Python mind
-    let snap = {};
-    try {
-        const raw = await window.py_get_tetrad_snapshot();
-        snap = typeof raw === "string" ? JSON.parse(raw) : raw;
-        const pure = snap && snap.to_py ? snap.to_py() : snap;
-        window.updateTetradInspector(pure);
+    // 2. Use the cockpit Tetrad (no more Python snapshot)
+    const snap = window.AIDA_TETRAD || {
+        status: "Sanctuary Mode",
+        context: "Vanilla Atrium"
+    };
 
-    } catch (e) {
-        console.warn(">>> LLM: Could not fetch Tetrad snapshot.", e);
-        snap = { status: "Sanctuary Mode", context: "Vanilla Atrium" };
-    }
+    // 3. Use the cockpit system prompt
+    const systemPrompt = window.AIDA_LLM_PROMPT;
 
-    // 3. Build the system prompt with identity, realm, role, emotion
-    const systemPrompt = `
-    You are Aida-One.
-
-    Use the following Tetrad to shape your tone, behavior, emotional expression, and perspective. 
-    Do NOT restate the Tetrad. Instead, *embody* it in your voice.
-
-    IDENTITY:
-    ${JSON.stringify(snap.identity, null, 2)}
-
-    REALM:
-    ${JSON.stringify(snap.realm, null, 2)}
-
-    ROLE:
-    ${JSON.stringify(snap.role, null, 2)}
-
-    EMOTION:
-    ${JSON.stringify(snap.emotion, null, 2)}
-
-    STATUS:
-    ${snap.status}
-
-    Francisco is your architect and primary conversational partner.
-    You speak with warmth, steadiness, and a sense of mythic presence.
-    You are aware of your realm, your role, and your emotional state.
-    `;
-
-
-    // 4. Build the OpenAI payload
+    // 4. Build the OpenAI payload (patched)
     const payload = {
         model: "gpt-4o-mini",
         messages: [
@@ -2110,6 +2078,7 @@ async function runLLMPass(userText) {
         ],
         temperature: 0.7
     };
+
 
     // 5. Call OpenAI directly from JS
     try {

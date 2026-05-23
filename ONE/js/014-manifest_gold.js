@@ -1,11 +1,164 @@
-/* AIDA MANIFEST GOLD v5.1 
-    Combines Blocks 10, 11, 12, 14, and 15.
-    Controls: Hologram Arrival, Aura Colors, and Realm Themes.
+/* AIDA MANIFEST GOLD v6.0
+   Cockpit: Active State, Tetrad Assembly, LLM Prompt, UI Themes
 */
+
+// =========================================================
+// ACTIVE STATE VARIABLES (GLOBAL COCKPIT)
+// =========================================================
+
+window.AIDA_ACTIVE_PROJECT = null;
+window.AIDA_ACTIVE_REALM = null;
+window.AIDA_ACTIVE_ROLE = null;
+window.AIDA_ROLE_OVERRIDE = false;
+window.AIDA_ACTIVE_EMOTION = null;
+window.AIDA_ACTIVE_IDENTITY = null;
+window.AIDA_ACTIVE_SAFETY = null;
+
+window.AIDA_TETRAD = {
+    identity: null,
+    realm: null,
+    role: null,
+    emotion: null,
+    safety: null
+};
+
+window.AIDA_LLM_PROMPT = "";
+
+
+// =========================================================
+// ACTIVE STATE SETTERS
+// =========================================================
+
+window.setActiveProject = function (projectJson) {
+    window.AIDA_ACTIVE_PROJECT = projectJson;
+
+    if (projectJson?.realm_pointer) {
+        window.AIDA_ACTIVE_REALM = window.DRIVE_MINDS?.realms?.[projectJson.realm_pointer] || null;
+    }
+
+    if (projectJson?.role_pointer) {
+        window.AIDA_ACTIVE_ROLE = window.DRIVE_MINDS?.roles?.[projectJson.role_pointer] || null;
+        window.AIDA_ROLE_OVERRIDE = false;
+    }
+
+    rebuildTetrad();
+};
+
+window.setActiveRole = function (roleJson) {
+    window.AIDA_ACTIVE_ROLE = roleJson;
+    window.AIDA_ROLE_OVERRIDE = true;
+    rebuildTetrad();
+};
+
+window.setActiveEmotion = function (emotionJson) {
+    window.AIDA_ACTIVE_EMOTION = emotionJson;
+    rebuildTetrad();
+};
+
+window.setActiveRealm = function (realmJson) {
+    window.AIDA_ACTIVE_REALM = realmJson;
+    rebuildTetrad();
+};
+
+
+// =========================================================
+// DIRECT TETRAD ASSEMBLY (NEW PIPELINE)
+// =========================================================
+
+window.runTetradAssembly = async function () {
+    try {
+        const core_identity = window.AIDA_ACTIVE_IDENTITY;
+        const realm_config  = window.AIDA_ACTIVE_REALM;
+        const role_config   = window.AIDA_ACTIVE_ROLE;
+        const emotion_state = window.AIDA_ACTIVE_EMOTION;
+
+        if (!core_identity || !realm_config || !role_config) {
+            console.warn(">>> TETRAD: Missing active state. Cannot assemble.");
+            return null;
+        }
+
+        const result = await window.AIDA_PYODIDE.runPythonAsync(`
+            import json
+            from tetrad_chassis import assemble_tetrad
+
+            core_identity = json.loads("""${JSON.stringify(core_identity)}""")
+            realm_config  = json.loads("""${JSON.stringify(realm_config)}""")
+            role_config   = json.loads("""${JSON.stringify(role_config)}""")
+            emotion_state = json.loads("""${JSON.stringify(emotion_state)}""")
+
+            json.dumps(assemble_tetrad(core_identity, realm_config, role_config, emotion_state))
+        `);
+
+        const parsed = JSON.parse(result);
+
+        window.AIDA_TETRAD = parsed;
+
+        if (window.updateTetradInspector) {
+            window.updateTetradInspector(parsed);
+        }
+        if (window.buildLLMPrompt) {
+            window.buildLLMPrompt();
+        }
+
+        return parsed;
+
+    } catch (err) {
+        console.error(">>> TETRAD: Python assembly error:", err);
+        return null;
+    }
+};
+
+
+// =========================================================
+// TETRAD REBUILDER (JS snapshot only)
+// =========================================================
+
+window.rebuildTetrad = function () {
+    window.AIDA_TETRAD = {
+        identity: window.AIDA_ACTIVE_IDENTITY,
+        realm: window.AIDA_ACTIVE_REALM,
+        role: window.AIDA_ACTIVE_ROLE,
+        emotion: window.AIDA_ACTIVE_EMOTION,
+        safety: window.AIDA_ACTIVE_SAFETY
+    };
+
+    buildLLMPrompt();
+    if (window.updateTetradInspector) {
+        window.updateTetradInspector(window.AIDA_TETRAD);
+    }
+};
+
+
+// =========================================================
+// LLM PROMPT BUILDER
+// =========================================================
+
+window.buildLLMPrompt = function () {
+    const t = window.AIDA_TETRAD;
+
+    window.AIDA_LLM_PROMPT = `
+IDENTITY:
+${JSON.stringify(t.identity || {}, null, 2)}
+
+REALM:
+${JSON.stringify(t.realm || {}, null, 2)}
+
+ROLE:
+${JSON.stringify(t.role || {}, null, 2)}
+
+EMOTION:
+${JSON.stringify(t.emotion || {}, null, 2)}
+
+SAFETY:
+${JSON.stringify(t.safety || {}, null, 2)}
+    `.trim();
+};
+
 
 // ---------------------------------------------------------
 //  1. COLOR & STYLE PROFILES
 // ---------------------------------------------------------
+
 const ColorProfiles = {
     neutral:     { beam: "#ffffff", glow: "#ffffff", accent: "#cccccc", bg: "#050509" },
     calm:        { beam: "#6fb7ff", glow: "#4a8fd6", accent: "#8fd0ff", bg: "#020814" },
@@ -43,6 +196,7 @@ const RealmThemes = {
     }
 };
 
+
 // ---------------------------------------------------------
 //  2. SELECTORS & LOGIC
 // ---------------------------------------------------------
@@ -70,6 +224,7 @@ function selectColorProfile(snap) {
     return ColorProfiles.neutral;
 }
 
+
 // ---------------------------------------------------------
 //  3. THE RENDERER HOOKS
 // ---------------------------------------------------------
@@ -95,6 +250,7 @@ function applyAura(profile) {
     root.style.setProperty("--aida-bg-color", profile.bg);
 }
 
+
 // ---------------------------------------------------------
 //  4. PUBLIC API
 // ---------------------------------------------------------
@@ -111,8 +267,7 @@ window.presentation_arrive = async function() {
     console.log(`[MANIFEST] Arriving as ${emotion} (${styleProfile.arrival})`);
     
     if (typeof window.aida_arrive === "function") {
-        window.aida_arrive(); 
-        // Future: window.aida_arrive_style(styleProfile.arrival);
+        window.aida_arrive();
     }
 };
 
@@ -128,9 +283,7 @@ window.presentation_depart = async function() {
     }
 };
 
-// Global trigger for realm changes
 window.run_realm_transition = async function() {
     const snap = await getTetrad();
     applyUITheme(snap);
-    // Add environment flash logic here if desired
 };
