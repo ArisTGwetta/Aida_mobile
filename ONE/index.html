@@ -415,11 +415,70 @@ document.getElementById("toggle-inspector").addEventListener("click", () => {
     const panel = document.getElementById("tetrad-inspector");
     panel.style.display = (panel.style.display === "none") ? "block" : "none";
 });
+</script>
 
+<script>
+// =========================================================
+// COCKPIT POPULATION FUNCTION
+// =========================================================
+function populateCockpit() {
+
+    // PROJECTS
+    const projSel = document.getElementById("cockpit-project");
+    projSel.innerHTML = "";
+    for (const [name, data] of Object.entries(window.DRIVE_MINDS.briefcases || {})) {
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        projSel.appendChild(opt);
+    }
+
+    // REALMS
+    const realmSel = document.getElementById("cockpit-realm");
+    realmSel.innerHTML = "";
+    for (const [name, data] of Object.entries(window.DRIVE_MINDS.mind || {})) {
+        if (name.startsWith("realm_")) {
+            const opt = document.createElement("option");
+            opt.value = name;
+            opt.textContent = name;
+            realmSel.appendChild(opt);
+        }
+    }
+
+    // ROLES
+    const roleSel = document.getElementById("cockpit-role");
+    roleSel.innerHTML = "";
+    for (const [name, data] of Object.entries(window.DRIVE_MINDS.mind || {})) {
+        if (name.startsWith("role_")) {
+            const opt = document.createElement("option");
+            opt.value = name;
+            opt.textContent = name;
+            roleSel.appendChild(opt);
+        }
+    }
+
+    // EMOTIONS
+    const emoSel = document.getElementById("cockpit-emotion");
+    emoSel.innerHTML = "";
+    const emotions = ["neutral", "calm", "excited", "angry", "mischievous", "ghost", "muse", "guide"];
+    emotions.forEach(e => {
+        const opt = document.createElement("option");
+        opt.value = e;
+        opt.textContent = e;
+        emoSel.appendChild(opt);
+    });
+
+    console.log(">>> COCKPIT: Populated.");
+}
+</script>
+
+<script>
 // RESET BUTTON
 document.getElementById("reset-project").addEventListener("click", () => {
     window.resetToProjectDefaults();
 });
+</script>
+
 </script>
 
         <!-- ENGINE -->
@@ -1642,6 +1701,8 @@ async function initializeDriveMind() {
 
     window.AIDA_DRIVE_READY = true;
     console.log(">>> DRIVE: Mind ready.");
+    populateCockpit();
+
 
     console.log(">>> AVAILABLE ROLES:", Object.keys(AIDA_DRIVE_JSON.roles || {}));
     console.log(">>> AVAILABLE REALMS:", Object.keys(AIDA_DRIVE_JSON.state || {}));
