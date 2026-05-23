@@ -1,5 +1,4 @@
 // --- MODULE: LLM_ENGINE_V1.PY (THE VOICE BOX) ---
-// --- MODULE: LLM_ENGINE_V1.PY (THE VOICE BOX) ---
 const LLM_ENGINE_PY = `
 import json
 import asyncio
@@ -164,8 +163,4 @@ OPERATIONAL RULES
 window.LLM_ENGINE_PY = LLM_ENGINE_PY;
 console.log(">>> LLM_ENGINE_PY length:", LLM_ENGINE_PY.length);
 
-
-
-window.LLM_ENGINE_PY = LLM_ENGINE_PY;
-console.log(">>> LLM_ENGINE_PY length:", LLM_ENGINE_PY.length);
 

@@ -338,10 +338,89 @@
         </button>
 
         <!-- TETRAD INSPECTOR PANEL -->
-        <div id="tetrad-inspector">
+        <div id="tetrad-inspector" style="
+            position: fixed;
+            top: 50px;
+            right: 10px;
+            width: 320px;
+            height: 80vh;
+            overflow-y: auto;
+            background: #0a0a0a;
+            border: 1px solid #333;
+            padding: 12px;
+            border-radius: 8px;
+            color: #eee;
+            font-family: monospace;
+            display: none;
+        ">
             <div style="font-weight:bold; margin-bottom:6px;">TETRAD INSPECTOR</div>
-            <div id="tetrad-inspector-content"></div>
+
+            <!-- LIVE TETRAD CONTENT -->
+            <div id="tetrad-inspector-content" style="
+                white-space: pre-wrap;
+                font-size: 12px;
+                line-height: 1.3em;
+                margin-bottom: 12px;
+            "></div>
+
+            <hr style="border:0; border-top:1px solid #444; margin:12px 0;">
+
+            <div style="font-weight:bold; margin-bottom:6px;">CONTROL PANEL</div>
+
+            <!-- PROJECT SELECTOR -->
+            <label>Project:</label>
+            <select id="cockpit-project" style="width:100%; margin-bottom:6px;"></select>
+
+            <!-- REALM SELECTOR -->
+            <label>Realm:</label>
+            <select id="cockpit-realm" style="width:100%; margin-bottom:6px;"></select>
+
+            <!-- ROLE SELECTOR -->
+            <label>Role:</label>
+            <select id="cockpit-role" style="width:100%; margin-bottom:6px;"></select>
+
+            <!-- EMOTION SELECTOR -->
+            <label>Emotion:</label>
+            <select id="cockpit-emotion" style="width:100%; margin-bottom:6px;"></select>
+
+            <!-- MODEL SELECTOR -->
+            <label>LLM Model:</label>
+            <select id="cockpit-model" style="width:100%; margin-bottom:6px;">
+                <option value="gpt-4o-mini">GPT‑4o‑mini (fast, cheap)</option>
+                <option value="gpt-4o">GPT‑4o (creative, emotional)</option>
+                <option value="o3-mini">o3‑mini (reasoning)</option>
+                <option value="claude-3-haiku">Claude 3 Haiku (fast)</option>
+                <option value="claude-3-sonnet">Claude 3 Sonnet (writing)</option>
+                <option value="claude-3-opus">Claude 3 Opus (deep)</option>
+                <option value="grok-2">Grok‑2 (playful)</option>
+            </select>
+
+            <!-- RESET BUTTON -->
+            <button id="reset-project" style="
+                width:100%; 
+                margin-top:10px; 
+                padding:6px; 
+                background:#222; 
+                color:#0f8; 
+                border:1px solid #0f8; 
+                border-radius:4px;
+                cursor:pointer;
+            ">
+                Reset to Project Defaults
+            </button>
         </div>
+<script>
+// INSPECTOR TOGGLE
+document.getElementById("toggle-inspector").addEventListener("click", () => {
+    const panel = document.getElementById("tetrad-inspector");
+    panel.style.display = (panel.style.display === "none") ? "block" : "none";
+});
+
+// RESET BUTTON
+document.getElementById("reset-project").addEventListener("click", () => {
+    window.resetToProjectDefaults();
+});
+</script>
 
         <!-- ENGINE -->
         <div id="main-engine">
@@ -354,10 +433,9 @@
             </div>
         </div>
     </div>
-
-<script>
-
-
+ 
+ 
+ <script>
 
 // BIOS logging helper
 function biosLog(msg) {

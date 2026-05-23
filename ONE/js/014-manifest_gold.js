@@ -128,6 +128,49 @@ window.rebuildTetrad = function () {
     }
 };
 
+// =========================================================
+// RESET TO PROJECT DEFAULTS
+// =========================================================
+
+window.resetToProjectDefaults = function () {
+    const proj = window.AIDA_ACTIVE_PROJECT;
+    if (!proj) {
+        console.warn(">>> RESET: No active project to reset.");
+        return;
+    }
+
+    // Reset realm
+    if (proj.realm_pointer) {
+        window.AIDA_ACTIVE_REALM = window.DRIVE_MINDS.realms[proj.realm_pointer] || null;
+    }
+
+    // Reset role
+    if (proj.role_pointer) {
+        window.AIDA_ACTIVE_ROLE = window.DRIVE_MINDS.roles[proj.role_pointer] || null;
+        window.AIDA_ROLE_OVERRIDE = false;
+    }
+
+    // Reset emotion to neutral
+    window.AIDA_ACTIVE_EMOTION = { label: "neutral", valence: 0, arousal: 0 };
+
+    // Rebuild Tetrad
+    window.rebuildTetrad();
+
+    console.log(">>> RESET: Project defaults restored.");
+};
+
+// =========================================================
+// INSPECTOR AUTO-REFRESH FIX
+// =========================================================
+
+window.updateTetradInspector = function (tetrad) {
+    const div = document.getElementById("tetrad-inspector-content");
+    if (!div) return;
+
+    div.textContent = JSON.stringify(tetrad, null, 2);
+};
+
+
 
 // =========================================================
 // LLM PROMPT BUILDER
