@@ -29,35 +29,67 @@ window.AIDA_LLM_PROMPT = "";
 // ACTIVE STATE SETTERS
 // =========================================================
 
-window.setActiveProject = function (projectJson) {
-    window.AIDA_ACTIVE_PROJECT = projectJson;
-
-    if (projectJson?.realm_pointer) {
-        window.AIDA_ACTIVE_REALM = window.DRIVE_MINDS?.realms?.[projectJson.realm_pointer] || null;
+window.setActiveProject = function (projectName) {
+    const proj = window.DRIVE_MINDS.briefcases[projectName];
+    if (!proj) {
+        console.warn(">>> PROJECT: Not found:", projectName);
+        return;
     }
 
-    if (projectJson?.role_pointer) {
-        window.AIDA_ACTIVE_ROLE = window.DRIVE_MINDS?.roles?.[projectJson.role_pointer] || null;
-        window.AIDA_ROLE_OVERRIDE = false;
+    window.AIDA_ACTIVE_PROJECT = proj;
+    console.log(">>> PROJECT: Active project set to:", projectName);
+
+    // Reset realm + role to project defaults if they exist
+    if (proj.realm_pointer) {
+        window.setActiveRealm(proj.realm_pointer);
+    }
+    if (proj.role_pointer) {
+        window.setActiveRole(proj.role_pointer);
     }
 
-    rebuildTetrad();
+    window.rebuildTetrad();
 };
 
-window.setActiveRole = function (roleJson) {
-    window.AIDA_ACTIVE_ROLE = roleJson;
-    window.AIDA_ROLE_OVERRIDE = true;
-    rebuildTetrad();
+window.setActiveRealm = function (realmName) {
+    const realm = window.DRIVE_MINDS.mind[realmName];
+    if (!realm) {
+        console.warn(">>> REALM: Not found:", realmName);
+        return;
+    }
+
+    window.AIDA_ACTIVE_REALM = realm;
+    console.log(">>> REALM: Active realm set to:", realmName);
+
+    window.rebuildTetrad();
 };
 
-window.setActiveEmotion = function (emotionJson) {
-    window.AIDA_ACTIVE_EMOTION = emotionJson;
-    rebuildTetrad();
+window.setActiveRole = function (roleName) {
+    const role = window.DRIVE_MINDS.mind[roleName];
+    if (!role) {
+        console.warn(">>> ROLE: Not found:", roleName);
+        return;
+    }
+
+    window.AIDA_ACTIVE_ROLE = role;
+    console.log(">>> ROLE: Active role set to:", roleName);
+
+    window.rebuildTetrad();
 };
 
-window.setActiveRealm = function (realmJson) {
-    window.AIDA_ACTIVE_REALM = realmJson;
-    rebuildTetrad();
+window.AIDA_PREVIOUS_EMOTION = null;
+
+window.setActiveEmotion = function (label) {
+    window.AIDA_PREVIOUS_EMOTION = window.AIDA_ACTIVE_EMOTION;
+
+    window.AIDA_ACTIVE_EMOTION = {
+        label: label,
+        valence: 0,
+        arousal: 0
+    };
+
+    console.log(">>> EMOTION:", window.AIDA_PREVIOUS_EMOTION?.label, "→", label);
+
+    window.rebuildTetrad();
 };
 
 

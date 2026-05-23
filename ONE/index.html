@@ -409,6 +409,7 @@
                 Reset to Project Defaults
             </button>
         </div>
+
 <script>
 // INSPECTOR TOGGLE
 document.getElementById("toggle-inspector").addEventListener("click", () => {
@@ -470,6 +471,38 @@ function populateCockpit() {
 
     console.log(">>> COCKPIT: Populated.");
 }
+</script>
+
+<script>
+// =========================================================
+// COCKPIT EVENT WIRING
+// =========================================================
+
+// PROJECT SELECTOR
+document.getElementById("cockpit-project").addEventListener("change", e => {
+    window.setActiveProject(e.target.value);
+});
+
+// REALM SELECTOR
+document.getElementById("cockpit-realm").addEventListener("change", e => {
+    window.setActiveRealm(e.target.value);
+});
+
+// ROLE SELECTOR
+document.getElementById("cockpit-role").addEventListener("change", e => {
+    window.setActiveRole(e.target.value);
+});
+
+// EMOTION SELECTOR
+document.getElementById("cockpit-emotion").addEventListener("change", e => {
+    window.setActiveEmotion(e.target.value);
+});
+
+// MODEL SELECTOR
+document.getElementById("cockpit-model").addEventListener("change", e => {
+    window.AIDA_ACTIVE_MODEL = e.target.value;
+    console.log(">>> MODEL: Active model set to:", e.target.value);
+});
 </script>
 
 <script>
