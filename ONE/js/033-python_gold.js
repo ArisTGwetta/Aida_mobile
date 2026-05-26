@@ -131,16 +131,13 @@ def select_emotion(*args, **kwargs):
                 "soul_sync_engine.py": typeof SOUL_SYNC_PY !== "undefined" ? SOUL_SYNC_PY : null,
                 "tetrad.py": typeof TETRAD_PY !== "undefined" ? TETRAD_PY : null,
                 "tetrad_chassis.py": typeof TETRAD_PY !== "undefined" ? TETRAD_PY : null,
-                // ⭐ Correct triad shim
                 "triad.py": "from tetrad import assemble_tetrad\n\ndef build_triads(identity, realm, role, emotion, status=None):\n    return assemble_tetrad(identity, realm, role, emotion)",
-
                 "butler.py": BUTLER_TRUCK,
                 "librarian.py": LIBRARIAN_TRUCK,
                 "crawler.py": typeof CRAWLER_PY !== "undefined" ? CRAWLER_PY : null,
                 "llm_engine_v1.py": typeof LLM_ENGINE_PY !== "undefined" ? LLM_ENGINE_PY : null
             };
 
-            // 1. Write all modules into Pyodide FS
             for (const [filename, content] of Object.entries(AIDA_MODULES)) {
                 if (content) {
                     await pyodide.FS.writeFile(filename, content);
@@ -150,9 +147,7 @@ def select_emotion(*args, **kwargs):
                 }
             }
 
-            // 2. NOW invalidate caches so Python reloads the new versions
             pyodide.runPython("import importlib; importlib.invalidate_caches()");
-
             biosLog("Cognitive Organs Synchronized.", "log-blue");
 
             // ---------------------------------------------------------
@@ -170,6 +165,11 @@ def select_emotion(*args, **kwargs):
                         },
                         project: {
                             ...(window.AIDA_ROLE || {})
+                        },
+                        // ⭐ NEW: Session gap for While‑Away organ
+                        session: window.AIDA_SESSION_GAP || {
+                            last_active: null,
+                            now: new Date().toISOString()
                         }
                     };
                     console.log(">>> LOGISTICS_HUB.getCurrentState:", state);
@@ -296,4 +296,3 @@ worker.run(payload_path="${payload}", output_path="${output}")
 
     console.log("[PYTHON] 033: Giant organ pack wired.");
 })();
-

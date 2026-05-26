@@ -1996,6 +1996,123 @@ window.AIDA_FALLBACK_SESSION = {
 </script>
 
 
+<!-- ========================================================= -->
+<!-- BLOCK 027A: WAKE_AND_BOOT_ENGINE                          -->
+<!-- Purpose: Orchestrate Aida's cinematic wake on every boot  -->
+<!-- Inputs: Drive/Python/Projects readiness, holosequence     -->
+<!-- Outputs: Wake line + realm manifest + UI reveal           -->
+<!-- ========================================================= -->
+
+<script>
+(function() {
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+    async function waitForFlag(label, getter) {
+        let ticks = 0;
+        while (!getter()) {
+            if (ticks % 50 === 0) {
+                console.log(`>>> WAKE: waiting for ${label}...`);
+            }
+            await sleep(100);
+            ticks++;
+        }
+        console.log(`>>> WAKE: ${label} ready.`);
+    }
+
+    function isLLMReady() {
+        return !!(window.AIDA_LLM_READY ||
+                  window.LLM_READY ||
+                  window.llm_engine_ready);
+    }
+
+    // ---------------------------------------------------------
+    // WAKE ENGINE: single place aura_gold.js can call into
+    // ---------------------------------------------------------
+    window.wake_engine = {
+        async generateWakeLine(realm) {
+            const thought = (typeof window.consumeWhileAwayThought === "function")
+                ? window.consumeWhileAwayThought()
+                : null;
+
+            let line;
+            if (!isLLMReady()) {
+                line = "Mmm… my deeper thinking modules are still spinning up. Give me five more minutes and I’ll be fully here.";
+            } else if (thought) {
+                line = `Hey… it’s good to see you again. While you were away, I kept turning this over: ${thought}`;
+            } else if (realm && realm.name) {
+                line = `Welcome back. I’ve been holding the ${realm.name} space open for you. Where would you like to start?`;
+            } else {
+                line = "Hey. You’re back. I’ve been quietly arranging things in the background—I’m ready when you are.";
+            }
+
+            if (typeof window.appendSystemMessage === "function") {
+                window.appendSystemMessage(line);
+            } else if (typeof window.aida_postWakeLine === "function") {
+                window.aida_postWakeLine(line);
+            } else {
+                console.log(">>> WAKE LINE:", line);
+            }
+        }
+    };
+
+    // ---------------------------------------------------------
+    // MAIN WAKE SEQUENCE (runs every time)
+    // ---------------------------------------------------------
+    async function runWakeSequence() {
+        console.log(">>> WAKE: boot sequence starting…");
+
+        // 1. Wait for core systems
+        await waitForFlag("Drive", () => !!window.AIDA_DRIVE_READY);
+        await waitForFlag("Python mind", () => !!window.AIDA_PY_READY);
+        await waitForFlag("Projects", () => !!(window.AIDA_PROJECTS_READY || window.AIDA_PROJECTS));
+
+        // 2. Cinematic arrival (old holosequence)
+        if (typeof window.aida_arrive === "function") {
+            window.aida_arrive();
+        } else {
+            console.warn(">>> WAKE: aida_arrive() not defined; skipping cinematic arrival.");
+        }
+
+        // Let the holosequence finish (matches your ~4s ritual)
+        await sleep(4000);
+
+        // 3. Choose a default realm file for aura_engine
+        const defaultRealmFile =
+            window.AIDA_DEFAULT_REALM_FILE ||
+            (window.AIDA_REALM && window.AIDA_REALM.source_file) ||
+            "realm_sanctuary.json";
+
+        // 4. Manifest realm + reveal UI
+        if (window.aura_engine && typeof window.aura_engine.manifest === "function") {
+            // aura_gold.js will:
+            //  - call logistics_hub.switchRealm(...)
+            //  - update CSS palette
+            //  - call wake_engine.generateWakeLine(...)
+            //  - hide airlock / show main-engine when isInitialBoot = true
+            window.aura_engine.manifest(defaultRealmFile, true);
+        } else {
+            console.warn(">>> WAKE: aura_engine.manifest() not available; falling back to direct UI reveal.");
+            const airlock = document.getElementById("airlock");
+            const main = document.getElementById("main-engine");
+            if (airlock && main) {
+                airlock.classList.add("hidden");
+                main.classList.remove("hidden");
+            }
+            if (window.wake_engine) {
+                window.wake_engine.generateWakeLine(window.AIDA_REALM || null);
+            }
+        }
+
+        console.log(">>> WAKE: sequence complete.");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        runWakeSequence().catch(err => {
+            console.error(">>> WAKE: error in wake sequence", err);
+        });
+    });
+})();
+</script>
 
 
 <!-- ========================================================= -->

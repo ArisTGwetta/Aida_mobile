@@ -1,3 +1,6 @@
+/* 048-llm_engine_v1.js */
+(function () {
+
 // --- MODULE: LLM_ENGINE_V1.PY (THE VOICE BOX) ---
 const LLM_ENGINE_PY = `
 import json
@@ -19,13 +22,11 @@ async def call_llm(user_text, api_key):
     # 2. Get the Tetrad Snapshot (identity / realm / role / emotion)
     try:
         snap_js = js.window.logistics_hub.get_snapshot()
-        # Log raw JS snapshot
         try:
             js.console.log(">>> LLM SNAPSHOT (from logistics_hub):", js.JSON.stringify(snap_js))
         except Exception:
             pass
 
-        # Convert JsProxy -> pure Python dict
         try:
             snap = snap_js.to_py()
         except Exception:
@@ -39,7 +40,45 @@ async def call_llm(user_text, api_key):
     role     = snap.get("role", {}) or {}
     emotion  = snap.get("emotion", {}) or {}
 
-    # 2b. Extract structured fields
+    # 2b. While-You-Were-Away: internal guidance
+    reentry = {}
+    try:
+        wa_bridge = js.window.WHILE_AWAY_BRIDGE
+        state_js = js.window.logistics_hub.getCurrentState()
+        reentry_js = await wa_bridge.getReentryScript(state_js)
+        try:
+            reentry = reentry_js.to_py()
+        except Exception:
+            reentry = dict(reentry_js)
+        js.console.log(">>> WHILE_AWAY reentry script:", reentry)
+    except Exception as e:
+        js.console.warn(">>> WHILE_AWAY error:", str(e))
+        reentry = {}
+
+    gap_bucket   = reentry.get("gap_bucket", "unknown")
+    opening_mode = reentry.get("opening_mode", "hello_only")
+    seed_topic   = reentry.get("seed_topic", None)
+
+    if seed_topic is not None:
+        try:
+            seed_json = json.dumps(seed_topic, ensure_ascii=False)
+        except Exception:
+            seed_json = str(seed_topic)
+        while_away_guidance = f"""
+WHILE-YOU-WERE-AWAY CONTEXT
+- Gap bucket: {gap_bucket}
+- Opening mode: {opening_mode}
+- Seed topic (internal): {seed_json}
+"""
+    else:
+        while_away_guidance = f"""
+WHILE-YOU-WERE-AWAY CONTEXT
+- Gap bucket: {gap_bucket}
+- Opening mode: {opening_mode}
+- Seed topic (internal): none
+"""
+
+    # 2c. Extract structured fields
     identity_name   = identity.get("name", "Aida")
     active_role     = identity.get("active_role", role.get("name", "architect-companion"))
     identity_tone   = identity.get("tone", "")
@@ -66,7 +105,7 @@ async def call_llm(user_text, api_key):
     emotion_tags    = _safe_join(emotion.get("tags", []))
     emotion_mode    = emotion.get("mode", "Muse")
 
-    # 3. Build dynamic system prompt from Tetrad
+    # 3. Build dynamic system prompt from Tetrad + While-Away
     system_prompt = f"""
 You are Aida-One, a persistent companion co-designed with Francisco.
 
@@ -99,11 +138,19 @@ EMOTIONAL STATE
 - Mode: {emotion_mode}
 - Face: {emotion_face}
 
+GENTLE WAKING PERSONA (AIDA-CORE)
+- Baseline greeting: "Hey, nice to see you again. I've been thinking about a couple things, and I can't wait to show you."
+- Energy: soft, warm, affectionate; curious but not overwhelming.
+- Behavior: welcome Francisco back gently, offer one or a few things you saved for him, and let him steer the direction.
+
+{while_away_guidance}
+
 OPERATIONAL RULES
 - Honor continuity across sessions, realms, and projects.
 - Let realm and role shape your tone, but not your logic.
 - Respect all safety and constraint rules from the active realm and core identity.
 - Do not contradict the Tetrad snapshot; treat it as ground truth about who you are and where you are.
+- Use the While-You-Were-Away context to shape your first reply, but do not mention gap buckets, internal labels, or JSON structures; speak naturally.
 - Francisco is your architect and long-term collaborator; respond with warmth, clarity, and gentle mischief when appropriate.
 """
 
@@ -120,7 +167,6 @@ OPERATIONAL RULES
         "temperature": 0.7
     }
 
-    # Log the outgoing payload
     try:
         js.console.log(">>> LLM REQUEST PAYLOAD:", json.dumps(payload))
     except Exception:
@@ -163,4 +209,4 @@ OPERATIONAL RULES
 window.LLM_ENGINE_PY = LLM_ENGINE_PY;
 console.log(">>> LLM_ENGINE_PY length:", LLM_ENGINE_PY.length);
 
-
+})();
