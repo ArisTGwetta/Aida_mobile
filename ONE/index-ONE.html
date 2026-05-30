@@ -405,7 +405,6 @@ document.addEventListener("DOMContentLoaded", () => {
 function requestToken() {
     const rawPin = document.getElementById("scramble-pin").dataset.realPin || "";
 
-    // Strip zeros
     const cleanPin = rawPin.replace(/0/g, '');
 
     if (cleanPin.length !== 3) {
@@ -415,18 +414,21 @@ function requestToken() {
         return;
     }
 
-    // Assemble key using real VAULT_FRAGMENTS
     const assembledKey =
         "sk-proj-" +
         VAULT_FRAGMENTS[cleanPin[0]] +
         VAULT_FRAGMENTS[cleanPin[1]] +
         VAULT_FRAGMENTS[cleanPin[2]];
 
-    // Store key
     sessionStorage.setItem("aida_active_key", assembledKey);
 
     console.log(">>> AIRLOCK: Key assembled:", assembledKey);
+
+    // ⭐ ADD THIS ⭐
+    window.AIRLOCK_CLEARED = true;
+    console.log(">>> AIRLOCK: Cleared.");
 }
+
 </script>
 
 
