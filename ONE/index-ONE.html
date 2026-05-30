@@ -233,7 +233,7 @@
     </div>
 
     <!-- LAUNCH BUTTON -->
-    <button id="keypad-launch-btn" class="hidden">Initiate Handshake</button>
+    <button id="keypad-launch-btn">Initiate Handshake</button>
 
     <!-- MAIN INTERFACE -->
     <div id="aida-interface">
@@ -280,7 +280,7 @@
 
 <!-- ========================================================= -->
 <!-- BLOCK 005: SCRIPT_LOADER_START                            -->
-<!-- Purpose: Load Pyodide, GIS, Trucks, Bootloader Hooks      -->
+<!-- Purpose: Load Pyodide, GIS, Trucks      -->
 <!-- Inputs: None                                              -->
 <!-- Outputs: Global truck functions, pyodide loader           -->
 <!-- ========================================================= -->
@@ -308,7 +308,6 @@
 020-vitality_gold.js
 025-vault_gold.js
 026-sync_gold.js
-028-manifest_gold.js
 032-memory_gold.js
 033-python_gold.js
 040-mind_palace_gold.js
@@ -339,32 +338,11 @@
 <script src="js/020-vitality_gold.js"></script>
 <script src="js/025-vault_gold.js"></script>
 <script src="js/026-sync_gold.js"></script>
-<script src="js/028-manifest_gold.js"></script>
 <script src="js/032-memory_gold.js"></script>
 <script src="js/033-python_gold.js"></script>
 <script src="js/040-mind_palace_gold.js"></script>
 <script src="js/042-research_gold.js"></script>
 <script src="js/048-llm_engine_v1.js"></script>
-
-
-<!-- ========================================================= -->
-<!-- BLOCK 007: BOOTLOADER_HOOKS                               -->
-<!-- Purpose: Reserve space for Drive Bridge + Bootloader      -->
-<!-- Inputs: None                                              -->
-<!-- Outputs: Empty hooks                                      -->
-<!-- ========================================================= -->
-
-<script src="js/drive_bridge.js"></script>
-<script src="js/bootloader.js"></script>
-
-
-<!-- ========================================================= -->
-<!-- BLOCK 008: SCRIPT_LOADER_END                              -->
-<!-- Purpose: Close script loader section                      -->
-<!-- ========================================================= -->
-
-
-
 
 
 <!-- ========================================================= -->
@@ -427,7 +405,6 @@ document.addEventListener("DOMContentLoaded", () => {
 function requestToken() {
     const rawPin = document.getElementById("scramble-pin").dataset.realPin || "";
 
-    // Strip zeros
     const cleanPin = rawPin.replace(/0/g, '');
 
     if (cleanPin.length !== 3) {
@@ -437,21 +414,21 @@ function requestToken() {
         return;
     }
 
-    // Assemble key using real VAULT_FRAGMENTS
     const assembledKey =
         "sk-proj-" +
         VAULT_FRAGMENTS[cleanPin[0]] +
         VAULT_FRAGMENTS[cleanPin[1]] +
         VAULT_FRAGMENTS[cleanPin[2]];
 
-    // Store key
     sessionStorage.setItem("aida_active_key", assembledKey);
 
-    // Signal bootloader
-    window.AIRLOCK_CLEARED = true;
-
     console.log(">>> AIRLOCK: Key assembled:", assembledKey);
+
+    // ⭐ ADD THIS ⭐
+    window.AIRLOCK_CLEARED = true;
+    console.log(">>> AIRLOCK: Cleared.");
 }
+
 </script>
 
 
@@ -1582,6 +1559,14 @@ function captureUserInput() {
     });
 }
 </script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    captureUserInput();
+});
+</script>
+
+
 
 
 <!-- ========================================================= -->
