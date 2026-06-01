@@ -1,0 +1,77 @@
+(function () {
+  if (window.AIDA_RUNTIME) return;
+
+  window.AIDA_RUNTIME = {
+    version: "spine-0.1",
+    boot: {
+      phase: "static_load",
+      airlockCleared: false,
+      driveConnected: false,
+      driveLoaded: false,
+      pyReady: false,
+      mindReady: false,
+      arrived: false,
+      diagnostics: []
+    },
+    tokens: {
+      openai: { key: null, source: null },
+      drive: { accessToken: null, source: null }
+    },
+    drive: {
+      folderId: null,
+      files: {},
+      syncQueue: [],
+      lastSync: null
+    },
+    mind: {
+      identity: null,
+      memory: null,
+      facts: null,
+      insights: null,
+      emotion: null,
+      realm: null,
+      role: null,
+      projects: {},
+      activeProject: null,
+      session: null
+    },
+    context: {
+      identity: null,
+      realm: null,
+      role: null,
+      emotion: null,
+      project: null,
+      projectFacts: null,
+      projectSummaries: null,
+      tetrad: null,
+      memoryWindow: null,
+      llmMessages: null
+    },
+    py: {
+      instance: null,
+      organsMounted: {},
+      ready: false
+    },
+    body: {
+      currentFace: null,
+      currentTheme: "awake",
+      arrivalComplete: false
+    },
+    sleep: {
+      lastActive: null,
+      pendingJournal: [],
+      whileAwaySeed: null
+    }
+  };
+
+  window.AIDA_MODULES = {
+    registry: {},
+    register(module) {
+      if (!module || !module.id) {
+        throw new Error("AIDA module registration requires an id.");
+      }
+      this.registry[module.id] = module;
+      return module;
+    }
+  };
+})();

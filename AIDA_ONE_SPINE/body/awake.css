@@ -1,0 +1,507 @@
+:root {
+  --aida-gold: #005f73;
+  --aida-teal: #0a9396;
+  --aida-green: #00ff66;
+  --aida-bg: #000000;
+  --aida-panel: #1a1a1a;
+  --aida-text: #d8ffff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--aida-bg);
+  color: var(--aida-text);
+  font-family: "Courier New", monospace;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  min-height: 36px;
+  border: 0;
+  border-radius: 20px;
+  background: var(--aida-gold);
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:disabled,
+input:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+#bios-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  overflow-y: auto;
+  padding: 18px;
+  background: #000000;
+  color: var(--aida-green);
+}
+
+#bios-logs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 18px;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+#boot-preview-btn {
+  width: min(260px, 100%);
+  padding: 10px 14px;
+}
+
+#airlock-start-btn,
+#drive-connect-btn,
+#drive-list-btn,
+#boot-preview-btn {
+  display: block;
+  width: min(260px, 100%);
+  margin: 0 0 8px;
+  padding: 10px 14px;
+}
+
+#airlock {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 18px;
+  background: #000000;
+  color: var(--aida-gold);
+}
+
+.airlock-title {
+  margin: 0;
+  letter-spacing: 10px;
+  font-size: clamp(28px, 8vw, 48px);
+}
+
+.airlock-panel {
+  width: min(340px, 100%);
+  padding: 20px;
+  border: 1px solid var(--aida-gold);
+  border-radius: 20px;
+  background: var(--aida-panel);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.airlock-panel h2 {
+  margin: 0 0 16px;
+  text-align: center;
+  font-size: 14px;
+  letter-spacing: 2px;
+}
+
+#scramble-pin {
+  width: 100%;
+  margin-bottom: 18px;
+  padding: 15px;
+  border: 1px solid #333333;
+  border-radius: 10px;
+  background: #000000;
+  color: var(--aida-gold);
+  text-align: center;
+  letter-spacing: 10px;
+  font-size: 28px;
+}
+
+#airlock-status {
+  min-height: 30px;
+  margin: -6px 0 14px;
+  color: var(--aida-green);
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.key {
+  min-height: 60px;
+  border: 1px solid var(--aida-gold);
+  border-radius: 12px;
+  background: #2a2a2a;
+  color: var(--aida-gold);
+  font-size: 20px;
+  transition: transform 120ms ease, background 120ms ease, color 120ms ease;
+}
+
+.key:active {
+  transform: scale(0.95);
+  background: var(--aida-gold);
+  color: #000000;
+}
+
+.key-clear {
+  border-color: #ff4444;
+  color: #ff4444;
+}
+
+#aida-interface {
+  position: fixed;
+  inset: 0;
+  display: none;
+  background: #000000;
+}
+
+#main-engine {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  background: #000000;
+}
+
+#chat-flow {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 15px;
+  border-bottom: 2px solid var(--aida-gold);
+  background: #000000;
+}
+
+.line {
+  max-width: 85%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.line.AIDA {
+  align-self: flex-start;
+  border: 1px solid var(--aida-gold);
+  border-left: 5px solid var(--aida-gold);
+  background: #000000;
+  color: var(--aida-teal);
+}
+
+.line.USER {
+  align-self: flex-end;
+  background: var(--aida-gold);
+  color: #ffffff;
+}
+
+#aida-display {
+  flex: 0 0 30dvh;
+  min-height: 180px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(108px, 1fr);
+  position: relative;
+  overflow: hidden;
+  background: #000000;
+}
+
+#portrait-pane {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #000000;
+}
+
+#aida-portrait {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#flicker-grid {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  background:
+    linear-gradient(rgba(0, 255, 70, 0.08) 50%, transparent 50%),
+    linear-gradient(90deg, rgba(75, 227, 255, 0.05), transparent);
+  background-size: 100% 6px, 18px 100%;
+  mix-blend-mode: screen;
+  opacity: 0.45;
+  animation: awake-flicker 2.4s steps(2) infinite;
+}
+
+.face-data-grid {
+  position: absolute;
+  inset: 0;
+  z-index: 23;
+  display: grid;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, black 38%, rgba(0, 0, 0, 0.72) 62%, transparent 86%);
+  mask-image: radial-gradient(circle at 50% 50%, black 38%, rgba(0, 0, 0, 0.72) 62%, transparent 86%);
+}
+
+.face-data-slow {
+  grid-template-columns: repeat(10, 1fr);
+  grid-template-rows: repeat(12, 1fr);
+  opacity: 0.35;
+}
+
+.face-data-fast {
+  grid-template-columns: repeat(18, 1fr);
+  grid-template-rows: repeat(22, 1fr);
+  opacity: 0.22;
+}
+
+.face-data-grid span {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  opacity: 0;
+  background: rgba(75, 227, 255, 0.55);
+  box-shadow: 0 0 8px rgba(75, 227, 255, 0.5);
+  animation-name: face-data-blink;
+  animation-timing-function: steps(1);
+  animation-iteration-count: infinite;
+  animation-duration: var(--blink-duration, 3200ms);
+  animation-delay: var(--blink-delay, 0ms);
+}
+
+.face-data-slow span {
+  background: rgba(0, 255, 102, 0.34);
+  box-shadow: 0 0 10px rgba(0, 255, 102, 0.35);
+}
+
+.face-data-fast span {
+  background: rgba(120, 240, 255, 0.48);
+}
+
+.tint-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+
+.debug-green {
+  background: rgba(0, 255, 70, 0.3);
+  mix-blend-mode: hard-light;
+}
+
+.alert-o {
+  background: rgba(255, 80, 0, 0.4);
+  mix-blend-mode: overlay;
+}
+
+#data-stack {
+  grid-column: 2;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+}
+
+#debug-pane,
+#presentation-pane {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 9px;
+  border-left: 1px solid #444444;
+  background: var(--aida-panel);
+  color: var(--aida-green);
+  text-shadow: 0 0 5px rgba(0, 255, 65, 0.7);
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+#realm-tag {
+  margin-bottom: 8px;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+#input-dock {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 4px;
+  border-top: 1px solid #cccccc;
+  background: #000000;
+}
+
+#tag-buttons {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(28px, 1fr)) minmax(86px, 1.8fr);
+  gap: 5px;
+  align-items: center;
+}
+
+.tag-btn {
+  min-height: 30px;
+  border: 1px solid #333333;
+  border-radius: 6px;
+  background: #000000;
+  color: #ffffff;
+  padding: 4px 6px;
+  font-size: 12px;
+}
+
+.tag-btn.used {
+  border-color: var(--aida-gold);
+  color: var(--aida-gold);
+}
+
+#tag-edit {
+  display: none;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid #333333;
+  border-radius: 6px;
+  background: #000000;
+  color: var(--aida-green);
+}
+
+#user-in {
+  width: 100%;
+  min-height: 32px;
+  padding: 7px 9px;
+  border: 1px solid #bbbbbb;
+  border-radius: 3px;
+  background: #000000;
+  color: var(--aida-green);
+  font-size: 12px;
+  outline: none;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+#eject-btn {
+  background: #666666;
+}
+
+#sleep-btn {
+  background: #444444;
+}
+
+#veil {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  pointer-events: none;
+  opacity: 0;
+  background: rgba(0, 0, 0, 0.7);
+  transition: opacity 600ms ease;
+}
+
+.pixel-grid {
+  position: absolute;
+  inset: 0;
+  z-index: 998;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  pointer-events: none;
+}
+
+.pixel-grid div {
+  opacity: 0;
+  transform: translate(0, 0);
+  transition: opacity 600ms ease, transform 600ms ease;
+}
+
+.spark-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.spark {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ffffff;
+  opacity: 0;
+  animation: spark-float 1.2s linear infinite;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.log-amber { color: #ffb000; }
+.log-blue { color: #00d4ff; }
+.log-green { color: var(--aida-green); }
+.log-white { color: #ffffff; }
+
+@keyframes spark-float {
+  0% { opacity: 0; transform: translateY(0); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-20px); }
+}
+
+@keyframes awake-flicker {
+  0%, 100% { opacity: 0.28; }
+  50% { opacity: 0.52; }
+}
+
+@keyframes face-data-blink {
+  0%, 9%, 100% { opacity: 0; }
+  10%, 16% { opacity: var(--blink-opacity, 0.48); }
+  17%, 31% { opacity: 0; }
+  32%, 35% { opacity: calc(var(--blink-opacity, 0.48) * 0.55); }
+  36%, 63% { opacity: 0; }
+  64%, 69% { opacity: var(--blink-opacity, 0.48); }
+  70% { opacity: 0; }
+}
+
+@media (max-width: 520px) {
+  #aida-display {
+    grid-template-columns: minmax(0, 1.55fr) minmax(96px, 0.95fr);
+  }
+
+  #debug-pane,
+  #presentation-pane {
+    padding: 7px;
+    font-size: 7px;
+  }
+
+  .line {
+    font-size: 14px;
+  }
+}

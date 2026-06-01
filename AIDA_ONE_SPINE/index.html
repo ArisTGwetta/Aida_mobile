@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>AIDA-One Spine</title>
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Aida">
+  <link rel="apple-touch-icon" href="body/assets/aida_icon.png">
+  <link rel="icon" type="image/png" href="body/assets/aida_icon.png">
+  <link rel="stylesheet" href="body/awake.css">
+</head>
+<body>
+  <main id="bios-screen" aria-label="AIDA BIOS boot log">
+    <div id="bios-logs">
+      <div class="log-white">>>> INITIALIZING AIDA-ONE SPINE...</div>
+      <div class="log-amber">>>> Awake body donor ready. Mind not mounted yet.</div>
+    </div>
+    <button id="airlock-start-btn" type="button">Begin Airlock</button>
+    <button id="drive-connect-btn" type="button">Connect Drive</button>
+    <button id="drive-list-btn" type="button">List Drive JSON</button>
+    <button id="boot-preview-btn" type="button">Preview Awake Body</button>
+  </main>
+
+  <section id="airlock" aria-label="AIDA airlock">
+    <h1 class="airlock-title">AIDA</h1>
+    <div class="airlock-panel">
+      <h2>SECURITY CLEARANCE</h2>
+      <input type="password" id="scramble-pin" placeholder="---" maxlength="3" readonly>
+      <div id="airlock-status">Zeros are decoys. Three meaningful fragments required.</div>
+      <div class="keypad">
+        <button class="key" type="button">1</button>
+        <button class="key" type="button">2</button>
+        <button class="key" type="button">3</button>
+        <button class="key" type="button">4</button>
+        <button class="key" type="button">5</button>
+        <button class="key" type="button">6</button>
+        <button class="key" type="button">7</button>
+        <button class="key" type="button">8</button>
+        <button class="key" type="button">9</button>
+        <button class="key key-clear" type="button">CLR</button>
+        <button class="key" type="button">0</button>
+        <button class="key" type="button">OK</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="aida-interface" aria-label="AIDA interface">
+    <div id="veil"></div>
+    <div class="pixel-grid" id="pixelGrid"></div>
+    <div class="spark-layer" id="sparkLayer"></div>
+
+    <div id="main-engine" class="hidden">
+      <div id="chat-flow">
+        <div class="line AIDA">Body shell online. Aida's mind is not mounted yet.</div>
+      </div>
+
+      <div id="aida-display">
+        <div id="portrait-pane">
+          <div id="flicker-grid"></div>
+          <div id="face-data-slow" class="face-data-grid face-data-slow"></div>
+          <div id="face-data-fast" class="face-data-grid face-data-fast"></div>
+          <div class="tint-layer debug-green"></div>
+          <div class="tint-layer alert-o"></div>
+          <img id="aida-portrait" src="body/assets/neutral1.png" alt="Aida portrait">
+        </div>
+
+        <div id="data-stack">
+          <div id="debug-pane">
+            <div id="log-content">Initializing body...</div>
+          </div>
+          <div id="presentation-pane">
+            <div id="realm-tag">NO REALM</div>
+            <div id="pres-content">Spine waiting for first transplant.</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="input-dock">
+        <div id="tag-buttons">
+          <button class="tag-btn" data-index="0" type="button">#</button>
+          <button class="tag-btn" data-index="1" type="button">#</button>
+          <button class="tag-btn" data-index="2" type="button">#</button>
+          <button class="tag-btn" data-index="3" type="button">#</button>
+          <button class="tag-btn" data-index="4" type="button">#</button>
+          <button class="tag-btn" data-index="5" type="button">#</button>
+          <input id="tag-edit" type="text" placeholder="type tag...">
+        </div>
+
+        <input type="text" id="user-in" placeholder="Talk to Aida...">
+
+        <div class="controls">
+          <button id="send-btn" type="button">SEND</button>
+          <button id="eject-btn" type="button">REALMS</button>
+          <button id="sleep-btn" type="button">SLEEP</button>
+        </div>
+      </div>
+    </div>
+  </section>
+  <script src="spine/runtime.js"></script>
+  <script src="spine/config.js"></script>
+  <script src="spine/token_fragments.local.js"></script>
+  <script src="body/awake.js"></script>
+  <script src="spine/airlock.js"></script>
+  <script src="spine/drive_oauth.js"></script>
+</body>
+</html>

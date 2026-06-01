@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIDA Drive OAuth Test</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 18px;
+      background: #000;
+      color: #00ff66;
+      font-family: "Courier New", monospace;
+    }
+
+    button {
+      display: block;
+      width: min(320px, 100%);
+      margin: 0 0 10px;
+      padding: 12px;
+      border: 1px solid #005f73;
+      border-radius: 8px;
+      background: #005f73;
+      color: #fff;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    #log {
+      margin-top: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      white-space: pre-wrap;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .warn { color: #ffb000; }
+    .ok { color: #00d4ff; }
+  </style>
+</head>
+<body>
+  <h1>AIDA Drive OAuth Test</h1>
+  <p id="origin-note"></p>
+  <button id="connect-btn" type="button">Connect Drive</button>
+  <button id="list-btn" type="button">List JSON Files</button>
+  <div id="log"></div>
+
+  <script>
+    const AIDA_GOOGLE_CLIENT_ID = "1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com";
+    const AIDA_DRIVE_JSON_FOLDER_ID = "19mkQyJEkgtUUCG4djk7160u7vycvWPja";
+    const AIDA_DRIVE_SCOPES = [
+      "https://www.googleapis.com/auth/drive.file",
+      "https://www.googleapis.com/auth/drive.readonly"
+    ].join(" ");
+
+    let tokenClient = null;
+    let driveAccessToken = null;
+
+    function log(message, className = "") {
+      const div = document.createElement("div");
+      div.className = className;
+      div.textContent = `>>> ${message}`;
+      document.getElementById("log").appendChild(div);
+    }
+
+    function showOriginNote() {
+      const note = document.getElementById("origin-note");
+      if (!note) return;
+
+      if (window.location.protocol === "file:") {
+        note.className = "warn";
+        note.textContent = "Google OAuth blocks file:// pages. Push this page to GitHub Pages and open it from the approved https:// origin.";
+      } else {
+        note.className = "ok";
+        note.textContent = `Current origin: ${window.location.origin}`;
+      }
+    }
+
+    function loadGIS() {
+      return new Promise((resolve, reject) => {
+        if (window.google?.accounts?.oauth2) {
+          resolve();
+          return;
+        }
+
+        const script = document.createElement("script");
+        script.src = "https://accounts.google.com/gsi/client";
+        script.async = true;
+        script.defer = true;
+        script.onload = resolve;
+        script.onerror = () => reject(new Error("Could not load Google Identity Services."));
+        document.head.appendChild(script);
+      });
+    }
+
+    async function initOAuth() {
+      await loadGIS();
+      if (tokenClient) return tokenClient;
+
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: AIDA_GOOGLE_CLIENT_ID,
+        scope: AIDA_DRIVE_SCOPES,
+        callback: (response) => {
+          if (!response || !response.access_token) {
+            log("OAuth failed or was cancelled.", "warn");
+            return;
+          }
+          driveAccessToken = response.access_token;
+          log("OAuth cleared. Drive token is available in memory.", "ok");
+        }
+      });
+
+      log("Google OAuth client ready.", "ok");
+      return tokenClient;
+    }
+
+    async function connectDrive() {
+      try {
+        const client = await initOAuth();
+        log("Requesting Google Drive token...", "warn");
+        client.requestAccessToken({ prompt: "" });
+      } catch (error) {
+        log(error.message, "warn");
+      }
+    }
+
+    async function listJsonFiles() {
+      if (!driveAccessToken) {
+        log("No Drive token yet. Click Connect Drive first.", "warn");
+        return;
+      }
+
+      const query = encodeURIComponent(`'${AIDA_DRIVE_JSON_FOLDER_ID}' in parents and trashed = false`);
+      const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,mimeType,modifiedTime)`;
+
+      try {
+        const response = await fetch(url, {
+          headers: { Authorization: `Bearer ${driveAccessToken}` }
+        });
+
+        if (!response.ok) {
+          log(`Drive list failed: HTTP ${response.status}`, "warn");
+          const text = await response.text();
+          log(text.slice(0, 800), "warn");
+          return;
+        }
+
+        const data = await response.json();
+        const files = (data.files || []).filter((file) => file.name.endsWith(".json"));
+        log(`Found ${files.length} JSON files.`, "ok");
+        files.forEach((file) => {
+          log(`${file.name} | ${file.id} | ${file.modifiedTime || "no modified time"}`);
+        });
+      } catch (error) {
+        log(error.message, "warn");
+      }
+    }
+
+    document.getElementById("connect-btn").addEventListener("click", connectDrive);
+    document.getElementById("list-btn").addEventListener("click", listJsonFiles);
+
+    showOriginNote();
+    initOAuth().catch((error) => log(error.message, "warn"));
+  </script>
+</body>
+</html>
