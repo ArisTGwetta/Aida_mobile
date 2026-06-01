@@ -47,6 +47,7 @@
       role: null,
       emotion: null,
       project: null,
+      projectMode: "no_active_project",
       projectFacts: null,
       projectSummaries: null,
       tetrad: null,

@@ -206,6 +206,10 @@
     const emotion = context.emotion || mind.emotion;
     const recentTurns = context.memoryWindow?.recentTurns || driveFiles["recent_turns.json"];
     const session = context.memoryWindow?.session || mind.session;
+    const projectMode = context.projectMode || (mind.activeProject ? "briefcase" : "realm_as_project_placeholder");
+    const projectName = mind.activeProject || context.project
+      ? valueName(mind.activeProject || context.project) || "unnamed_project"
+      : `realm_as_project: ${valueName(realm) || "unnamed_realm"}`;
 
     const summary = {
       boot: {
@@ -235,7 +239,8 @@
       },
       project: {
         active: Boolean(mind.activeProject || context.project),
-        name: valueName(mind.activeProject || context.project) || "no_active_project",
+        mode: projectMode,
+        name: projectName,
         loadedCount: countArrayLike(mind.projects),
         summaryCount: findProjectSummaries(mind.activeProject || context.project)
       },
@@ -279,7 +284,7 @@
     log(`IDENTITY: ${summary.identity.present ? summary.identity.name : "missing"}`);
     log(`REALM: ${summary.realm.name} (${summary.realm.loadedCount} loaded)`);
     log(`ROLE: ${summary.role.name} (${summary.role.loadedCount} loaded)`);
-    log(`PROJECT: ${summary.project.name} (${summary.project.loadedCount} loaded, summaries=${summary.project.summaryCount})`);
+    log(`PROJECT: ${summary.project.name} [${summary.project.mode}] (${summary.project.loadedCount} dedicated, summaries=${summary.project.summaryCount})`);
     log(`FACTS: present=${summary.facts.present}, count=${summary.facts.count}`);
     log(`MEMORY: present=${summary.memory.present}, count=${summary.memory.count}`);
     log(`INSIGHTS: present=${summary.insights.present}, count=${summary.insights.count}`);

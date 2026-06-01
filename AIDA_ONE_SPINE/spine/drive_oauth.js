@@ -186,6 +186,7 @@
     rt.context.role = rt.mind.role;
     rt.context.emotion = rt.mind.emotion;
     rt.context.project = rt.mind.activeProject;
+    rt.context.projectMode = rt.mind.activeProject ? "briefcase" : "realm_as_project_placeholder";
     rt.context.projectFacts = rt.mind.facts;
     rt.context.projectSummaries = rt.mind.memory;
     rt.context.memoryWindow = {

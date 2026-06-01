@@ -113,6 +113,7 @@ Use one name for each concept.
 - Active emotion: `AIDA_RUNTIME.mind.emotion`
 - Active assembled context: `AIDA_RUNTIME.context`
 - LLM messages: `AIDA_RUNTIME.context.llmMessages`
+- Project mode: `AIDA_RUNTIME.context.projectMode`
 
 Legacy names are allowed only inside adapter modules and must be converted immediately.
 
@@ -209,6 +210,7 @@ The Drive mapping layer must:
 - Select `project_briefcase_aida_architecture.json` as the default active project when present.
 - Store the selected project in `AIDA_RUNTIME.mind.activeProject` and `AIDA_RUNTIME.context.project`.
 - Continue safely with an explicit `no_active_project` marker when no project briefcase exists.
+- Treat the active realm as a project/context placeholder when no dedicated project briefcase exists.
 
 The LLM message builder must treat active project summaries as authoritative when an active project exists.
 

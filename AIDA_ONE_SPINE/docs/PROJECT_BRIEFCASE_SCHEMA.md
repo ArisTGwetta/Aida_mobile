@@ -36,9 +36,19 @@ For the current checkpoint:
 2. Then `briefcase_aida_architecture.json`.
 3. Then `project_aida_architecture.json`.
 4. Then the first loaded project/briefcase file.
-5. Otherwise `activeProject = null`.
+5. Otherwise `activeProject = null` and the active realm acts as the project/context placeholder.
 
 Later, the Realm/Project selector should let the user explicitly choose the active project.
+
+## Realm vs Project
+
+Older Aida versions sometimes used realms as projects. The spine keeps them separate:
+
+- `realm`: the world, universe, tone field, or operating context.
+- `project briefcase`: a specific work thread inside that realm, such as one book in a universe, one RPG campaign in a world, or the Aida architecture effort inside the Aida realm.
+- `role`: Aida's job/hat inside the active realm/project.
+
+If no dedicated project briefcase exists, the active realm remains authoritative and is treated as a project placeholder. This preserves old behavior without blocking richer nested projects later.
 
 ## Recommended Fields
 
