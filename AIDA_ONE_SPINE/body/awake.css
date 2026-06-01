@@ -83,6 +83,7 @@ input:disabled {
 #drive-list-btn,
 #drive-fetch-btn,
 #context-inspect-btn,
+#shape-inspect-btn,
 #boot-preview-btn {
   width: 100%;
   margin: 0;

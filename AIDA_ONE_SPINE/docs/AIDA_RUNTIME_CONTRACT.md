@@ -208,6 +208,7 @@ The context inspector must:
 - Report counts/names only unless the user explicitly asks for raw data.
 - Avoid dumping private Drive JSON into the visible page.
 - Store the last safe summary in `window.AIDA_CONTEXT_SUMMARY`.
+- Provide a shape inspection mode that prints top-level keys and candidate name fields only.
 
 The pre-LLM gate must wait if identity, active realm, active role, facts, memory summary, or emotion is missing.
 

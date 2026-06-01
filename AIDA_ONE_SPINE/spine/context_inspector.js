@@ -28,6 +28,14 @@
     if (!value || typeof value !== "object") return null;
     return (
       value.name ||
+      value.display_name ||
+      value.displayName ||
+      value.realm_name ||
+      value.role_name ||
+      value.identity_name ||
+      value.project_name ||
+      value.briefcase_title ||
+      value.briefcase_id ||
       value.title ||
       value.label ||
       value.id ||
@@ -35,6 +43,46 @@
       value.briefcase_name ||
       null
     );
+  }
+
+  function safeShape(name, value) {
+    if (!value || typeof value !== "object") {
+      return { name, present: false, keys: [], nameCandidates: {} };
+    }
+
+    const candidateKeys = [
+      "name",
+      "display_name",
+      "displayName",
+      "title",
+      "label",
+      "id",
+      "filename",
+      "briefcase_name",
+      "briefcase_title",
+      "briefcase_id",
+      "realm_name",
+      "role_name",
+      "identity_name",
+      "project_name"
+    ];
+
+    const nameCandidates = {};
+    for (const key of candidateKeys) {
+      if (Object.prototype.hasOwnProperty.call(value, key)) {
+        const raw = value[key];
+        nameCandidates[key] = typeof raw === "string" || typeof raw === "number" || typeof raw === "boolean"
+          ? String(raw).slice(0, 80)
+          : `[${Array.isArray(raw) ? "array" : typeof raw}]`;
+      }
+    }
+
+    return {
+      name,
+      present: true,
+      keys: Object.keys(value).slice(0, 40),
+      nameCandidates
+    };
   }
 
   function countArrayLike(value) {
@@ -178,14 +226,45 @@
     return summary;
   }
 
+  function inspectShapes() {
+    const rt = runtime();
+    const files = rt.drive?.files || {};
+    const shapes = [
+      safeShape("core_identity.json", files["core_identity.json"] || rt.mind?.identity),
+      safeShape("realm_aida_architecture.json", files["realm_aida_architecture.json"] || rt.mind?.realm),
+      safeShape("role_architect_companion.json", files["role_architect_companion.json"] || rt.mind?.role),
+      safeShape("project_briefcase_aida_architecture.json", files["project_briefcase_aida_architecture.json"])
+    ];
+
+    log("SHAPES: Safe top-level key summary follows.", "log-blue");
+    shapes.forEach((shape) => {
+      if (!shape.present) {
+        log(`SHAPE ${shape.name}: missing`, "log-amber");
+        return;
+      }
+
+      log(`SHAPE ${shape.name}: keys=${shape.keys.join(", ") || "none"}`);
+      const candidates = Object.entries(shape.nameCandidates)
+        .map(([key, value]) => `${key}=${value}`)
+        .join("; ");
+      log(`SHAPE ${shape.name}: candidates=${candidates || "none"}`);
+    });
+
+    window.AIDA_SHAPE_SUMMARY = shapes;
+    return shapes;
+  }
+
   function install() {
     const button = $("context-inspect-btn");
     if (button) button.addEventListener("click", inspectContext);
+    const shapeButton = $("shape-inspect-btn");
+    if (shapeButton) shapeButton.addEventListener("click", inspectShapes);
     log("Context inspector loaded.", "log-blue");
   }
 
   window.AIDA_CONTEXT_INSPECTOR = {
     inspect: inspectContext,
+    inspectShapes,
     buildSummary: buildContextSummary
   };
 
@@ -194,7 +273,7 @@
       id: MODULE_ID,
       phase: "context_inspection",
       reads: ["AIDA_RUNTIME.drive.files", "AIDA_RUNTIME.mind", "AIDA_RUNTIME.context"],
-      writes: ["window.AIDA_CONTEXT_SUMMARY"],
+      writes: ["window.AIDA_CONTEXT_SUMMARY", "window.AIDA_SHAPE_SUMMARY"],
       requires: ["AIDA_RUNTIME"],
       verifies: ["pre-LLM context gate reports pass/wait without dumping private content"]
     });
