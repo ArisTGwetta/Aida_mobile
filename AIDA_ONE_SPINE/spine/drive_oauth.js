@@ -127,6 +127,76 @@
     return (data.files || []).filter((file) => file.name.endsWith(".json"));
   }
 
+  async function fetchJsonFile(file) {
+    const token = runtime().tokens.drive.accessToken;
+    const url = `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`;
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Fetch failed for ${file.name}: HTTP ${response.status}.`);
+    }
+
+    return response.json();
+  }
+
+  function mapDriveFilesToMind() {
+    const rt = runtime();
+    const files = rt.drive.files || {};
+
+    rt.mind.identity = files["core_identity.json"] || null;
+    rt.mind.memory = files["memory_summary.json"] || null;
+    rt.mind.facts = files["facts.json"] || null;
+    rt.mind.insights = files["insights.json"] || null;
+    rt.mind.emotion = files["emotion_state.json"] || null;
+    rt.mind.session = files["session_log.json"] || null;
+
+    rt.mind.realms = Object.fromEntries(
+      Object.entries(files).filter(([name]) => name.startsWith("realm_"))
+    );
+    rt.mind.roles = Object.fromEntries(
+      Object.entries(files).filter(([name]) => name.startsWith("role_"))
+    );
+
+    rt.mind.projects = Object.fromEntries(
+      Object.entries(files).filter(([name]) => (
+        name.startsWith("project_") ||
+        name.startsWith("briefcase_")
+      ))
+    );
+
+    const architectureRealm = files["realm_aida_architecture.json"] || null;
+    const architectRole = files["role_architect_companion.json"] || null;
+
+    rt.mind.realm = architectureRealm || Object.values(rt.mind.realms)[0] || null;
+    rt.mind.role = architectRole || Object.values(rt.mind.roles)[0] || null;
+
+    rt.context.identity = rt.mind.identity;
+    rt.context.realm = rt.mind.realm;
+    rt.context.role = rt.mind.role;
+    rt.context.emotion = rt.mind.emotion;
+    rt.context.project = rt.mind.activeProject;
+    rt.context.projectFacts = rt.mind.facts;
+    rt.context.projectSummaries = rt.mind.memory;
+    rt.context.memoryWindow = {
+      recentTurns: files["recent_turns.json"] || null,
+      session: rt.mind.session,
+      summary: rt.mind.memory
+    };
+
+    return {
+      identity: Boolean(rt.mind.identity),
+      facts: Boolean(rt.mind.facts),
+      memory: Boolean(rt.mind.memory),
+      insights: Boolean(rt.mind.insights),
+      emotion: Boolean(rt.mind.emotion),
+      realms: Object.keys(rt.mind.realms).length,
+      roles: Object.keys(rt.mind.roles).length,
+      projects: Object.keys(rt.mind.projects).length
+    };
+  }
+
   async function smokeListDriveJson() {
     try {
       const files = await listJsonFiles();
@@ -145,12 +215,55 @@
     }
   }
 
+  async function fetchAllDriveJson() {
+    try {
+      const files = await listJsonFiles();
+      const rt = runtime();
+      rt.boot.phase = "drive_fetching";
+      rt.drive.files = {};
+      rt.drive.fileIndex = {};
+
+      log(`DRIVE: Fetching ${files.length} JSON files...`, "log-amber");
+
+      for (const file of files) {
+        try {
+          const data = await fetchJsonFile(file);
+          rt.drive.files[file.name] = data;
+          rt.drive.fileIndex[file.name] = {
+            id: file.id,
+            mimeType: file.mimeType,
+            modifiedTime: file.modifiedTime
+          };
+          log(`DRIVE: Loaded ${file.name}`);
+        } catch (error) {
+          log(`DRIVE: ${error.message}`, "log-amber");
+        }
+      }
+
+      const mapped = mapDriveFilesToMind();
+      rt.boot.driveLoaded = true;
+      rt.boot.phase = "drive_loaded";
+
+      log(
+        `DRIVE: Mind mapped. identity=${mapped.identity}, facts=${mapped.facts}, memory=${mapped.memory}, realms=${mapped.realms}, roles=${mapped.roles}.`,
+        "log-blue"
+      );
+
+      return rt.drive.files;
+    } catch (error) {
+      log(`DRIVE: ${error.message}`, "log-amber");
+      return {};
+    }
+  }
+
   function install() {
     const connect = $("drive-connect-btn");
     const list = $("drive-list-btn");
+    const fetch = $("drive-fetch-btn");
 
     if (connect) connect.addEventListener("click", requestDriveToken);
     if (list) list.addEventListener("click", smokeListDriveJson);
+    if (fetch) fetch.addEventListener("click", fetchAllDriveJson);
 
     const rt = runtime();
     rt.drive.folderId = config().drive?.jsonFolderId || null;
@@ -163,7 +276,9 @@
     initTokenClient,
     requestDriveToken,
     listJsonFiles,
-    smokeListDriveJson
+    smokeListDriveJson,
+    fetchAllDriveJson,
+    mapDriveFilesToMind
   };
 
   if (window.AIDA_MODULES) {
@@ -171,7 +286,12 @@
       id: MODULE_ID,
       phase: "drive_handshake",
       reads: ["AIDA_CONFIG.google.clientId", "AIDA_CONFIG.drive.jsonFolderId"],
-      writes: ["AIDA_RUNTIME.tokens.drive.accessToken", "AIDA_RUNTIME.boot.driveConnected"],
+      writes: [
+        "AIDA_RUNTIME.tokens.drive.accessToken",
+        "AIDA_RUNTIME.boot.driveConnected",
+        "AIDA_RUNTIME.drive.files",
+        "AIDA_RUNTIME.mind"
+      ],
       requires: ["AIDA_RUNTIME"],
       verifies: ["Google OAuth token is stored only in AIDA_RUNTIME.tokens.drive.accessToken"]
     });

@@ -71,6 +71,7 @@ input:disabled {
 #airlock-start-btn,
 #drive-connect-btn,
 #drive-list-btn,
+#drive-fetch-btn,
 #boot-preview-btn {
   display: block;
   width: min(260px, 100%);

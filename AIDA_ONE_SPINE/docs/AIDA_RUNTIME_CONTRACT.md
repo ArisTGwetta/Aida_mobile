@@ -156,6 +156,9 @@ The Drive OAuth module must:
 - Store the returned access token only in `AIDA_RUNTIME.tokens.drive.accessToken`.
 - Mark `AIDA_RUNTIME.boot.driveConnected` only after a real OAuth token is returned.
 - Use `AIDA_CONFIG.drive.jsonFolderId` as the private JSON folder target.
+- Fetch private JSON only after OAuth succeeds.
+- Store raw fetched JSON in `AIDA_RUNTIME.drive.files`.
+- Map obvious mind files into `AIDA_RUNTIME.mind` without mutating their contents.
 
 The Drive OAuth module must not:
 
