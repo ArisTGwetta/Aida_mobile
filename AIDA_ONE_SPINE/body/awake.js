@@ -60,12 +60,15 @@
     const layer = $("sparkLayer");
     if (!layer) return;
     layer.innerHTML = "";
-    for (let i = 0; i < 36; i += 1) {
+    for (let i = 0; i < 34; i += 1) {
       const spark = document.createElement("div");
       spark.className = "spark";
       spark.style.left = `${Math.random() * 100}%`;
       spark.style.top = `${Math.random() * 100}%`;
-      spark.style.animationDelay = `${Math.random() * 1.2}s`;
+      spark.style.setProperty("--spark-duration", `${Math.round(6500 + Math.random() * 14000)}ms`);
+      spark.style.setProperty("--spark-opacity", (0.16 + Math.random() * 0.48).toFixed(2));
+      spark.style.setProperty("--spark-size", `${Math.round(4 + Math.random() * 8)}px`);
+      spark.style.animationDelay = `${Math.random() * 12}s`;
       layer.appendChild(spark);
     }
   }
@@ -124,6 +127,7 @@
     const send = $("send-btn");
     const realms = $("eject-btn");
     const sleep = $("sleep-btn");
+    const bios = $("bios-return-btn");
 
     if (send && input) {
       send.addEventListener("click", () => {
@@ -152,6 +156,18 @@
       sleep.addEventListener("click", () => {
         pulse("Sleep placeholder. Sleep spine will own journaling and while-away.");
         if (typeof window.aida_depart === "function") window.aida_depart();
+      });
+    }
+
+    if (bios) {
+      bios.addEventListener("click", () => {
+        const biosScreen = $("bios-screen");
+        const iface = $("aida-interface");
+        if (iface) iface.style.display = "none";
+        if (biosScreen) biosScreen.style.display = "flex";
+        const rt = runtime();
+        if (rt) rt.boot.phase = "bios_return";
+        appendBios("Returned to BIOS. Runtime state preserved.", "log-blue");
       });
     }
   }

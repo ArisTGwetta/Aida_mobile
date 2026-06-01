@@ -261,8 +261,8 @@ input:disabled {
     linear-gradient(90deg, rgba(75, 227, 255, 0.05), transparent);
   background-size: 100% 6px, 18px 100%;
   mix-blend-mode: screen;
-  opacity: 0.45;
-  animation: awake-flicker 2.4s steps(2) infinite;
+  opacity: 0.38;
+  animation: awake-flicker 7.5s steps(2) infinite;
 }
 
 .face-data-grid {
@@ -353,6 +353,24 @@ input:disabled {
   line-height: 1.35;
 }
 
+#debug-pane {
+  position: relative;
+  font-size: 7px;
+  letter-spacing: 0.2px;
+}
+
+#log-content::after {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 9px;
+  margin-left: 3px;
+  background: var(--aida-green);
+  box-shadow: 0 0 8px rgba(0, 255, 102, 0.9);
+  animation: terminal-cursor-blink 950ms steps(1) infinite;
+  vertical-align: -1px;
+}
+
 #realm-tag {
   margin-bottom: 8px;
   font-weight: 700;
@@ -415,12 +433,16 @@ input:disabled {
 
 .controls {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 0.75fr 1fr;
   gap: 8px;
 }
 
 #eject-btn {
   background: #666666;
+}
+
+#bios-return-btn {
+  background: #005f73;
 }
 
 #sleep-btn {
@@ -464,12 +486,13 @@ input:disabled {
 
 .spark {
   position: absolute;
-  width: 10px;
-  height: 10px;
+  width: var(--spark-size, 8px);
+  height: var(--spark-size, 8px);
   border-radius: 50%;
   background: #ffffff;
   opacity: 0;
-  animation: spark-float 1.2s linear infinite;
+  filter: blur(0.5px);
+  animation: spark-float var(--spark-duration, 8s) ease-in-out infinite;
 }
 
 .hidden {
@@ -482,14 +505,15 @@ input:disabled {
 .log-white { color: #ffffff; }
 
 @keyframes spark-float {
-  0% { opacity: 0; transform: translateY(0); }
-  20% { opacity: 1; }
-  100% { opacity: 0; transform: translateY(-20px); }
+  0%, 100% { opacity: 0; transform: translateY(0) scale(0.85); }
+  18% { opacity: var(--spark-opacity, 0.45); }
+  48% { opacity: calc(var(--spark-opacity, 0.45) * 0.7); }
+  72% { opacity: var(--spark-opacity, 0.45); transform: translateY(-12px) scale(1); }
 }
 
 @keyframes awake-flicker {
-  0%, 100% { opacity: 0.28; }
-  50% { opacity: 0.52; }
+  0%, 100% { opacity: 0.24; }
+  50% { opacity: 0.42; }
 }
 
 @keyframes face-data-blink {
@@ -500,6 +524,11 @@ input:disabled {
   36%, 63% { opacity: 0; }
   64%, 69% { opacity: var(--blink-opacity, 0.48); }
   70% { opacity: 0; }
+}
+
+@keyframes terminal-cursor-blink {
+  0%, 48% { opacity: 1; }
+  49%, 100% { opacity: 0; }
 }
 
 @media (max-width: 520px) {
