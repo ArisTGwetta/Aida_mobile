@@ -164,15 +164,22 @@
     rt.mind.projects = Object.fromEntries(
       Object.entries(files).filter(([name]) => (
         name.startsWith("project_") ||
-        name.startsWith("briefcase_")
+        name.startsWith("briefcase_") ||
+        name.startsWith("project_briefcase_")
       ))
     );
 
     const architectureRealm = files["realm_aida_architecture.json"] || null;
     const architectRole = files["role_architect_companion.json"] || null;
+    const architectureProject =
+      files["project_briefcase_aida_architecture.json"] ||
+      files["briefcase_aida_architecture.json"] ||
+      files["project_aida_architecture.json"] ||
+      null;
 
     rt.mind.realm = architectureRealm || Object.values(rt.mind.realms)[0] || null;
     rt.mind.role = architectRole || Object.values(rt.mind.roles)[0] || null;
+    rt.mind.activeProject = architectureProject || Object.values(rt.mind.projects)[0] || null;
 
     rt.context.identity = rt.mind.identity;
     rt.context.realm = rt.mind.realm;
@@ -196,7 +203,8 @@
       llmFragments: Boolean(rt.tokens.llm.fragments),
       realms: Object.keys(rt.mind.realms).length,
       roles: Object.keys(rt.mind.roles).length,
-      projects: Object.keys(rt.mind.projects).length
+      projects: Object.keys(rt.mind.projects).length,
+      activeProject: Boolean(rt.mind.activeProject)
     };
   }
 
@@ -248,7 +256,7 @@
       rt.boot.phase = "drive_loaded";
 
       log(
-        `DRIVE: Mind mapped. identity=${mapped.identity}, facts=${mapped.facts}, memory=${mapped.memory}, realms=${mapped.realms}, roles=${mapped.roles}.`,
+        `DRIVE: Mind mapped. identity=${mapped.identity}, facts=${mapped.facts}, memory=${mapped.memory}, realms=${mapped.realms}, roles=${mapped.roles}, projects=${mapped.projects}, activeProject=${mapped.activeProject}.`,
         "log-blue"
       );
 

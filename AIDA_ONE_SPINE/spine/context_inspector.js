@@ -148,6 +148,19 @@
     return 0;
   }
 
+  function findProjectSummaries(project) {
+    if (!project || typeof project !== "object") return 0;
+    return findLikelyCount(project, [
+      "summaries",
+      "summary",
+      "project_summary",
+      "briefcase_summary",
+      "notes",
+      "contexts",
+      "threads"
+    ]);
+  }
+
   function findLikelyCount(obj, keys) {
     if (!obj || typeof obj !== "object") return 0;
     for (const key of keys) {
@@ -223,7 +236,8 @@
       project: {
         active: Boolean(mind.activeProject || context.project),
         name: valueName(mind.activeProject || context.project) || "no_active_project",
-        loadedCount: countArrayLike(mind.projects)
+        loadedCount: countArrayLike(mind.projects),
+        summaryCount: findProjectSummaries(mind.activeProject || context.project)
       },
       facts: {
         present: Boolean(facts),
@@ -265,7 +279,7 @@
     log(`IDENTITY: ${summary.identity.present ? summary.identity.name : "missing"}`);
     log(`REALM: ${summary.realm.name} (${summary.realm.loadedCount} loaded)`);
     log(`ROLE: ${summary.role.name} (${summary.role.loadedCount} loaded)`);
-    log(`PROJECT: ${summary.project.name} (${summary.project.loadedCount} loaded)`);
+    log(`PROJECT: ${summary.project.name} (${summary.project.loadedCount} loaded, summaries=${summary.project.summaryCount})`);
     log(`FACTS: present=${summary.facts.present}, count=${summary.facts.count}`);
     log(`MEMORY: present=${summary.memory.present}, count=${summary.memory.count}`);
     log(`INSIGHTS: present=${summary.insights.present}, count=${summary.insights.count}`);
@@ -290,7 +304,13 @@
       safeShape("core_identity.json", files["core_identity.json"] || rt.mind?.identity),
       safeShape("realm_aida_architecture.json", files["realm_aida_architecture.json"] || rt.mind?.realm),
       safeShape("role_architect_companion.json", files["role_architect_companion.json"] || rt.mind?.role),
-      safeShape("project_briefcase_aida_architecture.json", files["project_briefcase_aida_architecture.json"])
+      safeShape(
+        "project_briefcase_aida_architecture.json",
+        files["project_briefcase_aida_architecture.json"] ||
+          files["briefcase_aida_architecture.json"] ||
+          files["project_aida_architecture.json"] ||
+          rt.mind?.activeProject
+      )
     ];
 
     log("SHAPES: Safe top-level key summary follows.", "log-blue");

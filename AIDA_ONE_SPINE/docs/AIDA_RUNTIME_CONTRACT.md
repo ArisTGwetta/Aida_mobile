@@ -198,6 +198,20 @@ Before any LLM call, the message builder must include:
 
 If a realm or project is active, its facts and summaries are authoritative context, not optional flavor.
 
+## Project Briefcase Law
+
+Project briefcases are the active project layer of Aida's mind.
+
+The Drive mapping layer must:
+
+- Detect `project_*.json`, `briefcase_*.json`, and `project_briefcase_*.json`.
+- Store them in `AIDA_RUNTIME.mind.projects`.
+- Select `project_briefcase_aida_architecture.json` as the default active project when present.
+- Store the selected project in `AIDA_RUNTIME.mind.activeProject` and `AIDA_RUNTIME.context.project`.
+- Continue safely with an explicit `no_active_project` marker when no project briefcase exists.
+
+The LLM message builder must treat active project summaries as authoritative when an active project exists.
+
 ## Context Inspector Law
 
 Before adding or changing any LLM prompt builder, the context inspector must be able to report whether the pre-LLM gate passes.
