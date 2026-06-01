@@ -196,6 +196,19 @@ Before any LLM call, the message builder must include:
 
 If a realm or project is active, its facts and summaries are authoritative context, not optional flavor.
 
+## Context Inspector Law
+
+Before adding or changing any LLM prompt builder, the context inspector must be able to report whether the pre-LLM gate passes.
+
+The context inspector must:
+
+- Summarize identity, active realm, active role, project state, facts, memory summaries, recent turns, session, and emotion.
+- Report counts/names only unless the user explicitly asks for raw data.
+- Avoid dumping private Drive JSON into the visible page.
+- Store the last safe summary in `window.AIDA_CONTEXT_SUMMARY`.
+
+The pre-LLM gate must wait if identity, active realm, active role, facts, memory summary, or emotion is missing.
+
 ## Fallback Law
 
 Fallbacks are diagnostic survival tools, not Aida's normal mind.

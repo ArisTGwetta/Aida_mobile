@@ -72,6 +72,7 @@ input:disabled {
 #drive-connect-btn,
 #drive-list-btn,
 #drive-fetch-btn,
+#context-inspect-btn,
 #boot-preview-btn {
   display: block;
   width: min(260px, 100%);
