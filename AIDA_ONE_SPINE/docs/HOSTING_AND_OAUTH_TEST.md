@@ -50,3 +50,13 @@ If the page still fails, check:
 - The origin in the browser matches an authorized JavaScript origin in Google Cloud.
 - The OAuth consent screen allows the Google account being used.
 - The Drive folder ID in `spine/config.js` matches the private Aida JSON folder.
+
+## Private Fragment File
+
+`spine/token_fragments.local.js` is intentionally ignored and should not exist on GitHub Pages.
+
+The hosted app should not request that file. Local OpenAI fragments are only a development fallback; the intended hosted flow is:
+
+```text
+Google OAuth -> fetch private Drive JSON/fragments -> keypad assembles OpenAI key
+```
