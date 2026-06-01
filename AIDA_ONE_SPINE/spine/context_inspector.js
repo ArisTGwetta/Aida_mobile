@@ -26,7 +26,7 @@
 
   function valueName(value) {
     if (!value || typeof value !== "object") return null;
-    return (
+    const direct = (
       value.name ||
       value.display_name ||
       value.displayName ||
@@ -43,13 +43,23 @@
       value.briefcase_name ||
       null
     );
-  }
 
-  function safeShape(name, value) {
-    if (!value || typeof value !== "object") {
-      return { name, present: false, keys: [], nameCandidates: {} };
+    if (direct) return direct;
+
+    const nestedKeys = ["identity", "realm", "role", "project", "briefcase"];
+    for (const key of nestedKeys) {
+      const nested = value[key];
+      if (nested && typeof nested === "object") {
+        const nestedName = valueName(nested);
+        if (nestedName) return nestedName;
+      }
     }
 
+    return null;
+  }
+
+  function directNameCandidates(value) {
+    if (!value || typeof value !== "object") return {};
     const candidateKeys = [
       "name",
       "display_name",
@@ -77,11 +87,58 @@
       }
     }
 
+    return nameCandidates;
+  }
+
+  function legacyValueName(value) {
+    if (!value || typeof value !== "object") return null;
+    return (
+      value.name ||
+      value.display_name ||
+      value.displayName ||
+      value.realm_name ||
+      value.role_name ||
+      value.identity_name ||
+      value.project_name ||
+      value.briefcase_title ||
+      value.briefcase_id ||
+      value.title ||
+      value.label ||
+      value.id ||
+      value.filename ||
+      value.briefcase_name ||
+      null
+    );
+  }
+
+  function safeShape(name, value) {
+    if (!value || typeof value !== "object") {
+      return { name, present: false, keys: [], nameCandidates: {} };
+    }
+
+    const nameCandidates = directNameCandidates(value);
+    const nestedKeys = ["identity", "realm", "role", "project", "briefcase"];
+    const nestedCandidates = {};
+
+    for (const key of nestedKeys) {
+      if (value[key] && typeof value[key] === "object") {
+        const nested = directNameCandidates(value[key]);
+        if (Object.keys(nested).length) {
+          nestedCandidates[key] = nested;
+        } else {
+          nestedCandidates[key] = {
+            keys: Object.keys(value[key]).slice(0, 20).join(", ")
+          };
+        }
+      }
+    }
+
     return {
       name,
       present: true,
       keys: Object.keys(value).slice(0, 40),
-      nameCandidates
+      nameCandidates,
+      nestedCandidates
     };
   }
 
@@ -248,6 +305,13 @@
         .map(([key, value]) => `${key}=${value}`)
         .join("; ");
       log(`SHAPE ${shape.name}: candidates=${candidates || "none"}`);
+      const nested = Object.entries(shape.nestedCandidates || {})
+        .map(([key, value]) => {
+          const text = Object.entries(value).map(([innerKey, innerValue]) => `${innerKey}=${innerValue}`).join("; ");
+          return `${key}{${text}}`;
+        })
+        .join(" | ");
+      if (nested) log(`SHAPE ${shape.name}: nested=${nested}`);
     });
 
     window.AIDA_SHAPE_SUMMARY = shapes;
