@@ -15,7 +15,13 @@
     },
     tokens: {
       openai: { key: null, source: null },
-      drive: { accessToken: null, source: null }
+      drive: { accessToken: null, source: null },
+      llm: {
+        provider: null,
+        profile: null,
+        key: null,
+        source: null
+      }
     },
     drive: {
       folderId: null,

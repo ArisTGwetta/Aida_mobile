@@ -57,3 +57,15 @@ Longer-term stronger model:
 
 - Use a private Cloud Run / Cloud Function token broker or OpenAI proxy.
 - Browser never receives a long-lived OpenAI key.
+
+## Keypad Route Shortcuts
+
+Status: partially supported in airlock schema; tune after LLM provider layer exists.
+
+Idea:
+
+- `123` could open normal Aida.
+- `789` could open debug mode.
+- `456` could choose an alternate roleplay-oriented provider.
+
+The keypad remains useful as a shortcut doorway even after in-app provider switching exists.

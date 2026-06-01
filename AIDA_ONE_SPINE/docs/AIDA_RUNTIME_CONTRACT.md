@@ -124,7 +124,8 @@ The airlock must:
 
 - Accept zeros as decoy digits that do not affect fragment order.
 - Require exactly three meaningful non-zero digits for the current scheme.
-- Assemble the key only into `AIDA_RUNTIME.tokens.openai.key`.
+- Assemble the selected route key into `AIDA_RUNTIME.tokens.llm.key`.
+- Mirror OpenAI route keys into `AIDA_RUNTIME.tokens.openai.key` while OpenAI is the active provider.
 - Store the assembled key only in session-scoped browser storage unless the user explicitly chooses another storage model.
 - Fail closed if the private fragment provider is missing.
 
@@ -138,8 +139,9 @@ Production/mobile target:
 
 - Google OAuth is cleared first.
 - Drive issues an access token through the official Google Identity flow.
-- Aida fetches private OpenAI fragments from the authenticated Drive vault.
-- The keypad assembles the OpenAI key from `AIDA_RUNTIME.tokens.openai.fragments`.
+- Aida fetches private LLM fragments from the authenticated Drive vault.
+- The keypad chooses a route and assembles the selected LLM key from `AIDA_RUNTIME.tokens.llm.fragments`.
+- Routes may select profiles such as normal, debug, or alternate provider.
 
 The keypad must not assemble a Google token. The Drive token comes from Google OAuth, and the Google client ID is not a secret.
 

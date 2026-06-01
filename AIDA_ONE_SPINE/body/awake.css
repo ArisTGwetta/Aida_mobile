@@ -48,24 +48,34 @@ input:disabled {
   position: fixed;
   inset: 0;
   z-index: 20;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   padding: 18px;
   background: #000000;
   color: var(--aida-green);
 }
 
 #bios-logs {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: 18px;
+  padding-top: 10px;
   font-size: 13px;
   line-height: 1.35;
 }
 
-#boot-preview-btn {
-  width: min(260px, 100%);
-  padding: 10px 14px;
+#bios-controls {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(156px, 1fr));
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(0, 95, 115, 0.65);
+  background: #000000;
 }
 
 #airlock-start-btn,
@@ -74,9 +84,8 @@ input:disabled {
 #drive-fetch-btn,
 #context-inspect-btn,
 #boot-preview-btn {
-  display: block;
-  width: min(260px, 100%);
-  margin: 0 0 8px;
+  width: 100%;
+  margin: 0;
   padding: 10px 14px;
 }
 

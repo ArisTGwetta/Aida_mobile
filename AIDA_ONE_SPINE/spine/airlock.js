@@ -57,7 +57,8 @@
   }
 
   function getProvider() {
-    return window.AIDA_TOKEN_FRAGMENTS || null;
+    const rt = runtime();
+    return rt.tokens?.llm?.fragments || rt.tokens?.openai?.fragments || window.AIDA_TOKEN_FRAGMENTS || null;
   }
 
   function meaningfulDigits(rawPin) {
@@ -89,14 +90,9 @@
     input.value = "*".repeat(input.dataset.realPin.length);
   }
 
-  function assembleOpenAIKey(cleanPin) {
-    const provider = getProvider();
-    if (!provider || !provider.openai || !provider.openai.segments) {
-      throw new Error("Private token fragment provider not loaded.");
-    }
-
-    const prefix = provider.openai.prefix || "";
-    const segments = provider.openai.segments;
+  function assembleRouteKey(route, cleanPin) {
+    const prefix = route.prefix || "";
+    const segments = route.segments || {};
     const parts = cleanPin.split("").map((digit) => {
       const segment = segments[digit];
       if (!segment) throw new Error(`Missing key fragment for digit ${digit}.`);
@@ -104,6 +100,41 @@
     });
 
     return `${prefix}${parts.join("")}`;
+  }
+
+  function resolveRoute(provider, cleanPin) {
+    if (provider.routes && provider.routes[cleanPin]) {
+      return provider.routes[cleanPin];
+    }
+
+    if (provider.openai?.segments) {
+      return {
+        label: "OpenAI default",
+        provider: "openai",
+        profile: "default",
+        prefix: provider.openai.prefix || "",
+        segments: provider.openai.segments
+      };
+    }
+
+    return null;
+  }
+
+  function assembleLlmKey(cleanPin) {
+    const provider = getProvider();
+    if (!provider) {
+      throw new Error("Private LLM fragment provider not loaded.");
+    }
+
+    const route = resolveRoute(provider, cleanPin);
+    if (!route) {
+      throw new Error(`No LLM route configured for ${cleanPin}.`);
+    }
+
+    return {
+      key: assembleRouteKey(route, cleanPin),
+      route
+    };
   }
 
   function requestToken() {
@@ -121,18 +152,24 @@
     }
 
     try {
-      const key = assembleOpenAIKey(cleanPin);
+      const assembled = assembleLlmKey(cleanPin);
+      const key = assembled.key;
+      const route = assembled.route;
       sessionStorage.setItem(STORAGE_KEY, key);
 
       const rt = runtime();
       rt.tokens.openai.key = key;
       rt.tokens.openai.source = "airlock_fragments";
+      rt.tokens.llm.key = key;
+      rt.tokens.llm.provider = route.provider || "openai";
+      rt.tokens.llm.profile = route.profile || cleanPin;
+      rt.tokens.llm.source = "airlock_route";
       rt.boot.airlockCleared = true;
       rt.boot.phase = "airlock_cleared";
 
       hideAirlock();
       showBios();
-      log("AIRLOCK: OpenAI key assembled into runtime token vault.", "log-blue");
+      log(`AIRLOCK: ${route.label || route.profile || "LLM route"} assembled into runtime token vault.`, "log-blue");
       return true;
     } catch (error) {
       log(`AIRLOCK: ${error.message}`, "log-amber");
@@ -146,6 +183,10 @@
     const rt = runtime();
     rt.tokens.openai.key = key;
     rt.tokens.openai.source = "sessionStorage";
+    rt.tokens.llm.key = key;
+    rt.tokens.llm.provider = rt.tokens.llm.provider || "openai";
+    rt.tokens.llm.profile = rt.tokens.llm.profile || "restored_session";
+    rt.tokens.llm.source = "sessionStorage";
     rt.boot.airlockCleared = true;
     log("AIRLOCK: Restored OpenAI token from this browser session.", "log-blue");
     return true;

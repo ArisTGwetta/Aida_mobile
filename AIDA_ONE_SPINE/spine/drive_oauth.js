@@ -151,6 +151,8 @@
     rt.mind.insights = files["insights.json"] || null;
     rt.mind.emotion = files["emotion_state.json"] || null;
     rt.mind.session = files["session_log.json"] || null;
+    rt.tokens.openai.fragments = files["openai_fragments.json"] || null;
+    rt.tokens.llm.fragments = files["llm_fragments.json"] || rt.tokens.openai.fragments || null;
 
     rt.mind.realms = Object.fromEntries(
       Object.entries(files).filter(([name]) => name.startsWith("realm_"))
@@ -191,6 +193,7 @@
       memory: Boolean(rt.mind.memory),
       insights: Boolean(rt.mind.insights),
       emotion: Boolean(rt.mind.emotion),
+      llmFragments: Boolean(rt.tokens.llm.fragments),
       realms: Object.keys(rt.mind.realms).length,
       roles: Object.keys(rt.mind.roles).length,
       projects: Object.keys(rt.mind.projects).length
