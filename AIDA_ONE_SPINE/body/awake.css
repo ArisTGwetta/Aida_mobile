@@ -175,6 +175,23 @@ input:disabled {
   color: #ff4444;
 }
 
+.airlock-tools {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.airlock-tools button {
+  min-height: 42px;
+  border: 1px solid var(--aida-gold);
+  border-radius: 10px;
+  background: #000000;
+  color: var(--aida-green);
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
 #aida-interface {
   position: fixed;
   inset: 0;

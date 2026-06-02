@@ -56,6 +56,14 @@
     if (bios) bios.style.display = "block";
   }
 
+  function returnToBios() {
+    hideAirlock();
+    showBios();
+    const rt = runtime();
+    if (rt) rt.boot.phase = rt.boot.airlockCleared ? "airlock_cleared" : "bios";
+    log("AIRLOCK: Returned to BIOS.", "log-blue");
+  }
+
   function getProvider() {
     const rt = runtime();
     return rt.tokens?.llm?.fragments || rt.tokens?.openai?.fragments || window.AIDA_TOKEN_FRAGMENTS || null;
@@ -164,6 +172,13 @@
     return routes;
   }
 
+  function inspectFromAirlock() {
+    if (window.AIDA_CONTEXT_INSPECTOR?.inspect) {
+      window.AIDA_CONTEXT_INSPECTOR.inspect();
+    }
+    return inspectRoutes();
+  }
+
   function requestToken() {
     const input = $("scramble-pin");
     const rawPin = input?.dataset.realPin || "";
@@ -228,10 +243,14 @@
 
   function install() {
     const begin = $("airlock-start-btn");
+    const inspect = $("airlock-inspect-btn");
+    const bios = $("airlock-bios-btn");
     const input = $("scramble-pin");
     const keys = document.querySelectorAll("#airlock .key");
 
     if (begin) begin.addEventListener("click", showAirlock);
+    if (inspect) inspect.addEventListener("click", inspectFromAirlock);
+    if (bios) bios.addEventListener("click", returnToBios);
 
     keys.forEach((button) => {
       const value = button.textContent.trim();
@@ -253,9 +272,11 @@
 
   window.AIDA_AIRLOCK = {
     show: showAirlock,
+    returnToBios,
     pressKey,
     requestToken,
     restoreTokenFromSession,
+    inspectFromAirlock,
     inspectRoutes,
     safeRoutes
   };
