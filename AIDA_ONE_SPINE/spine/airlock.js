@@ -12,6 +12,13 @@
   }
 
   function log(message, className = "log-green") {
+    if (window.AIDA_BIOS?.log) {
+      window.AIDA_BIOS.log(message, className);
+      const status = $("airlock-status");
+      if (status) status.textContent = message;
+      return;
+    }
+
     const logs = $("bios-logs");
     const status = $("airlock-status");
 
@@ -52,8 +59,15 @@
   }
 
   function showBios() {
+    if (window.AIDA_BIOS?.show) {
+      window.AIDA_BIOS.show();
+      return;
+    }
+
     const bios = $("bios-screen");
-    if (bios) bios.style.display = "block";
+    if (bios) bios.style.display = "flex";
+    const logs = $("bios-logs");
+    if (logs) logs.scrollTop = logs.scrollHeight;
   }
 
   function returnToBios() {

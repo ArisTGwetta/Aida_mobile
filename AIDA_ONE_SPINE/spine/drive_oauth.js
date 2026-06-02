@@ -18,6 +18,11 @@
   }
 
   function log(message, className = "log-green") {
+    if (window.AIDA_BIOS?.log) {
+      window.AIDA_BIOS.log(message, className);
+      return;
+    }
+
     const logs = $("bios-logs");
     if (logs) {
       const line = document.createElement("div");

@@ -23,6 +23,7 @@
       <button id="llm-preview-btn" type="button">Build LLM Messages</button>
       <button id="boot-preview-btn" type="button">Preview Awake Body</button>
     </div>
+    <div id="bios-latest" aria-live="polite">>>> BIOS ready.</div>
     <div id="bios-logs">
       <div class="log-white">>>> INITIALIZING AIDA-ONE SPINE...</div>
       <div class="log-amber">>>> Awake body donor ready. Mind not mounted yet.</div>
@@ -58,7 +59,7 @@
         <button
           id="airlock-bios-btn"
           type="button"
-          onclick="document.getElementById('airlock').style.display='none';document.getElementById('bios-screen').style.display='flex';window.AIDA_AIRLOCK?.returnToBios?.()"
+          onclick="document.getElementById('airlock').style.display='none';document.getElementById('bios-screen').style.display='flex';window.AIDA_BIOS?.scrollToLatest?.();window.AIDA_AIRLOCK?.returnToBios?.()"
         >BIOS</button>
       </div>
     </div>
@@ -117,12 +118,13 @@
       </div>
     </div>
   </section>
-  <script src="spine/runtime.js?v=20260602c"></script>
-  <script src="spine/config.js?v=20260602c"></script>
-  <script src="body/awake.js?v=20260602c"></script>
-  <script src="spine/airlock.js?v=20260602c"></script>
-  <script src="spine/drive_oauth.js?v=20260602c"></script>
-  <script src="spine/context_inspector.js?v=20260602c"></script>
-  <script src="spine/llm_messages.js?v=20260602c"></script>
+  <script src="spine/runtime.js?v=20260602e"></script>
+  <script src="spine/config.js?v=20260602e"></script>
+  <script src="spine/bios_console.js?v=20260602e"></script>
+  <script src="body/awake.js?v=20260602e"></script>
+  <script src="spine/airlock.js?v=20260602e"></script>
+  <script src="spine/drive_oauth.js?v=20260602e"></script>
+  <script src="spine/context_inspector.js?v=20260602e"></script>
+  <script src="spine/llm_messages.js?v=20260602e"></script>
 </body>
 </html>

@@ -11,6 +11,11 @@
   }
 
   function log(message, className = "log-green") {
+    if (window.AIDA_BIOS?.log) {
+      window.AIDA_BIOS.log(message, className);
+      return;
+    }
+
     const logs = $("bios-logs");
     if (logs) {
       const line = document.createElement("div");
@@ -170,6 +175,22 @@
     };
   }
 
+  function preflightGate(context) {
+    const missing = [];
+    if (!context.rt.boot?.driveLoaded) missing.push("Drive JSON fetch");
+    if (!context.identity) missing.push("identity");
+    if (!context.realm) missing.push("active realm");
+    if (!context.role) missing.push("active role");
+    if (!context.facts) missing.push("facts");
+    if (!context.memory) missing.push("memory summary");
+    if (!context.emotion) missing.push("emotion");
+
+    return {
+      pass: missing.length === 0,
+      missing
+    };
+  }
+
   function buildSystemContent(context, tetrad) {
     const projectPayload = context.project || {
       mode: context.projectMode,
@@ -206,6 +227,25 @@
 
   function buildMessages(userText = "") {
     const context = resolveContext();
+    const gate = preflightGate(context);
+    if (!gate.pass) {
+      context.rt.context.tetrad = null;
+      context.rt.context.llmMessages = null;
+      context.rt.boot.mindReady = false;
+      context.rt.boot.phase = "llm_messages_waiting";
+      return {
+        blocked: true,
+        missing: gate.missing,
+        tetrad: null,
+        messages: null,
+        safeSummary: {
+          messageCount: 0,
+          systemChars: 0,
+          userChars: 0
+        }
+      };
+    }
+
     const tetrad = buildTetrad(context);
     const systemContent = buildSystemContent(context, tetrad);
     const input = userText.trim() || "[No user message supplied yet. This is a preflight message assembly preview.]";
@@ -247,6 +287,12 @@
   function previewMessages() {
     const userInput = $("user-in")?.value || "";
     const result = buildMessages(userInput);
+    if (result.blocked) {
+      log(`LLM: WAIT. Missing ${result.missing.join(", ")}.`, "log-amber");
+      log("LLM: Click Fetch Drive JSON before building messages.", "log-amber");
+      return result;
+    }
+
     const summary = result.safeSummary;
 
     log("LLM: Message packet assembled in runtime. No API call made.", "log-blue");
@@ -265,7 +311,8 @@
   window.AIDA_LLM_MESSAGES = {
     build: buildMessages,
     preview: previewMessages,
-    buildTetrad
+    buildTetrad,
+    preflightGate
   };
 
   if (window.AIDA_MODULES) {
