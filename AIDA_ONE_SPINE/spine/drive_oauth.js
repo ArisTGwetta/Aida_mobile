@@ -257,7 +257,7 @@
       rt.boot.phase = "drive_loaded";
 
       log(
-        `DRIVE: Mind mapped. identity=${mapped.identity}, facts=${mapped.facts}, memory=${mapped.memory}, realms=${mapped.realms}, roles=${mapped.roles}, projects=${mapped.projects}, activeProject=${mapped.activeProject}.`,
+        `DRIVE: Mind mapped. identity=${mapped.identity}, facts=${mapped.facts}, memory=${mapped.memory}, realms=${mapped.realms}, roles=${mapped.roles}, projects=${mapped.projects}, activeProject=${mapped.activeProject}, llmFragments=${mapped.llmFragments}.`,
         "log-blue"
       );
 

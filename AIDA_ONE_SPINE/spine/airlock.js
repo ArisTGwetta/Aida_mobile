@@ -137,6 +137,33 @@
     };
   }
 
+  function safeRoutes() {
+    const provider = getProvider();
+    if (!provider?.routes) return [];
+
+    return Object.entries(provider.routes).map(([pin, route]) => ({
+      pin,
+      label: route.label || route.profile || "Unnamed route",
+      provider: route.provider || "openai",
+      profile: route.profile || pin,
+      hasSegments: Boolean(route.segments)
+    }));
+  }
+
+  function inspectRoutes() {
+    const routes = safeRoutes();
+    if (!routes.length) {
+      log("AIRLOCK: No Drive-backed LLM routes loaded yet.", "log-amber");
+      return routes;
+    }
+
+    log(`AIRLOCK: ${routes.length} LLM route(s) available.`, "log-blue");
+    routes.forEach((route) => {
+      log(`AIRLOCK ROUTE: ${route.pin} -> ${route.label} (${route.provider}/${route.profile})`);
+    });
+    return routes;
+  }
+
   function requestToken() {
     const input = $("scramble-pin");
     const rawPin = input?.dataset.realPin || "";
@@ -158,12 +185,19 @@
       sessionStorage.setItem(STORAGE_KEY, key);
 
       const rt = runtime();
-      rt.tokens.openai.key = key;
-      rt.tokens.openai.source = "airlock_fragments";
       rt.tokens.llm.key = key;
       rt.tokens.llm.provider = route.provider || "openai";
       rt.tokens.llm.profile = route.profile || cleanPin;
       rt.tokens.llm.source = "airlock_route";
+
+      if (rt.tokens.llm.provider === "openai") {
+        rt.tokens.openai.key = key;
+        rt.tokens.openai.source = "airlock_route";
+      } else {
+        rt.tokens.openai.key = null;
+        rt.tokens.openai.source = null;
+      }
+
       rt.boot.airlockCleared = true;
       rt.boot.phase = "airlock_cleared";
 
@@ -221,7 +255,9 @@
     show: showAirlock,
     pressKey,
     requestToken,
-    restoreTokenFromSession
+    restoreTokenFromSession,
+    inspectRoutes,
+    safeRoutes
   };
 
   if (window.AIDA_MODULES) {

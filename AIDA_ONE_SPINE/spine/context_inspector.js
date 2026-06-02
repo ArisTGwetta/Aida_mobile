@@ -267,6 +267,15 @@
       emotion: {
         present: Boolean(emotion),
         summary: emotionSummary(emotion)
+      },
+      llm: {
+        fragmentsPresent: Boolean(rt.tokens?.llm?.fragments),
+        routeCount: rt.tokens?.llm?.fragments?.routes
+          ? Object.keys(rt.tokens.llm.fragments.routes).length
+          : 0,
+        provider: rt.tokens?.llm?.provider || "none",
+        profile: rt.tokens?.llm?.profile || "none",
+        keyReady: Boolean(rt.tokens?.llm?.key)
       }
     };
 
@@ -291,6 +300,7 @@
     log(`SESSION: present=${summary.session.present}, count=${summary.session.count}`);
     log(`RECENT TURNS: present=${summary.recentTurns.present}, count=${summary.recentTurns.count}`);
     log(`EMOTION: ${summary.emotion.summary}`);
+    log(`LLM ROUTES: fragments=${summary.llm.fragmentsPresent}, routes=${summary.llm.routeCount}, selected=${summary.llm.provider}/${summary.llm.profile}, keyReady=${summary.llm.keyReady}`);
 
     if (gate.pass) {
       log("PRE-LLM GATE: PASS. Required context is present.", "log-blue");
@@ -348,6 +358,14 @@
     if (button) button.addEventListener("click", inspectContext);
     const shapeButton = $("shape-inspect-btn");
     if (shapeButton) shapeButton.addEventListener("click", inspectShapes);
+    const airlockButton = $("airlock-start-btn");
+    if (airlockButton) {
+      airlockButton.addEventListener("click", () => {
+        if (window.AIDA_AIRLOCK?.inspectRoutes) {
+          window.AIDA_AIRLOCK.inspectRoutes();
+        }
+      });
+    }
     log("Context inspector loaded.", "log-blue");
   }
 
