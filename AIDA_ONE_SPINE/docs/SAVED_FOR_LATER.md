@@ -4,11 +4,11 @@ Small design and implementation notes we intentionally postponed so the spine wo
 
 ## Awake Body Pixel Grid Tuning
 
-Status: later tuning, not blocking.
+Status: first tuning pass applied; keep evaluating by eye.
 
 Current effect: two overlay grids on Aida's face, one slow/larger and one fast/finer, suggesting living data/pixels.
 
-Desired future feel:
+Desired feel:
 
 - Much brighter, closer to the bright pixel/spark values already present in the static portrait.
 - Much slower, potentially 10x to 100x slower than the first pass.
@@ -19,16 +19,11 @@ Desired future feel:
 Current knobs are in `body/awake.js`:
 
 ```js
-buildFaceDataGrid("face-data-slow", 120, [4200, 8600], [0.18, 0.42]);
-buildFaceDataGrid("face-data-fast", 396, [900, 2600], [0.12, 0.36]);
+buildFaceDataGrid("face-data-slow", 120, [45000, 110000], [0.72, 1.0]);
+buildFaceDataGrid("face-data-fast", 396, [12000, 36000], [0.38, 0.78]);
 ```
 
-Possible later direction:
-
-```js
-buildFaceDataGrid("face-data-slow", 120, [45000, 140000], [0.55, 0.95]);
-buildFaceDataGrid("face-data-fast", 396, [20000, 70000], [0.35, 0.75]);
-```
+CSS brightness and face framing are in `body/awake.css`.
 
 ## Token Security Upgrade
 

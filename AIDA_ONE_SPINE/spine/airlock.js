@@ -233,6 +233,12 @@
       hideAirlock();
       showBios();
       log(`AIRLOCK: ${route.label || route.profile || "LLM route"} assembled into runtime token vault.`, "log-blue");
+      window.dispatchEvent(new CustomEvent("aida:airlock-cleared", {
+        detail: {
+          provider: rt.tokens.llm.provider,
+          profile: rt.tokens.llm.profile
+        }
+      }));
       return true;
     } catch (error) {
       log(`AIRLOCK: ${error.message}`, "log-amber");

@@ -91,8 +91,8 @@
   }
 
   function buildFaceDataGrids() {
-    buildFaceDataGrid("face-data-slow", 120, [4200, 8600], [0.18, 0.42]);
-    buildFaceDataGrid("face-data-fast", 396, [900, 2600], [0.12, 0.36]);
+    buildFaceDataGrid("face-data-slow", 120, [45000, 110000], [0.72, 1.0]);
+    buildFaceDataGrid("face-data-fast", 396, [12000, 36000], [0.38, 0.78]);
   }
 
   function installTagEditor() {
@@ -392,6 +392,7 @@
           width: "100%",
           height: "100%",
           objectFit: "cover",
+          objectPosition: "center 42%",
           transform: "translateX(-50%) scale(1.05)",
           webkitMaskImage: "none",
           maskImage: "none",
