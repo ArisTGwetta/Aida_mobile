@@ -275,7 +275,10 @@
           : 0,
         provider: rt.tokens?.llm?.provider || "none",
         profile: rt.tokens?.llm?.profile || "none",
-        keyReady: Boolean(rt.tokens?.llm?.key)
+        keyReady: Boolean(rt.tokens?.llm?.key),
+        messagesReady: Array.isArray(rt.context?.llmMessages),
+        messageCount: Array.isArray(rt.context?.llmMessages) ? rt.context.llmMessages.length : 0,
+        tetradReady: Boolean(rt.context?.tetrad)
       }
     };
 
@@ -301,6 +304,7 @@
     log(`RECENT TURNS: present=${summary.recentTurns.present}, count=${summary.recentTurns.count}`);
     log(`EMOTION: ${summary.emotion.summary}`);
     log(`LLM ROUTES: fragments=${summary.llm.fragmentsPresent}, routes=${summary.llm.routeCount}, selected=${summary.llm.provider}/${summary.llm.profile}, keyReady=${summary.llm.keyReady}`);
+    log(`LLM MESSAGES: ready=${summary.llm.messagesReady}, count=${summary.llm.messageCount}, tetrad=${summary.llm.tetradReady}`);
 
     if (gate.pass) {
       log("PRE-LLM GATE: PASS. Required context is present.", "log-blue");
