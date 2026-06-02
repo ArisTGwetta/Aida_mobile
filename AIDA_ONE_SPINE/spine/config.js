@@ -9,6 +9,10 @@
     },
     drive: {
       jsonFolderId: "19mkQyJEkgtUUCG4djk7160u7vycvWPja"
+    },
+    llm: {
+      model: "gpt-4.1-mini",
+      maxOutputTokens: 700
     }
   };
 })();

@@ -27,12 +27,13 @@
 
   function appendChat(role, text) {
     const flow = $("chat-flow");
-    if (!flow) return;
+    if (!flow) return null;
     const line = document.createElement("div");
     line.className = `line ${role}`;
     line.textContent = text;
     flow.appendChild(line);
     flow.scrollTop = flow.scrollHeight;
+    return line;
   }
 
   function pulse(message) {
@@ -131,6 +132,11 @@
 
     if (send && input) {
       send.addEventListener("click", () => {
+        if (window.AIDA_CONVERSATION?.sendFromInput) {
+          window.AIDA_CONVERSATION.sendFromInput();
+          return;
+        }
+
         const text = input.value.trim();
         if (!text) return;
         input.value = "";

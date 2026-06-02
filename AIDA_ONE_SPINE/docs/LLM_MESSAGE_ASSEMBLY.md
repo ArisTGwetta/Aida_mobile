@@ -42,3 +42,17 @@ It should happen after:
 - Airlock/key assembly succeeds.
 
 No API call is made at this stage.
+
+## First Live Call
+
+`spine/llm_openai.js` owns the first live OpenAI call.
+
+It must refuse to send unless:
+
+- Drive JSON has been fetched.
+- Airlock is cleared.
+- `AIDA_RUNTIME.tokens.llm.key` is present.
+- The active route is OpenAI.
+- `AIDA_RUNTIME.context.llmMessages` is ready.
+
+The first live call displays one response in the body chat. It does not write memory, update facts, run sleep routines, or sync Drive.
