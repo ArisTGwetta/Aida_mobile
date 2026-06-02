@@ -49,8 +49,16 @@
         <button class="key" type="button">OK</button>
       </div>
       <div class="airlock-tools">
-        <button id="airlock-inspect-btn" type="button">Inspect</button>
-        <button id="airlock-bios-btn" type="button">BIOS</button>
+        <button
+          id="airlock-inspect-btn"
+          type="button"
+          onclick="window.AIDA_AIRLOCK?.inspectFromAirlock?.() || window.AIDA_AIRLOCK?.inspectRoutes?.() || window.AIDA_CONTEXT_INSPECTOR?.inspect?.()"
+        >Inspect</button>
+        <button
+          id="airlock-bios-btn"
+          type="button"
+          onclick="document.getElementById('airlock').style.display='none';document.getElementById('bios-screen').style.display='flex';window.AIDA_AIRLOCK?.returnToBios?.()"
+        >BIOS</button>
       </div>
     </div>
   </section>
@@ -108,11 +116,11 @@
       </div>
     </div>
   </section>
-  <script src="spine/runtime.js"></script>
-  <script src="spine/config.js"></script>
-  <script src="body/awake.js"></script>
-  <script src="spine/airlock.js"></script>
-  <script src="spine/drive_oauth.js"></script>
-  <script src="spine/context_inspector.js"></script>
+  <script src="spine/runtime.js?v=20260602b"></script>
+  <script src="spine/config.js?v=20260602b"></script>
+  <script src="body/awake.js?v=20260602b"></script>
+  <script src="spine/airlock.js?v=20260602b"></script>
+  <script src="spine/drive_oauth.js?v=20260602b"></script>
+  <script src="spine/context_inspector.js?v=20260602b"></script>
 </body>
 </html>
