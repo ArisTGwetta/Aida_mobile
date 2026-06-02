@@ -148,6 +148,9 @@
       const reply = await callOpenAI(rt.context.llmMessages);
       if (pending) pending.textContent = reply;
       else appendChat("AIDA", reply);
+      if (window.AIDA_SESSION_CAPTURE?.captureExchange) {
+        window.AIDA_SESSION_CAPTURE.captureExchange(text, reply);
+      }
       rt.boot.phase = "llm_response_received";
       pulse("Aida response received. Memory write is still disabled.");
       log("LLM SEND: Response received. No memory write performed.", "log-blue");
@@ -192,7 +195,7 @@
       phase: "conversation_loop",
       reads: ["AIDA_RUNTIME.context.llmMessages", "AIDA_RUNTIME.tokens.llm.key"],
       writes: ["AIDA_RUNTIME.context.lastLlmResponse", "AIDA_RUNTIME.boot.phase"],
-      requires: ["AIDA_RUNTIME", "AIDA_LLM_MESSAGES"],
+      requires: ["AIDA_RUNTIME", "AIDA_LLM_MESSAGES", "AIDA_SESSION_CAPTURE"],
       verifies: ["live LLM call is refused unless Drive, airlock, key, and messages are ready"]
     });
   }

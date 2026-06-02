@@ -54,6 +54,15 @@
       memoryWindow: null,
       llmMessages: null
     },
+    session: {
+      id: null,
+      startedAt: null,
+      lastTurnAt: null,
+      currentTurns: [],
+      unsaved: false,
+      exchangeCount: 0,
+      logRefs: []
+    },
     py: {
       instance: null,
       organsMounted: {},

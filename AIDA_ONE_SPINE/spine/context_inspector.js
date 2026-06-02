@@ -284,6 +284,12 @@
         messagesReady: Array.isArray(rt.context?.llmMessages),
         messageCount: Array.isArray(rt.context?.llmMessages) ? rt.context.llmMessages.length : 0,
         tetradReady: Boolean(rt.context?.tetrad)
+      },
+      capturedSession: {
+        id: rt.session?.id || "none",
+        exchanges: rt.session?.exchangeCount || rt.session?.currentTurns?.length || 0,
+        unsaved: Boolean(rt.session?.unsaved),
+        pendingJournalCount: rt.sleep?.pendingJournal?.length || 0
       }
     };
 
@@ -310,6 +316,7 @@
     log(`EMOTION: ${summary.emotion.summary}`);
     log(`LLM ROUTES: fragments=${summary.llm.fragmentsPresent}, routes=${summary.llm.routeCount}, selected=${summary.llm.provider}/${summary.llm.profile}, keyReady=${summary.llm.keyReady}`);
     log(`LLM MESSAGES: ready=${summary.llm.messagesReady}, count=${summary.llm.messageCount}, tetrad=${summary.llm.tetradReady}`);
+    log(`CAPTURED SESSION: id=${summary.capturedSession.id}, exchanges=${summary.capturedSession.exchanges}, unsaved=${summary.capturedSession.unsaved}, pendingJournal=${summary.capturedSession.pendingJournalCount}`);
 
     if (gate.pass) {
       log("PRE-LLM GATE: PASS. Required context is present.", "log-blue");
