@@ -155,17 +155,53 @@
 
   function safeSummary() {
     const session = ensureSession();
+    const lastExchange = session.currentTurns?.[session.currentTurns.length - 1] || null;
     return {
       id: session.id,
       startedAt: session.startedAt,
       lastTurnAt: session.lastTurnAt,
       exchangeCount: session.exchangeCount || 0,
       unsaved: Boolean(session.unsaved),
-      pendingJournalCount: runtime().sleep?.pendingJournal?.length || 0
+      pendingJournalCount: runtime().sleep?.pendingJournal?.length || 0,
+      lastExchange: lastExchange
+        ? {
+            turnIndex: lastExchange.turnIndex,
+            capturedAt: lastExchange.capturedAt,
+            userChars: lastExchange.user?.text?.length || 0,
+            aidaChars: lastExchange.aida?.text?.length || 0,
+            identity: lastExchange.context?.identity || "unknown_identity",
+            realm: lastExchange.context?.realm || "unknown_realm",
+            project: lastExchange.context?.project || "unknown_project",
+            role: lastExchange.context?.role || "unknown_role",
+            emotion: lastExchange.context?.emotion?.label || "unknown_emotion",
+            route: `${lastExchange.context?.route?.provider || "none"}/${lastExchange.context?.route?.profile || "none"}`,
+            model: lastExchange.context?.llm?.model || "unknown_model"
+          }
+        : null
     };
   }
 
+  function inspectSession() {
+    const summary = safeSummary();
+    log("SESSION: Safe capture summary follows.", "log-blue");
+    log(`SESSION: id=${summary.id}, exchanges=${summary.exchangeCount}, unsaved=${summary.unsaved}, pendingJournal=${summary.pendingJournalCount}`);
+    log(`SESSION: started=${summary.startedAt || "n/a"}, lastTurn=${summary.lastTurnAt || "n/a"}`);
+
+    if (!summary.lastExchange) {
+      log("SESSION LAST: none captured yet.", "log-amber");
+      return summary;
+    }
+
+    const last = summary.lastExchange;
+    log(`SESSION LAST: turn=${last.turnIndex}, userChars=${last.userChars}, aidaChars=${last.aidaChars}`);
+    log(`SESSION LAST CONTEXT: identity=${last.identity}, realm=${last.realm}, project=${last.project}, role=${last.role}`);
+    log(`SESSION LAST STATE: emotion=${last.emotion}, route=${last.route}, model=${last.model}`);
+    return summary;
+  }
+
   function install() {
+    const button = document.getElementById("session-inspect-btn");
+    if (button) button.addEventListener("click", inspectSession);
     ensureSession();
     log("Session capture organ loaded. Memory writes are still disabled.", "log-blue");
   }
@@ -173,7 +209,8 @@
   window.AIDA_SESSION_CAPTURE = {
     ensureSession,
     captureExchange,
-    safeSummary
+    safeSummary,
+    inspectSession
   };
 
   if (window.AIDA_MODULES) {
