@@ -57,6 +57,7 @@
       throw new Error("Drive JSON fetch did not complete.");
     }
 
+    window.AIDA_WHILE_AWAY?.buildThought?.();
     return true;
   }
 
@@ -86,6 +87,9 @@
     if (typeof window.aida_arrive === "function") {
       log("WAKE: Arriving into Aida body.", "log-blue");
       window.aida_arrive();
+      setTimeout(() => {
+        window.AIDA_WHILE_AWAY?.offerThought?.();
+      }, 4700);
       return true;
     }
 

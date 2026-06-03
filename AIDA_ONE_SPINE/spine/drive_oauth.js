@@ -156,6 +156,7 @@
     rt.mind.insights = files["insights.json"] || null;
     rt.mind.emotion = files["emotion_state.json"] || null;
     rt.mind.session = files["session_log.json"] || null;
+    rt.mind.whileAway = files["while_away_thoughts.json"] || null;
     rt.tokens.openai.fragments = files["openai_fragments.json"] || null;
     rt.tokens.llm.fragments = files["llm_fragments.json"] || rt.tokens.openai.fragments || null;
 
@@ -206,6 +207,7 @@
       memory: Boolean(rt.mind.memory),
       insights: Boolean(rt.mind.insights),
       emotion: Boolean(rt.mind.emotion),
+      whileAway: Boolean(rt.mind.whileAway),
       llmFragments: Boolean(rt.tokens.llm.fragments),
       realms: Object.keys(rt.mind.realms).length,
       roles: Object.keys(rt.mind.roles).length,
@@ -262,7 +264,7 @@
       rt.boot.phase = "drive_loaded";
 
       log(
-        `DRIVE: Mind mapped. identity=${mapped.identity}, facts=${mapped.facts}, memory=${mapped.memory}, realms=${mapped.realms}, roles=${mapped.roles}, projects=${mapped.projects}, activeProject=${mapped.activeProject}, llmFragments=${mapped.llmFragments}.`,
+        `DRIVE: Mind mapped. identity=${mapped.identity}, facts=${mapped.facts}, memory=${mapped.memory}, realms=${mapped.realms}, roles=${mapped.roles}, projects=${mapped.projects}, activeProject=${mapped.activeProject}, whileAway=${mapped.whileAway}, llmFragments=${mapped.llmFragments}.`,
         "log-blue"
       );
 

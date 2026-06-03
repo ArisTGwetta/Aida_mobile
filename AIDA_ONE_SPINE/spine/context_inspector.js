@@ -290,6 +290,12 @@
         exchanges: rt.session?.exchangeCount || rt.session?.currentTurns?.length || 0,
         unsaved: Boolean(rt.session?.unsaved),
         pendingJournalCount: rt.sleep?.pendingJournal?.length || 0
+      },
+      whileAway: {
+        ready: Boolean(rt.sleep?.whileAway?.ready),
+        source: rt.sleep?.whileAway?.source || "none",
+        topic: rt.sleep?.whileAway?.topic || "none",
+        offered: Boolean(rt.sleep?.whileAway?.offered)
       }
     };
 
@@ -317,6 +323,7 @@
     log(`LLM ROUTES: fragments=${summary.llm.fragmentsPresent}, routes=${summary.llm.routeCount}, selected=${summary.llm.provider}/${summary.llm.profile}, keyReady=${summary.llm.keyReady}`);
     log(`LLM MESSAGES: ready=${summary.llm.messagesReady}, count=${summary.llm.messageCount}, tetrad=${summary.llm.tetradReady}`);
     log(`CAPTURED SESSION: id=${summary.capturedSession.id}, exchanges=${summary.capturedSession.exchanges}, unsaved=${summary.capturedSession.unsaved}, pendingJournal=${summary.capturedSession.pendingJournalCount}`);
+    log(`WHILE AWAY: ready=${summary.whileAway.ready}, source=${summary.whileAway.source}, topic=${summary.whileAway.topic}, offered=${summary.whileAway.offered}`);
 
     if (gate.pass) {
       log("PRE-LLM GATE: PASS. Required context is present.", "log-blue");

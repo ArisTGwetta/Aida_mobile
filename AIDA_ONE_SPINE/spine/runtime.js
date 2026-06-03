@@ -76,7 +76,16 @@
     sleep: {
       lastActive: null,
       pendingJournal: [],
-      whileAwaySeed: null
+      whileAwaySeed: null,
+      whileAway: {
+        ready: false,
+        generatedAt: null,
+        source: null,
+        thought: null,
+        topic: null,
+        complexity: "small",
+        offered: false
+      }
     }
   };
 
