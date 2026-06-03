@@ -392,7 +392,7 @@
           width: "100%",
           height: "100%",
           objectFit: "cover",
-          objectPosition: "center 42%",
+          objectPosition: "var(--aida-face-position-x) var(--aida-face-position-y)",
           transform: "translateX(-50%) scale(1.05)",
           webkitMaskImage: "none",
           maskImage: "none",

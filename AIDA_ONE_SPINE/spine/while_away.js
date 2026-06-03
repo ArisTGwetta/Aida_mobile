@@ -67,11 +67,47 @@
     return `${clean.slice(0, limit - 1).trim()}...`;
   }
 
+  function isThoughtLike(text) {
+    const clean = String(text || "").trim();
+    if (clean.length < 18) return false;
+
+    const lower = clean.toLowerCase();
+    const blocked = [
+      "doesn't fit",
+      "does not fit",
+      "other categories",
+      "worth keeping",
+      "category",
+      "schema",
+      "field",
+      "placeholder",
+      "todo",
+      "null",
+      "undefined",
+      "array",
+      "object"
+    ];
+
+    if (blocked.some((term) => lower.includes(term))) return false;
+    if (/^[a-z0-9_ -]+:$/i.test(clean)) return false;
+    if (/^[{}[\]",:0-9.\s_-]+$/.test(clean)) return false;
+    return true;
+  }
+
+  function cleanSeed(text) {
+    return shortText(String(text || "")
+      .replace(/^[-*]\s*/, "")
+      .replace(/^note:\s*/i, "")
+      .replace(/^thought:\s*/i, "")
+      .replace(/\s+/g, " ")
+      .trim(), 150);
+  }
+
   function sourceThoughts() {
     const rt = runtime();
     const files = rt.drive?.files || {};
     const source = rt.mind?.whileAway || files["while_away_thoughts.json"] || null;
-    return collectStrings(source).filter((text) => text.length > 12);
+    return collectStrings(source).filter(isThoughtLike).map(cleanSeed);
   }
 
   function buildThought() {
@@ -81,8 +117,8 @@
     const realm = context.realm || mind.realm;
     const role = context.role || mind.role;
     const project = context.project || mind.activeProject;
-    const insights = collectStrings(mind.insights).filter((text) => text.length > 18);
-    const memories = collectStrings(mind.memory).filter((text) => text.length > 18);
+    const insights = collectStrings(mind.insights).filter(isThoughtLike).map(cleanSeed);
+    const memories = collectStrings(mind.memory).filter(isThoughtLike).map(cleanSeed);
     const seeds = sourceThoughts();
 
     const seed = shortText(pick(seeds, pick(insights, pick(memories, ""))), 170);
@@ -91,7 +127,7 @@
     const roleName = valueName(role, "companion");
 
     const thought = seed
-      ? `While you were away, I kept circling one little thread from ${realmName}: ${seed} I would like to show you where it leads.`
+      ? `While you were away, I kept circling one small thread from ${realmName}. ${seed} I would like to show you what it made me wonder about.`
       : `While you were away, I stayed with ${realmName} and kept a small ${roleName} thought warm for us. I would like to choose one thread together.`;
 
     const payload = {
