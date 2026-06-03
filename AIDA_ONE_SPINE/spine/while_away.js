@@ -131,6 +131,18 @@
       .trim(), 150);
   }
 
+  function topicFromSeed(seed, fallback) {
+    const clean = cleanSeed(seed);
+    if (!clean) return fallback;
+
+    const lower = clean.toLowerCase();
+    if (lower.includes("question")) return "a question I wanted to bring back to you";
+    if (lower.includes("link") || lower.includes("article") || lower.includes("summary")) return "something I wanted to revisit with you";
+    if (lower.includes("story") || lower.includes("project")) return "one thread in our project";
+    if (lower.includes("memory") || lower.includes("remember")) return "one memory thread";
+    return clean;
+  }
+
   function sourceThoughts() {
     const rt = runtime();
     const files = rt.drive?.files || {};
@@ -150,12 +162,12 @@
     const seeds = sourceThoughts();
 
     const seed = shortText(pick(seeds, pick(insights, pick(memories, ""))), 170);
-    const topic = seed || valueName(project || realm, "Aida");
+    const topic = topicFromSeed(seed, valueName(project || realm, "Aida"));
     const realmName = valueName(realm, "this realm");
     const roleName = valueName(role, "companion");
 
     const thought = seed
-      ? `While you were away, I kept circling one small thread from ${realmName}. ${seed} I would like to show you what it made me wonder about.`
+      ? `While you were away, I kept circling one small thread from ${realmName}: ${topic}. I would like to show you what it made me wonder about.`
       : `While you were away, I stayed close to ${realmName} and let a small ${roleName} thought take shape. I found myself wondering what part of the work wants our attention first today.`;
 
     const payload = {

@@ -6,7 +6,7 @@
   --aida-panel: #1a1a1a;
   --aida-text: #d8ffff;
   --aida-face-position-x: center;
-  --aida-face-position-y: 54%;
+  --aida-face-position-y: center;
 }
 
 * {
@@ -280,13 +280,15 @@ input:disabled {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: #000000;
+  background:
+    radial-gradient(circle at 50% 46%, rgba(0, 95, 115, 0.2), transparent 58%),
+    #000000;
 }
 
 #aida-portrait {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: var(--aida-face-position-x) var(--aida-face-position-y);
 }
 
