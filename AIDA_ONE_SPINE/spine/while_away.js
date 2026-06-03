@@ -167,7 +167,7 @@
     const roleName = valueName(role, "companion");
 
     const thought = seed
-      ? `While you were away, I kept circling one small thread from ${realmName}: ${topic}. I would like to show you what it made me wonder about.`
+      ? `While you were away, I kept circling ${topic} from ${realmName}. I would like to show you what it made me wonder about.`
       : `While you were away, I stayed close to ${realmName} and let a small ${roleName} thought take shape. I found myself wondering what part of the work wants our attention first today.`;
 
     const payload = {

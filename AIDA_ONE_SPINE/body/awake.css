@@ -6,7 +6,7 @@
   --aida-panel: #1a1a1a;
   --aida-text: #d8ffff;
   --aida-face-position-x: center;
-  --aida-face-position-y: center;
+  --aida-face-position-y: 46%;
 }
 
 * {
@@ -264,10 +264,10 @@ input:disabled {
 }
 
 #aida-display {
-  flex: 0 0 34dvh;
-  min-height: 220px;
+  flex: 0 0 42dvh;
+  min-height: 300px;
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(108px, 1fr);
+  grid-template-columns: minmax(0, 2.4fr) minmax(120px, 0.9fr);
   position: relative;
   overflow: hidden;
   background: #000000;
@@ -574,7 +574,9 @@ input:disabled {
 
 @media (max-width: 520px) {
   #aida-display {
-    grid-template-columns: minmax(0, 1.55fr) minmax(96px, 0.95fr);
+    grid-template-columns: minmax(0, 2fr) minmax(96px, 0.82fr);
+    flex-basis: 38dvh;
+    min-height: 250px;
   }
 
   #debug-pane,
