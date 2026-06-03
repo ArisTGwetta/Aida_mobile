@@ -6,7 +6,7 @@
   --aida-panel: #1a1a1a;
   --aida-text: #d8ffff;
   --aida-face-position-x: center;
-  --aida-face-position-y: 72%;
+  --aida-face-position-y: 54%;
 }
 
 * {
@@ -264,8 +264,8 @@ input:disabled {
 }
 
 #aida-display {
-  flex: 0 0 30dvh;
-  min-height: 180px;
+  flex: 0 0 34dvh;
+  min-height: 220px;
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(108px, 1fr);
   position: relative;
