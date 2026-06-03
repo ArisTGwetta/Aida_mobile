@@ -284,9 +284,6 @@ input:disabled {
 #portrait-pane {
   position: relative;
   z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   overflow: hidden;
   background:
     radial-gradient(circle at 50% 46%, rgba(0, 95, 115, 0.2), transparent 58%),
@@ -294,11 +291,13 @@ input:disabled {
 }
 
 #aida-portrait {
-  width: auto;
-  max-width: 100%;
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  width: 100%;
   height: 100%;
   object-fit: contain;
-  object-position: var(--aida-face-position-x) var(--aida-face-position-y);
+  object-position: center center;
 }
 
 #flicker-grid {
