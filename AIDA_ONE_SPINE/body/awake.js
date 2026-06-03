@@ -1,6 +1,16 @@
 (function () {
   const ASSET_BASE = "body/assets/";
   const DEFAULT_FACE = `${ASSET_BASE}neutral1.png`;
+  const FACE_EFFECTS = {
+    sparkCount: 48,
+    sparkLayerOpacity: 0.78,
+    sparkOpacityMin: 0.52,
+    sparkOpacityRange: 0.38,
+    sparkSizeMin: 5,
+    sparkSizeRange: 9,
+    sparkDurationMin: 9000,
+    sparkDurationRange: 18000
+  };
 
   function $(id) {
     return document.getElementById(id);
@@ -61,14 +71,23 @@
     const layer = $("sparkLayer");
     if (!layer) return;
     layer.innerHTML = "";
-    for (let i = 0; i < 34; i += 1) {
+    for (let i = 0; i < FACE_EFFECTS.sparkCount; i += 1) {
       const spark = document.createElement("div");
       spark.className = "spark";
       spark.style.left = `${Math.random() * 100}%`;
       spark.style.top = `${Math.random() * 100}%`;
-      spark.style.setProperty("--spark-duration", `${Math.round(6500 + Math.random() * 14000)}ms`);
-      spark.style.setProperty("--spark-opacity", (0.16 + Math.random() * 0.48).toFixed(2));
-      spark.style.setProperty("--spark-size", `${Math.round(4 + Math.random() * 8)}px`);
+      spark.style.setProperty(
+        "--spark-duration",
+        `${Math.round(FACE_EFFECTS.sparkDurationMin + Math.random() * FACE_EFFECTS.sparkDurationRange)}ms`
+      );
+      spark.style.setProperty(
+        "--spark-opacity",
+        (FACE_EFFECTS.sparkOpacityMin + Math.random() * FACE_EFFECTS.sparkOpacityRange).toFixed(2)
+      );
+      spark.style.setProperty(
+        "--spark-size",
+        `${Math.round(FACE_EFFECTS.sparkSizeMin + Math.random() * FACE_EFFECTS.sparkSizeRange)}px`
+      );
       spark.style.animationDelay = `${Math.random() * 12}s`;
       layer.appendChild(spark);
     }
@@ -414,7 +433,7 @@
           });
           if (slowData) slowData.style.opacity = "";
           if (fastData) fastData.style.opacity = "";
-          if (sparkLayer) sparkLayer.style.opacity = "0.35";
+          if (sparkLayer) sparkLayer.style.opacity = String(FACE_EFFECTS.sparkLayerOpacity);
 
           setTimeout(() => {
             veil.style.opacity = "0";
