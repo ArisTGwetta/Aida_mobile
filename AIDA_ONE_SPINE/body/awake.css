@@ -6,7 +6,7 @@
   --aida-panel: #1a1a1a;
   --aida-text: #d8ffff;
   --aida-face-position-x: center;
-  --aida-face-position-y: 46%;
+  --aida-face-position-y: 50%;
 }
 
 * {
@@ -230,7 +230,7 @@ input:disabled {
 }
 
 #chat-flow {
-  flex: 1 1 auto;
+  flex: 0 1 34dvh;
   min-height: 0;
   overflow-y: auto;
   display: flex;
@@ -264,10 +264,11 @@ input:disabled {
 }
 
 #aida-display {
-  flex: 0 0 42dvh;
-  min-height: 300px;
+  flex: 1 1 56dvh;
+  min-height: 390px;
+  max-height: calc(100dvh - 188px);
   display: grid;
-  grid-template-columns: minmax(0, 2.4fr) minmax(120px, 0.9fr);
+  grid-template-columns: minmax(0, 1.9fr) minmax(120px, 0.82fr);
   position: relative;
   overflow: hidden;
   background: #000000;
@@ -574,9 +575,10 @@ input:disabled {
 
 @media (max-width: 520px) {
   #aida-display {
-    grid-template-columns: minmax(0, 2fr) minmax(96px, 0.82fr);
-    flex-basis: 38dvh;
-    min-height: 250px;
+    grid-template-columns: minmax(0, 1.65fr) minmax(96px, 0.78fr);
+    flex-basis: 52dvh;
+    min-height: 330px;
+    max-height: calc(100dvh - 176px);
   }
 
   #debug-pane,
