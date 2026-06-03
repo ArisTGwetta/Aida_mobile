@@ -92,7 +92,7 @@
 
   function buildFaceDataGrids() {
     // Increased cell counts for full-height coverage
-    // 40 cols × 50 rows = 2000 cells max; creating 800 for good distribution
+    // 80 cols × 50 rows = 4000 cells max; creating 800 for good distribution with narrower cells
     buildFaceDataGrid("face-data-slow", 800, [45000, 110000], [0.72, 1.0]);
     // 60 cols × 80 rows = 4800 cells max; creating 2400 for dense random sparkle
     buildFaceDataGrid("face-data-fast", 2400, [12000, 36000], [0.38, 0.78]);
