@@ -82,6 +82,24 @@
       "field",
       "placeholder",
       "todo",
+      "during sleep",
+      "reviews these",
+      "integrates them",
+      "clears the list",
+      ".json",
+      "memory_summary",
+      "session_log",
+      "recent_turns",
+      "emotion_state",
+      "the list",
+      "these items",
+      "items,",
+      "items.",
+      "module",
+      "runtime",
+      "drive",
+      "fetch",
+      "loaded",
       "null",
       "undefined",
       "array",
@@ -128,7 +146,7 @@
 
     const thought = seed
       ? `While you were away, I kept circling one small thread from ${realmName}. ${seed} I would like to show you what it made me wonder about.`
-      : `While you were away, I stayed with ${realmName} and kept a small ${roleName} thought warm for us. I would like to choose one thread together.`;
+      : `While you were away, I stayed close to ${realmName} and let a small ${roleName} thought take shape. I found myself wondering what part of the work wants our attention first today.`;
 
     const payload = {
       ready: true,
