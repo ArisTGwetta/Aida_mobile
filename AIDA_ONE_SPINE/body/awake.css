@@ -267,8 +267,8 @@ input:disabled {
   flex: 0 0 34dvh;
   min-height: 260px;
   max-height: 340px;
-  display: grid;
-  grid-template-columns: minmax(90px, 1fr) minmax(140px, 1fr) minmax(150px, 1fr);
+  display: flex;
+  align-items: stretch;
   position: relative;
   overflow: hidden;
   background: #000000;
@@ -277,6 +277,7 @@ input:disabled {
 #portrait-spacer {
   position: relative;
   z-index: 8;
+  flex: 1 1 0;
   min-width: 0;
   background: #000000;
 }
@@ -284,6 +285,10 @@ input:disabled {
 #portrait-pane {
   position: relative;
   z-index: 10;
+  flex: 0 0 auto;
+  width: auto;
+  height: 100%;
+  aspect-ratio: 223 / 312;
   overflow: hidden;
   background:
     radial-gradient(circle at 50% 46%, rgba(0, 95, 115, 0.2), transparent 58%),
@@ -380,10 +385,10 @@ input:disabled {
 }
 
 #data-stack {
-  grid-column: 3;
   z-index: 30;
   display: flex;
   flex-direction: column;
+  flex: 1 1 0;
   min-width: 0;
   height: 100%;
 }
@@ -582,10 +587,17 @@ input:disabled {
 
 @media (max-width: 520px) {
   #aida-display {
-    grid-template-columns: minmax(42px, 0.45fr) minmax(120px, 1fr) minmax(96px, 0.9fr);
     flex-basis: 31dvh;
     min-height: 230px;
     max-height: 290px;
+  }
+
+  #portrait-spacer {
+    flex: 0.35 1 0;
+  }
+
+  #data-stack {
+    flex: 0.9 1 0;
   }
 
   #debug-pane,

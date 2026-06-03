@@ -289,6 +289,7 @@
     if (face) {
       face.getAnimations().forEach((animation) => animation.cancel());
       Object.assign(face.style, {
+        display: "block",
         bottom: "20%",
         left: "50%",
         width: "180px",
@@ -406,6 +407,7 @@
 
         setTimeout(() => {
           face.style.opacity = "0";
+          face.style.display = "none";
           veil.style.background = "black";
           [uiDock, dataStack, flickerGrid, portraitPane].forEach((el) => {
             if (el) el.style.opacity = "1";
