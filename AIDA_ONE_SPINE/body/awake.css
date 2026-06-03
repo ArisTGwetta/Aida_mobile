@@ -333,13 +333,13 @@ input:disabled {
 .face-data-slow {
   grid-template-columns: repeat(10, 1fr);
   grid-template-rows: repeat(12, 1fr);
-  opacity: 0.78;
+  opacity: 0.36;
 }
 
 .face-data-fast {
   grid-template-columns: repeat(18, 1fr);
   grid-template-rows: repeat(22, 1fr);
-  opacity: 0.52;
+  opacity: 0.28;
 }
 
 .face-data-grid span {
@@ -347,8 +347,8 @@ input:disabled {
   min-width: 0;
   min-height: 0;
   opacity: 0;
-  background: rgba(150, 245, 255, 0.9);
-  box-shadow: 0 0 12px rgba(150, 245, 255, 0.95), 0 0 22px rgba(75, 227, 255, 0.55);
+  background: rgba(118, 225, 255, 0.58);
+  box-shadow: 0 0 6px rgba(118, 225, 255, 0.52), 0 0 12px rgba(75, 190, 255, 0.26);
   animation-name: face-data-blink;
   animation-timing-function: steps(1);
   animation-iteration-count: infinite;
@@ -357,12 +357,12 @@ input:disabled {
 }
 
 .face-data-slow span {
-  background: rgba(0, 255, 130, 0.82);
-  box-shadow: 0 0 14px rgba(0, 255, 130, 0.85), 0 0 26px rgba(0, 255, 102, 0.45);
+  background: rgba(65, 185, 255, 0.42);
+  box-shadow: 0 0 5px rgba(80, 205, 255, 0.42), 0 0 10px rgba(45, 150, 255, 0.18);
 }
 
 .face-data-fast span {
-  background: rgba(190, 250, 255, 0.88);
+  background: rgba(175, 240, 255, 0.38);
 }
 
 .tint-layer {
@@ -572,11 +572,11 @@ input:disabled {
 
 @keyframes face-data-blink {
   0%, 9%, 100% { opacity: 0; }
-  10%, 16% { opacity: var(--blink-opacity, 0.48); }
+  10%, 16% { opacity: calc(var(--blink-opacity, 0.48) * 0.32); }
   17%, 31% { opacity: 0; }
-  32%, 35% { opacity: calc(var(--blink-opacity, 0.48) * 0.55); }
+  32%, 35% { opacity: calc(var(--blink-opacity, 0.48) * 0.18); }
   36%, 63% { opacity: 0; }
-  64%, 69% { opacity: var(--blink-opacity, 0.48); }
+  64%, 69% { opacity: calc(var(--blink-opacity, 0.48) * 0.32); }
   70% { opacity: 0; }
 }
 
