@@ -148,9 +148,13 @@
 
   function isProjectFile(name) {
     return (
-      name.startsWith("project_") ||
-      name.startsWith("briefcase_") ||
-      name.startsWith("project_briefcase_")
+      name !== "project_summary.json" &&
+      name !== "project_briefcases.json" &&
+      (
+        name.startsWith("project_") ||
+        name.startsWith("briefcase_") ||
+        name.startsWith("project_briefcase_")
+      )
     );
   }
 
@@ -217,8 +221,52 @@
     );
   }
 
-  function buildProjectLedger(files, projects) {
+  function normalizeProjectIndex(files) {
+    const raw = files["project_summary.json"] || files["project_briefcases.json"] || null;
+    if (!raw || typeof raw !== "object") return {};
+
+    const candidate = (
+      raw.projects ||
+      raw.project_briefcases ||
+      raw.recent_project_activity ||
+      raw.data ||
+      raw
+    );
+
+    if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) return {};
+    return candidate;
+  }
+
+  function findLoadFileForProject(projectKey, projectData, projects, realms) {
+    const candidates = [
+      projectData?.fileName,
+      projectData?.filename,
+      projectData?.briefcase_filename,
+      projectData?.briefcase,
+      projectData?.project_briefcase,
+      projectData?.realm_source,
+      projectData?.realm_file,
+      projectData?.realm,
+      projectKey
+    ].filter(Boolean).map(String);
+
+    for (const candidate of candidates) {
+      if (projects[candidate]) return candidate;
+      if (realms[candidate]) return candidate;
+      if (projects[`${candidate}.json`]) return `${candidate}.json`;
+      if (realms[`${candidate}.json`]) return `${candidate}.json`;
+      if (realms[`realm_${candidate}.json`]) return `realm_${candidate}.json`;
+      if (realms[`REALM_${candidate}.json`]) return `REALM_${candidate}.json`;
+    }
+
+    const foldedKey = projectKey.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+    const allNames = [...Object.keys(projects), ...Object.keys(realms)];
+    return allNames.find((name) => name.toLowerCase().includes(foldedKey)) || null;
+  }
+
+  function buildProjectLedger(files, projects, realms = {}) {
     const ledger = {};
+    const projectIndex = normalizeProjectIndex(files);
     const globalActivity = (
       files["global_briefcase.json"]?.recent_project_activity ||
       files["global_identity.json"]?.recent_project_activity ||
@@ -226,15 +274,34 @@
       {}
     );
 
+    for (const [projectKey, projectData] of Object.entries(projectIndex)) {
+      const name = valueName(projectData, projectKey);
+      const loadFileName = findLoadFileForProject(projectKey, projectData, projects, realms);
+
+      ledger[projectKey] = {
+        key: projectKey,
+        name,
+        source: "project_summary.json",
+        status: latestSummary(projectData) || textFrom(projectData, 180),
+        lastActive: projectData?.last_active || projectData?.last_updated || null,
+        loaded: Boolean(loadFileName),
+        fileName: loadFileName,
+        summary: projectData
+      };
+    }
+
     for (const [activityName, activity] of Object.entries(globalActivity)) {
+      if (ledger[activityName]) continue;
+      const loadFileName = findLoadFileForProject(activityName, activity, projects, realms);
       ledger[activityName] = {
         key: activityName,
         name: activityName,
         source: "recent_project_activity",
         status: textFrom(activity?.one_liner || activity, 160),
         lastActive: activity?.last_active || null,
-        loaded: false,
-        fileName: null
+        loaded: Boolean(loadFileName),
+        fileName: loadFileName,
+        summary: activity
       };
     }
 
@@ -252,10 +319,6 @@
         fileName
       };
     }
-
-    const realms = Object.fromEntries(
-      Object.entries(files).filter(([name]) => isRealmFile(name))
-    );
 
     for (const [fileName, realm] of Object.entries(realms)) {
       if (ledger[fileName]) continue;
@@ -299,10 +362,13 @@
     const rt = runtime();
     const projects = rt.mind.projects || {};
     const realms = rt.mind.realms || {};
+    const ledger = rt.mind.projectLedger || {};
     const selectedName = projectName || null;
-    const selected = selectedName ? projects[selectedName] || realms[selectedName] || null : null;
-    const isDedicatedProject = Boolean(selectedName && projects[selectedName]);
-    const isRealmPlaceholder = Boolean(selectedName && realms[selectedName] && !isDedicatedProject);
+    const ledgerEntry = selectedName ? ledger[selectedName] || null : null;
+    const loadName = ledgerEntry?.fileName || selectedName;
+    const selected = loadName ? projects[loadName] || realms[loadName] || ledgerEntry?.summary || null : null;
+    const isDedicatedProject = Boolean(loadName && projects[loadName]);
+    const isRealmPlaceholder = Boolean(loadName && realms[loadName] && !isDedicatedProject);
 
     if (isRealmPlaceholder) rt.mind.realm = selected;
     rt.mind.activeProject = isDedicatedProject ? selected : null;
@@ -318,7 +384,7 @@
 
     log(
       selected
-        ? `PROJECT: Active context set to ${valueName(selected, selectedName)}.`
+        ? `PROJECT: Active context set to ${valueName(selected, ledgerEntry?.name || selectedName)}.`
         : "PROJECT: No active briefcase; realm is acting as project context.",
       selected ? "log-blue" : "log-amber"
     );
@@ -355,7 +421,8 @@
     rt.mind.projects = Object.fromEntries(
       Object.entries(files).filter(([name]) => isProjectFile(name))
     );
-    rt.mind.projectLedger = buildProjectLedger(files, rt.mind.projects);
+    rt.mind.projectSummariesIndex = normalizeProjectIndex(files);
+    rt.mind.projectLedger = buildProjectLedger(files, rt.mind.projects, rt.mind.realms);
 
     const architectureRealm = files["realm_aida_architecture.json"] || null;
     const architectRole = files["role_architect_companion.json"] || null;

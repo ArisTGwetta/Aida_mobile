@@ -81,7 +81,7 @@
       row.type = "button";
       row.className = "project-row";
       row.dataset.projectName = project.fileName || project.key || "";
-      row.disabled = !project.fileName;
+      row.disabled = !project.fileName && !project.summary;
 
       const name = document.createElement("span");
       name.className = "project-row-name";
@@ -96,11 +96,11 @@
 
       row.append(name, meta);
       row.addEventListener("click", () => {
-        const selected = window.AIDA_DRIVE?.selectActiveProject?.(project.fileName);
+        const selected = window.AIDA_DRIVE?.selectActiveProject?.(project.key || project.fileName);
         if (!selected) return;
         if (tag) tag.textContent = projectLabel(project);
         appendChat("AIDA", `Project context switched to ${projectLabel(project)}.`);
-        pulse(`Project switched: ${project.fileName}`);
+        pulse(`Project switched: ${project.fileName || project.key}`);
         renderProjectSelector();
       });
 

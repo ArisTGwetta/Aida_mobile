@@ -38,6 +38,7 @@
       realm: null,
       role: null,
       projects: {},
+      projectSummariesIndex: {},
       projectLedger: {},
       activeProject: null,
       activeProjectName: null,
