@@ -336,7 +336,8 @@ input:disabled {
     inset: 0;
     display: grid;
     grid-template-columns: repeat(24, 1fr); 
-    grid-template-rows: repeat(24, 1fr);    
+    /* Changed from 1fr to auto so smaller counts stretch to fit the height */
+    grid-template-rows: repeat(24, auto);    
     opacity: 0.80;
     --blink-duration: 9600ms; 
 }
@@ -345,9 +346,8 @@ input:disabled {
     position: absolute;
     inset: 0;
     display: grid;
-    /* Cleaned up duplicate rules so the browser stretches the full height */
     grid-template-columns: repeat(32, 1fr); 
-    grid-template-rows: repeat(32, 1fr);    
+    grid-template-rows: repeat(32, auto);    
     opacity: 0.65;
     --blink-duration: 3200ms; 
 }
