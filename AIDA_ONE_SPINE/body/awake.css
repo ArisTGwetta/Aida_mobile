@@ -321,26 +321,33 @@ input:disabled {
 
 .face-data-grid {
     position: absolute;
-    inset: 0;
+    /* Force the grid wrapper to span the full height of the face portrait */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     z-index: 23; 
     display: grid;
     pointer-events: none;
     mix-blend-mode: screen;
-    /* Removed the mask-image lines entirely so the edges stay perfectly bright */
 }
 
 .face-data-slow {
-    /* Tightened density for smaller, thinner pixels */
-    grid-template-columns: repeat(22, 1fr); 
-    grid-template-rows: repeat(22, 1fr);    
-    opacity: 0.85; /* Keep visibility high */
+    /* High density for much smaller, thinner pixels */
+    grid-template-columns: repeat(45, 1fr); 
+    grid-template-rows: repeat(45, 1fr);    
+    opacity: 0.75;
+    /* 3x slower cycle for a calm, breathing effect */
+    --blink-duration: 9600ms; 
 }
 
 .face-data-fast {
-    /* Even finer matrix layer overlapping */
-    grid-template-columns: repeat(30, 1fr); 
-    grid-template-rows: repeat(30, 1fr);    
-    opacity: 0.75; 
+    /* Micro-shards for the secondary tracking layer */
+    grid-template-columns: repeat(64, 1fr); 
+    grid-template-rows: repeat(64, 1fr);    
+    opacity: 0.60;
+    /* Adopting the previous gentle slow speed */
+    --blink-duration: 3200ms; 
 }
 
 .face-data-grid span {
@@ -348,10 +355,10 @@ input:disabled {
     min-width: 0;
     min-height: 0;
     opacity: 0;
-    /* Pure solid white core */
-    background: rgba(255, 255, 255, 1) !important; 
-    /* Sharp neon outline instead of a blurry cloud */
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 1), 0 0 6px rgba(0, 240, 255, 0.9);
+    /* Crisp, premium light-gray/blue-white core */
+    background: rgba(225, 242, 250, 1) !important; 
+    /* Sharp holographic neon blue/cyan aura */
+    box-shadow: 0 0 0 1px rgba(225, 242, 250, 1), 0 0 6px rgba(0, 160, 255, 0.95);
     animation-name: face-data-blink;
     animation-timing-function: steps(1);
     animation-iteration-count: infinite;
@@ -360,14 +367,17 @@ input:disabled {
 }
 
 .face-data-slow span {
-    background: rgba(255, 255, 255, 1) !important;
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 1), 0 0 8px rgba(0, 210, 255, 0.9);
+    /* Deep holographic blue shadow anchor */
+    background: rgba(210, 235, 245, 1) !important;
+    box-shadow: 0 0 0 1px rgba(210, 235, 245, 1), 0 0 8px rgba(0, 110, 255, 0.9);
 }
 
 .face-data-fast span {
-    background: rgba(255, 255, 255, 1) !important;
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 1), 0 0 5px rgba(140, 245, 255, 1);
+    /* Luminous electric cyan aura edge */
+    background: rgba(240, 250, 255, 1) !important;
+    box-shadow: 0 0 0 1px rgba(240, 250, 255, 1), 0 0 5px rgba(0, 220, 255, 1);
 }
+
 
 .tint-layer {
   position: absolute;
