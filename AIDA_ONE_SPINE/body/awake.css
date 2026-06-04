@@ -321,7 +321,7 @@ input:disabled {
   animation: awake-flicker 7.5s steps(2) infinite;
 }
 
-/* FULL-FACE DATA TRACKER MATRIX */
+/* BREAKING THE QUANTITY LIMIT: MICRO-SHARD MATRIX */
 .face-data-grid {
     position: absolute;
     inset: 0;
@@ -335,9 +335,10 @@ input:disabled {
     position: absolute;
     inset: 0;
     display: grid;
-    grid-template-columns: repeat(16, 1fr); 
-    /* Changed from 1fr to auto so smaller counts stretch to fit the height */
-    grid-template-rows: repeat(24, 1fr);    
+    /* Finer column slices */
+    grid-template-columns: repeat(42, 1fr); 
+    /* Let rows generate dynamically and automatically expand to fill full height */
+    grid-auto-rows: 1fr;
     opacity: 0.80;
     --blink-duration: 9600ms; 
 }
@@ -346,8 +347,9 @@ input:disabled {
     position: absolute;
     inset: 0;
     display: grid;
-    grid-template-columns: repeat(20, 1fr); 
-    grid-template-rows: repeat(20, 1fr);    
+    /* Micro column slices */
+    grid-template-columns: repeat(54, 1fr); 
+    grid-auto-rows: 1fr;
     opacity: 0.65;
     --blink-duration: 3200ms; 
 }
