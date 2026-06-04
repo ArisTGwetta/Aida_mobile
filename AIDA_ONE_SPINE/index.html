@@ -10,7 +10,15 @@
   <link rel="apple-touch-icon" href="body/assets/aida_icon.png">
   <link rel="icon" type="image/png" href="body/assets/aida_icon.png">
   <link rel="stylesheet" href="body/awake.css?v=20260603n">
+<style>
+    /* Absolute system fallback shield to kill startup white flash artifacts */
+    html, body, #bios-screen, #aida-interface, #main-engine {
+        background: #000000 !important;
+        background-color: #000000 !important;
+    }
+</style>
 </head>
+  
 <body>
   <main id="bios-screen" aria-label="AIDA BIOS boot log">
     <div id="bios-controls" aria-label="AIDA boot controls">
