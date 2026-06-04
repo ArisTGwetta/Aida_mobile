@@ -10,6 +10,20 @@ AIDA_RUNTIME.mind.activeProject
 AIDA_RUNTIME.context.project
 ```
 
+## Spine Owner
+
+`spine/project_context.js` owns the project menu and active context.
+
+Drive modules may fetch files and expose raw JSON, but they should not decide which project is active. They should delegate to:
+
+```text
+AIDA_PROJECTS.list()
+AIDA_PROJECTS.select(projectKey)
+AIDA_PROJECTS.mapDriveFilesToMind(files)
+```
+
+Legacy file names are adapter inputs, not spine law. The canonical runtime shape is `AIDA_RUNTIME.mind.projectLedger` plus `AIDA_RUNTIME.context.project`.
+
 ## Filename Conventions
 
 Preferred:
@@ -30,15 +44,14 @@ project_briefcase_*.json
 
 ## Selection Rule
 
-For the current checkpoint:
+For the current checkpoint, `AIDA_PROJECTS` builds `AIDA_RUNTIME.mind.projectLedger` in this order:
 
-1. Prefer `project_briefcase_aida_architecture.json`.
-2. Then `briefcase_aida_architecture.json`.
-3. Then `project_aida_architecture.json`.
-4. Then the first loaded project/briefcase file.
-5. Otherwise `activeProject = null` and the active realm acts as the project/context placeholder.
+1. Curated project index entries from `project_summary.json` or equivalent adapter data.
+2. Recent activity entries written by sleep/butler routines.
+3. Dedicated project payloads already present in Drive memory.
+4. Realm files as fallback selectable contexts.
 
-Later, the Realm/Project selector should let the user explicitly choose the active project.
+The Realm/Project selector lets the user explicitly choose the active context. Filename preferences are fallback adapters only.
 
 ## Realm vs Project
 

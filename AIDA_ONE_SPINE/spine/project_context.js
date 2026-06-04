@@ -1,20 +1,8 @@
 (function () {
-  const MODULE_ID = "spine.drive.oauth";
-  const GIS_SRC = "https://accounts.google.com/gsi/client";
-
-  let tokenClient = null;
-  let gisLoading = null;
-
-  function $(id) {
-    return document.getElementById(id);
-  }
+  const MODULE_ID = "spine.project.context";
 
   function runtime() {
     return window.AIDA_RUNTIME;
-  }
-
-  function config() {
-    return window.AIDA_CONFIG || {};
   }
 
   function log(message, className = "log-green") {
@@ -23,127 +11,9 @@
       return;
     }
 
-    const logs = $("bios-logs");
-    if (logs) {
-      const line = document.createElement("div");
-      line.className = className;
-      line.textContent = `>>> ${message}`;
-      logs.appendChild(line);
-      logs.scrollTop = logs.scrollHeight;
-    }
-
     if (window.AIDA_BODY?.pulse) {
       window.AIDA_BODY.pulse(message);
     }
-  }
-
-  function loadGIS() {
-    if (window.google?.accounts?.oauth2) return Promise.resolve();
-    if (gisLoading) return gisLoading;
-
-    gisLoading = new Promise((resolve, reject) => {
-      const existing = document.querySelector(`script[src="${GIS_SRC}"]`);
-      if (existing) {
-        existing.addEventListener("load", resolve, { once: true });
-        existing.addEventListener("error", reject, { once: true });
-        return;
-      }
-
-      const script = document.createElement("script");
-      script.src = GIS_SRC;
-      script.async = true;
-      script.defer = true;
-      script.onload = resolve;
-      script.onerror = () => reject(new Error("Google Identity Services failed to load."));
-      document.head.appendChild(script);
-    });
-
-    return gisLoading;
-  }
-
-  async function initTokenClient() {
-    await loadGIS();
-
-    if (tokenClient) return tokenClient;
-
-    const googleConfig = config().google || {};
-    if (!googleConfig.clientId) {
-      throw new Error("Missing Google OAuth client ID in AIDA_CONFIG.google.clientId.");
-    }
-
-    tokenClient = window.google.accounts.oauth2.initTokenClient({
-      client_id: googleConfig.clientId,
-      scope: (googleConfig.scopes || []).join(" "),
-      callback: handleOAuthResponse
-    });
-
-    const rt = runtime();
-    rt.boot.phase = "drive_oauth_ready";
-    rt.drive.folderId = config().drive?.jsonFolderId || null;
-    log("DRIVE: Google OAuth client ready.", "log-blue");
-    return tokenClient;
-  }
-
-  function handleOAuthResponse(response) {
-    if (!response || !response.access_token) {
-      log("DRIVE: OAuth failed or was cancelled.", "log-amber");
-      return;
-    }
-
-    const rt = runtime();
-    rt.tokens.drive.accessToken = response.access_token;
-    rt.tokens.drive.source = "google_oauth";
-    rt.boot.driveConnected = true;
-    rt.boot.phase = "drive_connected";
-    rt.drive.folderId = config().drive?.jsonFolderId || rt.drive.folderId;
-
-    log("DRIVE: OAuth cleared. Drive token stored in runtime.", "log-blue");
-  }
-
-  async function requestDriveToken() {
-    try {
-      const client = await initTokenClient();
-      log("DRIVE: Requesting Google access token...", "log-amber");
-      client.requestAccessToken({ prompt: "" });
-    } catch (error) {
-      log(`DRIVE: ${error.message}`, "log-amber");
-    }
-  }
-
-  async function listJsonFiles() {
-    const rt = runtime();
-    const token = rt.tokens.drive.accessToken;
-    const folderId = rt.drive.folderId;
-
-    if (!token) throw new Error("Drive access token is missing.");
-    if (!folderId) throw new Error("Drive JSON folder ID is missing.");
-
-    const query = encodeURIComponent(`'${folderId}' in parents and trashed = false`);
-    const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,mimeType,modifiedTime)`;
-    const response = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Drive list failed with HTTP ${response.status}.`);
-    }
-
-    const data = await response.json();
-    return (data.files || []).filter((file) => file.name.endsWith(".json"));
-  }
-
-  async function fetchJsonFile(file) {
-    const token = runtime().tokens.drive.accessToken;
-    const url = `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`;
-    const response = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Fetch failed for ${file.name}: HTTP ${response.status}.`);
-    }
-
-    return response.json();
   }
 
   function isProjectFile(name) {
@@ -171,6 +41,7 @@
       value.briefcase_name ||
       value.display_name ||
       value.displayName ||
+      value.realm_name ||
       value.name ||
       value.title ||
       value.realm ||
@@ -264,7 +135,7 @@
     return allNames.find((name) => name.toLowerCase().includes(foldedKey)) || null;
   }
 
-  function buildProjectLedger(files, projects, realms = {}) {
+  function buildProjectLedger(files, projects, realms) {
     const ledger = {};
     const projectIndex = normalizeProjectIndex(files);
     const globalActivity = (
@@ -281,7 +152,7 @@
       ledger[projectKey] = {
         key: projectKey,
         name,
-        source: "project_summary.json",
+        source: "project_index",
         status: latestSummary(projectData) || textFrom(projectData, 180),
         lastActive: projectData?.last_active || projectData?.last_updated || null,
         loaded: Boolean(loadFileName),
@@ -293,10 +164,11 @@
     for (const [activityName, activity] of Object.entries(globalActivity)) {
       if (ledger[activityName]) continue;
       const loadFileName = findLoadFileForProject(activityName, activity, projects, realms);
+
       ledger[activityName] = {
         key: activityName,
         name: activityName,
-        source: "recent_project_activity",
+        source: "recent_activity",
         status: textFrom(activity?.one_liner || activity, 160),
         lastActive: activity?.last_active || null,
         loaded: Boolean(loadFileName),
@@ -309,10 +181,11 @@
       const name = valueName(project, fileName.replace(/\.json$/i, ""));
       const activity = globalActivity[name] || globalActivity[String(project?.realm || "").toUpperCase()] || null;
 
+      if (ledger[fileName]) continue;
       ledger[fileName] = {
         key: fileName,
         name,
-        source: "project_briefcase",
+        source: "project_payload",
         status: latestSummary(project) || textFrom(activity?.one_liner || activity, 160),
         lastActive: project?.last_active || project?.last_updated || activity?.last_active || null,
         loaded: true,
@@ -328,7 +201,7 @@
       ledger[fileName] = {
         key: fileName,
         name,
-        source: "realm_as_project_placeholder",
+        source: "realm_fallback",
         status: textFrom(realm?.project_summary || realm?.summary || activity?.one_liner || activity, 160),
         lastActive: realm?.last_active || realm?.last_updated || activity?.last_active || null,
         loaded: true,
@@ -339,10 +212,8 @@
     return ledger;
   }
 
-  function projectContextParts(project) {
-    if (!project || typeof project !== "object") {
-      return { facts: null, summaries: null };
-    }
+  function contextParts(project) {
+    if (!project || typeof project !== "object") return { facts: null, summaries: null };
 
     const facts = project.facts || project.items || project.goals || project.contexts || null;
     const summaries = (
@@ -358,56 +229,47 @@
     return { facts, summaries };
   }
 
-  function selectActiveProject(projectName) {
-    if (window.AIDA_PROJECTS?.select) return window.AIDA_PROJECTS.select(projectName);
-
+  function select(projectKey) {
     const rt = runtime();
     const projects = rt.mind.projects || {};
     const realms = rt.mind.realms || {};
     const ledger = rt.mind.projectLedger || {};
-    const selectedName = projectName || null;
-    const ledgerEntry = selectedName ? ledger[selectedName] || null : null;
-    const loadName = ledgerEntry?.fileName || selectedName;
+    const selectedKey = projectKey || null;
+    const ledgerEntry = selectedKey ? ledger[selectedKey] || null : null;
+    const loadName = ledgerEntry?.fileName || selectedKey;
     const selected = loadName ? projects[loadName] || realms[loadName] || ledgerEntry?.summary || null : null;
     const isDedicatedProject = Boolean(loadName && projects[loadName]);
-    const isRealmPlaceholder = Boolean(loadName && realms[loadName] && !isDedicatedProject);
+    const isRealmContext = Boolean(loadName && realms[loadName] && !isDedicatedProject);
 
-    if (isRealmPlaceholder) rt.mind.realm = selected;
+    if (isRealmContext) rt.mind.realm = selected;
     rt.mind.activeProject = isDedicatedProject ? selected : null;
-    rt.mind.activeProjectName = selectedName;
-    rt.context.project = selected;
-    rt.context.projectName = selectedName;
-    rt.context.realm = isRealmPlaceholder ? selected : rt.mind.realm;
-    rt.context.projectMode = isDedicatedProject ? "briefcase" : "realm_as_project_placeholder";
+    rt.mind.activeProjectName = selectedKey;
 
-    const projectParts = projectContextParts(selected);
-    rt.context.projectFacts = projectParts.facts || rt.mind.facts;
-    rt.context.projectSummaries = projectParts.summaries || rt.mind.memory;
+    rt.context.realm = isRealmContext ? selected : rt.mind.realm;
+    rt.context.project = selected;
+    rt.context.projectName = selectedKey;
+    rt.context.projectMode = isDedicatedProject ? "project_payload" : isRealmContext ? "realm_context" : "project_index";
+
+    const parts = contextParts(selected);
+    rt.context.projectFacts = parts.facts || rt.mind.facts;
+    rt.context.projectSummaries = parts.summaries || rt.mind.memory;
 
     log(
       selected
-        ? `PROJECT: Active context set to ${valueName(selected, ledgerEntry?.name || selectedName)}.`
-        : "PROJECT: No active briefcase; realm is acting as project context.",
+        ? `PROJECT: Active context set to ${valueName(selected, ledgerEntry?.name || selectedKey)}.`
+        : "PROJECT: No active context selected.",
       selected ? "log-blue" : "log-amber"
     );
 
     return selected;
   }
 
-  function listProjects() {
-    if (window.AIDA_PROJECTS?.list) return window.AIDA_PROJECTS.list();
-
-    const rt = runtime();
-    return Object.values(rt.mind.projectLedger || {});
+  function list() {
+    return Object.values(runtime().mind.projectLedger || {});
   }
 
-  function mapDriveFilesToMind() {
-    if (window.AIDA_PROJECTS?.mapDriveFilesToMind) {
-      return window.AIDA_PROJECTS.mapDriveFilesToMind(runtime().drive.files || {});
-    }
-
+  function mapDriveFilesToMind(files = runtime().drive?.files || {}) {
     const rt = runtime();
-    const files = rt.drive.files || {};
 
     rt.mind.identity = files["core_identity.json"] || null;
     rt.mind.memory = files["memory_summary.json"] || null;
@@ -419,16 +281,9 @@
     rt.tokens.openai.fragments = files["openai_fragments.json"] || null;
     rt.tokens.llm.fragments = files["llm_fragments.json"] || rt.tokens.openai.fragments || null;
 
-    rt.mind.realms = Object.fromEntries(
-      Object.entries(files).filter(([name]) => isRealmFile(name))
-    );
-    rt.mind.roles = Object.fromEntries(
-      Object.entries(files).filter(([name]) => name.startsWith("role_"))
-    );
-
-    rt.mind.projects = Object.fromEntries(
-      Object.entries(files).filter(([name]) => isProjectFile(name))
-    );
+    rt.mind.realms = Object.fromEntries(Object.entries(files).filter(([name]) => isRealmFile(name)));
+    rt.mind.roles = Object.fromEntries(Object.entries(files).filter(([name]) => name.startsWith("role_")));
+    rt.mind.projects = Object.fromEntries(Object.entries(files).filter(([name]) => isProjectFile(name)));
     rt.mind.projectSummariesIndex = normalizeProjectIndex(files);
     rt.mind.projectLedger = buildProjectLedger(files, rt.mind.projects, rt.mind.realms);
 
@@ -442,16 +297,17 @@
 
     rt.mind.realm = architectureRealm || Object.values(rt.mind.realms)[0] || null;
     rt.mind.role = architectRole || Object.values(rt.mind.roles)[0] || null;
+
     const activeRealmName = Object.entries(rt.mind.realms).find(([, data]) => data === rt.mind.realm)?.[0] || null;
     const activeProjectName = architectureProject
       ? Object.entries(rt.mind.projects).find(([, data]) => data === architectureProject)?.[0] || null
-      : Object.keys(rt.mind.projects)[0] || activeRealmName || null;
+      : Object.keys(rt.mind.projectLedger)[0] || Object.keys(rt.mind.projects)[0] || activeRealmName || null;
 
     rt.context.identity = rt.mind.identity;
     rt.context.realm = rt.mind.realm;
     rt.context.role = rt.mind.role;
     rt.context.emotion = rt.mind.emotion;
-    selectActiveProject(activeProjectName);
+    select(activeProjectName);
     rt.context.memoryWindow = {
       recentTurns: files["recent_turns.json"] || null,
       session: rt.mind.session,
@@ -470,111 +326,25 @@
       roles: Object.keys(rt.mind.roles).length,
       projects: Object.keys(rt.mind.projects).length,
       projectLedger: Object.keys(rt.mind.projectLedger).length,
-      activeProject: Boolean(rt.mind.activeProject)
+      activeProject: Boolean(rt.context.project)
     };
   }
 
-  async function smokeListDriveJson() {
-    try {
-      const files = await listJsonFiles();
-      const rt = runtime();
-      rt.boot.phase = "drive_listed";
-      rt.drive.lastList = files.map((file) => ({
-        id: file.id,
-        name: file.name,
-        modifiedTime: file.modifiedTime
-      }));
-      log(`DRIVE: Found ${files.length} JSON files in private folder.`, "log-blue");
-      return files;
-    } catch (error) {
-      log(`DRIVE: ${error.message}`, "log-amber");
-      return [];
-    }
-  }
-
-  async function fetchAllDriveJson() {
-    try {
-      const files = await listJsonFiles();
-      const rt = runtime();
-      rt.boot.phase = "drive_fetching";
-      rt.drive.files = {};
-      rt.drive.fileIndex = {};
-
-      log(`DRIVE: Fetching ${files.length} JSON files...`, "log-amber");
-
-      for (const file of files) {
-        try {
-          const data = await fetchJsonFile(file);
-          rt.drive.files[file.name] = data;
-          rt.drive.fileIndex[file.name] = {
-            id: file.id,
-            mimeType: file.mimeType,
-            modifiedTime: file.modifiedTime
-          };
-          log(`DRIVE: Loaded ${file.name}`);
-        } catch (error) {
-          log(`DRIVE: ${error.message}`, "log-amber");
-        }
-      }
-
-      const mapped = mapDriveFilesToMind();
-      rt.boot.driveLoaded = true;
-      rt.boot.phase = "drive_loaded";
-
-      log(
-        `DRIVE: Mind mapped. identity=${mapped.identity}, facts=${mapped.facts}, memory=${mapped.memory}, realms=${mapped.realms}, roles=${mapped.roles}, projects=${mapped.projects}, ledger=${mapped.projectLedger}, activeProject=${mapped.activeProject}, whileAway=${mapped.whileAway}, llmFragments=${mapped.llmFragments}.`,
-        "log-blue"
-      );
-
-      return rt.drive.files;
-    } catch (error) {
-      log(`DRIVE: ${error.message}`, "log-amber");
-      return {};
-    }
-  }
-
-  function install() {
-    const connect = $("drive-connect-btn");
-    const list = $("drive-list-btn");
-    const fetch = $("drive-fetch-btn");
-
-    if (connect) connect.addEventListener("click", requestDriveToken);
-    if (list) list.addEventListener("click", smokeListDriveJson);
-    if (fetch) fetch.addEventListener("click", fetchAllDriveJson);
-
-    const rt = runtime();
-    rt.drive.folderId = config().drive?.jsonFolderId || null;
-    initTokenClient().catch((error) => {
-      log(`DRIVE: ${error.message}`, "log-amber");
-    });
-  }
-
-  window.AIDA_DRIVE = {
-    initTokenClient,
-    requestDriveToken,
-    listJsonFiles,
-    smokeListDriveJson,
-    fetchAllDriveJson,
+  window.AIDA_PROJECTS = {
+    list,
+    select,
     mapDriveFilesToMind,
-    listProjects,
-    selectActiveProject
+    valueName
   };
 
   if (window.AIDA_MODULES) {
     window.AIDA_MODULES.register({
       id: MODULE_ID,
-      phase: "drive_handshake",
-      reads: ["AIDA_CONFIG.google.clientId", "AIDA_CONFIG.drive.jsonFolderId"],
-      writes: [
-        "AIDA_RUNTIME.tokens.drive.accessToken",
-        "AIDA_RUNTIME.boot.driveConnected",
-        "AIDA_RUNTIME.drive.files",
-        "AIDA_RUNTIME.mind"
-      ],
+      phase: "project_context",
+      reads: ["AIDA_RUNTIME.drive.files"],
+      writes: ["AIDA_RUNTIME.mind.projectLedger", "AIDA_RUNTIME.context.project"],
       requires: ["AIDA_RUNTIME"],
-      verifies: ["Google OAuth token is stored only in AIDA_RUNTIME.tokens.drive.accessToken"]
+      verifies: ["project menus and active context are owned by the spine project context organ"]
     });
   }
-
-  document.addEventListener("DOMContentLoaded", install);
 })();

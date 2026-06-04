@@ -64,7 +64,7 @@
     const pane = $("pres-content");
     if (!pane) return;
 
-    const projects = window.AIDA_DRIVE?.listProjects?.() || [];
+    const projects = window.AIDA_PROJECTS?.list?.() || window.AIDA_DRIVE?.listProjects?.() || [];
     const rt = runtime();
     if (tag) tag.textContent = rt?.context?.projectName || "PROJECTS";
 
@@ -96,7 +96,8 @@
 
       row.append(name, meta);
       row.addEventListener("click", () => {
-        const selected = window.AIDA_DRIVE?.selectActiveProject?.(project.key || project.fileName);
+        const selected = window.AIDA_PROJECTS?.select?.(project.key || project.fileName) ||
+          window.AIDA_DRIVE?.selectActiveProject?.(project.key || project.fileName);
         if (!selected) return;
         if (tag) tag.textContent = projectLabel(project);
         appendChat("AIDA", `Project context switched to ${projectLabel(project)}.`);
