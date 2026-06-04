@@ -212,6 +212,7 @@
     const recentTurns = context.memoryWindow?.recentTurns || driveFiles["recent_turns.json"];
     const session = context.memoryWindow?.session || mind.session;
     const projectMode = context.projectMode || (mind.activeProject ? "briefcase" : "realm_as_project_placeholder");
+    const projectLedger = mind.projectLedger || {};
     const projectName = mind.activeProject || context.project
       ? valueName(mind.activeProject || context.project) || "unnamed_project"
       : `realm_as_project: ${valueName(realm) || "unnamed_realm"}`;
@@ -246,7 +247,9 @@
         active: Boolean(mind.activeProject || context.project),
         mode: projectMode,
         name: projectName,
+        fileName: context.projectName || mind.activeProjectName || "none",
         loadedCount: countArrayLike(mind.projects),
+        ledgerCount: countArrayLike(projectLedger),
         summaryCount: findProjectSummaries(mind.activeProject || context.project)
       },
       facts: {
@@ -313,7 +316,7 @@
     log(`IDENTITY: ${summary.identity.present ? summary.identity.name : "missing"}`);
     log(`REALM: ${summary.realm.name} (${summary.realm.loadedCount} loaded)`);
     log(`ROLE: ${summary.role.name} (${summary.role.loadedCount} loaded)`);
-    log(`PROJECT: ${summary.project.name} [${summary.project.mode}] (${summary.project.loadedCount} dedicated, summaries=${summary.project.summaryCount})`);
+    log(`PROJECT: ${summary.project.name} [${summary.project.mode}] file=${summary.project.fileName} (${summary.project.loadedCount} dedicated, ledger=${summary.project.ledgerCount}, summaries=${summary.project.summaryCount})`);
     log(`FACTS: present=${summary.facts.present}, count=${summary.facts.count}`);
     log(`MEMORY: present=${summary.memory.present}, count=${summary.memory.count}`);
     log(`INSIGHTS: present=${summary.insights.present}, count=${summary.insights.count}`);

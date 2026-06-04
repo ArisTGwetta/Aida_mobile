@@ -146,6 +146,162 @@
     return response.json();
   }
 
+  function isProjectFile(name) {
+    return (
+      name.startsWith("project_") ||
+      name.startsWith("briefcase_") ||
+      name.startsWith("project_briefcase_")
+    );
+  }
+
+  function valueName(value, fallback = "unnamed") {
+    if (!value || typeof value !== "object") return fallback;
+
+    const direct = (
+      value.project_name ||
+      value.briefcase_title ||
+      value.briefcase_name ||
+      value.display_name ||
+      value.displayName ||
+      value.name ||
+      value.title ||
+      value.realm ||
+      value.id ||
+      null
+    );
+
+    if (direct) return String(direct);
+
+    for (const key of ["project", "briefcase", "realm", "identity"]) {
+      const nested = value[key];
+      if (nested && typeof nested === "object") {
+        const nestedName = valueName(nested, "");
+        if (nestedName) return nestedName;
+      }
+    }
+
+    return fallback;
+  }
+
+  function textFrom(value, limit = 220) {
+    if (value === null || value === undefined) return "";
+    if (typeof value === "string") return value.replace(/\s+/g, " ").trim().slice(0, limit);
+    if (typeof value !== "object") return String(value).slice(0, limit);
+
+    const candidate = (
+      value.status ||
+      value.one_liner ||
+      value.summary ||
+      value.text ||
+      value.description ||
+      value.note ||
+      null
+    );
+
+    if (candidate) return textFrom(candidate, limit);
+    return "";
+  }
+
+  function latestSummary(project) {
+    if (!project || typeof project !== "object") return "";
+    return (
+      textFrom(project.latest_summary, 260) ||
+      textFrom(project.project_summary, 260) ||
+      textFrom(project.briefcase_summary, 260) ||
+      textFrom(project.summary, 260) ||
+      textFrom(project.status, 260)
+    );
+  }
+
+  function buildProjectLedger(files, projects) {
+    const ledger = {};
+    const globalActivity = (
+      files["global_briefcase.json"]?.recent_project_activity ||
+      files["global_identity.json"]?.recent_project_activity ||
+      files["core_identity.json"]?.recent_project_activity ||
+      {}
+    );
+
+    for (const [activityName, activity] of Object.entries(globalActivity)) {
+      ledger[activityName] = {
+        key: activityName,
+        name: activityName,
+        source: "recent_project_activity",
+        status: textFrom(activity?.one_liner || activity, 160),
+        lastActive: activity?.last_active || null,
+        loaded: false,
+        fileName: null
+      };
+    }
+
+    for (const [fileName, project] of Object.entries(projects)) {
+      const name = valueName(project, fileName.replace(/\.json$/i, ""));
+      const activity = globalActivity[name] || globalActivity[String(project?.realm || "").toUpperCase()] || null;
+
+      ledger[fileName] = {
+        key: fileName,
+        name,
+        source: "project_briefcase",
+        status: latestSummary(project) || textFrom(activity?.one_liner || activity, 160),
+        lastActive: project?.last_active || project?.last_updated || activity?.last_active || null,
+        loaded: true,
+        fileName
+      };
+    }
+
+    return ledger;
+  }
+
+  function projectContextParts(project) {
+    if (!project || typeof project !== "object") {
+      return { facts: null, summaries: null };
+    }
+
+    const facts = project.facts || project.items || project.goals || project.contexts || null;
+    const summaries = (
+      project.latest_summary ||
+      project.project_summary ||
+      project.briefcase_summary ||
+      project.summaries ||
+      project.summary ||
+      project.notes ||
+      null
+    );
+
+    return { facts, summaries };
+  }
+
+  function selectActiveProject(projectName) {
+    const rt = runtime();
+    const projects = rt.mind.projects || {};
+    const selectedName = projectName || null;
+    const selected = selectedName ? projects[selectedName] : null;
+
+    rt.mind.activeProject = selected;
+    rt.mind.activeProjectName = selectedName;
+    rt.context.project = selected;
+    rt.context.projectName = selectedName;
+    rt.context.projectMode = selected ? "briefcase" : "realm_as_project_placeholder";
+
+    const projectParts = projectContextParts(selected);
+    rt.context.projectFacts = projectParts.facts || rt.mind.facts;
+    rt.context.projectSummaries = projectParts.summaries || rt.mind.memory;
+
+    log(
+      selected
+        ? `PROJECT: Active project set to ${valueName(selected, selectedName)}.`
+        : "PROJECT: No active briefcase; realm is acting as project context.",
+      selected ? "log-blue" : "log-amber"
+    );
+
+    return selected;
+  }
+
+  function listProjects() {
+    const rt = runtime();
+    return Object.values(rt.mind.projectLedger || {});
+  }
+
   function mapDriveFilesToMind() {
     const rt = runtime();
     const files = rt.drive.files || {};
@@ -168,12 +324,9 @@
     );
 
     rt.mind.projects = Object.fromEntries(
-      Object.entries(files).filter(([name]) => (
-        name.startsWith("project_") ||
-        name.startsWith("briefcase_") ||
-        name.startsWith("project_briefcase_")
-      ))
+      Object.entries(files).filter(([name]) => isProjectFile(name))
     );
+    rt.mind.projectLedger = buildProjectLedger(files, rt.mind.projects);
 
     const architectureRealm = files["realm_aida_architecture.json"] || null;
     const architectRole = files["role_architect_companion.json"] || null;
@@ -185,16 +338,15 @@
 
     rt.mind.realm = architectureRealm || Object.values(rt.mind.realms)[0] || null;
     rt.mind.role = architectRole || Object.values(rt.mind.roles)[0] || null;
-    rt.mind.activeProject = architectureProject || Object.values(rt.mind.projects)[0] || null;
+    const activeProjectName = architectureProject
+      ? Object.entries(rt.mind.projects).find(([, data]) => data === architectureProject)?.[0] || null
+      : Object.keys(rt.mind.projects)[0] || null;
 
     rt.context.identity = rt.mind.identity;
     rt.context.realm = rt.mind.realm;
     rt.context.role = rt.mind.role;
     rt.context.emotion = rt.mind.emotion;
-    rt.context.project = rt.mind.activeProject;
-    rt.context.projectMode = rt.mind.activeProject ? "briefcase" : "realm_as_project_placeholder";
-    rt.context.projectFacts = rt.mind.facts;
-    rt.context.projectSummaries = rt.mind.memory;
+    selectActiveProject(activeProjectName);
     rt.context.memoryWindow = {
       recentTurns: files["recent_turns.json"] || null,
       session: rt.mind.session,
@@ -212,6 +364,7 @@
       realms: Object.keys(rt.mind.realms).length,
       roles: Object.keys(rt.mind.roles).length,
       projects: Object.keys(rt.mind.projects).length,
+      projectLedger: Object.keys(rt.mind.projectLedger).length,
       activeProject: Boolean(rt.mind.activeProject)
     };
   }
@@ -264,7 +417,7 @@
       rt.boot.phase = "drive_loaded";
 
       log(
-        `DRIVE: Mind mapped. identity=${mapped.identity}, facts=${mapped.facts}, memory=${mapped.memory}, realms=${mapped.realms}, roles=${mapped.roles}, projects=${mapped.projects}, activeProject=${mapped.activeProject}, whileAway=${mapped.whileAway}, llmFragments=${mapped.llmFragments}.`,
+        `DRIVE: Mind mapped. identity=${mapped.identity}, facts=${mapped.facts}, memory=${mapped.memory}, realms=${mapped.realms}, roles=${mapped.roles}, projects=${mapped.projects}, ledger=${mapped.projectLedger}, activeProject=${mapped.activeProject}, whileAway=${mapped.whileAway}, llmFragments=${mapped.llmFragments}.`,
         "log-blue"
       );
 
@@ -297,7 +450,9 @@
     listJsonFiles,
     smokeListDriveJson,
     fetchAllDriveJson,
-    mapDriveFilesToMind
+    mapDriveFilesToMind,
+    listProjects,
+    selectActiveProject
   };
 
   if (window.AIDA_MODULES) {

@@ -55,6 +55,59 @@
     log.scrollTop = log.scrollHeight;
   }
 
+  function projectLabel(project) {
+    return project?.name || project?.fileName || project?.key || "Unnamed project";
+  }
+
+  function renderProjectSelector() {
+    const tag = $("realm-tag");
+    const pane = $("pres-content");
+    if (!pane) return;
+
+    const projects = window.AIDA_DRIVE?.listProjects?.() || [];
+    const rt = runtime();
+    if (tag) tag.textContent = rt?.context?.projectName || "PROJECTS";
+
+    pane.innerHTML = "";
+
+    if (!projects.length) {
+      pane.textContent = "No project ledger loaded. Fetch Drive JSON first.";
+      pulse("Project selector waiting for Drive project ledger.");
+      return;
+    }
+
+    projects.forEach((project) => {
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "project-row";
+      row.dataset.projectName = project.fileName || project.key || "";
+      row.disabled = !project.fileName;
+
+      const name = document.createElement("span");
+      name.className = "project-row-name";
+      name.textContent = projectLabel(project);
+
+      const meta = document.createElement("span");
+      meta.className = "project-row-meta";
+      meta.textContent = [
+        project.lastActive ? `last ${project.lastActive}` : "",
+        project.status || ""
+      ].filter(Boolean).join(" | ") || project.source || "briefcase";
+
+      row.append(name, meta);
+      row.addEventListener("click", () => {
+        const selected = window.AIDA_DRIVE?.selectActiveProject?.(project.fileName);
+        if (!selected) return;
+        if (tag) tag.textContent = projectLabel(project);
+        appendChat("AIDA", `Project context switched to ${projectLabel(project)}.`);
+        pulse(`Project switched: ${project.fileName}`);
+        renderProjectSelector();
+      });
+
+      pane.appendChild(row);
+    });
+  }
+
   function buildPixelGrid() {
     const grid = $("pixelGrid");
     if (!grid) return;
@@ -180,7 +233,7 @@
 
     if (realms) {
       realms.addEventListener("click", () => {
-        pulse("Realm selector placeholder. Project/realm spine will own this.");
+        renderProjectSelector();
       });
     }
 
@@ -553,4 +606,8 @@
       });
     }
   });
+
+  window.AIDA_BODY_PROJECTS = {
+    render: renderProjectSelector
+  };
 })();

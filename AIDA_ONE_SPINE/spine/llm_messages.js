@@ -114,6 +114,7 @@
     const realm = context.realm || mind.realm;
     const role = context.role || mind.role;
     const project = context.project || mind.activeProject;
+    const projectName = context.projectName || mind.activeProjectName || null;
     const facts = context.projectFacts || mind.facts;
     const memory = context.projectSummaries || mind.memory;
     const emotion = context.emotion || mind.emotion;
@@ -130,6 +131,7 @@
       realm,
       role,
       project,
+      projectName,
       facts,
       memory,
       emotion,
@@ -153,6 +155,7 @@
       arena: {
         realm: valueName(context.realm, "unnamed_realm"),
         project: arenaProjectName,
+        projectFile: context.projectName || "none",
         projectMode: context.projectMode,
         realmCount: countArrayLike(context.mind.realms),
         projectCount: countArrayLike(context.mind.projects)

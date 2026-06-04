@@ -38,7 +38,9 @@
       realm: null,
       role: null,
       projects: {},
+      projectLedger: {},
       activeProject: null,
+      activeProjectName: null,
       session: null
     },
     context: {
@@ -47,6 +49,7 @@
       role: null,
       emotion: null,
       project: null,
+      projectName: null,
       projectMode: "no_active_project",
       projectFacts: null,
       projectSummaries: null,

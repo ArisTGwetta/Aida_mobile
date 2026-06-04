@@ -439,6 +439,43 @@ input:disabled {
   font-size: 12px;
 }
 
+.project-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  min-height: 34px;
+  margin: 0 0 5px;
+  padding: 5px 6px;
+  border: 1px solid rgba(0, 212, 255, 0.45);
+  border-radius: 4px;
+  background: #030303;
+  color: var(--aida-green);
+  text-align: left;
+}
+
+.project-row-name,
+.project-row-meta {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-row-name {
+  color: #00d4ff;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.project-row-meta {
+  margin-top: 3px;
+  color: rgba(216, 255, 255, 0.78);
+  font-size: 7px;
+  font-weight: 400;
+}
+
 #input-dock {
   flex: 0 0 auto;
   display: flex;
