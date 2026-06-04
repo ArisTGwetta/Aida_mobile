@@ -320,14 +320,13 @@ input:disabled {
 }
 
 .face-data-grid {
-  position: absolute;
-  inset: 0;
-  z-index: 23;
-  display: grid;
-  pointer-events: none;
-  mix-blend-mode: screen;
-  -webkit-mask-image: radial-gradient(circle at 50% 50%, black 38%, rgba(0, 0, 0, 0.72) 62%, transparent 86%);
-  mask-image: radial-gradient(circle at 50% 50%, black 38%, rgba(0, 0, 0, 0.72) 62%, transparent 86%);
+    position: absolute;
+    inset: 0;
+    z-index: 23; 
+    display: grid;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    /* Removed the mask-image lines entirely so the edges stay perfectly bright */
 }
 
 .face-data-slow {
