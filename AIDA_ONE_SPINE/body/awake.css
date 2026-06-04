@@ -575,18 +575,27 @@ input:disabled {
 }
 
 @keyframes face-data-blink {
-  0%, 9%, 100% { opacity: 0; }
-  10%, 16% { opacity: calc(var(--blink-opacity, 0.48) * 0.32); }
-  17%, 31% { opacity: 0; }
-  32%, 35% { opacity: calc(var(--blink-opacity, 0.48) * 0.18); }
-  36%, 63% { opacity: 0; }
-  64%, 69% { opacity: calc(var(--blink-opacity, 0.48) * 0.32); }
-  70% { opacity: 0; }
-}
-
-@keyframes terminal-cursor-blink {
-  0%, 48% { opacity: 1; }
-  49%, 100% { opacity: 0; }
+    0%, 9%, 100% { 
+        opacity: 0; 
+    }
+    10%, 16% { 
+        opacity: 1.0; /* Force absolute maximum brightness */
+    }
+    17%, 31% { 
+        opacity: 0; 
+    }
+    32%, 35% { 
+        opacity: 0.85; /* Strong secondary pulse */
+    }
+    36%, 63% { 
+        opacity: 0; 
+    }
+    64%, 69% { 
+        opacity: 1.0; 
+    }
+    70% { 
+        opacity: 0; 
+    }
 }
 
 @media (max-width: 520px) {
