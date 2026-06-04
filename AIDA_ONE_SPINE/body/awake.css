@@ -13,15 +13,17 @@
   box-sizing: border-box;
 }
 
-html,
-body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  overflow: hidden;
-  background: var(--aida-bg);
-  color: var(--aida-text);
-  font-family: "Courier New", monospace;
+/* FORCE GLOBAL CANVAS TO BLACK BY DEFAULT */
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    background: #000000 !important; /* Total blackout shield */
+    background-color: #000000 !important;
+    color: var(--aida-text);
+    font-family: "Courier New", monospace;
 }
 
 button,
@@ -319,6 +321,7 @@ input:disabled {
   animation: awake-flicker 7.5s steps(2) infinite;
 }
 
+/* FULL-FACE DATA TRACKER MATRIX */
 .face-data-grid {
     position: absolute;
     inset: 0;
@@ -328,13 +331,12 @@ input:disabled {
     mix-blend-mode: screen;
 }
 
-/* Apply the full heights directly to the absolute dimension variants */
 .face-data-slow {
     position: absolute;
     inset: 0;
     display: grid;
-    grid-template-columns: repeat(45, 1fr); 
-    grid-template-rows: repeat(45, 1fr);    
+    grid-template-columns: repeat(24, 1fr); /* Balanced columns */
+    grid-template-rows: repeat(24, 1fr);    /* Balanced rows */
     opacity: 0.80;
     --blink-duration: 9600ms; 
 }
@@ -343,8 +345,8 @@ input:disabled {
     position: absolute;
     inset: 0;
     display: grid;
-    grid-template-columns: repeat(64, 1fr); 
-    grid-template-rows: repeat(64, 1fr);    
+    grid-template-columns: repeat(32, 1fr); /* Tighter secondary layer */
+    grid-template-rows: repeat(32, 1fr);    
     opacity: 0.65;
     --blink-duration: 3200ms; 
 }
