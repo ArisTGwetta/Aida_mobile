@@ -336,7 +336,7 @@ input:disabled {
     inset: 0;
     display: grid;
     /* Finer column slices */
-    grid-template-columns: repeat(42, 1fr); 
+    grid-template-columns: repeat(60, 1fr); 
     /* Let rows generate dynamically and automatically expand to fill full height */
     grid-auto-rows: 1fr;
     opacity: 0.80;
@@ -348,7 +348,7 @@ input:disabled {
     inset: 0;
     display: grid;
     /* Micro column slices */
-    grid-template-columns: repeat(54, 1fr); 
+    grid-template-columns: repeat(100, 1fr); 
     grid-auto-rows: 1fr;
     opacity: 0.65;
     --blink-duration: 3000ms; 
