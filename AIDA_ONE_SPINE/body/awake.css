@@ -321,22 +321,32 @@ input:disabled {
 
 .face-data-grid {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    /* Force absolute full coverage over the portrait dimensions */
-    height: 100% !important; 
+    inset: 0;
     z-index: 23; 
     display: grid;
     pointer-events: none;
     mix-blend-mode: screen;
 }
 
+/* Apply the full heights directly to the absolute dimension variants */
 .face-data-slow {
+    position: absolute;
+    inset: 0;
+    display: grid;
     grid-template-columns: repeat(45, 1fr); 
     grid-template-rows: repeat(45, 1fr);    
     opacity: 0.80;
     --blink-duration: 9600ms; 
+}
+
+.face-data-fast {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: repeat(64, 1fr); 
+    grid-template-rows: repeat(64, 1fr);    
+    opacity: 0.65;
+    --blink-duration: 3200ms; 
 }
 
 .face-data-fast {
@@ -630,17 +640,19 @@ input:disabled {
   }
 
 /* Eradicate white background flash artifacts globally during startup rituals */
-#bios-screen, 
-#aida-display, 
+/* Catching all structural parent panels to ensure seamless dark transitions */
+#main-engine,
+#aida-display,
+#portrait-spacer,
 #portrait-pane,
-.pixel-grid,
-div[id*="preview"], 
-div[class*="preview"] {
+#bios-screen,
+.pixel-grid {
+    background: #000000 !important;
     background-color: #000000 !important;
 }
 
-img {
-    /* Keeps image letterbox spaces black during rapid size transforms */
-    background-color: #000000 !important; 
-}
+/* Stops the solid portrait image container from defaulting to a white box outline */
+#aida-portrait {
+    background: transparent !important;
+    background-color: transparent !important;
 }
