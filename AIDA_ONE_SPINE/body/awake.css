@@ -335,14 +335,14 @@ input:disabled {
     position: absolute;
     inset: 0;
     opacity: 0.80;
-    --blink-duration: 12000ms; 
+    --blink-duration: 30000ms; 
 }
 
 .face-data-fast {
     position: absolute;
     inset: 0;
     opacity: 0.65;
-    --blink-duration: 3000ms; 
+    --blink-duration: 12000ms; 
 }
 
 /* Force spans to behave like independent, thin floating blocks */
