@@ -349,10 +349,10 @@ input:disabled {
     min-width: 0;
     min-height: 0;
     opacity: 0;
-    /* High-intensity core */
-    background: rgba(200, 250, 255, 1) !important; 
-    /* Massive outer glowing bloom */
-    box-shadow: 0 0 12px rgba(0, 240, 255, 0.9), 0 0 25px rgba(0, 150, 255, 0.6);
+    /* Absolute solid white core to cut through the dark image */
+    background: rgba(255, 255, 255, 1) !important; 
+    /* Massive white-to-cyan neon glare effect */
+    box-shadow: 0 0 14px rgba(255, 255, 255, 1), 0 0 25px rgba(0, 240, 255, 0.8);
     animation-name: face-data-blink;
     animation-timing-function: steps(1);
     animation-iteration-count: infinite;
@@ -361,13 +361,13 @@ input:disabled {
 }
 
 .face-data-slow span {
-    background: rgba(180, 245, 255, 1) !important;
-    box-shadow: 0 0 14px rgba(0, 220, 255, 0.9);
+    background: rgba(255, 255, 255, 1) !important;
+    box-shadow: 0 0 16px rgba(255, 255, 255, 1), 0 0 30px rgba(0, 210, 255, 0.9);
 }
 
 .face-data-fast span {
-    background: rgba(220, 255, 255, 1) !important;
-    box-shadow: 0 0 10px rgba(0, 240, 255, 1);
+    background: rgba(255, 255, 255, 1) !important;
+    box-shadow: 0 0 12px rgba(255, 255, 255, 1), 0 0 20px rgba(140, 245, 255, 1);
 }
 
 .tint-layer {
