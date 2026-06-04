@@ -331,17 +331,17 @@ input:disabled {
 }
 
 .face-data-slow {
-    /* Lower density = larger, chunkier blocks */
-    grid-template-columns: repeat(14, 1fr); 
-    grid-template-rows: repeat(14, 1fr);    
-    opacity: 0.65; /* Bumped up visibility */
+    /* Tightened density for smaller, thinner pixels */
+    grid-template-columns: repeat(22, 1fr); 
+    grid-template-rows: repeat(22, 1fr);    
+    opacity: 0.85; /* Keep visibility high */
 }
 
 .face-data-fast {
-    /* Slightly tighter, but still large enough to see clearly */
-    grid-template-columns: repeat(20, 1fr); 
-    grid-template-rows: repeat(20, 1fr);    
-    opacity: 0.55; 
+    /* Even finer matrix layer overlapping */
+    grid-template-columns: repeat(30, 1fr); 
+    grid-template-rows: repeat(30, 1fr);    
+    opacity: 0.75; 
 }
 
 .face-data-grid span {
@@ -349,10 +349,10 @@ input:disabled {
     min-width: 0;
     min-height: 0;
     opacity: 0;
-    /* Absolute solid white core to cut through the dark image */
+    /* Pure solid white core */
     background: rgba(255, 255, 255, 1) !important; 
-    /* Massive white-to-cyan neon glare effect */
-    box-shadow: 0 0 14px rgba(255, 255, 255, 1), 0 0 25px rgba(0, 240, 255, 0.8);
+    /* Sharp neon outline instead of a blurry cloud */
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 1), 0 0 6px rgba(0, 240, 255, 0.9);
     animation-name: face-data-blink;
     animation-timing-function: steps(1);
     animation-iteration-count: infinite;
@@ -362,12 +362,12 @@ input:disabled {
 
 .face-data-slow span {
     background: rgba(255, 255, 255, 1) !important;
-    box-shadow: 0 0 16px rgba(255, 255, 255, 1), 0 0 30px rgba(0, 210, 255, 0.9);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 1), 0 0 8px rgba(0, 210, 255, 0.9);
 }
 
 .face-data-fast span {
     background: rgba(255, 255, 255, 1) !important;
-    box-shadow: 0 0 12px rgba(255, 255, 255, 1), 0 0 20px rgba(140, 245, 255, 1);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 1), 0 0 5px rgba(140, 245, 255, 1);
 }
 
 .tint-layer {
