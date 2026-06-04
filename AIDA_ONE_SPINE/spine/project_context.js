@@ -253,6 +253,9 @@
     const parts = contextParts(selected);
     rt.context.projectFacts = parts.facts || rt.mind.facts;
     rt.context.projectSummaries = parts.summaries || rt.mind.memory;
+    rt.context.tetrad = null;
+    rt.context.llmMessages = null;
+    rt.boot.mindReady = false;
 
     log(
       selected
@@ -260,6 +263,22 @@
         : "PROJECT: No active context selected.",
       selected ? "log-blue" : "log-amber"
     );
+
+    if (window.AIDA_LLM_MESSAGES?.build) {
+      const result = window.AIDA_LLM_MESSAGES.build("");
+      if (!result?.blocked) {
+        log("PROJECT: LLM context rebuilt for active selection.", "log-blue");
+      }
+    }
+
+    window.dispatchEvent(new CustomEvent("aida:project-context-changed", {
+      detail: {
+        key: selectedKey,
+        loadName,
+        mode: rt.context.projectMode,
+        name: selected ? valueName(selected, ledgerEntry?.name || selectedKey) : null
+      }
+    }));
 
     return selected;
   }

@@ -56,7 +56,7 @@
     if (!rt?.boot?.airlockCleared) missing.push("airlock");
     if (!rt?.tokens?.llm?.key) missing.push("LLM key");
     if (rt?.tokens?.llm?.provider !== "openai") missing.push("OpenAI route");
-    if (!Array.isArray(rt?.context?.llmMessages)) missing.push("LLM messages");
+    if (!window.AIDA_LLM_MESSAGES?.build) missing.push("LLM message builder");
 
     return {
       pass: missing.length === 0,
