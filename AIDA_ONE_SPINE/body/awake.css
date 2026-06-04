@@ -331,38 +331,39 @@ input:disabled {
 }
 
 .face-data-slow {
-  grid-template-columns: repeat(10, 1fr);
-  grid-template-rows: repeat(12, 1fr);
-  opacity: 0.36;
+    grid-template-columns: repeat(32, 1fr); /* Upgraded from 10 */
+    grid-template-rows: repeat(32, 1fr);    /* Upgraded from 12 */
+    opacity: 0.36;
 }
 
 .face-data-fast {
-  grid-template-columns: repeat(18, 1fr);
-  grid-template-rows: repeat(22, 1fr);
-  opacity: 0.28;
+    grid-template-columns: repeat(48, 1fr); /* Upgraded from 18 */
+    grid-template-rows: repeat(48, 1fr);    /* Upgraded from 22 */
+    opacity: 0.24; /* Softened slightly for the smaller pixels */
 }
 
 .face-data-grid span {
-  position: relative;
-  min-width: 0;
-  min-height: 0;
-  opacity: 0;
-  background: rgba(118, 225, 255, 0.58);
-  box-shadow: 0 0 6px rgba(118, 225, 255, 0.52), 0 0 12px rgba(75, 190, 255, 0.26);
-  animation-name: face-data-blink;
-  animation-timing-function: steps(1);
-  animation-iteration-count: infinite;
-  animation-duration: var(--blink-duration, 3200ms);
-  animation-delay: var(--blink-delay, 0ms);
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    opacity: 0;
+    background: rgba(0, 240, 255, 0.85); 
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.6), 0 0 18px rgba(0, 150, 255, 0.3);
+    animation-name: face-data-blink;
+    animation-timing-function: steps(1);
+    animation-iteration-count: infinite;
+    animation-duration: var(--blink-duration, 3200ms);
+    animation-delay: var(--blink-delay, 0ms);
 }
 
 .face-data-slow span {
-  background: rgba(65, 185, 255, 0.42);
-  box-shadow: 0 0 5px rgba(80, 205, 255, 0.42), 0 0 10px rgba(45, 150, 255, 0.18);
+    background: rgba(0, 210, 255, 0.7);
+    box-shadow: 0 0 8px rgba(0, 210, 255, 0.5);
 }
 
 .face-data-fast span {
-  background: rgba(175, 240, 255, 0.38);
+    background: rgba(140, 245, 255, 0.9);
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.8);
 }
 
 .tint-layer {
