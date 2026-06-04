@@ -97,11 +97,18 @@
     const grid = $(id);
     if (!grid) return;
     grid.innerHTML = "";
+    
     for (let i = 0; i < count; i += 1) {
       const cell = document.createElement("span");
       const duration = durationRange[0] + Math.random() * (durationRange[1] - durationRange[0]);
       const delay = Math.random() * duration;
       const opacity = opacityRange[0] + Math.random() * (opacityRange[1] - opacityRange[0]);
+      
+      // OPTION A: Randomly scatter each pixel across the entire 0-100% canvas coordinates
+      cell.style.position = "absolute";
+      cell.style.left = `${Math.random() * 100}%`;
+      cell.style.top = `${Math.random() * 100}%`;
+      
       cell.style.setProperty("--blink-duration", `${Math.round(duration)}ms`);
       cell.style.setProperty("--blink-delay", `${Math.round(delay)}ms`);
       cell.style.setProperty("--blink-opacity", opacity.toFixed(2));
