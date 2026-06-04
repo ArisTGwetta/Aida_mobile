@@ -154,6 +154,10 @@
     );
   }
 
+  function isRealmFile(name) {
+    return name.startsWith("realm_") || name.startsWith("REALM_");
+  }
+
   function valueName(value, fallback = "unnamed") {
     if (!value || typeof value !== "object") return fallback;
 
@@ -249,6 +253,26 @@
       };
     }
 
+    const realms = Object.fromEntries(
+      Object.entries(files).filter(([name]) => isRealmFile(name))
+    );
+
+    for (const [fileName, realm] of Object.entries(realms)) {
+      if (ledger[fileName]) continue;
+      const name = valueName(realm, fileName.replace(/\.json$/i, ""));
+      const activity = globalActivity[name] || globalActivity[String(name).toUpperCase()] || null;
+
+      ledger[fileName] = {
+        key: fileName,
+        name,
+        source: "realm_as_project_placeholder",
+        status: textFrom(realm?.project_summary || realm?.summary || activity?.one_liner || activity, 160),
+        lastActive: realm?.last_active || realm?.last_updated || activity?.last_active || null,
+        loaded: true,
+        fileName
+      };
+    }
+
     return ledger;
   }
 
@@ -274,14 +298,19 @@
   function selectActiveProject(projectName) {
     const rt = runtime();
     const projects = rt.mind.projects || {};
+    const realms = rt.mind.realms || {};
     const selectedName = projectName || null;
-    const selected = selectedName ? projects[selectedName] : null;
+    const selected = selectedName ? projects[selectedName] || realms[selectedName] || null : null;
+    const isDedicatedProject = Boolean(selectedName && projects[selectedName]);
+    const isRealmPlaceholder = Boolean(selectedName && realms[selectedName] && !isDedicatedProject);
 
-    rt.mind.activeProject = selected;
+    if (isRealmPlaceholder) rt.mind.realm = selected;
+    rt.mind.activeProject = isDedicatedProject ? selected : null;
     rt.mind.activeProjectName = selectedName;
     rt.context.project = selected;
     rt.context.projectName = selectedName;
-    rt.context.projectMode = selected ? "briefcase" : "realm_as_project_placeholder";
+    rt.context.realm = isRealmPlaceholder ? selected : rt.mind.realm;
+    rt.context.projectMode = isDedicatedProject ? "briefcase" : "realm_as_project_placeholder";
 
     const projectParts = projectContextParts(selected);
     rt.context.projectFacts = projectParts.facts || rt.mind.facts;
@@ -289,7 +318,7 @@
 
     log(
       selected
-        ? `PROJECT: Active project set to ${valueName(selected, selectedName)}.`
+        ? `PROJECT: Active context set to ${valueName(selected, selectedName)}.`
         : "PROJECT: No active briefcase; realm is acting as project context.",
       selected ? "log-blue" : "log-amber"
     );
@@ -317,7 +346,7 @@
     rt.tokens.llm.fragments = files["llm_fragments.json"] || rt.tokens.openai.fragments || null;
 
     rt.mind.realms = Object.fromEntries(
-      Object.entries(files).filter(([name]) => name.startsWith("realm_"))
+      Object.entries(files).filter(([name]) => isRealmFile(name))
     );
     rt.mind.roles = Object.fromEntries(
       Object.entries(files).filter(([name]) => name.startsWith("role_"))
@@ -338,9 +367,10 @@
 
     rt.mind.realm = architectureRealm || Object.values(rt.mind.realms)[0] || null;
     rt.mind.role = architectRole || Object.values(rt.mind.roles)[0] || null;
+    const activeRealmName = Object.entries(rt.mind.realms).find(([, data]) => data === rt.mind.realm)?.[0] || null;
     const activeProjectName = architectureProject
       ? Object.entries(rt.mind.projects).find(([, data]) => data === architectureProject)?.[0] || null
-      : Object.keys(rt.mind.projects)[0] || null;
+      : Object.keys(rt.mind.projects)[0] || activeRealmName || null;
 
     rt.context.identity = rt.mind.identity;
     rt.context.realm = rt.mind.realm;
