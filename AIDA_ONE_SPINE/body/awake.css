@@ -335,10 +335,10 @@ input:disabled {
     position: absolute;
     inset: 0;
     display: grid;
-    /* Finer column slices */
+    /* 60 Columns */
     grid-template-columns: repeat(60, 1fr); 
-    /* Let rows generate dynamically and automatically expand to fill full height */
-    grid-auto-rows: 1fr;
+    /* Force 60 Rows so the grid cells form perfect micro-squares */
+    grid-template-rows: repeat(60, 1fr);    
     opacity: 0.80;
     --blink-duration: 12000ms; 
 }
@@ -347,11 +347,12 @@ input:disabled {
     position: absolute;
     inset: 0;
     display: grid;
-    /* Micro column slices */
+    /* 100 Columns */
     grid-template-columns: repeat(100, 1fr); 
-    grid-auto-rows: 1fr;
+    /* Force 100 Rows to match the ultra-fine density */
+    grid-template-rows: repeat(100, 1fr);    
     opacity: 0.65;
-    --blink-duration: 3000ms; 
+    --blink-duration: 6000ms; 
 }
 
 .face-data-grid span {
