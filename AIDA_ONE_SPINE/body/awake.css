@@ -303,7 +303,7 @@ input:disabled {
   z-index: 12;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center center;
 }
 
@@ -335,9 +335,9 @@ input:disabled {
     position: absolute;
     inset: 0;
     display: grid;
-    grid-template-columns: repeat(24, 1fr); 
+    grid-template-columns: repeat(16, 1fr); 
     /* Changed from 1fr to auto so smaller counts stretch to fit the height */
-    grid-template-rows: repeat(24, auto);    
+    grid-template-rows: repeat(24, 1fr);    
     opacity: 0.80;
     --blink-duration: 9600ms; 
 }
@@ -346,8 +346,8 @@ input:disabled {
     position: absolute;
     inset: 0;
     display: grid;
-    grid-template-columns: repeat(32, 1fr); 
-    grid-template-rows: repeat(32, auto);    
+    grid-template-columns: repeat(20, 1fr); 
+    grid-template-rows: repeat(20, 1fr);    
     opacity: 0.65;
     --blink-duration: 3200ms; 
 }
