@@ -335,8 +335,8 @@ input:disabled {
     position: absolute;
     inset: 0;
     display: grid;
-    grid-template-columns: repeat(24, 1fr); /* Balanced columns */
-    grid-template-rows: repeat(24, 1fr);    /* Balanced rows */
+    grid-template-columns: repeat(24, 1fr); 
+    grid-template-rows: repeat(24, 1fr);    
     opacity: 0.80;
     --blink-duration: 9600ms; 
 }
@@ -345,15 +345,9 @@ input:disabled {
     position: absolute;
     inset: 0;
     display: grid;
-    grid-template-columns: repeat(32, 1fr); /* Tighter secondary layer */
+    /* Cleaned up duplicate rules so the browser stretches the full height */
+    grid-template-columns: repeat(32, 1fr); 
     grid-template-rows: repeat(32, 1fr);    
-    opacity: 0.65;
-    --blink-duration: 3200ms; 
-}
-
-.face-data-fast {
-    grid-template-columns: repeat(64, 1fr); 
-    grid-template-rows: repeat(64, 1fr);    
     opacity: 0.65;
     --blink-duration: 3200ms; 
 }
@@ -363,7 +357,7 @@ input:disabled {
     min-width: 0;
     min-height: 0;
     opacity: 0;
-    /* Luminous opaque hologram blue instead of gray/white */
+    /* Luminous opaque hologram blue extracted from your portrait highlights */
     background: rgba(0, 195, 255, 0.85) !important; 
     /* Sharp holographic aura structure */
     box-shadow: 0 0 0 1px rgba(0, 195, 255, 0.85), 0 0 6px rgba(0, 110, 255, 0.9);
