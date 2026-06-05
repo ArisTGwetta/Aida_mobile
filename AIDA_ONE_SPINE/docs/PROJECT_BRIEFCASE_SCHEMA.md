@@ -127,4 +127,17 @@ Useful adapter fields:
 
 If a project is active, its role, interaction rules, facts, memory, summaries, and recent turns are authoritative context. The LLM message builder must include them before sending the user message.
 
-`spine/project_context.js` resolves the active role from the selected context first. If no role is declared, the spine preserves the current default role so old files keep working.
+`spine/project_context.js` resolves the active role from the selected context first. If no role is declared, the spine checks compatibility aliases and then falls back to the boot default role.
+
+During translation, the spine also carries a small compatibility alias map so old realm-only files can still select obvious roles:
+
+```text
+oracle -> role_oracle_voice.json
+compliance -> role_compliance_officer.json
+chronicle -> role_chronicler.json
+protocol_mx -> role_protocol_unit.json
+aida_architecture -> role_architect_companion.json
+rpg -> role_co_narrator.json
+```
+
+These aliases are compatibility scaffolding. The new standard should still declare `role` directly inside each realm or project briefcase.

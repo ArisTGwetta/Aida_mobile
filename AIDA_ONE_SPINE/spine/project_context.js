@@ -313,6 +313,20 @@
     return [roleRef];
   }
 
+  function defaultRoleRefsFor(selected) {
+    const selectedKey = keyName(valueName(selected, ""));
+    const aliases = {
+      oracle: ["role_oracle_voice.json", "oracle_voice"],
+      compliance: ["role_compliance_officer.json", "compliance_officer"],
+      chronicle: ["role_chronicler.json", "chronicler"],
+      protocol_mx: ["role_protocol_unit.json", "protocol_unit"],
+      aida_architecture: ["role_architect_companion.json", "architect_companion"],
+      rpg: ["role_co_narrator.json", "role_co-narrator.json", "co_narrator", "co-narrator"]
+    };
+
+    return aliases[selectedKey] || [];
+  }
+
   function resolveRole(roleRef, selected) {
     const rt = runtime();
     const roles = rt.mind.roles || {};
@@ -330,7 +344,7 @@
       if (looksLikeRole) return { role: roleRef, source: "embedded_role" };
     }
 
-    const refs = roleRefs(roleRef);
+    const refs = [...roleRefs(roleRef), ...defaultRoleRefsFor(selected)];
 
     for (const ref of refs) {
       const raw = String(ref);
@@ -359,7 +373,7 @@
       if (contextual) return { role: contextual[1], source: contextual[0] };
     }
 
-    return { role: rt.context.role || rt.mind.role || Object.values(roles)[0] || null, source: "preserved_or_default" };
+    return { role: rt.mind.role || Object.values(roles)[0] || null, source: "default_role" };
   }
 
   function select(projectKey) {
