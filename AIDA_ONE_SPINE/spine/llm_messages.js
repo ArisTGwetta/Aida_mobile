@@ -116,11 +116,13 @@
     const project = context.project || mind.activeProject;
     const projectName = context.projectName || mind.activeProjectName || null;
     const facts = context.projectFacts || mind.facts;
-    const memory = context.projectSummaries || mind.memory;
+    const memory = context.projectMemory || context.projectSummaries || mind.memory;
     const emotion = context.emotion || mind.emotion;
     const session = context.memoryWindow?.session || mind.session;
-    const recentTurns = context.memoryWindow?.recentTurns || driveFiles["recent_turns.json"];
+    const recentTurns = context.projectRecentTurns || context.memoryWindow?.recentTurns || driveFiles["recent_turns.json"];
     const insights = mind.insights;
+    const interactionRules = context.interactionRules || null;
+    const roleSource = context.roleSource || null;
     const projectMode = context.projectMode || (project ? "briefcase" : "realm_as_project_placeholder");
 
     return {
@@ -138,6 +140,8 @@
       session,
       recentTurns,
       insights,
+      interactionRules,
+      roleSource,
       projectMode
     };
   }
@@ -163,7 +167,8 @@
       role: {
         name: valueName(context.role, "unnamed_role"),
         present: Boolean(context.role),
-        loadedCount: countArrayLike(context.mind.roles)
+        loadedCount: countArrayLike(context.mind.roles),
+        source: context.roleSource || "unknown"
       },
       state: {
         emotion: emotionSummary(context.emotion),
@@ -172,6 +177,7 @@
         insightCount: countLikely(context.insights, ["insights", "themes", "patterns"]),
         sessionCount: countLikely(context.session, ["turns", "recent_turns", "entries", "session_log"]),
         recentTurnCount: countLikely(context.recentTurns, ["turns", "recent_turns", "entries"]),
+        interactionRuleCount: countLikely(context.interactionRules, ["rules", "interaction_rules", "boundaries", "modes"]),
         llmProvider: context.rt.tokens?.llm?.provider || "none",
         llmProfile: context.rt.tokens?.llm?.profile || "none"
       }
@@ -219,6 +225,7 @@
       boundedSection("ACTIVE REALM", context.realm),
       boundedSection("ACTIVE PROJECT", projectPayload),
       boundedSection("ACTIVE ROLE", context.role),
+      boundedSection("INTERACTION RULES", context.interactionRules),
       boundedSection("CURRENT EMOTION", context.emotion),
       boundedSection("FACTS", context.facts),
       boundedSection("MEMORY SUMMARY", context.memory),

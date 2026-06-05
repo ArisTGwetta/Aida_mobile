@@ -207,10 +207,11 @@
     const realm = context.realm || mind.realm;
     const role = context.role || mind.role;
     const facts = context.projectFacts || mind.facts;
-    const memory = context.projectSummaries || mind.memory;
+    const memory = context.projectMemory || context.projectSummaries || mind.memory;
     const emotion = context.emotion || mind.emotion;
-    const recentTurns = context.memoryWindow?.recentTurns || driveFiles["recent_turns.json"];
+    const recentTurns = context.projectRecentTurns || context.memoryWindow?.recentTurns || driveFiles["recent_turns.json"];
     const session = context.memoryWindow?.session || mind.session;
+    const interactionRules = context.interactionRules || null;
     const projectMode = context.projectMode || (mind.activeProject ? "briefcase" : "realm_as_project_placeholder");
     const projectLedger = mind.projectLedger || {};
     const projectName = mind.activeProject || context.project
@@ -241,7 +242,8 @@
       role: {
         present: Boolean(role),
         name: valueName(role) || "unnamed",
-        loadedCount: countArrayLike(mind.roles)
+        loadedCount: countArrayLike(mind.roles),
+        source: context.roleSource || "unknown"
       },
       project: {
         active: Boolean(mind.activeProject || context.project),
@@ -271,6 +273,10 @@
       recentTurns: {
         present: Boolean(recentTurns),
         count: findLikelyCount(recentTurns, ["turns", "recent_turns", "entries"])
+      },
+      interactionRules: {
+        present: Boolean(interactionRules),
+        count: findLikelyCount(interactionRules, ["rules", "interaction_rules", "boundaries", "modes"])
       },
       emotion: {
         present: Boolean(emotion),
@@ -315,13 +321,14 @@
     log(`DRIVE: files=${summary.drive.fileCount}, folderId=${summary.drive.folderIdPresent}`);
     log(`IDENTITY: ${summary.identity.present ? summary.identity.name : "missing"}`);
     log(`REALM: ${summary.realm.name} (${summary.realm.loadedCount} loaded)`);
-    log(`ROLE: ${summary.role.name} (${summary.role.loadedCount} loaded)`);
+    log(`ROLE: ${summary.role.name} (${summary.role.loadedCount} loaded, source=${summary.role.source})`);
     log(`PROJECT: ${summary.project.name} [${summary.project.mode}] file=${summary.project.fileName} (${summary.project.loadedCount} dedicated, ledger=${summary.project.ledgerCount}, summaries=${summary.project.summaryCount})`);
     log(`FACTS: present=${summary.facts.present}, count=${summary.facts.count}`);
     log(`MEMORY: present=${summary.memory.present}, count=${summary.memory.count}`);
     log(`INSIGHTS: present=${summary.insights.present}, count=${summary.insights.count}`);
     log(`SESSION: present=${summary.session.present}, count=${summary.session.count}`);
     log(`RECENT TURNS: present=${summary.recentTurns.present}, count=${summary.recentTurns.count}`);
+    log(`INTERACTION RULES: present=${summary.interactionRules.present}, count=${summary.interactionRules.count}`);
     log(`EMOTION: ${summary.emotion.summary}`);
     log(`LLM ROUTES: fragments=${summary.llm.fragmentsPresent}, routes=${summary.llm.routeCount}, selected=${summary.llm.provider}/${summary.llm.profile}, keyReady=${summary.llm.keyReady}`);
     log(`LLM MESSAGES: ready=${summary.llm.messagesReady}, count=${summary.llm.messageCount}, tetrad=${summary.llm.tetradReady}`);

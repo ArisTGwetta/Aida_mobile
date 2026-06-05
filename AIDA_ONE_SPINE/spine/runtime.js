@@ -54,6 +54,10 @@
       projectMode: "no_active_project",
       projectFacts: null,
       projectSummaries: null,
+      projectMemory: null,
+      projectRecentTurns: null,
+      interactionRules: null,
+      roleSource: null,
       tetrad: null,
       memoryWindow: null,
       llmMessages: null

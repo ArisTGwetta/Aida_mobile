@@ -62,6 +62,23 @@
     return fallback;
   }
 
+  function keyName(value) {
+    return String(value || "")
+      .toLowerCase()
+      .replace(/\.json$/i, "")
+      .replace(/^role_/, "")
+      .replace(/^realm_/, "")
+      .replace(/^project_briefcase_/, "")
+      .replace(/^briefcase_/, "")
+      .replace(/^project_/, "")
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+  }
+
+  function firstPresent(...values) {
+    return values.find((value) => value !== undefined && value !== null && value !== "");
+  }
+
   function textFrom(value, limit = 220) {
     if (value === null || value === undefined) return "";
     if (typeof value === "string") return value.replace(/\s+/g, " ").trim().slice(0, limit);
@@ -213,9 +230,25 @@
   }
 
   function contextParts(project) {
-    if (!project || typeof project !== "object") return { facts: null, summaries: null };
+    if (!project || typeof project !== "object") {
+      return {
+        facts: null,
+        summaries: null,
+        memory: null,
+        recentTurns: null,
+        interactionRules: null,
+        roleRef: null
+      };
+    }
 
-    const facts = project.facts || project.items || project.goals || project.contexts || null;
+    const facts = firstPresent(
+      project.facts,
+      project.realm_facts,
+      project.project_facts,
+      project.items,
+      project.goals,
+      project.contexts
+    ) || null;
     const summaries = (
       project.latest_summary ||
       project.project_summary ||
@@ -225,8 +258,108 @@
       project.notes ||
       null
     );
+    const memory = firstPresent(
+      project.memory,
+      project.project_memory,
+      project.realm_memory,
+      project.memory_summary,
+      summaries
+    ) || null;
+    const recentTurns = firstPresent(
+      project.recent_turns,
+      project.recentTurns,
+      project.turns,
+      project.session_memory,
+      project.sessionMemory
+    ) || null;
+    const interactionRules = firstPresent(
+      project.interaction_rules,
+      project.interactionRules,
+      project.rules,
+      project.conversation_rules,
+      project.behavior_rules,
+      project.voice_rules,
+      project.boundaries
+    ) || null;
+    const roleRef = firstPresent(
+      project.role,
+      project.role_file,
+      project.roleFile,
+      project.default_role,
+      project.defaultRole,
+      project.preferred_role,
+      project.preferredRole
+    ) || null;
 
-    return { facts, summaries };
+    return { facts, summaries, memory, recentTurns, interactionRules, roleRef };
+  }
+
+  function roleRefs(roleRef) {
+    if (!roleRef) return [];
+    if (Array.isArray(roleRef)) return roleRef.flatMap(roleRefs);
+    if (typeof roleRef === "object") {
+      return [
+        roleRef.file,
+        roleRef.fileName,
+        roleRef.filename,
+        roleRef.key,
+        roleRef.id,
+        roleRef.name,
+        roleRef.role_name,
+        roleRef.display_name,
+        valueName(roleRef, "")
+      ].filter(Boolean);
+    }
+    return [roleRef];
+  }
+
+  function resolveRole(roleRef, selected) {
+    const rt = runtime();
+    const roles = rt.mind.roles || {};
+
+    if (roleRef && typeof roleRef === "object" && !Array.isArray(roleRef)) {
+      const looksLikeRole = Boolean(
+        roleRef.role_name ||
+        roleRef.instructions ||
+        roleRef.protocol ||
+        roleRef.voice ||
+        roleRef.persona ||
+        roleRef.directives ||
+        roleRef.system_prompt
+      );
+      if (looksLikeRole) return { role: roleRef, source: "embedded_role" };
+    }
+
+    const refs = roleRefs(roleRef);
+
+    for (const ref of refs) {
+      const raw = String(ref);
+      const candidates = [
+        raw,
+        `${raw}.json`,
+        `role_${raw}.json`,
+        `role_${keyName(raw)}.json`
+      ];
+      for (const candidate of candidates) {
+        if (roles[candidate]) return { role: roles[candidate], source: candidate };
+      }
+
+      const refKey = keyName(raw);
+      const match = Object.entries(roles).find(([fileName, role]) => (
+        keyName(fileName) === refKey ||
+        keyName(valueName(role, "")) === refKey ||
+        keyName(role?.role_name || role?.name || role?.id || "") === refKey
+      ));
+      if (match) return { role: match[1], source: match[0] };
+    }
+
+    if (selected && typeof selected === "object") {
+      const selectedKey = keyName(valueName(selected, ""));
+      const contextual = Object.entries(roles).find(([fileName]) => keyName(fileName).includes(selectedKey));
+      if (contextual) return { role: contextual[1], source: contextual[0] };
+    }
+
+    return { role: rt.context.role || rt.mind.role || Object.values(roles)[0] || null, source: "preserved_or_default" };
   }
 
   function select(projectKey) {
@@ -251,8 +384,22 @@
     rt.context.projectMode = isDedicatedProject ? "project_payload" : isRealmContext ? "realm_context" : "project_index";
 
     const parts = contextParts(selected);
+    const roleSelection = resolveRole(parts.roleRef, selected);
+
+    rt.mind.role = roleSelection.role || rt.mind.role;
+    rt.context.role = roleSelection.role || rt.context.role || rt.mind.role;
+    rt.context.roleSource = roleSelection.source;
     rt.context.projectFacts = parts.facts || rt.mind.facts;
     rt.context.projectSummaries = parts.summaries || rt.mind.memory;
+    rt.context.projectMemory = parts.memory || parts.summaries || rt.mind.memory;
+    rt.context.projectRecentTurns = parts.recentTurns || null;
+    rt.context.interactionRules = parts.interactionRules || null;
+    rt.context.memoryWindow = {
+      ...(rt.context.memoryWindow || {}),
+      recentTurns: parts.recentTurns || rt.context.memoryWindow?.recentTurns || rt.drive?.files?.["recent_turns.json"] || null,
+      session: rt.context.memoryWindow?.session || rt.mind.session,
+      summary: parts.memory || parts.summaries || rt.mind.memory
+    };
     rt.context.tetrad = null;
     rt.context.llmMessages = null;
     rt.boot.mindReady = false;
@@ -263,6 +410,9 @@
         : "PROJECT: No active context selected.",
       selected ? "log-blue" : "log-amber"
     );
+    if (roleSelection.role) {
+      log(`PROJECT: Role ${roleSelection.source === "preserved_or_default" ? "preserved" : "resolved"} as ${valueName(roleSelection.role, "unnamed_role")}.`, "log-blue");
+    }
 
     if (window.AIDA_LLM_MESSAGES?.build) {
       const result = window.AIDA_LLM_MESSAGES.build("");
@@ -328,9 +478,9 @@
     rt.context.emotion = rt.mind.emotion;
     select(activeProjectName);
     rt.context.memoryWindow = {
-      recentTurns: files["recent_turns.json"] || null,
+      recentTurns: rt.context.projectRecentTurns || files["recent_turns.json"] || null,
       session: rt.mind.session,
-      summary: rt.mind.memory
+      summary: rt.context.projectMemory || rt.mind.memory
     };
 
     return {

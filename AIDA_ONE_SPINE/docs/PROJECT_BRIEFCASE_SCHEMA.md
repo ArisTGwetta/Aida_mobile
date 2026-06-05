@@ -65,7 +65,32 @@ If no dedicated project briefcase exists, the active realm remains authoritative
 
 ## Recommended Fields
 
-The inspector can name a project if one of these fields exists either top-level or nested under `project`/`briefcase`:
+The spine standard prefers one predictable shape for both dedicated project briefcases and realm-as-project fallback files:
+
+```json
+{
+  "name": "RPG",
+  "kind": "realm",
+  "status": "active",
+  "summary": "Current human-readable status.",
+  "role": "role_co_narrator.json",
+  "interaction_rules": {
+    "mode": "collaborative roleplay",
+    "rules": [
+      "Aida remains Aida outside quoted or clearly labeled character speech.",
+      "Characters may have relationships, desires, conflicts, and romantic histories that are not Aida's own stance toward the user.",
+      "Keep speaker boundaries clear when moving between Aida, narrator, and characters.",
+      "Keep the conversation flowing; ask clarifying questions only when the scene or user intent is genuinely ambiguous."
+    ]
+  },
+  "facts": [],
+  "memory": {},
+  "recent_turns": [],
+  "last_updated": "2026-06-04"
+}
+```
+
+The inspector can still name a project if one of these older fields exists either top-level or nested under `project`/`briefcase`:
 
 ```json
 {
@@ -76,12 +101,21 @@ The inspector can name a project if one of these fields exists either top-level 
 }
 ```
 
-Useful summary fields:
+Useful adapter fields:
 
 ```json
 {
+  "role_file": "role_oracle_voice.json",
+  "default_role": "oracle_voice",
+  "preferred_role": "role_co_narrator.json",
+  "realm_facts": [],
+  "project_facts": [],
+  "memory_summary": {},
   "project_summary": "...",
   "briefcase_summary": "...",
+  "interactionRules": {},
+  "conversation_rules": [],
+  "voice_rules": [],
   "summaries": [],
   "contexts": [],
   "threads": [],
@@ -91,4 +125,6 @@ Useful summary fields:
 
 ## Pre-LLM Role
 
-If a project is active, its facts and summaries are authoritative context. The LLM message builder must include them before sending the user message.
+If a project is active, its role, interaction rules, facts, memory, summaries, and recent turns are authoritative context. The LLM message builder must include them before sending the user message.
+
+`spine/project_context.js` resolves the active role from the selected context first. If no role is declared, the spine preserves the current default role so old files keep working.
