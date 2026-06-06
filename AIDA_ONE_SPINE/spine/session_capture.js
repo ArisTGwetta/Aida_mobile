@@ -59,6 +59,13 @@
     };
   }
 
+  function cleanTag(value, fallback = "unknown") {
+    return String(value || fallback)
+      .trim()
+      .replace(/\s+/g, "_")
+      .toLowerCase();
+  }
+
   function ensureSession() {
     const rt = runtime();
     if (!rt.session) {
@@ -95,25 +102,48 @@
     const role = context.role || mind.role;
     const project = context.project || mind.activeProject;
     const emotion = context.emotion || mind.emotion;
+    const projectFile = context.projectName || mind.activeProjectName || null;
+    const projectName = project
+      ? valueName(project, "unknown_project")
+      : `realm_as_project: ${valueName(realm, "unknown_realm")}`;
+    const roleName = valueName(role, "unknown_role");
+    const emotionState = emotionSnapshot(emotion);
+    const route = {
+      provider: rt.tokens?.llm?.provider || "none",
+      profile: rt.tokens?.llm?.profile || "none"
+    };
 
-    return {
+    const snapshot = {
       identity: valueName(context.identity || mind.identity, "unknown_identity"),
       realm: valueName(realm, "unknown_realm"),
-      project: project
-        ? valueName(project, "unknown_project")
-        : `realm_as_project: ${valueName(realm, "unknown_realm")}`,
+      project: projectName,
+      projectFile,
       projectMode: context.projectMode || (project ? "briefcase" : "realm_as_project_placeholder"),
-      role: valueName(role, "unknown_role"),
-      emotion: emotionSnapshot(emotion),
-      route: {
-        provider: rt.tokens?.llm?.provider || "none",
-        profile: rt.tokens?.llm?.profile || "none"
-      },
+      role: roleName,
+      roleSource: context.roleSource || null,
+      emotion: emotionState,
+      route,
       llm: {
         responseId: rt.context?.lastLlmResponse?.responseId || null,
         model: rt.context?.lastLlmResponse?.model || null
       }
     };
+
+    snapshot.tags = {
+      session_id: rt.session?.id || "pending_session",
+      identity: cleanTag(snapshot.identity),
+      realm: cleanTag(snapshot.realm),
+      project: cleanTag(projectName),
+      project_file: cleanTag(projectFile || "none"),
+      project_mode: cleanTag(snapshot.projectMode),
+      role: cleanTag(roleName),
+      role_source: cleanTag(context.roleSource || "unknown_role_source"),
+      emotion: cleanTag(emotionState.label, "unknown_emotion"),
+      llm_route: cleanTag(`${route.provider}_${route.profile}`),
+      source: "awake"
+    };
+
+    return snapshot;
   }
 
   function captureExchange(userText, aidaText) {
@@ -134,7 +164,12 @@
         role: "assistant",
         text: aidaText
       },
-      context: snapshot
+      context: snapshot,
+      tags: {
+        ...snapshot.tags,
+        turn_index: String(turnIndex),
+        captured_at: now
+      }
     };
 
     session.currentTurns.push(exchange);
@@ -146,7 +181,8 @@
       type: "exchange",
       sessionId: session.id,
       turnIndex,
-      capturedAt: now
+      capturedAt: now,
+      tags: exchange.tags
     });
 
     log(`SESSION: Captured exchange ${turnIndex}. unsaved=true.`, "log-blue");
@@ -172,10 +208,13 @@
             identity: lastExchange.context?.identity || "unknown_identity",
             realm: lastExchange.context?.realm || "unknown_realm",
             project: lastExchange.context?.project || "unknown_project",
+            projectFile: lastExchange.context?.projectFile || "none",
             role: lastExchange.context?.role || "unknown_role",
+            roleSource: lastExchange.context?.roleSource || "unknown_role_source",
             emotion: lastExchange.context?.emotion?.label || "unknown_emotion",
             route: `${lastExchange.context?.route?.provider || "none"}/${lastExchange.context?.route?.profile || "none"}`,
-            model: lastExchange.context?.llm?.model || "unknown_model"
+            model: lastExchange.context?.llm?.model || "unknown_model",
+            tags: lastExchange.tags || {}
           }
         : null
     };
@@ -194,8 +233,9 @@
 
     const last = summary.lastExchange;
     log(`SESSION LAST: turn=${last.turnIndex}, userChars=${last.userChars}, aidaChars=${last.aidaChars}`);
-    log(`SESSION LAST CONTEXT: identity=${last.identity}, realm=${last.realm}, project=${last.project}, role=${last.role}`);
+    log(`SESSION LAST CONTEXT: identity=${last.identity}, realm=${last.realm}, project=${last.project}, projectFile=${last.projectFile}, role=${last.role}, roleSource=${last.roleSource}`);
     log(`SESSION LAST STATE: emotion=${last.emotion}, route=${last.route}, model=${last.model}`);
+    log(`SESSION LAST TAGS: realm=${last.tags.realm || "none"}, project=${last.tags.project || "none"}, role=${last.tags.role || "none"}`);
     return summary;
   }
 
@@ -220,7 +260,7 @@
       reads: ["AIDA_RUNTIME.context", "AIDA_RUNTIME.tokens.llm", "AIDA_RUNTIME.context.lastLlmResponse"],
       writes: ["AIDA_RUNTIME.session.currentTurns", "AIDA_RUNTIME.session.unsaved", "AIDA_RUNTIME.sleep.pendingJournal"],
       requires: ["AIDA_RUNTIME"],
-      verifies: ["completed exchanges are captured in memory without Drive writes"]
+      verifies: ["completed exchanges are captured with sleep-friendly tags and without Drive writes"]
     });
   }
 

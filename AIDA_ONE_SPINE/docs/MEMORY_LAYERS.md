@@ -11,6 +11,7 @@ Runtime:
 ```text
 AIDA_RUNTIME.session.currentTurns
 AIDA_RUNTIME.session.unsaved
+AIDA_RUNTIME.sleep.pendingJournal
 ```
 
 Purpose:
@@ -18,6 +19,25 @@ Purpose:
 - Immediate continuity.
 - Input for sleep routines.
 - Safe foundation before summaries, diary, facts, or Drive writes.
+
+Captured exchanges also carry routing tags for sleep and while-away routines. These tags are not injected into the awake LLM prompt.
+
+```json
+{
+  "session_id": "session_...",
+  "realm": "rpg",
+  "project": "rpg",
+  "project_file": "realm_rpg.json",
+  "project_mode": "realm_context",
+  "role": "co_narrator",
+  "role_source": "role_co_narrator.json",
+  "emotion": "neutral",
+  "llm_route": "openai_normal",
+  "source": "awake"
+}
+```
+
+Sleep should use these tags to group, summarize, and route memory without rereading the full active prompt.
 
 ## Full Log
 
