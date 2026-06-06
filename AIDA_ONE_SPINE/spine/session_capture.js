@@ -200,6 +200,14 @@
   function safeSummary() {
     const session = ensureSession();
     const lastExchange = session.currentTurns?.[session.currentTurns.length - 1] || null;
+    const tagTrail = (session.currentTurns || []).map((exchange) => ({
+      turnIndex: exchange.turnIndex,
+      realm: exchange.tags?.realm || "none",
+      project: exchange.tags?.project || "none",
+      role: exchange.tags?.role || "none",
+      custom: exchange.tags?.custom || []
+    }));
+
     return {
       id: session.id,
       startedAt: session.startedAt,
@@ -207,6 +215,7 @@
       exchangeCount: session.exchangeCount || 0,
       unsaved: Boolean(session.unsaved),
       pendingJournalCount: runtime().sleep?.pendingJournal?.length || 0,
+      tagTrail,
       lastExchange: lastExchange
         ? {
             turnIndex: lastExchange.turnIndex,
@@ -234,6 +243,16 @@
     log("SESSION: Safe capture summary follows.", "log-blue");
     log(`SESSION: id=${summary.id}, exchanges=${summary.exchangeCount}, unsaved=${summary.unsaved}, pendingJournal=${summary.pendingJournalCount}`);
     log(`SESSION: started=${summary.startedAt || "n/a"}, lastTurn=${summary.lastTurnAt || "n/a"}`);
+
+    if (summary.tagTrail.length) {
+      const trail = summary.tagTrail
+        .map((turn) => {
+          const custom = Array.isArray(turn.custom) && turn.custom.length ? turn.custom.join("+") : "none";
+          return `${turn.turnIndex}:${turn.realm}/${turn.role}/custom=${custom}`;
+        })
+        .join(" | ");
+      log(`SESSION TAG TRAIL: ${trail}`);
+    }
 
     if (!summary.lastExchange) {
       log("SESSION LAST: none captured yet.", "log-amber");

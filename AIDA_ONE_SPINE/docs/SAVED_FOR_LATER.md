@@ -64,3 +64,25 @@ Idea:
 - `456` could choose an alternate roleplay-oriented provider.
 
 The keypad remains useful as a shortcut doorway even after in-app provider switching exists.
+
+## New Project Draft Flow
+
+Status: saved for project ledger / sleep-cycle work.
+
+This should be a project menu action, not an ordinary custom tag.
+
+Idea:
+
+- Add a special `NEW PROJECT` entry to the realm/project selector.
+- Selecting it creates a temporary runtime project context such as `projectMode: "new_project_draft"`.
+- Aida should react with clear excitement and ask for the new project name.
+- Once named, runtime creates a draft project briefcase object with:
+  - canonical name and slug
+  - current realm
+  - current role and role source
+  - empty `facts`, `memory`, and `recent_turns`
+  - first summary seed from the user's description
+- Conversation continues under the new project name.
+- Sleep/night-shift later writes the draft as `project_briefcase_<slug>.json` and updates `project_summary.json`.
+
+Custom tags can mark turns related to project creation, but they should not be the primary source of project identity.
