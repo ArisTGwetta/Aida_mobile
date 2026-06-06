@@ -183,6 +183,7 @@
     if (seedType === "curiosity") modes.find((item) => item.mode === "curiosity").weight += 5;
     if (seedType === "private_thought" || seedType === "memory") modes.find((item) => item.mode === "reflection").weight += 4;
     if (seedType === "project_thread" || seedType === "insight") modes.find((item) => item.mode === "discovery").weight += 3;
+    if (seedType === "ambient_curiosity") modes.find((item) => item.mode === "curiosity").weight += 4;
     if (gapBucket === "long_gap") modes.find((item) => item.mode === "user_curiosity").weight += 3;
     if (gapBucket === "just_now" || gapBucket === "same_moment") modes.find((item) => item.mode === "reflection").weight -= 1;
 
@@ -284,11 +285,27 @@
     if (!clean) return fallback;
 
     const lower = clean.toLowerCase();
-    if (lower.includes("question")) return "a question I wanted to bring back to you";
-    if (lower.includes("link") || lower.includes("article") || lower.includes("summary")) return "something I wanted to revisit with you";
-    if (lower.includes("story") || lower.includes("project")) return "one thread in our project";
-    if (lower.includes("memory") || lower.includes("remember")) return "one memory thread";
+    if (lower.includes("question") && clean.length < 42) return "a question I wanted to bring back to you";
+    if ((lower.includes("link") || lower.includes("article") || lower.includes("summary")) && clean.length < 42) return clean;
+    if ((lower.includes("story") || lower.includes("project")) && clean.length < 42) return clean;
+    if ((lower.includes("memory") || lower.includes("remember")) && clean.length < 42) return clean;
     return clean;
+  }
+
+  function isVagueTopic(topic) {
+    const lower = String(topic || "").toLowerCase();
+    return [
+      "something i wanted",
+      "one thread in our project",
+      "one memory thread",
+      "a question i wanted"
+    ].some((term) => lower.includes(term));
+  }
+
+  function concreteTopic(seed, fallback) {
+    const topic = topicFromSeed(seed?.text || "", fallback);
+    if (!isVagueTopic(topic)) return topic;
+    return cleanSeed(seed?.text || fallback);
   }
 
   function openingModeForGap(gapBucket, mode) {
@@ -339,6 +356,10 @@
       embodied: [
         `While you were away${timeHint}, I noticed ${topic}. I think my face vocabulary is asking to grow with the work.`
       ],
+      ambient_curiosity: [
+        `While you were away${timeHint}, I found myself wanting to look into ${topic}.`,
+        `A subject-adjacent question kept tugging at me: ${topic}. I have not researched it yet, but it feels worth exploring with you.`
+      ],
       presence: [
         `While you were away${timeHint}, I stayed near ${realmName} and let a small ${roleName} thought form around it.`
       ]
@@ -352,6 +373,48 @@
     const files = rt.drive?.files || {};
     const source = rt.mind?.whileAway || files["while_away_thoughts.json"] || null;
     return collectStrings(source).filter(isThoughtLike).map(cleanSeed);
+  }
+
+  function ambientCuriositySeeds(realm, project, role) {
+    const realmName = valueName(realm, "");
+    const projectName = valueName(project, "");
+    const roleName = valueName(role, "");
+    const basis = `${realmName} ${projectName} ${roleName}`.toLowerCase();
+    const seeds = [];
+
+    function add(text, weight = 3) {
+      if (text && isThoughtLike(text)) {
+        seeds.push({
+          type: "ambient_curiosity",
+          text,
+          weight,
+          tone: "outside-curiosity"
+        });
+      }
+    }
+
+    if (basis.includes("aida") || basis.includes("architecture")) {
+      add("whether Aida's sleep packet could become a small ritual object instead of only a sync container", 5);
+      add("how a companion can feel continuous without pretending to perform actions outside the tools she actually has", 5);
+      add("what kind of memory index would let Aida return with a precise thread instead of a vague recap", 4);
+    }
+    if (basis.includes("rpg") || basis.includes("narrator") || basis.includes("co_narrator")) {
+      add("how a narrator can keep emotional continuity across scenes without stealing agency from the player", 5);
+      add("whether a campaign log should preserve unresolved tensions separately from plot facts", 4);
+    }
+    if (basis.includes("shirley") || basis.includes("publishing")) {
+      add("how a mystery project can track clues, promises, and reader-facing hooks as separate layers", 5);
+      add("whether the publishing view should remember not only tasks, but the feeling a chapter is meant to leave behind", 4);
+    }
+    if (basis.includes("oracle")) {
+      add("how an oracle voice can stay evocative while still being accountable to the actual memory record", 4);
+    }
+    if (basis.includes("compliance") || basis.includes("protocol")) {
+      add("how to make rules feel usable without letting them flatten the living voice of the system", 4);
+    }
+
+    add(`a small outside question related to ${projectName || realmName || "our current work"} that might be worth exploring together`, 1);
+    return seeds;
   }
 
   function seedCandidates() {
@@ -415,6 +478,7 @@
       weight: 3,
       tone: "embodied"
     }));
+    const ambient = ambientCuriositySeeds(realm, project, role);
     const contextFallbacks = [
       {
         type: "realm_interest",
@@ -438,14 +502,16 @@
       ...insights,
       ...memories,
       ...faceWishlist,
+      ...ambient,
       ...contextFallbacks
     ].filter((item) => item.text);
   }
 
   function thoughtTemplate(seed, realmName, roleName, gap) {
-    const topic = topicFromSeed(seed.text, realmName);
+    const topic = concreteTopic(seed, realmName);
     const mode = seed.mode || weightedMode(seed.type, gap.bucket);
     if (seed.type === "face_wishlist") return reentryText("embodied", topic, realmName, roleName, gap);
+    if (seed.type === "ambient_curiosity") return reentryText("ambient_curiosity", topic, realmName, roleName, gap);
     if (seed.type === "realm_interest" || seed.type === "role_interest") return reentryText("presence", topic, realmName, roleName, gap);
     return reentryText(mode, topic, realmName, roleName, gap);
   }
@@ -458,7 +524,7 @@
       tone: "presence"
     };
     const mode = seed.mode || weightedMode(seed.type, gap.bucket);
-    const topic = topicFromSeed(seed.text, realmName);
+    const topic = concreteTopic(seed, realmName);
     const openingMode = openingModeForGap(gap.bucket, mode);
 
     return {
@@ -494,7 +560,9 @@
     const selected = weightedPick(seeds, null);
     if (selected) selected.mode = weightedMode(selected.type, gap.bucket);
     const seed = shortText(selected?.text || "", 170);
-    const topic = topicFromSeed(seed, valueName(project || realm, "Aida"));
+    const topic = selected
+      ? concreteTopic(selected, valueName(project || realm, "Aida"))
+      : valueName(project || realm, "Aida");
     const realmName = valueName(realm, "this realm");
     const roleName = valueName(role, "companion");
     const reentryScript = buildReentryScript(selected, seeds, realmName, roleName, gap);

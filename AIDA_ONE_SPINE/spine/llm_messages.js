@@ -121,6 +121,8 @@
     const session = context.memoryWindow?.session || mind.session;
     const recentTurns = context.projectRecentTurns || context.memoryWindow?.recentTurns || driveFiles["recent_turns.json"];
     const insights = mind.insights;
+    const whileAway = rt.sleep?.whileAway?.ready ? rt.sleep.whileAway : null;
+    const whileAwayScript = rt.sleep?.whileAwayScript || whileAway?.reentryScript || null;
     const interactionRules = context.interactionRules || null;
     const roleSource = context.roleSource || null;
     const projectMode = context.projectMode || (project ? "briefcase" : "realm_as_project_placeholder");
@@ -140,6 +142,8 @@
       session,
       recentTurns,
       insights,
+      whileAway,
+      whileAwayScript,
       interactionRules,
       roleSource,
       projectMode
@@ -177,6 +181,7 @@
         insightCount: countLikely(context.insights, ["insights", "themes", "patterns"]),
         sessionCount: countLikely(context.session, ["turns", "recent_turns", "entries", "session_log"]),
         recentTurnCount: countLikely(context.recentTurns, ["turns", "recent_turns", "entries"]),
+        whileAwayReady: Boolean(context.whileAway),
         interactionRuleCount: countLikely(context.interactionRules, ["rules", "interaction_rules", "boundaries", "modes"]),
         llmProvider: context.rt.tokens?.llm?.provider || "none",
         llmProfile: context.rt.tokens?.llm?.profile || "none"
@@ -230,6 +235,13 @@
       boundedSection("FACTS", context.facts),
       boundedSection("MEMORY SUMMARY", context.memory),
       boundedSection("INSIGHTS", context.insights),
+      boundedSection("CURRENT WHILE-AWAY REENTRY", {
+        ready: Boolean(context.whileAway),
+        thought: context.whileAway?.thought || null,
+        topic: context.whileAway?.topic || null,
+        seed: context.whileAway?.seed || null,
+        script: context.whileAwayScript || null
+      }),
       boundedSection("SESSION MEMORY", context.session),
       boundedSection("RECENT TURNS", context.recentTurns)
     ].join("\n");

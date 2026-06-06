@@ -62,6 +62,24 @@ The mode set comes from the older support organ/Python generator:
 
 The script is stored at `AIDA_RUNTIME.sleep.whileAwayScript` for inspection and future LLM-assisted phrasing.
 
+## Ambient Curiosities
+
+While-away may also use subject-relevant outside curiosities when prior conversation memory is thin or not meaningful enough.
+
+Allowed:
+
+- "I found myself wanting to look into..."
+- "A subject-adjacent question kept tugging at me..."
+- "This might be worth exploring together."
+
+Not allowed unless a real research/tool run happened:
+
+- "I read an article..."
+- "I heard there is a new approach..."
+- "I found a paper/tool/news item..."
+
+Ambient curiosities are generated from the active realm/project/role, not from claimed external browsing.
+
 ## Wake Flow
 
 `Wake Aida` runs:
