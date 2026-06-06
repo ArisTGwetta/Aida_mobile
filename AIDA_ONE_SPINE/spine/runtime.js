@@ -77,6 +77,7 @@
       charThreshold: 2400,
       lastQueuedTurn: 0,
       queuedChunks: [],
+      summaryDrafts: [],
       rollingSummaries: [],
       longSummaryDrafts: []
     },

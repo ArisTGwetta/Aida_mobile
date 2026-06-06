@@ -19,12 +19,14 @@
         charThreshold: 2400,
         lastQueuedTurn: 0,
         queuedChunks: [],
+        summaryDrafts: [],
         rollingSummaries: [],
         longSummaryDrafts: []
       };
     }
 
     rt.contextEvolution.queuedChunks = rt.contextEvolution.queuedChunks || [];
+    rt.contextEvolution.summaryDrafts = rt.contextEvolution.summaryDrafts || [];
     rt.contextEvolution.rollingSummaries = rt.contextEvolution.rollingSummaries || [];
     rt.contextEvolution.longSummaryDrafts = rt.contextEvolution.longSummaryDrafts || [];
     return rt.contextEvolution;
@@ -156,6 +158,7 @@
 
     if (queued) {
       log(`EVOLUTION: Queued ${queued} context chunk(s) for sleep summary.`, "log-blue");
+      prepareSummaryDrafts();
     }
 
     return queued;
@@ -165,16 +168,85 @@
     return maybeQueueReadyChunks();
   }
 
+  function draftExists(state, chunkId) {
+    return (state.summaryDrafts || []).some((draft) => draft.chunkId === chunkId);
+  }
+
+  function buildSummaryDraft(chunk) {
+    return {
+      id: `${chunk.id}_summary_draft`,
+      chunkId: chunk.id,
+      status: "needs_llm_summary",
+      createdAt: new Date().toISOString(),
+      sessionId: chunk.sessionId,
+      turnStart: chunk.turnStart,
+      turnEnd: chunk.turnEnd,
+      exchangeCount: chunk.exchangeCount,
+      charCount: chunk.charCount,
+      tags: chunk.tags,
+      prompts: {
+        rolling: "Summarize the local conversational flow and immediate continuity for the active project.",
+        long: "Extract durable project memory candidates, open loops, decisions, and user preferences.",
+        diary: "Capture the reflective emotional shape of this chunk without inventing events outside the session."
+      },
+      outputs: {
+        rolling_summary: null,
+        long_summary_candidate: null,
+        diary_candidate: null,
+        fact_candidates: [],
+        insight_candidates: [],
+        open_threads: []
+      },
+      preview: chunk.preview
+    };
+  }
+
+  function prepareSummaryDrafts() {
+    const rt = runtime();
+    const state = ensureState();
+    let prepared = 0;
+
+    (state.queuedChunks || []).forEach((chunk) => {
+      if (chunk.status !== "ready_for_summary") return;
+      if (draftExists(state, chunk.id)) return;
+
+      const draft = buildSummaryDraft(chunk);
+      state.summaryDrafts.push(draft);
+      chunk.status = "summary_draft_prepared";
+      rt.sleep.pendingJournal = rt.sleep.pendingJournal || [];
+      rt.sleep.pendingJournal.push({
+        type: "summary_draft",
+        sessionId: draft.sessionId,
+        chunkId: draft.chunkId,
+        draftId: draft.id,
+        status: draft.status,
+        createdAt: draft.createdAt,
+        tags: draft.tags
+      });
+      prepared += 1;
+    });
+
+    if (prepared) {
+      log(`EVOLUTION: Prepared ${prepared} summary draft(s). LLM summarization still disabled.`, "log-blue");
+    }
+
+    return prepared;
+  }
+
   function safeSummary() {
     const state = ensureState();
     const chunks = state.queuedChunks || [];
+    const drafts = state.summaryDrafts || [];
     const last = chunks[chunks.length - 1] || null;
+    const lastDraft = drafts[drafts.length - 1] || null;
     return {
       turnThreshold: state.turnThreshold,
       charThreshold: state.charThreshold,
       lastQueuedTurn: state.lastQueuedTurn || 0,
       queuedCount: chunks.length,
       pendingSummaryCount: chunks.filter((chunk) => chunk.status === "ready_for_summary").length,
+      summaryDraftCount: drafts.length,
+      needsLlmSummaryCount: drafts.filter((draft) => draft.status === "needs_llm_summary").length,
       rollingSummaryCount: state.rollingSummaries?.length || 0,
       longSummaryDraftCount: state.longSummaryDrafts?.length || 0,
       lastChunk: last
@@ -188,6 +260,17 @@
             role: last.tags?.role || "unknown_role",
             custom: last.tags?.custom || []
           }
+        : null,
+      lastDraft: lastDraft
+        ? {
+            id: lastDraft.id,
+            chunkId: lastDraft.chunkId,
+            status: lastDraft.status,
+            realm: lastDraft.tags?.realm || "unknown_realm",
+            project: lastDraft.tags?.project || "unknown_project",
+            role: lastDraft.tags?.role || "unknown_role",
+            custom: lastDraft.tags?.custom || []
+          }
         : null
     };
   }
@@ -195,7 +278,7 @@
   function inspect() {
     const summary = safeSummary();
     log("EVOLUTION: Safe summary follows.", "log-blue");
-    log(`EVOLUTION: queued=${summary.queuedCount}, pending=${summary.pendingSummaryCount}, lastQueuedTurn=${summary.lastQueuedTurn}`);
+    log(`EVOLUTION: queued=${summary.queuedCount}, pending=${summary.pendingSummaryCount}, drafts=${summary.summaryDraftCount}, needsLlm=${summary.needsLlmSummaryCount}, lastQueuedTurn=${summary.lastQueuedTurn}`);
     log(`EVOLUTION: thresholds turns=${summary.turnThreshold}, chars=${summary.charThreshold}`);
     if (summary.lastChunk) {
       const last = summary.lastChunk;
@@ -203,11 +286,16 @@
     } else {
       log("EVOLUTION LAST: none queued yet.", "log-amber");
     }
+    if (summary.lastDraft) {
+      const draft = summary.lastDraft;
+      log(`EVOLUTION DRAFT: ${draft.id}, status=${draft.status}, realm=${draft.realm}, project=${draft.project}, role=${draft.role}, custom=${draft.custom.join(",") || "none"}`);
+    }
     return summary;
   }
 
   window.AIDA_CONTEXT_EVOLUTION = {
     ingest,
+    prepareSummaryDrafts,
     inspect,
     safeSummary
   };
@@ -219,7 +307,7 @@
       reads: ["AIDA_RUNTIME.session.currentTurns", "AIDA_RUNTIME.sleep.pendingJournal"],
       writes: ["AIDA_RUNTIME.contextEvolution", "AIDA_RUNTIME.sleep.pendingJournal"],
       requires: ["AIDA_RUNTIME", "AIDA_SESSION_CAPTURE"],
-      verifies: ["tagged exchanges are grouped into summary-ready chunks without Drive writes"]
+      verifies: ["tagged exchanges are grouped into summary-ready chunks and draft summary records without Drive writes"]
     });
   }
 
