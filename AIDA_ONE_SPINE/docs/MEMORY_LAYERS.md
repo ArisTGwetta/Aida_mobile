@@ -62,6 +62,14 @@ Purpose:
 - Control tokens.
 - Replace the last chunk of raw recent turns after enough conversation has passed.
 
+Current checkpoint:
+
+```text
+AIDA_RUNTIME.contextEvolution.queuedChunks
+```
+
+The context evolution organ groups tagged exchanges into `ready_for_summary` chunks after enough turns or characters accumulate. It does not summarize, mutate long memory, or write Drive yet. It only adds `context_chunk` markers to `AIDA_RUNTIME.sleep.pendingJournal` so sleep/night-shift can process the right grouped material later.
+
 ## Long Summary
 
 The durable quest/project memory for the active arc.

@@ -72,6 +72,14 @@
       exchangeCount: 0,
       logRefs: []
     },
+    contextEvolution: {
+      turnThreshold: 3,
+      charThreshold: 2400,
+      lastQueuedTurn: 0,
+      queuedChunks: [],
+      rollingSummaries: [],
+      longSummaryDrafts: []
+    },
     py: {
       instance: null,
       organsMounted: {},

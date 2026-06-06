@@ -193,6 +193,10 @@
       tags: exchange.tags
     });
 
+    if (window.AIDA_CONTEXT_EVOLUTION?.ingest) {
+      window.AIDA_CONTEXT_EVOLUTION.ingest(exchange);
+    }
+
     log(`SESSION: Captured exchange ${turnIndex}. unsaved=true.`, "log-blue");
     return exchange;
   }
@@ -264,6 +268,10 @@
     log(`SESSION LAST CONTEXT: identity=${last.identity}, realm=${last.realm}, project=${last.project}, projectFile=${last.projectFile}, role=${last.role}, roleSource=${last.roleSource}`);
     log(`SESSION LAST STATE: emotion=${last.emotion}, route=${last.route}, model=${last.model}`);
     log(`SESSION LAST TAGS: realm=${last.tags.realm || "none"}, project=${last.tags.project || "none"}, role=${last.tags.role || "none"}, custom=${(last.customTags || []).join(",") || "none"}`);
+    if (window.AIDA_CONTEXT_EVOLUTION?.safeSummary) {
+      const evolution = window.AIDA_CONTEXT_EVOLUTION.safeSummary();
+      log(`SESSION EVOLUTION: queued=${evolution.queuedCount}, pending=${evolution.pendingSummaryCount}, lastQueuedTurn=${evolution.lastQueuedTurn}`);
+    }
     return summary;
   }
 
@@ -288,7 +296,7 @@
       reads: ["AIDA_RUNTIME.context", "AIDA_RUNTIME.tokens.llm", "AIDA_RUNTIME.context.lastLlmResponse"],
       writes: ["AIDA_RUNTIME.session.currentTurns", "AIDA_RUNTIME.session.unsaved", "AIDA_RUNTIME.sleep.pendingJournal"],
       requires: ["AIDA_RUNTIME"],
-      verifies: ["completed exchanges are captured with sleep-friendly tags and without Drive writes"]
+      verifies: ["completed exchanges are captured with sleep-friendly tags and offered to context evolution without Drive writes"]
     });
   }
 
