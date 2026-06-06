@@ -148,6 +148,9 @@
       const reply = await callOpenAI(rt.context.llmMessages);
       if (pending) pending.textContent = reply;
       else appendChat("AIDA", reply);
+      if (window.AIDA_EMOTIONS?.afterExchange) {
+        window.AIDA_EMOTIONS.afterExchange(text, reply);
+      }
       if (window.AIDA_SESSION_CAPTURE?.captureExchange) {
         window.AIDA_SESSION_CAPTURE.captureExchange(text, reply);
       }

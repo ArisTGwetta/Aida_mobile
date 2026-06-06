@@ -82,6 +82,15 @@
       rollingSummaries: [],
       longSummaryDrafts: []
     },
+    emotionEngine: {
+      ready: false,
+      lastAppliedAt: null,
+      previousLabel: null,
+      currentLabel: null,
+      currentFace: null,
+      currentSource: null,
+      history: []
+    },
     py: {
       instance: null,
       organsMounted: {},

@@ -518,6 +518,9 @@
       }
 
       const mapped = mapDriveFilesToMind();
+      if (window.AIDA_EMOTIONS?.applyCurrent) {
+        window.AIDA_EMOTIONS.applyCurrent("drive_state");
+      }
       rt.boot.driveLoaded = true;
       rt.boot.phase = "drive_loaded";
 
