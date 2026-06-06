@@ -117,6 +117,7 @@
       whileAwaySeed: null,
       whileAwayScript: null,
       whileAwaySeeds: [],
+      whileAwayTestGap: null,
       lastPacket: null,
       packets: [],
       lastContextCheckpoint: null,

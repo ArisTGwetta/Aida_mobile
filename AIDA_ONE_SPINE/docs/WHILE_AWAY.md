@@ -19,6 +19,7 @@ AIDA_RUNTIME.sleep.whileAway
 AIDA_RUNTIME.sleep.whileAwaySeed
 AIDA_RUNTIME.sleep.whileAwayScript
 AIDA_RUNTIME.sleep.whileAwaySeeds
+AIDA_RUNTIME.sleep.whileAwayTestGap
 ```
 
 ## Current Rules
@@ -81,4 +82,19 @@ Useful console check:
 AIDA_WHILE_AWAY.buildThought()
 AIDA_RUNTIME.sleep.whileAwayScript
 AIDA_RUNTIME.sleep.whileAway
+```
+
+Testing gap buckets without altering Drive:
+
+```js
+AIDA_WHILE_AWAY.setTestGap("long_gap")
+AIDA_WHILE_AWAY.buildThought()
+AIDA_RUNTIME.sleep.whileAwayScript
+AIDA_WHILE_AWAY.clearTestGap()
+```
+
+Or simulate an exact time away:
+
+```js
+AIDA_WHILE_AWAY.buildThought({ gap: { minutes: 60 * 24 * 21 } })
 ```

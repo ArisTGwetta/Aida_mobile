@@ -74,7 +74,52 @@
     return null;
   }
 
-  function computeGap() {
+  function normalizeGapOverride(override) {
+    if (!override) return null;
+    if (typeof override === "string") {
+      return {
+        lastActive: null,
+        now: new Date().toISOString(),
+        seconds: null,
+        minutes: null,
+        bucket: override,
+        source: "test_override"
+      };
+    }
+
+    if (typeof override !== "object") return null;
+    const minutes = Number(override.minutes);
+    const seconds = Number(override.seconds);
+    const bucket = override.bucket || (
+      Number.isFinite(minutes)
+        ? minutes < 1
+          ? "just_now"
+          : minutes < 5
+            ? "same_moment"
+            : minutes < 60
+              ? "same_day"
+              : minutes < 60 * 24
+                ? "same_day_long"
+                : minutes <= 60 * 24 * 5
+                  ? "short_gap"
+                  : "long_gap"
+        : "unknown"
+    );
+
+    return {
+      lastActive: override.lastActive || null,
+      now: new Date().toISOString(),
+      seconds: Number.isFinite(seconds) ? seconds : Number.isFinite(minutes) ? Math.round(minutes * 60) : null,
+      minutes: Number.isFinite(minutes) ? minutes : Number.isFinite(seconds) ? Math.round(seconds / 60) : null,
+      bucket,
+      source: "test_override"
+    };
+  }
+
+  function computeGap(override = null) {
+    const testGap = normalizeGapOverride(override || runtime().sleep?.whileAwayTestGap || null);
+    if (testGap) return testGap;
+
     const rt = runtime();
     const session = rt.mind?.session || {};
     const lastActive = firstDate(
@@ -106,7 +151,8 @@
       now: now.toISOString(),
       seconds,
       minutes,
-      bucket
+      bucket,
+      source: lastActive ? "runtime_last_active" : "unknown"
     };
   }
 
@@ -413,7 +459,7 @@
     };
   }
 
-  function buildThought() {
+  function buildThought(options = {}) {
     const rt = runtime();
     const mind = rt.mind || {};
     const context = rt.context || {};
@@ -421,7 +467,7 @@
     const role = context.role || mind.role;
     const project = context.project || mind.activeProject;
     const seeds = seedCandidates();
-    const gap = computeGap();
+    const gap = computeGap(options.gap || null);
     const selected = weightedPick(seeds, null);
     if (selected) selected.mode = weightedMode(selected.type, gap.bucket);
     const seed = shortText(selected?.text || "", 170);
@@ -476,6 +522,20 @@
     return payload;
   }
 
+  function setTestGap(gap) {
+    const rt = runtime();
+    rt.sleep.whileAwayTestGap = normalizeGapOverride(gap);
+    log(`WHILE AWAY: test gap set to ${rt.sleep.whileAwayTestGap?.bucket || "unknown"}.`, "log-amber");
+    return rt.sleep.whileAwayTestGap;
+  }
+
+  function clearTestGap() {
+    const rt = runtime();
+    rt.sleep.whileAwayTestGap = null;
+    log("WHILE AWAY: test gap cleared.", "log-amber");
+    return true;
+  }
+
   function offerThought() {
     const rt = runtime();
     const prepared = rt.sleep?.whileAway?.ready ? rt.sleep.whileAway : buildThought();
@@ -513,7 +573,9 @@
   window.AIDA_WHILE_AWAY = {
     buildThought,
     offerThought,
-    inspect
+    inspect,
+    setTestGap,
+    clearTestGap
   };
 
   if (window.AIDA_MODULES) {
