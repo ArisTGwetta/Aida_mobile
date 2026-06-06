@@ -270,7 +270,7 @@
     log(`SESSION LAST TAGS: realm=${last.tags.realm || "none"}, project=${last.tags.project || "none"}, role=${last.tags.role || "none"}, custom=${(last.customTags || []).join(",") || "none"}`);
     if (window.AIDA_CONTEXT_EVOLUTION?.safeSummary) {
       const evolution = window.AIDA_CONTEXT_EVOLUTION.safeSummary();
-      log(`SESSION EVOLUTION: queued=${evolution.queuedCount}, pending=${evolution.pendingSummaryCount}, drafts=${evolution.summaryDraftCount}, needsLlm=${evolution.needsLlmSummaryCount}, lastQueuedTurn=${evolution.lastQueuedTurn}`);
+      log(`SESSION EVOLUTION: queued=${evolution.queuedCount}, pending=${evolution.pendingSummaryCount}, drafts=${evolution.summaryDraftCount}, needsLlm=${evolution.needsLlmSummaryCount}, ledgerDrafts=${evolution.projectLedgerDraftCount}, lastQueuedTurn=${evolution.lastQueuedTurn}`);
     }
     return summary;
   }

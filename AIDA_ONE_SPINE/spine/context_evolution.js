@@ -20,6 +20,7 @@
         lastQueuedTurn: 0,
         queuedChunks: [],
         summaryDrafts: [],
+        projectLedgerDrafts: [],
         rollingSummaries: [],
         longSummaryDrafts: []
       };
@@ -27,6 +28,7 @@
 
     rt.contextEvolution.queuedChunks = rt.contextEvolution.queuedChunks || [];
     rt.contextEvolution.summaryDrafts = rt.contextEvolution.summaryDrafts || [];
+    rt.contextEvolution.projectLedgerDrafts = rt.contextEvolution.projectLedgerDrafts || [];
     rt.contextEvolution.rollingSummaries = rt.contextEvolution.rollingSummaries || [];
     rt.contextEvolution.longSummaryDrafts = rt.contextEvolution.longSummaryDrafts || [];
     return rt.contextEvolution;
@@ -172,6 +174,10 @@
     return (state.summaryDrafts || []).some((draft) => draft.chunkId === chunkId);
   }
 
+  function ledgerDraftExists(state, summaryDraftId) {
+    return (state.projectLedgerDrafts || []).some((draft) => draft.sourceSummaryDraftId === summaryDraftId);
+  }
+
   function buildSummaryDraft(chunk) {
     return {
       id: `${chunk.id}_summary_draft`,
@@ -228,6 +234,68 @@
 
     if (prepared) {
       log(`EVOLUTION: Prepared ${prepared} summary draft(s). LLM summarization still disabled.`, "log-blue");
+      prepareProjectLedgerDrafts();
+    }
+
+    return prepared;
+  }
+
+  function buildProjectLedgerDraft(summaryDraft) {
+    const tags = summaryDraft.tags || {};
+    return {
+      id: `${summaryDraft.id}_project_ledger_draft`,
+      sourceSummaryDraftId: summaryDraft.id,
+      sourceChunkId: summaryDraft.chunkId,
+      status: "needs_summary_outputs",
+      createdAt: new Date().toISOString(),
+      project: {
+        name: tags.project || "unknown_project",
+        file: tags.project_file || "none",
+        mode: tags.project_mode || "unknown_project_mode",
+        realm: tags.realm || "unknown_realm",
+        role: tags.role || "unknown_role",
+        role_source: tags.role_source || "unknown_role_source"
+      },
+      update: {
+        latest_summary: null,
+        latest_status: null,
+        open_threads: [],
+        facts_to_consider: [],
+        insights_to_consider: [],
+        emotional_notes: [],
+        while_away_seed: null,
+        last_active: summaryDraft.createdAt
+      },
+      tags
+    };
+  }
+
+  function prepareProjectLedgerDrafts() {
+    const rt = runtime();
+    const state = ensureState();
+    let prepared = 0;
+
+    (state.summaryDrafts || []).forEach((summaryDraft) => {
+      if (summaryDraft.status !== "needs_llm_summary") return;
+      if (ledgerDraftExists(state, summaryDraft.id)) return;
+
+      const ledgerDraft = buildProjectLedgerDraft(summaryDraft);
+      state.projectLedgerDrafts.push(ledgerDraft);
+      rt.sleep.pendingJournal = rt.sleep.pendingJournal || [];
+      rt.sleep.pendingJournal.push({
+        type: "project_ledger_draft",
+        sessionId: summaryDraft.sessionId,
+        summaryDraftId: summaryDraft.id,
+        ledgerDraftId: ledgerDraft.id,
+        status: ledgerDraft.status,
+        createdAt: ledgerDraft.createdAt,
+        tags: ledgerDraft.tags
+      });
+      prepared += 1;
+    });
+
+    if (prepared) {
+      log(`EVOLUTION: Prepared ${prepared} project ledger draft(s). Drive writes still disabled.`, "log-blue");
     }
 
     return prepared;
@@ -237,8 +305,10 @@
     const state = ensureState();
     const chunks = state.queuedChunks || [];
     const drafts = state.summaryDrafts || [];
+    const ledgerDrafts = state.projectLedgerDrafts || [];
     const last = chunks[chunks.length - 1] || null;
     const lastDraft = drafts[drafts.length - 1] || null;
+    const lastLedgerDraft = ledgerDrafts[ledgerDrafts.length - 1] || null;
     return {
       turnThreshold: state.turnThreshold,
       charThreshold: state.charThreshold,
@@ -247,6 +317,8 @@
       pendingSummaryCount: chunks.filter((chunk) => chunk.status === "ready_for_summary").length,
       summaryDraftCount: drafts.length,
       needsLlmSummaryCount: drafts.filter((draft) => draft.status === "needs_llm_summary").length,
+      projectLedgerDraftCount: ledgerDrafts.length,
+      needsLedgerOutputCount: ledgerDrafts.filter((draft) => draft.status === "needs_summary_outputs").length,
       rollingSummaryCount: state.rollingSummaries?.length || 0,
       longSummaryDraftCount: state.longSummaryDrafts?.length || 0,
       lastChunk: last
@@ -271,6 +343,16 @@
             role: lastDraft.tags?.role || "unknown_role",
             custom: lastDraft.tags?.custom || []
           }
+        : null,
+      lastLedgerDraft: lastLedgerDraft
+        ? {
+            id: lastLedgerDraft.id,
+            sourceSummaryDraftId: lastLedgerDraft.sourceSummaryDraftId,
+            status: lastLedgerDraft.status,
+            project: lastLedgerDraft.project?.name || "unknown_project",
+            realm: lastLedgerDraft.project?.realm || "unknown_realm",
+            role: lastLedgerDraft.project?.role || "unknown_role"
+          }
         : null
     };
   }
@@ -278,7 +360,7 @@
   function inspect() {
     const summary = safeSummary();
     log("EVOLUTION: Safe summary follows.", "log-blue");
-    log(`EVOLUTION: queued=${summary.queuedCount}, pending=${summary.pendingSummaryCount}, drafts=${summary.summaryDraftCount}, needsLlm=${summary.needsLlmSummaryCount}, lastQueuedTurn=${summary.lastQueuedTurn}`);
+    log(`EVOLUTION: queued=${summary.queuedCount}, pending=${summary.pendingSummaryCount}, drafts=${summary.summaryDraftCount}, needsLlm=${summary.needsLlmSummaryCount}, ledgerDrafts=${summary.projectLedgerDraftCount}, lastQueuedTurn=${summary.lastQueuedTurn}`);
     log(`EVOLUTION: thresholds turns=${summary.turnThreshold}, chars=${summary.charThreshold}`);
     if (summary.lastChunk) {
       const last = summary.lastChunk;
@@ -290,12 +372,17 @@
       const draft = summary.lastDraft;
       log(`EVOLUTION DRAFT: ${draft.id}, status=${draft.status}, realm=${draft.realm}, project=${draft.project}, role=${draft.role}, custom=${draft.custom.join(",") || "none"}`);
     }
+    if (summary.lastLedgerDraft) {
+      const ledger = summary.lastLedgerDraft;
+      log(`EVOLUTION LEDGER DRAFT: ${ledger.id}, status=${ledger.status}, project=${ledger.project}, realm=${ledger.realm}, role=${ledger.role}`);
+    }
     return summary;
   }
 
   window.AIDA_CONTEXT_EVOLUTION = {
     ingest,
     prepareSummaryDrafts,
+    prepareProjectLedgerDrafts,
     inspect,
     safeSummary
   };

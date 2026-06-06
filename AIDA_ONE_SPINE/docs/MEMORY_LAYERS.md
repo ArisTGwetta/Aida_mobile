@@ -67,6 +67,7 @@ Current checkpoint:
 ```text
 AIDA_RUNTIME.contextEvolution.queuedChunks
 AIDA_RUNTIME.contextEvolution.summaryDrafts
+AIDA_RUNTIME.contextEvolution.projectLedgerDrafts
 ```
 
 The context evolution organ groups tagged exchanges into chunks after enough turns or characters accumulate. It then prepares `needs_llm_summary` draft records with empty output slots for:
@@ -78,7 +79,7 @@ The context evolution organ groups tagged exchanges into chunks after enough tur
 - `insight_candidates`
 - `open_threads`
 
-It does not call the LLM, mutate long memory, or write Drive yet. It only adds `context_chunk` and `summary_draft` markers to `AIDA_RUNTIME.sleep.pendingJournal` so sleep/night-shift can process the right grouped material later.
+It does not call the LLM, mutate long memory, or write Drive yet. It only adds `context_chunk`, `summary_draft`, and `project_ledger_draft` markers to `AIDA_RUNTIME.sleep.pendingJournal` so sleep/night-shift can process the right grouped material later.
 
 ## Long Summary
 

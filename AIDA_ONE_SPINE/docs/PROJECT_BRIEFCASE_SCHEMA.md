@@ -141,3 +141,41 @@ rpg -> role_co_narrator.json
 ```
 
 These aliases are compatibility scaffolding. The new standard should still declare `role` directly inside each realm or project briefcase.
+
+## Project Summary Ledger Drafts
+
+Sleep/night-shift should eventually update a canonical project ledger such as `project_summary.json`.
+
+The awake spine now stages draft ledger updates in runtime only:
+
+```text
+AIDA_RUNTIME.contextEvolution.projectLedgerDrafts
+```
+
+Draft shape:
+
+```json
+{
+  "status": "needs_summary_outputs",
+  "project": {
+    "name": "rpg",
+    "file": "realm_rpg.json",
+    "mode": "realm_context",
+    "realm": "rpg",
+    "role": "co_narrator",
+    "role_source": "role_co_narrator.json"
+  },
+  "update": {
+    "latest_summary": null,
+    "latest_status": null,
+    "open_threads": [],
+    "facts_to_consider": [],
+    "insights_to_consider": [],
+    "emotional_notes": [],
+    "while_away_seed": null,
+    "last_active": "2026-06-06T..."
+  }
+}
+```
+
+These drafts are not Drive writes. They are destination contracts for the future summarizer and sleep cycle.

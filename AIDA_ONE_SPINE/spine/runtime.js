@@ -78,6 +78,7 @@
       lastQueuedTurn: 0,
       queuedChunks: [],
       summaryDrafts: [],
+      projectLedgerDrafts: [],
       rollingSummaries: [],
       longSummaryDrafts: []
     },
