@@ -54,6 +54,17 @@
       .replace(/^_+|_+$/g, "");
   }
 
+  function clamp(value, min = -1, max = 1) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return 0;
+    return Math.max(min, Math.min(max, number));
+  }
+
+  function round(value) {
+    const number = Number(value);
+    return Number.isFinite(number) ? Math.round(number * 1000) / 1000 : null;
+  }
+
   function valueName(value, fallback = "") {
     if (window.AIDA_PROJECTS?.valueName) return window.AIDA_PROJECTS.valueName(value, fallback);
     if (!value || typeof value !== "object") return fallback;
@@ -82,6 +93,30 @@
     return rt?.context?.emotion || rt?.mind?.emotion || {};
   }
 
+  function coordinatePoint(label) {
+    const key = cleanKey(label);
+    const coords = coordinates();
+    const point = coords[key] || coords[key.replace(/_/g, "-")] || null;
+    if (!point || typeof point !== "object") return null;
+    return {
+      valence: clamp(point.valence ?? point.v),
+      arousal: clamp(point.arousal ?? point.a)
+    };
+  }
+
+  function statePoint(fallbackLabel = "neutral") {
+    const state = emotionState();
+    const explicitPoint = coordinatePoint(state.label || state.emotion || state.state);
+    const valence = Number(state.valence ?? state.v);
+    const arousal = Number(state.arousal ?? state.a);
+
+    if (Number.isFinite(valence) && Number.isFinite(arousal)) {
+      return { valence: clamp(valence), arousal: clamp(arousal) };
+    }
+
+    return explicitPoint || coordinatePoint(fallbackLabel) || { valence: 0.1, arousal: -0.1 };
+  }
+
   function flattenFaceEntry(entry) {
     if (!entry) return [];
     if (typeof entry === "string") return [entry];
@@ -100,79 +135,199 @@
     ].filter(Boolean).flatMap(flattenFaceEntry);
   }
 
-  function resolveFace(label) {
+  function faceCandidates(label) {
     const map = faceMap();
     const key = cleanKey(label || "neutral");
     const direct = map[label] || map[key] || map[key.replace(/_/g, "-")];
-    const candidates = [
+    return [
       ...flattenFaceEntry(direct),
       `${key}1.png`,
       `${key}.png`,
       DEFAULT_FACE
     ];
-
-    for (const candidate of candidates) {
-      const file = String(candidate || "").replace(/^body\/assets\//, "");
-      if (fileExists(file)) return file;
-    }
-
-    return DEFAULT_FACE;
   }
 
-  function nearestCoordinateLabel(valence, arousal) {
-    const coords = coordinates();
-    if (!coords || typeof coords !== "object") return null;
-
-    let best = null;
-    let bestDistance = Infinity;
-    for (const [label, point] of Object.entries(coords)) {
-      if (!point || typeof point !== "object") continue;
-      const v = Number(point.valence ?? point.v);
-      const a = Number(point.arousal ?? point.a);
-      if (!Number.isFinite(v) || !Number.isFinite(a)) continue;
-      const distance = ((v - valence) ** 2) + ((a - arousal) ** 2);
-      if (distance < bestDistance) {
-        best = label;
-        bestDistance = distance;
-      }
+  function resolveFace(label) {
+    for (const candidate of faceCandidates(label)) {
+      const file = String(candidate || "").replace(/^body\/assets\//, "");
+      if (fileExists(file)) return {
+        file,
+        fallback: file === DEFAULT_FACE && cleanKey(label) !== "neutral",
+        missing: false
+      };
     }
-    return best;
+
+    return { file: DEFAULT_FACE, fallback: true, missing: true };
+  }
+
+  function rankedCoordinates(valence, arousal) {
+    const coords = coordinates();
+    if (!coords || typeof coords !== "object") return [];
+
+    return Object.entries(coords)
+      .map(([label, point]) => {
+        if (!point || typeof point !== "object") return null;
+        const v = Number(point.valence ?? point.v);
+        const a = Number(point.arousal ?? point.a);
+        if (!Number.isFinite(v) || !Number.isFinite(a)) return null;
+        return {
+          label: cleanKey(label),
+          valence: clamp(v),
+          arousal: clamp(a),
+          distance: Math.sqrt(((v - valence) ** 2) + ((a - arousal) ** 2))
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.distance - b.distance);
+  }
+
+  function resolveEmotionTarget(target, source = "explicit") {
+    const rt = runtime();
+    const thresholds = rt?.emotionEngine?.thresholds || {};
+    const weakSnapDistance = thresholds.weakSnapDistance ?? 0.38;
+    const ambiguousMargin = thresholds.ambiguousMargin ?? 0.12;
+
+    const input = typeof target === "object" && target !== null ? target : { label: target };
+    const requestedLabel = cleanKey(input.label || input.emotion || input.state || "");
+    const desired = input.desired || input.wish || null;
+    const basePoint = requestedLabel ? coordinatePoint(requestedLabel) || statePoint() : statePoint();
+    const valence = Number.isFinite(Number(input.valence ?? input.v))
+      ? clamp(input.valence ?? input.v)
+      : basePoint.valence;
+    const arousal = Number.isFinite(Number(input.arousal ?? input.a))
+      ? clamp(input.arousal ?? input.a)
+      : basePoint.arousal;
+
+    const ranked = rankedCoordinates(valence, arousal);
+    const best = requestedLabel && coordinatePoint(requestedLabel)
+      ? {
+          label: requestedLabel,
+          ...coordinatePoint(requestedLabel),
+          distance: Math.sqrt(((coordinatePoint(requestedLabel).valence - valence) ** 2) + ((coordinatePoint(requestedLabel).arousal - arousal) ** 2))
+        }
+      : ranked[0] || { label: requestedLabel || "neutral", valence, arousal, distance: 0 };
+    const runnerUp = ranked.find((item) => item.label !== best.label) || null;
+    const margin = runnerUp ? runnerUp.distance - best.distance : null;
+    const ambiguous = margin !== null && margin <= ambiguousMargin;
+    const weak = best.distance >= weakSnapDistance;
+    const snapStrength = weak ? "weak" : ambiguous ? "ambiguous" : "strong";
+
+    return {
+      label: best.label,
+      requestedLabel: requestedLabel || null,
+      desired,
+      source,
+      target: { valence: round(valence), arousal: round(arousal) },
+      resolved: {
+        label: best.label,
+        valence: round(best.valence),
+        arousal: round(best.arousal)
+      },
+      distance: round(best.distance),
+      runnerUp: runnerUp ? {
+        label: runnerUp.label,
+        distance: round(runnerUp.distance),
+        valence: round(runnerUp.valence),
+        arousal: round(runnerUp.arousal)
+      } : null,
+      margin: round(margin),
+      weak,
+      ambiguous,
+      snapStrength
+    };
   }
 
   function currentLabel() {
     const state = emotionState();
     const explicit = state.label || state.emotion || state.state;
     if (explicit) return cleanKey(explicit);
-
-    const valence = Number(state.valence ?? state.v);
-    const arousal = Number(state.arousal ?? state.a);
-    if (Number.isFinite(valence) && Number.isFinite(arousal)) {
-      return cleanKey(nearestCoordinateLabel(valence, arousal) || "neutral");
-    }
-
-    return "neutral";
+    const point = statePoint();
+    return resolveEmotionTarget(point, "current_state").label;
   }
 
   function defaultForContext() {
     const rt = runtime();
     const role = cleanKey(valueName(rt?.context?.role, ""));
     const realm = cleanKey(rt?.context?.projectName || valueName(rt?.context?.realm, ""));
-    return ROLE_DEFAULTS[role] || REALM_DEFAULTS[realm] || null;
+    return REALM_DEFAULTS[realm] || ROLE_DEFAULTS[role] || null;
   }
 
-  function writeState(label, source) {
+  function wishlistName(snap) {
+    if (snap.desired) return cleanKey(snap.desired);
+    if (snap.ambiguous && snap.runnerUp) return `${snap.label}_${snap.runnerUp.label}_blend`;
+    if (snap.weak) return `${snap.label}_between_face`;
+    return null;
+  }
+
+  function recordSnap(snap, face) {
+    const rt = runtime();
+    if (!rt?.emotionEngine) return;
+    const entry = {
+      at: new Date().toISOString(),
+      source: snap.source,
+      requested: snap.requestedLabel,
+      desired: snap.desired || null,
+      target: snap.target,
+      resolved: snap.resolved,
+      face: face.file,
+      fallbackFace: Boolean(face.fallback || face.missing),
+      distance: snap.distance,
+      runnerUp: snap.runnerUp,
+      margin: snap.margin,
+      snapStrength: snap.snapStrength,
+      weak: snap.weak,
+      ambiguous: snap.ambiguous
+    };
+
+    rt.emotionEngine.snapLog.push(entry);
+    rt.emotionEngine.snapLog = rt.emotionEngine.snapLog.slice(-48);
+
+    if (entry.weak || entry.ambiguous || entry.fallbackFace || entry.desired) {
+      const name = wishlistName(snap);
+      if (name) {
+        const existing = rt.emotionEngine.faceWishlist.find((item) => item.name === name);
+        if (existing) {
+          existing.count += 1;
+          existing.lastSeen = entry.at;
+          existing.lastSnap = entry;
+        } else {
+          rt.emotionEngine.faceWishlist.push({
+            name,
+            reason: entry.fallbackFace
+              ? "missing_face_asset"
+              : entry.desired
+                ? "desired_expression_gap"
+                : entry.weak
+                  ? "weak_coordinate_snap"
+                  : "ambiguous_coordinate_snap",
+            count: 1,
+            firstSeen: entry.at,
+            lastSeen: entry.at,
+            lastSnap: entry
+          });
+        }
+      }
+    }
+  }
+
+  function writeState(snap, source) {
     const rt = runtime();
     if (!rt) return null;
 
-    const normalized = cleanKey(label || "neutral") || "neutral";
-    const coords = coordinates();
-    const point = coords[normalized] || coords[normalized.replace(/_/g, "-")] || {};
+    const point = coordinatePoint(snap.label) || snap.resolved || snap.target || {};
     const next = {
       ...(rt.context.emotion || rt.mind.emotion || {}),
-      label: normalized,
-      valence: point.valence ?? point.v ?? rt.context.emotion?.valence ?? rt.mind.emotion?.valence ?? 0,
-      arousal: point.arousal ?? point.a ?? rt.context.emotion?.arousal ?? rt.mind.emotion?.arousal ?? 0,
-      source: source || "emotion_engine"
+      label: snap.label,
+      valence: point.valence ?? 0,
+      arousal: point.arousal ?? 0,
+      source: source || "emotion_engine",
+      snap: {
+        target: snap.target,
+        distance: snap.distance,
+        runnerUp: snap.runnerUp,
+        margin: snap.margin,
+        strength: snap.snapStrength
+      }
     };
 
     rt.mind.emotion = next;
@@ -180,14 +335,14 @@
     return next;
   }
 
-  function apply(label, source = "explicit") {
+  function apply(target, source = "explicit") {
     const rt = runtime();
     if (!rt) return null;
 
-    const selected = label || currentLabel();
-    const state = writeState(selected, source);
-    const face = resolveFace(state?.label || selected);
-    const src = `${ASSET_BASE}${face}`;
+    const snap = resolveEmotionTarget(target || currentLabel(), source);
+    const state = writeState(snap, source);
+    const face = resolveFace(state?.label || snap.label);
+    const src = `${ASSET_BASE}${face.file}`;
 
     if (window.AIDA_BODY?.setFace) window.AIDA_BODY.setFace(src);
 
@@ -199,36 +354,90 @@
     engine.currentFace = src;
     engine.currentSource = source;
     engine.lastAppliedAt = new Date().toISOString();
+    engine.lastSnap = snap;
     engine.history.push({
       label: state.label,
-      face,
+      face: face.file,
       source,
+      snapStrength: snap.snapStrength,
+      distance: snap.distance,
       at: engine.lastAppliedAt
     });
     engine.history = engine.history.slice(-16);
+    recordSnap(snap, face);
 
-    log(`EMOTION: ${state.label} applied face=${face} source=${source}.`, "log-blue");
+    log(
+      `EMOTION: ${state.label} applied face=${face.file} source=${source} snap=${snap.snapStrength} distance=${snap.distance}.`,
+      "log-blue"
+    );
+    if (snap.weak || snap.ambiguous || face.fallback) {
+      const runner = snap.runnerUp ? ` runnerUp=${snap.runnerUp.label}/${snap.runnerUp.distance}` : "";
+      log(`EMOTION SNAP: ${snap.snapStrength} target=(${snap.target.valence},${snap.target.arousal})${runner}.`, "log-amber");
+    }
     return state;
   }
 
   function applyCurrent(source = "drive_state") {
-    return apply(currentLabel(), source);
+    const state = emotionState();
+    return apply({
+      label: state.label || state.emotion || state.state || "neutral",
+      valence: state.valence ?? state.v,
+      arousal: state.arousal ?? state.a
+    }, source);
   }
 
   function applyContextDefault(source = "context_default") {
     return apply(defaultForContext() || currentLabel(), source);
   }
 
-  function afterExchange(userText, replyText) {
+  function conversationTarget(userText, replyText) {
     const text = `${userText || ""}\n${replyText || ""}`.toLowerCase();
-    let label = defaultForContext() || currentLabel();
+    let baseLabel = defaultForContext() || currentLabel();
+    let point = coordinatePoint(baseLabel) || statePoint(baseLabel);
+    let valence = point.valence;
+    let arousal = point.arousal;
+    let desired = null;
 
-    if (/\b(thank|thanks|great|awesome|love|happy|glad)\b/.test(text)) label = "happy";
-    if (/\b(wonder|curious|question|mystery|clue)\b/.test(text)) label = "focused";
-    if (/\b(confusing|concern|worry|stuck|hard)\b/.test(text)) label = "concerned";
-    if (/\b(story|quest|bard|adventure|character)\b/.test(text)) label = "mischievous";
+    if (/\b(thank|thanks|great|awesome|love|happy|glad|sweet)\b/.test(text)) {
+      valence += 0.28;
+      arousal -= 0.05;
+      desired = desired || "warm_appreciative";
+    }
+    if (/\b(wonder|curious|question|mystery|clue|investigate)\b/.test(text)) {
+      valence += 0.12;
+      arousal += 0.2;
+      desired = desired || "curious";
+    }
+    if (/\b(confusing|concern|worry|stuck|hard|uncertain)\b/.test(text)) {
+      valence -= 0.25;
+      arousal += 0.18;
+      desired = desired || "concerned_but_present";
+    }
+    if (/\b(story|quest|bard|adventure|character|rpg)\b/.test(text)) {
+      valence += 0.18;
+      arousal += 0.22;
+      desired = desired || "playful_story";
+    }
+    if (/\b(disgust|disgusted|gross|repuls|biology experiment|specimen|rot|mold)\b/.test(text)) {
+      valence -= 0.48;
+      arousal += 0.22;
+      desired = "disgusted_but_curious";
+    }
+    if (/\b(disdain|contempt|beneath|scoff)\b/.test(text)) {
+      valence -= 0.36;
+      arousal += 0.12;
+      desired = "disdain";
+    }
 
-    return apply(label, "conversation_hint");
+    return {
+      valence: clamp(valence),
+      arousal: clamp(arousal),
+      desired
+    };
+  }
+
+  function afterExchange(userText, replyText) {
+    return apply(conversationTarget(userText, replyText), "conversation_hint");
   }
 
   function inspect() {
@@ -237,12 +446,22 @@
     const state = rt?.context?.emotion || rt?.mind?.emotion || {};
     const history = (engine.history || [])
       .slice(-5)
-      .map((item) => `${item.label}/${item.face}/${item.source}`)
+      .map((item) => `${item.label}/${item.face}/${item.source}/${item.snapStrength || "n/a"}`)
+      .join(" | ") || "none";
+    const snaps = (engine.snapLog || [])
+      .slice(-3)
+      .map((item) => `${item.resolved.label}:d=${item.distance},${item.snapStrength}`)
+      .join(" | ") || "none";
+    const wishlist = (engine.faceWishlist || [])
+      .slice(-5)
+      .map((item) => `${item.name}(${item.count})`)
       .join(" | ") || "none";
 
     log("EMOTION: Safe summary follows.", "log-amber");
     log(`EMOTION STATE: label=${state.label || "unknown"}, valence=${state.valence ?? "n/a"}, arousal=${state.arousal ?? "n/a"}`);
     log(`EMOTION FACE: current=${engine.currentFace || "none"}, source=${engine.currentSource || "none"}`);
+    log(`EMOTION SNAP TRAIL: ${snaps}`);
+    log(`EMOTION FACE WISHLIST: ${wishlist}`);
     log(`EMOTION HISTORY: ${history}`);
     return { state, engine };
   }
@@ -287,7 +506,8 @@
       applyContextDefault,
       afterExchange,
       inspect,
-      resolveFace
+      resolveFace,
+      resolveEmotionTarget
     };
 
     log("Emotion engine loaded. Waiting for Drive emotion map.", "log-blue");
@@ -300,7 +520,7 @@
       reads: ["AIDA_RUNTIME.context.emotion", "face_map.json", "emotion_coordinates.json"],
       writes: ["AIDA_RUNTIME.context.emotion", "AIDA_RUNTIME.body.currentFace"],
       requires: ["AIDA_RUNTIME", "AIDA_BODY"],
-      verifies: ["emotion state maps to a body face without writing Drive memory"]
+      verifies: ["emotion state maps to a body face and records snap strength without writing Drive memory"]
     });
   }
 

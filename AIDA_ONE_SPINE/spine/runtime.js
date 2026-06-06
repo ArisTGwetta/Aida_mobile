@@ -89,7 +89,13 @@
       currentLabel: null,
       currentFace: null,
       currentSource: null,
-      history: []
+      history: [],
+      snapLog: [],
+      faceWishlist: [],
+      thresholds: {
+        weakSnapDistance: 0.38,
+        ambiguousMargin: 0.12
+      }
     },
     py: {
       instance: null,
