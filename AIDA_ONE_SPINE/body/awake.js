@@ -95,9 +95,18 @@
       ].filter(Boolean).join(" | ") || project.source || "briefcase";
 
       row.append(name, meta);
-      row.addEventListener("click", () => {
-        const selected = window.AIDA_PROJECTS?.select?.(project.key || project.fileName) ||
-          window.AIDA_DRIVE?.selectActiveProject?.(project.key || project.fileName);
+      row.addEventListener("click", async () => {
+        row.disabled = true;
+        let selected = null;
+        try {
+          selected = await (
+            window.AIDA_PROJECTS?.selectHydrated?.(project.key || project.fileName) ||
+            window.AIDA_PROJECTS?.select?.(project.key || project.fileName) ||
+            window.AIDA_DRIVE?.selectActiveProject?.(project.key || project.fileName)
+          );
+        } finally {
+          row.disabled = false;
+        }
         if (!selected) return;
         if (tag) tag.textContent = projectLabel(project);
         appendChat("AIDA", `Project context switched to ${projectLabel(project)}.`);

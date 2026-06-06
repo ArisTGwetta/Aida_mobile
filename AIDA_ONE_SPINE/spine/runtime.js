@@ -26,6 +26,10 @@
     drive: {
       folderId: null,
       files: {},
+      fileIndex: {},
+      loadMode: "all_json",
+      loadedNames: [],
+      deferredNames: [],
       syncQueue: [],
       lastSync: null
     },

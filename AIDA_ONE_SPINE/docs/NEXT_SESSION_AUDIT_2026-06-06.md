@@ -131,6 +131,22 @@ Recommendation:
 - Keep recently used briefcases in runtime cache.
 - Before unloading or switching, run the silent context-boundary checkpoint described above.
 
+Current implementation update:
+
+- `AIDA_DRIVE.fetchAllDriveJson()` now delegates to a boot-lazy fetch.
+- Boot indexes all Drive JSON names but fetches only core boot JSON, roles, face/emotion maps, fragments, project indexes, globals, and the Aida architecture default context.
+- Deferred realm/project JSON names are stored in `AIDA_RUNTIME.drive.deferredNames`.
+- Loaded names are stored in `AIDA_RUNTIME.drive.loadedNames`.
+- Full old-style loading remains available as `AIDA_DRIVE.fetchEveryDriveJson()` for diagnostics.
+- Project selector now calls `AIDA_PROJECTS.selectHydrated()`, which fetches one deferred context file before selecting it.
+
+Next test signals:
+
+- Boot log should say `DRIVE: Boot fetching X/Y JSON files. Deferring Z.`
+- Mind mapped log should show `mode=boot_lazy`, loaded count lower than total JSON count, and deferred count greater than zero.
+- Project menu should still list indexed but unloaded realms/projects.
+- Selecting a deferred project should log `PROJECT: Hydrating ... from Drive before selection.` and `DRIVE: Loaded <file> (context:<project>).`
+
 Reason:
 
 - Tags protect attribution inside captured turns, but they do not reduce mobile load time.

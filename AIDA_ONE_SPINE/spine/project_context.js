@@ -143,14 +143,18 @@
     for (const candidate of candidates) {
       if (projects[candidate]) return candidate;
       if (realms[candidate]) return candidate;
+      if (runtime().drive?.fileIndex?.[candidate]) return candidate;
       if (projects[`${candidate}.json`]) return `${candidate}.json`;
       if (realms[`${candidate}.json`]) return `${candidate}.json`;
+      if (runtime().drive?.fileIndex?.[`${candidate}.json`]) return `${candidate}.json`;
       if (realms[`realm_${candidate}.json`]) return `realm_${candidate}.json`;
       if (realms[`REALM_${candidate}.json`]) return `REALM_${candidate}.json`;
+      if (runtime().drive?.fileIndex?.[`realm_${candidate}.json`]) return `realm_${candidate}.json`;
+      if (runtime().drive?.fileIndex?.[`REALM_${candidate}.json`]) return `REALM_${candidate}.json`;
     }
 
     const foldedKey = projectKey.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-    const allNames = [...Object.keys(projects), ...Object.keys(realms)];
+    const allNames = [...Object.keys(projects), ...Object.keys(realms), ...Object.keys(runtime().drive?.fileIndex || {})];
     return allNames.find((name) => name.toLowerCase().includes(foldedKey)) || null;
   }
 
@@ -224,6 +228,21 @@
         status: textFrom(realm?.project_summary || realm?.summary || activity?.one_liner || activity, 160),
         lastActive: realm?.last_active || realm?.last_updated || activity?.last_active || null,
         loaded: true,
+        fileName
+      };
+    }
+
+    for (const fileName of Object.keys(runtime().drive?.fileIndex || {})) {
+      if (!isProjectFile(fileName) && !isRealmFile(fileName)) continue;
+      if (ledger[fileName]) continue;
+
+      ledger[fileName] = {
+        key: fileName,
+        name: fileName.replace(/\.json$/i, "").replace(/^(realm_|project_briefcase_|briefcase_|project_)/i, "").toUpperCase(),
+        source: isRealmFile(fileName) ? "indexed_realm" : "indexed_project_payload",
+        status: "Available in Drive; loads when selected.",
+        lastActive: runtime().drive.fileIndex[fileName]?.modifiedTime || null,
+        loaded: Boolean(projects[fileName] || realms[fileName]),
         fileName
       };
     }
@@ -514,12 +533,34 @@
     return selected;
   }
 
+  function needsHydration(projectKey) {
+    const rt = runtime();
+    const ledger = rt.mind.projectLedger || {};
+    const ledgerEntry = projectKey ? ledger[projectKey] || null : null;
+    const loadName = ledgerEntry?.fileName || projectKey;
+    return Boolean(
+      loadName &&
+      rt.drive?.fileIndex?.[loadName] &&
+      !rt.drive?.files?.[loadName]
+    );
+  }
+
+  async function selectHydrated(projectKey) {
+    if (needsHydration(projectKey)) {
+      log(`PROJECT: Hydrating ${projectKey} from Drive before selection.`, "log-amber");
+      await window.AIDA_DRIVE?.fetchContextJson?.(projectKey);
+    }
+
+    return select(projectKey);
+  }
+
   function list() {
     return Object.values(runtime().mind.projectLedger || {});
   }
 
-  function mapDriveFilesToMind(files = runtime().drive?.files || {}) {
+  function mapDriveFilesToMind(files = runtime().drive?.files || {}, options = {}) {
     const rt = runtime();
+    const selectDefault = options.selectDefault !== false;
 
     rt.mind.identity = files["core_identity.json"] || null;
     rt.mind.memory = files["memory_summary.json"] || null;
@@ -554,15 +595,17 @@
       : Object.keys(rt.mind.projectLedger)[0] || Object.keys(rt.mind.projects)[0] || activeRealmName || null;
 
     rt.context.identity = rt.mind.identity;
-    rt.context.realm = rt.mind.realm;
-    rt.context.role = rt.mind.role;
+    if (selectDefault) rt.context.realm = rt.mind.realm;
+    if (selectDefault) rt.context.role = rt.mind.role;
     rt.context.emotion = rt.mind.emotion;
-    select(activeProjectName);
-    rt.context.memoryWindow = {
-      recentTurns: rt.context.projectRecentTurns || files["recent_turns.json"] || null,
-      session: rt.mind.session,
-      summary: rt.context.projectMemory || rt.mind.memory
-    };
+    if (selectDefault) {
+      select(activeProjectName);
+      rt.context.memoryWindow = {
+        recentTurns: rt.context.projectRecentTurns || files["recent_turns.json"] || null,
+        session: rt.mind.session,
+        summary: rt.context.projectMemory || rt.mind.memory
+      };
+    }
 
     return {
       identity: Boolean(rt.mind.identity),
@@ -583,6 +626,7 @@
   window.AIDA_PROJECTS = {
     list,
     select,
+    selectHydrated,
     mapDriveFilesToMind,
     valueName
   };

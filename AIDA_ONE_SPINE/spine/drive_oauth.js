@@ -1,6 +1,30 @@
 (function () {
   const MODULE_ID = "spine.drive.oauth";
   const GIS_SRC = "https://accounts.google.com/gsi/client";
+  const CORE_BOOT_JSON = new Set([
+    "core_identity.json",
+    "global_identity.json",
+    "global_briefcase.json",
+    "memory_summary.json",
+    "facts.json",
+    "insights.json",
+    "emotion_state.json",
+    "session_log.json",
+    "recent_turns.json",
+    "while_away_thoughts.json",
+    "openai_fragments.json",
+    "llm_fragments.json",
+    "project_summary.json",
+    "project_briefcases.json",
+    "face_map.json",
+    "emotion_coordinates.json"
+  ]);
+  const DEFAULT_CONTEXT_FILES = [
+    "realm_aida_architecture.json",
+    "project_briefcase_aida_architecture.json",
+    "briefcase_aida_architecture.json",
+    "project_aida_architecture.json"
+  ];
 
   let tokenClient = null;
   let gisLoading = null;
@@ -162,6 +186,95 @@
     return name.startsWith("realm_") || name.startsWith("REALM_");
   }
 
+  function isRoleFile(name) {
+    return name.startsWith("role_");
+  }
+
+  function isCoreBootFile(name) {
+    return CORE_BOOT_JSON.has(name) || isRoleFile(name) || DEFAULT_CONTEXT_FILES.includes(name);
+  }
+
+  function indexDriveFiles(files) {
+    const rt = runtime();
+    rt.drive.fileIndex = {};
+    files.forEach((file) => {
+      rt.drive.fileIndex[file.name] = {
+        id: file.id,
+        name: file.name,
+        mimeType: file.mimeType,
+        modifiedTime: file.modifiedTime
+      };
+    });
+    rt.drive.lastList = files.map((file) => ({
+      id: file.id,
+      name: file.name,
+      modifiedTime: file.modifiedTime
+    }));
+    return rt.drive.fileIndex;
+  }
+
+  function driveFileFromIndex(name) {
+    const entry = runtime().drive?.fileIndex?.[name] || null;
+    if (!entry?.id) return null;
+    return entry;
+  }
+
+  async function fetchJsonByName(name, reason = "lazy_fetch") {
+    const rt = runtime();
+    if (rt.drive.files?.[name]) return rt.drive.files[name];
+
+    const file = driveFileFromIndex(name);
+    if (!file) {
+      throw new Error(`Drive file ${name} is not indexed.`);
+    }
+
+    const data = await fetchJsonFile(file);
+    rt.drive.files[name] = data;
+    rt.drive.loadedNames = Array.from(new Set([...(rt.drive.loadedNames || []), name]));
+    rt.drive.deferredNames = (rt.drive.deferredNames || []).filter((fileName) => fileName !== name);
+    log(`DRIVE: Loaded ${name} (${reason}).`);
+    return data;
+  }
+
+  function likelyContextFileNames(projectName) {
+    const raw = String(projectName || "").replace(/\.json$/i, "");
+    const clean = raw
+      .toLowerCase()
+      .replace(/^realm_/, "")
+      .replace(/^project_briefcase_/, "")
+      .replace(/^briefcase_/, "")
+      .replace(/^project_/, "")
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+
+    return [
+      projectName,
+      `${raw}.json`,
+      `realm_${clean}.json`,
+      `REALM_${clean}.json`,
+      `project_briefcase_${clean}.json`,
+      `briefcase_${clean}.json`,
+      `project_${clean}.json`
+    ].filter(Boolean);
+  }
+
+  function findIndexedContextFile(projectName) {
+    const rt = runtime();
+    const ledger = rt.mind?.projectLedger || {};
+    const ledgerEntry = ledger[projectName] || null;
+    const candidates = [
+      ledgerEntry?.fileName,
+      ledgerEntry?.summary?.fileName,
+      ledgerEntry?.summary?.filename,
+      ledgerEntry?.summary?.briefcase_filename,
+      ledgerEntry?.summary?.realm_file,
+      ledgerEntry?.summary?.realm_source,
+      ...likelyContextFileNames(projectName)
+    ].filter(Boolean).map(String);
+
+    return candidates.find((name) => rt.drive?.fileIndex?.[name]) || null;
+  }
+
   function valueName(value, fallback = "unnamed") {
     if (!value || typeof value !== "object") return fallback;
 
@@ -253,14 +366,18 @@
     for (const candidate of candidates) {
       if (projects[candidate]) return candidate;
       if (realms[candidate]) return candidate;
+      if (runtime().drive?.fileIndex?.[candidate]) return candidate;
       if (projects[`${candidate}.json`]) return `${candidate}.json`;
       if (realms[`${candidate}.json`]) return `${candidate}.json`;
+      if (runtime().drive?.fileIndex?.[`${candidate}.json`]) return `${candidate}.json`;
       if (realms[`realm_${candidate}.json`]) return `realm_${candidate}.json`;
       if (realms[`REALM_${candidate}.json`]) return `REALM_${candidate}.json`;
+      if (runtime().drive?.fileIndex?.[`realm_${candidate}.json`]) return `realm_${candidate}.json`;
+      if (runtime().drive?.fileIndex?.[`REALM_${candidate}.json`]) return `REALM_${candidate}.json`;
     }
 
     const foldedKey = projectKey.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-    const allNames = [...Object.keys(projects), ...Object.keys(realms)];
+    const allNames = [...Object.keys(projects), ...Object.keys(realms), ...Object.keys(runtime().drive?.fileIndex || {})];
     return allNames.find((name) => name.toLowerCase().includes(foldedKey)) || null;
   }
 
@@ -401,9 +518,9 @@
     return Object.values(rt.mind.projectLedger || {});
   }
 
-  function mapDriveFilesToMind() {
+  function mapDriveFilesToMind(options = {}) {
     if (window.AIDA_PROJECTS?.mapDriveFilesToMind) {
-      return window.AIDA_PROJECTS.mapDriveFilesToMind(runtime().drive.files || {});
+      return window.AIDA_PROJECTS.mapDriveFilesToMind(runtime().drive.files || {}, options);
     }
 
     const rt = runtime();
@@ -479,11 +596,7 @@
       const files = await listJsonFiles();
       const rt = runtime();
       rt.boot.phase = "drive_listed";
-      rt.drive.lastList = files.map((file) => ({
-        id: file.id,
-        name: file.name,
-        modifiedTime: file.modifiedTime
-      }));
+      indexDriveFiles(files);
       log(`DRIVE: Found ${files.length} JSON files in private folder.`, "log-blue");
       return files;
     } catch (error) {
@@ -492,26 +605,25 @@
     }
   }
 
-  async function fetchAllDriveJson() {
+  async function fetchBootDriveJson() {
     try {
       const files = await listJsonFiles();
       const rt = runtime();
-      rt.boot.phase = "drive_fetching";
+      rt.boot.phase = "drive_boot_fetching";
       rt.drive.files = {};
-      rt.drive.fileIndex = {};
+      indexDriveFiles(files);
+      rt.drive.loadMode = "boot_lazy";
+      rt.drive.loadedNames = [];
+      rt.drive.deferredNames = files
+        .map((file) => file.name)
+        .filter((name) => !isCoreBootFile(name));
 
-      log(`DRIVE: Fetching ${files.length} JSON files...`, "log-amber");
+      const bootFiles = files.filter((file) => isCoreBootFile(file.name));
+      log(`DRIVE: Boot fetching ${bootFiles.length}/${files.length} JSON files. Deferring ${rt.drive.deferredNames.length}.`, "log-amber");
 
-      for (const file of files) {
+      for (const file of bootFiles) {
         try {
-          const data = await fetchJsonFile(file);
-          rt.drive.files[file.name] = data;
-          rt.drive.fileIndex[file.name] = {
-            id: file.id,
-            mimeType: file.mimeType,
-            modifiedTime: file.modifiedTime
-          };
-          log(`DRIVE: Loaded ${file.name}`);
+          await fetchJsonByName(file.name, "boot");
         } catch (error) {
           log(`DRIVE: ${error.message}`, "log-amber");
         }
@@ -525,7 +637,7 @@
       rt.boot.phase = "drive_loaded";
 
       log(
-        `DRIVE: Mind mapped. identity=${mapped.identity}, facts=${mapped.facts}, memory=${mapped.memory}, realms=${mapped.realms}, roles=${mapped.roles}, projects=${mapped.projects}, ledger=${mapped.projectLedger}, activeProject=${mapped.activeProject}, whileAway=${mapped.whileAway}, llmFragments=${mapped.llmFragments}.`,
+        `DRIVE: Mind mapped. mode=${rt.drive.loadMode}, loaded=${rt.drive.loadedNames.length}, deferred=${rt.drive.deferredNames.length}, identity=${mapped.identity}, facts=${mapped.facts}, memory=${mapped.memory}, realms=${mapped.realms}, roles=${mapped.roles}, projects=${mapped.projects}, ledger=${mapped.projectLedger}, activeProject=${mapped.activeProject}, whileAway=${mapped.whileAway}, llmFragments=${mapped.llmFragments}.`,
         "log-blue"
       );
 
@@ -534,6 +646,63 @@
       log(`DRIVE: ${error.message}`, "log-amber");
       return {};
     }
+  }
+
+  async function fetchAllDriveJson() {
+    return fetchBootDriveJson();
+  }
+
+  async function fetchEveryDriveJson() {
+    try {
+      const files = await listJsonFiles();
+      const rt = runtime();
+      rt.boot.phase = "drive_full_fetching";
+      rt.drive.files = {};
+      indexDriveFiles(files);
+      rt.drive.loadMode = "all_json";
+      rt.drive.loadedNames = [];
+      rt.drive.deferredNames = [];
+
+      log(`DRIVE: Full fetching ${files.length} JSON files...`, "log-amber");
+
+      for (const file of files) {
+        try {
+          await fetchJsonByName(file.name, "full");
+        } catch (error) {
+          log(`DRIVE: ${error.message}`, "log-amber");
+        }
+      }
+
+      const mapped = mapDriveFilesToMind();
+      if (window.AIDA_EMOTIONS?.applyCurrent) {
+        window.AIDA_EMOTIONS.applyCurrent("drive_state");
+      }
+      rt.boot.driveLoaded = true;
+      rt.boot.phase = "drive_loaded";
+      log(`DRIVE: Full mind mapped. loaded=${rt.drive.loadedNames.length}, ledger=${mapped.projectLedger}.`, "log-blue");
+      return rt.drive.files;
+    } catch (error) {
+      log(`DRIVE: ${error.message}`, "log-amber");
+      return {};
+    }
+  }
+
+  async function fetchContextJson(projectName) {
+    const rt = runtime();
+    if (!Object.keys(rt.drive?.fileIndex || {}).length) {
+      indexDriveFiles(await listJsonFiles());
+    }
+
+    const fileName = findIndexedContextFile(projectName);
+    if (!fileName) {
+      log(`DRIVE: No indexed context JSON found for ${projectName}.`, "log-amber");
+      return null;
+    }
+
+    await fetchJsonByName(fileName, `context:${projectName}`);
+    const mapped = mapDriveFilesToMind({ selectDefault: false });
+    log(`DRIVE: Context ${fileName} hydrated. realms=${mapped.realms}, projects=${mapped.projects}, ledger=${mapped.projectLedger}.`, "log-blue");
+    return runtime().drive.files[fileName] || null;
   }
 
   function install() {
@@ -558,6 +727,9 @@
     listJsonFiles,
     smokeListDriveJson,
     fetchAllDriveJson,
+    fetchBootDriveJson,
+    fetchEveryDriveJson,
+    fetchContextJson,
     mapDriveFilesToMind,
     listProjects,
     selectActiveProject
