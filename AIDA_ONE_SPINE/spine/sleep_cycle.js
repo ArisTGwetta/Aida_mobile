@@ -175,6 +175,18 @@
 
   function sleepNow(reason = "manual_sleep") {
     const packet = buildPacket(reason);
+    const summary = safeSummary();
+    const rt = runtime();
+    if (rt?.sleep) {
+      rt.sleep.lastVisibleSummary = summary;
+      rt.boot.phase = "sleep_packet_collected";
+    }
+    if (window.AIDA_BODY?.pulse) {
+      window.AIDA_BODY.pulse(`Sleep packet ${summary.packetId}: ${summary.exchangeCount} exchange(s), ${summary.pendingJournalCount} journal item(s), ${summary.syncQueueCount} sync draft(s).`);
+    }
+    if (window.AIDA_BODY?.appendChat) {
+      window.AIDA_BODY.appendChat("AIDA", `Sleep packet collected: ${summary.exchangeCount} exchange(s), ${summary.pendingJournalCount} journal item(s), ${summary.syncQueueCount} sync draft(s).`);
+    }
     if (typeof window.aida_depart === "function") window.aida_depart();
     return packet;
   }

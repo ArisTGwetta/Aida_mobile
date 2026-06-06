@@ -114,6 +114,8 @@
       whileAwaySeeds: [],
       lastPacket: null,
       packets: [],
+      lastContextCheckpoint: null,
+      lastVisibleSummary: null,
       whileAway: {
         ready: false,
         generatedAt: null,

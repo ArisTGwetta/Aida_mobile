@@ -329,21 +329,52 @@
     return aliases[selectedKey] || [];
   }
 
-  function hasUnsavedContextWork(rt) {
-    return Boolean(
-      rt.session?.unsaved ||
-      rt.sleep?.pendingJournal?.length ||
-      rt.contextEvolution?.queuedChunks?.length ||
-      rt.contextEvolution?.summaryDrafts?.length ||
-      rt.contextEvolution?.projectLedgerDrafts?.length
-    );
+  function cleanCheckpointKey(value) {
+    return String(value || "")
+      .toLowerCase()
+      .replace(/\.json$/i, "")
+      .replace(/^realm_/, "")
+      .replace(/^project_briefcase_/, "")
+      .replace(/^briefcase_/, "")
+      .replace(/^project_/, "")
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+  }
+
+  function latestExchange(rt) {
+    const turns = rt.session?.currentTurns || [];
+    return turns[turns.length - 1] || null;
+  }
+
+  function exchangeBelongsToContext(exchange, contextKey) {
+    if (!exchange || !contextKey) return false;
+    const expected = cleanCheckpointKey(contextKey);
+    const candidates = [
+      exchange.context?.projectFile,
+      exchange.context?.project,
+      exchange.context?.realm,
+      exchange.tags?.project_file,
+      exchange.tags?.project,
+      exchange.tags?.realm
+    ].map(cleanCheckpointKey).filter(Boolean);
+
+    return candidates.includes(expected);
+  }
+
+  function hasUncheckpointedContextWork(rt, currentKey) {
+    const exchange = latestExchange(rt);
+    if (!exchangeBelongsToContext(exchange, currentKey)) return false;
+
+    const latestTurn = exchange.turnIndex || rt.session?.exchangeCount || 0;
+    const lastCheckpointTurn = rt.sleep?.lastContextCheckpoint?.turnIndex || 0;
+    return latestTurn > lastCheckpointTurn;
   }
 
   function checkpointBeforeContextSwitch(nextKey) {
     const rt = runtime();
     const currentKey = rt.context?.projectName || rt.mind?.activeProjectName || null;
     const isRealSwitch = currentKey && nextKey && currentKey !== nextKey;
-    if (!isRealSwitch || !hasUnsavedContextWork(rt)) return null;
+    if (!isRealSwitch || !hasUncheckpointedContextWork(rt, currentKey)) return null;
 
     if (!window.AIDA_SLEEP?.buildPacket) {
       log(`PROJECT: Unsaved context exists before switching from ${currentKey}; sleep collector is not loaded yet.`, "log-amber");
@@ -351,6 +382,13 @@
     }
 
     const packet = window.AIDA_SLEEP.buildPacket("project_context_switch");
+    rt.sleep.lastContextCheckpoint = {
+      packetId: packet?.id || null,
+      projectName: currentKey,
+      nextProjectName: nextKey,
+      turnIndex: latestExchange(rt)?.turnIndex || rt.session?.exchangeCount || 0,
+      capturedAt: new Date().toISOString()
+    };
     log(`PROJECT: Boundary checkpoint captured before switching ${currentKey} -> ${nextKey}.`, "log-blue");
     return packet;
   }
