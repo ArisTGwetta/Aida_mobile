@@ -107,3 +107,9 @@ Diary is close to long summary, but not identical. Long summary helps her work; 
 Facts are stable claims. Insights are patterns. Identity is protected and slow-changing.
 
 These should be updated conservatively after session capture, log append, and summary/diary distillation.
+
+The promotion rules and base powers backlog now live in:
+
+```text
+docs/MEMORY_DISTILLATION_CONTRACT.md
+```
