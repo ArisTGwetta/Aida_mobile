@@ -88,6 +88,7 @@
     }
 
     if (typeof override !== "object") return null;
+    if (override.source === "test_override" && override.bucket) return override;
     const minutes = Number(override.minutes);
     const seconds = Number(override.seconds);
     const bucket = override.bucket || (
@@ -203,11 +204,15 @@
     const blocked = [
       "doesn't fit",
       "does not fit",
+      "does not replace",
+      "doesn't replace",
       "other categories",
       "worth keeping",
       "category",
       "schema",
       "field",
+      "file",
+      "this file",
       "placeholder",
       "todo",
       "during sleep",
@@ -242,6 +247,9 @@
       "drive",
       "fetch",
       "loaded",
+      "replace facts",
+      "facts, insights",
+      "project briefcases",
       "null",
       "undefined",
       "array",
@@ -289,7 +297,7 @@
     const timeHint = gap.minutes === null
       ? ""
       : gap.minutes < 60
-        ? ` for about ${Math.max(1, gap.minutes)} minute${gap.minutes === 1 ? "" : "s"}`
+        ? ` for about ${Math.max(1, Math.round(gap.minutes))} minute${Math.max(1, Math.round(gap.minutes)) === 1 ? "" : "s"}`
         : "";
 
     const templates = {
