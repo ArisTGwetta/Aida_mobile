@@ -206,6 +206,14 @@
       "does not fit",
       "does not replace",
       "doesn't replace",
+      "do not modify",
+      "do not change",
+      "do not edit",
+      "without explicit",
+      "explicit user instruction",
+      "instruction",
+      "directive",
+      "directives",
       "other categories",
       "worth keeping",
       "category",
@@ -293,12 +301,19 @@
     return "small_curiosity";
   }
 
+  function gapTimeHint(gap) {
+    if (gap.minutes === null) return "";
+    if (gap.minutes < 60) {
+      const rounded = Math.max(1, Math.round(gap.minutes));
+      return ` for about ${rounded} minute${rounded === 1 ? "" : "s"}`;
+    }
+    if (gap.minutes < 60 * 24) return " over the day";
+    if (gap.minutes < 60 * 24 * 14) return " over the last few days";
+    return " across the long gap";
+  }
+
   function reentryText(mode, topic, realmName, roleName, gap) {
-    const timeHint = gap.minutes === null
-      ? ""
-      : gap.minutes < 60
-        ? ` for about ${Math.max(1, Math.round(gap.minutes))} minute${Math.max(1, Math.round(gap.minutes)) === 1 ? "" : "s"}`
-        : "";
+    const timeHint = gapTimeHint(gap);
 
     const templates = {
       reflection: [
