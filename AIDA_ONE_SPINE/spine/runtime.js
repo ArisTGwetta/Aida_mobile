@@ -115,6 +115,7 @@
       lastActive: null,
       pendingJournal: [],
       whileAwaySeed: null,
+      whileAwayScript: null,
       whileAwaySeeds: [],
       lastPacket: null,
       packets: [],

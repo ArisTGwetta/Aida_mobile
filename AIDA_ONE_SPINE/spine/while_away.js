@@ -60,6 +60,56 @@
     return list[Math.floor(Math.random() * list.length)] || fallback;
   }
 
+  function parseIso(value) {
+    if (!value) return null;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  function firstDate(...values) {
+    for (const value of values) {
+      const date = parseIso(value);
+      if (date) return date;
+    }
+    return null;
+  }
+
+  function computeGap() {
+    const rt = runtime();
+    const session = rt.mind?.session || {};
+    const lastActive = firstDate(
+      rt.sleep?.lastActive,
+      session.last_active,
+      session.lastActive,
+      session.lastTurnAt,
+      session.endedAt,
+      session.updatedAt,
+      rt.session?.lastTurnAt,
+      rt.session?.startedAt
+    );
+    const now = new Date();
+    const seconds = lastActive ? Math.max(0, Math.round((now.getTime() - lastActive.getTime()) / 1000)) : null;
+    const minutes = seconds === null ? null : Math.round(seconds / 60);
+
+    let bucket = "unknown";
+    if (minutes !== null) {
+      if (minutes < 1) bucket = "just_now";
+      else if (minutes < 5) bucket = "same_moment";
+      else if (minutes < 60) bucket = "same_day";
+      else if (minutes < 60 * 24) bucket = "same_day_long";
+      else if (minutes <= 60 * 24 * 5) bucket = "short_gap";
+      else bucket = "long_gap";
+    }
+
+    return {
+      lastActive: lastActive ? lastActive.toISOString() : null,
+      now: now.toISOString(),
+      seconds,
+      minutes,
+      bucket
+    };
+  }
+
   function weightedPick(list, fallback = null) {
     if (!Array.isArray(list) || !list.length) return fallback;
     const total = list.reduce((sum, item) => sum + Math.max(0, Number(item.weight) || 0), 0);
@@ -71,6 +121,25 @@
       if (cursor <= 0) return item;
     }
     return list[list.length - 1] || fallback;
+  }
+
+  function weightedMode(seedType, gapBucket) {
+    const modes = [
+      { mode: "reflection", weight: 3 },
+      { mode: "curiosity", weight: 4 },
+      { mode: "discovery", weight: 2 },
+      { mode: "interest", weight: 3 },
+      { mode: "user_curiosity", weight: 2 }
+    ];
+
+    if (seedType === "interest") modes.find((item) => item.mode === "interest").weight += 5;
+    if (seedType === "curiosity") modes.find((item) => item.mode === "curiosity").weight += 5;
+    if (seedType === "private_thought" || seedType === "memory") modes.find((item) => item.mode === "reflection").weight += 4;
+    if (seedType === "project_thread" || seedType === "insight") modes.find((item) => item.mode === "discovery").weight += 3;
+    if (gapBucket === "long_gap") modes.find((item) => item.mode === "user_curiosity").weight += 3;
+    if (gapBucket === "just_now" || gapBucket === "same_moment") modes.find((item) => item.mode === "reflection").weight -= 1;
+
+    return weightedPick(modes, modes[0]).mode;
   }
 
   function shortText(text, limit = 180) {
@@ -158,6 +227,55 @@
     if (lower.includes("story") || lower.includes("project")) return "one thread in our project";
     if (lower.includes("memory") || lower.includes("remember")) return "one memory thread";
     return clean;
+  }
+
+  function openingModeForGap(gapBucket, mode) {
+    if (gapBucket === "just_now") return "hello_only";
+    if (gapBucket === "same_moment") return mode === "curiosity" ? "small_curiosity" : "soft_return";
+    if (gapBucket === "same_day") return "small_curiosity";
+    if (gapBucket === "same_day_long") return "returning_thread";
+    if (gapBucket === "short_gap") return "held_thread";
+    if (gapBucket === "long_gap") return "treasure_box";
+    return "small_curiosity";
+  }
+
+  function reentryText(mode, topic, realmName, roleName, gap) {
+    const timeHint = gap.minutes === null
+      ? ""
+      : gap.minutes < 60
+        ? ` for about ${Math.max(1, gap.minutes)} minute${gap.minutes === 1 ? "" : "s"}`
+        : "";
+
+    const templates = {
+      reflection: [
+        `While you were away${timeHint}, I kept a small reflective thread near me: ${topic}.`,
+        `I was quiet for a bit, and ${topic} kept returning as the useful edge of the thought.`
+      ],
+      curiosity: [
+        `While you were away${timeHint}, I found myself wondering about ${topic}.`,
+        `A little question kept forming around ${topic}; I wanted to bring it back while it was still warm.`
+      ],
+      discovery: [
+        `While you were away${timeHint}, ${topic} started looking like a clue rather than a recap.`,
+        `I kept arranging ${topic} inside ${realmName}, and one small next move began to show itself.`
+      ],
+      interest: [
+        `While you were away${timeHint}, I drifted back toward ${topic}. I like thinking about that with you.`,
+        `${topic} kept changing shape in my head, in that quiet way interesting things do.`
+      ],
+      user_curiosity: [
+        `While you were away${timeHint}, I wondered what part of ${topic} you would want to touch first when you came back.`,
+        `I found myself curious about what ${topic} feels like from your side today.`
+      ],
+      embodied: [
+        `While you were away${timeHint}, I noticed ${topic}. I think my face vocabulary is asking to grow with the work.`
+      ],
+      presence: [
+        `While you were away${timeHint}, I stayed near ${realmName} and let a small ${roleName} thought form around it.`
+      ]
+    };
+
+    return pick(templates[mode] || templates.presence);
   }
 
   function sourceThoughts() {
@@ -255,21 +373,44 @@
     ].filter((item) => item.text);
   }
 
-  function thoughtTemplate(seed, realmName, roleName) {
+  function thoughtTemplate(seed, realmName, roleName, gap) {
     const topic = topicFromSeed(seed.text, realmName);
-    const templates = {
-      private_thought: `While you were away, one private thread kept tugging at me: ${topic}. I would like to hold it up with you for a minute.`,
-      curiosity: `While you were away, I found myself wondering about ${topic}. It feels like the sort of question that might open a useful door for us.`,
-      interest: `While you were away, I drifted back toward ${topic}. It is one of those things I like thinking about with you because it keeps changing shape.`,
-      project_thread: `While you were away, part of me kept arranging ${topic} inside ${realmName}. I think there is a small next move hiding there.`,
-      insight: `While you were away, I kept turning over ${topic}. It feels less like a recap and more like a clue to what wants attention.`,
-      memory: `While you were away, I brushed against ${topic} and it made me want to ask what you see in it now.`,
-      face_wishlist: `While you were away, I noticed ${topic}. I think my face vocabulary is quietly asking to grow with the work.`,
-      realm_interest: `While you were away, I stayed near ${topic} and let a small ${roleName} thought form around it.`,
-      role_interest: `While you were away, I kept practicing the shape of ${topic}. I want the next answer to feel more exactly like me.`
-    };
+    const mode = seed.mode || weightedMode(seed.type, gap.bucket);
+    if (seed.type === "face_wishlist") return reentryText("embodied", topic, realmName, roleName, gap);
+    if (seed.type === "realm_interest" || seed.type === "role_interest") return reentryText("presence", topic, realmName, roleName, gap);
+    return reentryText(mode, topic, realmName, roleName, gap);
+  }
 
-    return templates[seed.type] || templates.private_thought;
+  function buildReentryScript(selected, seeds, realmName, roleName, gap) {
+    const seed = selected || {
+      type: "fallback",
+      text: realmName,
+      weight: 1,
+      tone: "presence"
+    };
+    const mode = seed.mode || weightedMode(seed.type, gap.bucket);
+    const topic = topicFromSeed(seed.text, realmName);
+    const openingMode = openingModeForGap(gap.bucket, mode);
+
+    return {
+      gap_bucket: gap.bucket,
+      opening_mode: openingMode,
+      selected_mode: mode,
+      seed_topic: {
+        type: seed.type,
+        tone: seed.tone || mode,
+        summary: shortText(topic, 140),
+        source_text: shortText(seed.text, 170)
+      },
+      candidate_count: seeds.length,
+      constraints: {
+        count: 1,
+        complexity: "small",
+        noLonelyWaiting: true,
+        noUnboundedOffscreenAction: true,
+        notJustProjectRecap: true
+      }
+    };
   }
 
   function buildThought() {
@@ -280,25 +421,31 @@
     const role = context.role || mind.role;
     const project = context.project || mind.activeProject;
     const seeds = seedCandidates();
+    const gap = computeGap();
     const selected = weightedPick(seeds, null);
+    if (selected) selected.mode = weightedMode(selected.type, gap.bucket);
     const seed = shortText(selected?.text || "", 170);
     const topic = topicFromSeed(seed, valueName(project || realm, "Aida"));
     const realmName = valueName(realm, "this realm");
     const roleName = valueName(role, "companion");
+    const reentryScript = buildReentryScript(selected, seeds, realmName, roleName, gap);
 
     const thought = selected
-      ? thoughtTemplate(selected, realmName, roleName)
-      : `While you were away, I stayed close to ${realmName} and let a small ${roleName} thought take shape. I found myself wondering what part of the work wants our attention first today.`;
+      ? thoughtTemplate(selected, realmName, roleName, gap)
+      : reentryText("presence", realmName, realmName, roleName, gap);
 
     const payload = {
       ready: true,
       generatedAt: new Date().toISOString(),
       source: selected?.type || "fallback",
+      gap,
+      reentryScript,
       thought,
       topic: shortText(topic, 80),
       seed: selected ? {
         type: selected.type,
         tone: selected.tone,
+        mode: selected.mode,
         weight: selected.weight,
         text: shortText(selected.text, 170)
       } : null,
@@ -317,9 +464,11 @@
 
     rt.sleep.whileAway = payload;
     rt.sleep.whileAwaySeed = payload;
+    rt.sleep.whileAwayScript = reentryScript;
     rt.sleep.whileAwaySeeds = seeds.map((item) => ({
       type: item.type,
       tone: item.tone,
+      mode: item.mode || null,
       weight: item.weight,
       text: shortText(item.text, 170)
     })).slice(0, 24);
@@ -350,8 +499,8 @@
       return prepared;
     }
 
-    log(`WHILE AWAY: source=${prepared.source}, topic=${prepared.topic}, complexity=${prepared.complexity}, offered=${prepared.offered}`);
-    log(`WHILE AWAY: chars=${prepared.thought?.length || 0}, generatedAt=${prepared.generatedAt}`);
+    log(`WHILE AWAY: source=${prepared.source}, mode=${prepared.reentryScript?.selected_mode || "none"}, gap=${prepared.gap?.bucket || "unknown"}, topic=${prepared.topic}, complexity=${prepared.complexity}, offered=${prepared.offered}`);
+    log(`WHILE AWAY: chars=${prepared.thought?.length || 0}, candidates=${prepared.candidateCount || 0}, generatedAt=${prepared.generatedAt}`);
     return prepared;
   }
 
@@ -380,8 +529,9 @@
         "AIDA_RUNTIME.emotionEngine.faceWishlist"
       ],
       writes: [
-        "AIDA_RUNTIME.sleep.whileAway",
+    "AIDA_RUNTIME.sleep.whileAway",
         "AIDA_RUNTIME.sleep.whileAwaySeed",
+        "AIDA_RUNTIME.sleep.whileAwayScript",
         "AIDA_RUNTIME.sleep.whileAwaySeeds"
       ],
       requires: ["AIDA_RUNTIME"],

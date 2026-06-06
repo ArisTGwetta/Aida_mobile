@@ -17,6 +17,8 @@ This is a re-entry spark, not a memory write.
 ```text
 AIDA_RUNTIME.sleep.whileAway
 AIDA_RUNTIME.sleep.whileAwaySeed
+AIDA_RUNTIME.sleep.whileAwayScript
+AIDA_RUNTIME.sleep.whileAwaySeeds
 ```
 
 ## Current Rules
@@ -28,6 +30,36 @@ AIDA_RUNTIME.sleep.whileAwaySeed
 - Do not say Aida was sad, lonely, abandoned, or waiting helplessly.
 - Do not claim real external browsing or real-world action unless a future tool actually did it.
 - Do not write Drive yet.
+
+## Reentry Script
+
+The spine version adapts the older `ONE/js/050-while_away_gold.js` idea without requiring Pyodide.
+
+Each prepared thought now includes:
+
+```json
+{
+  "gap_bucket": "just_now | same_moment | same_day | same_day_long | short_gap | long_gap | unknown",
+  "opening_mode": "hello_only | soft_return | small_curiosity | returning_thread | held_thread | treasure_box",
+  "selected_mode": "reflection | curiosity | discovery | interest | user_curiosity",
+  "seed_topic": {
+    "type": "private_thought | curiosity | interest | project_thread | insight | memory | face_wishlist | fallback",
+    "tone": "curious",
+    "summary": "short safe topic",
+    "source_text": "bounded source excerpt"
+  }
+}
+```
+
+The mode set comes from the older support organ/Python generator:
+
+- `reflection`
+- `curiosity`
+- `discovery`
+- `interest`
+- `user_curiosity`
+
+The script is stored at `AIDA_RUNTIME.sleep.whileAwayScript` for inspection and future LLM-assisted phrasing.
 
 ## Wake Flow
 
@@ -42,3 +74,11 @@ AIDA_RUNTIME.sleep.whileAwaySeed
 7. While-away thought offer in chat.
 
 The thought can be inspected safely with `Inspect Away`.
+
+Useful console check:
+
+```js
+AIDA_WHILE_AWAY.buildThought()
+AIDA_RUNTIME.sleep.whileAwayScript
+AIDA_RUNTIME.sleep.whileAway
+```
