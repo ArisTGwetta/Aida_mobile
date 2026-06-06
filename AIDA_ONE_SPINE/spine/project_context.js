@@ -42,6 +42,8 @@
       value.display_name ||
       value.displayName ||
       value.realm_name ||
+      value.role_name ||
+      value.identity_name ||
       value.name ||
       value.title ||
       value.realm ||
