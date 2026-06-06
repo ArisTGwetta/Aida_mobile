@@ -58,6 +58,7 @@
       projectRecentTurns: null,
       interactionRules: null,
       roleSource: null,
+      customTags: [],
       tetrad: null,
       memoryWindow: null,
       llmMessages: null

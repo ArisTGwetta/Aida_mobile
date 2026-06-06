@@ -66,6 +66,11 @@
       .toLowerCase();
   }
 
+  function cleanCustomTags(tags) {
+    if (!Array.isArray(tags)) return [];
+    return [...new Set(tags.map((tag) => cleanTag(tag, "")).filter(Boolean))];
+  }
+
   function ensureSession() {
     const rt = runtime();
     if (!rt.session) {
@@ -112,6 +117,7 @@
       provider: rt.tokens?.llm?.provider || "none",
       profile: rt.tokens?.llm?.profile || "none"
     };
+    const customTags = cleanCustomTags(context.customTags || []);
 
     const snapshot = {
       identity: valueName(context.identity || mind.identity, "unknown_identity"),
@@ -123,6 +129,7 @@
       roleSource: context.roleSource || null,
       emotion: emotionState,
       route,
+      customTags,
       llm: {
         responseId: rt.context?.lastLlmResponse?.responseId || null,
         model: rt.context?.lastLlmResponse?.model || null
@@ -140,7 +147,8 @@
       role_source: cleanTag(context.roleSource || "unknown_role_source"),
       emotion: cleanTag(emotionState.label, "unknown_emotion"),
       llm_route: cleanTag(`${route.provider}_${route.profile}`),
-      source: "awake"
+      source: "awake",
+      custom: customTags
     };
 
     return snapshot;
@@ -214,6 +222,7 @@
             emotion: lastExchange.context?.emotion?.label || "unknown_emotion",
             route: `${lastExchange.context?.route?.provider || "none"}/${lastExchange.context?.route?.profile || "none"}`,
             model: lastExchange.context?.llm?.model || "unknown_model",
+            customTags: lastExchange.context?.customTags || [],
             tags: lastExchange.tags || {}
           }
         : null
@@ -235,7 +244,7 @@
     log(`SESSION LAST: turn=${last.turnIndex}, userChars=${last.userChars}, aidaChars=${last.aidaChars}`);
     log(`SESSION LAST CONTEXT: identity=${last.identity}, realm=${last.realm}, project=${last.project}, projectFile=${last.projectFile}, role=${last.role}, roleSource=${last.roleSource}`);
     log(`SESSION LAST STATE: emotion=${last.emotion}, route=${last.route}, model=${last.model}`);
-    log(`SESSION LAST TAGS: realm=${last.tags.realm || "none"}, project=${last.tags.project || "none"}, role=${last.tags.role || "none"}`);
+    log(`SESSION LAST TAGS: realm=${last.tags.realm || "none"}, project=${last.tags.project || "none"}, role=${last.tags.role || "none"}, custom=${(last.customTags || []).join(",") || "none"}`);
     return summary;
   }
 

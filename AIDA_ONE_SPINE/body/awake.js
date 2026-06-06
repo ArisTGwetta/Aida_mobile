@@ -175,6 +175,18 @@
     buildFaceDataGrid("face-data-fast", 396, [12000, 36000], [0.38, 0.78]);
   }
 
+  function syncCustomTagsFromButtons() {
+    const rt = runtime();
+    if (!rt?.context) return [];
+
+    const tags = Array.from(document.querySelectorAll(".tag-btn"))
+      .map((btn) => btn.textContent.trim())
+      .filter((tag) => tag && tag !== "#");
+
+    rt.context.customTags = tags;
+    return tags;
+  }
+
   function installTagEditor() {
     const tagButtons = document.querySelectorAll(".tag-btn");
     const tagEdit = $("tag-edit");
@@ -198,9 +210,22 @@
         btn.textContent = val || "#";
         btn.classList.toggle("used", Boolean(val));
       }
+      syncCustomTagsFromButtons();
       tagEdit.style.display = "none";
       activeTagIndex = null;
     });
+
+    tagEdit.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        tagEdit.blur();
+      }
+      if (event.key === "Escape") {
+        tagEdit.value = "";
+        tagEdit.blur();
+      }
+    });
+
+    syncCustomTagsFromButtons();
   }
 
   function installInputPlaceholders() {
@@ -610,5 +635,9 @@
 
   window.AIDA_BODY_PROJECTS = {
     render: renderProjectSelector
+  };
+
+  window.AIDA_BODY_TAGS = {
+    sync: syncCustomTagsFromButtons
   };
 })();

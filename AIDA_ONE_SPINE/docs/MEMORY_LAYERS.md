@@ -33,11 +33,12 @@ Captured exchanges also carry routing tags for sleep and while-away routines. Th
   "role_source": "role_co_narrator.json",
   "emotion": "neutral",
   "llm_route": "openai_normal",
-  "source": "awake"
+  "source": "awake",
+  "custom": ["query_letter", "illustration"]
 }
 ```
 
-Sleep should use these tags to group, summarize, and route memory without rereading the full active prompt.
+Sleep should use these tags to group, summarize, and route memory without rereading the full active prompt. `custom` contains optional tags from the visible awake tag buttons; these are capture metadata only, not prompt instructions.
 
 ## Full Log
 
