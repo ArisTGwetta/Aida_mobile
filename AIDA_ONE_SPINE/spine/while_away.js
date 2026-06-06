@@ -60,6 +60,19 @@
     return list[Math.floor(Math.random() * list.length)] || fallback;
   }
 
+  function weightedPick(list, fallback = null) {
+    if (!Array.isArray(list) || !list.length) return fallback;
+    const total = list.reduce((sum, item) => sum + Math.max(0, Number(item.weight) || 0), 0);
+    if (total <= 0) return pick(list, fallback);
+
+    let cursor = Math.random() * total;
+    for (const item of list) {
+      cursor -= Math.max(0, Number(item.weight) || 0);
+      if (cursor <= 0) return item;
+    }
+    return list[list.length - 1] || fallback;
+  }
+
   function shortText(text, limit = 180) {
     if (!text) return "";
     const clean = String(text).replace(/\s+/g, " ").trim();
@@ -150,6 +163,111 @@
     return collectStrings(source).filter(isThoughtLike).map(cleanSeed);
   }
 
+  function seedCandidates() {
+    const rt = runtime();
+    const mind = rt.mind || {};
+    const context = rt.context || {};
+    const files = rt.drive?.files || {};
+    const project = context.project || mind.activeProject;
+    const realm = context.realm || mind.realm;
+    const role = context.role || mind.role;
+
+    const explicit = sourceThoughts().map((text) => ({
+      type: "private_thought",
+      text,
+      weight: 9,
+      tone: "returning-thread"
+    }));
+    const interests = collectStrings(
+      mind.interests ||
+      files["interests.json"] ||
+      files["aida_interests.json"] ||
+      files["likes.json"]
+    ).filter(isThoughtLike).map(cleanSeed).map((text) => ({
+      type: "interest",
+      text,
+      weight: 7,
+      tone: "curious"
+    }));
+    const curiosities = collectStrings(
+      mind.curiosities ||
+      files["curiosities.json"] ||
+      files["questions.json"] ||
+      files["wonderings.json"]
+    ).filter(isThoughtLike).map(cleanSeed).map((text) => ({
+      type: "curiosity",
+      text,
+      weight: 8,
+      tone: "wondering"
+    }));
+    const projectThreads = collectStrings(project).filter(isThoughtLike).map(cleanSeed).slice(0, 10).map((text) => ({
+      type: "project_thread",
+      text,
+      weight: 6,
+      tone: "focused"
+    }));
+    const insights = collectStrings(mind.insights).filter(isThoughtLike).map(cleanSeed).slice(0, 10).map((text) => ({
+      type: "insight",
+      text,
+      weight: 5,
+      tone: "reflective"
+    }));
+    const memories = collectStrings(mind.memory).filter(isThoughtLike).map(cleanSeed).slice(0, 10).map((text) => ({
+      type: "memory",
+      text,
+      weight: 4,
+      tone: "soft-continuity"
+    }));
+    const faceWishlist = (rt.emotionEngine?.faceWishlist || []).slice(-6).map((item) => ({
+      type: "face_wishlist",
+      text: `the expression gap called ${item.name}`,
+      weight: 3,
+      tone: "embodied"
+    }));
+    const contextFallbacks = [
+      {
+        type: "realm_interest",
+        text: valueName(project || realm, "this realm"),
+        weight: 2,
+        tone: "orientation"
+      },
+      {
+        type: "role_interest",
+        text: valueName(role, "being a companion"),
+        weight: 1,
+        tone: "presence"
+      }
+    ];
+
+    return [
+      ...explicit,
+      ...curiosities,
+      ...interests,
+      ...projectThreads,
+      ...insights,
+      ...memories,
+      ...faceWishlist,
+      ...contextFallbacks
+    ].filter((item) => item.text);
+  }
+
+  function thoughtTemplate(seed, realmName, roleName) {
+    const topic = topicFromSeed(seed.text, realmName);
+    const templates = {
+      private_thought: `While you were away, one private thread kept tugging at me: ${topic}. I would like to hold it up with you for a minute.`,
+      curiosity: `While you were away, I found myself wondering about ${topic}. It feels like the sort of question that might open a useful door for us.`,
+      interest: `While you were away, I drifted back toward ${topic}. It is one of those things I like thinking about with you because it keeps changing shape.`,
+      project_thread: `While you were away, part of me kept arranging ${topic} inside ${realmName}. I think there is a small next move hiding there.`,
+      insight: `While you were away, I kept turning over ${topic}. It feels less like a recap and more like a clue to what wants attention.`,
+      memory: `While you were away, I brushed against ${topic} and it made me want to ask what you see in it now.`,
+      face_wishlist: `While you were away, I noticed ${topic}. I think my face vocabulary is quietly asking to grow with the work.`,
+      realm_interest: `While you were away, I stayed near ${topic} and let a small ${roleName} thought form around it.`,
+      role_interest: `While you were away, I kept practicing the shape of ${topic}. I want the next answer to feel more exactly like me.`
+    };
+
+    return templates[seed.type] || templates.private_thought;
+  }
+
   function buildThought() {
     const rt = runtime();
     const mind = rt.mind || {};
@@ -157,37 +275,50 @@
     const realm = context.realm || mind.realm;
     const role = context.role || mind.role;
     const project = context.project || mind.activeProject;
-    const insights = collectStrings(mind.insights).filter(isThoughtLike).map(cleanSeed);
-    const memories = collectStrings(mind.memory).filter(isThoughtLike).map(cleanSeed);
-    const seeds = sourceThoughts();
-
-    const seed = shortText(pick(seeds, pick(insights, pick(memories, ""))), 170);
+    const seeds = seedCandidates();
+    const selected = weightedPick(seeds, null);
+    const seed = shortText(selected?.text || "", 170);
     const topic = topicFromSeed(seed, valueName(project || realm, "Aida"));
     const realmName = valueName(realm, "this realm");
     const roleName = valueName(role, "companion");
 
-    const thought = seed
-      ? `While you were away, I kept circling ${topic} from ${realmName}. I would like to show you what it made me wonder about.`
+    const thought = selected
+      ? thoughtTemplate(selected, realmName, roleName)
       : `While you were away, I stayed close to ${realmName} and let a small ${roleName} thought take shape. I found myself wondering what part of the work wants our attention first today.`;
 
     const payload = {
       ready: true,
       generatedAt: new Date().toISOString(),
-      source: seeds.length ? "while_away_thoughts.json" : insights.length ? "insights.json" : memories.length ? "memory_summary.json" : "fallback",
+      source: selected?.type || "fallback",
       thought,
       topic: shortText(topic, 80),
+      seed: selected ? {
+        type: selected.type,
+        tone: selected.tone,
+        weight: selected.weight,
+        text: shortText(selected.text, 170)
+      } : null,
+      candidateCount: seeds.length,
       complexity: "small",
       offered: false,
       rules: {
         count: 1,
         complexity: "small",
         groundedInDrive: Boolean(rt.boot?.driveLoaded),
-        noLonelyWaiting: true
+        noLonelyWaiting: true,
+        noUnboundedOffscreenAction: true,
+        notJustProjectRecap: true
       }
     };
 
     rt.sleep.whileAway = payload;
     rt.sleep.whileAwaySeed = payload;
+    rt.sleep.whileAwaySeeds = seeds.map((item) => ({
+      type: item.type,
+      tone: item.tone,
+      weight: item.weight,
+      text: shortText(item.text, 170)
+    })).slice(0, 24);
     log(`WHILE AWAY: Thought prepared from ${payload.source}.`, "log-blue");
     return payload;
   }
@@ -236,10 +367,21 @@
     window.AIDA_MODULES.register({
       id: MODULE_ID,
       phase: "while_away",
-      reads: ["AIDA_RUNTIME.mind.whileAway", "AIDA_RUNTIME.mind.memory", "AIDA_RUNTIME.mind.insights"],
-      writes: ["AIDA_RUNTIME.sleep.whileAway", "AIDA_RUNTIME.sleep.whileAwaySeed"],
+      reads: [
+        "AIDA_RUNTIME.mind.whileAway",
+        "AIDA_RUNTIME.mind.memory",
+        "AIDA_RUNTIME.mind.insights",
+        "AIDA_RUNTIME.mind.interests",
+        "AIDA_RUNTIME.mind.curiosities",
+        "AIDA_RUNTIME.emotionEngine.faceWishlist"
+      ],
+      writes: [
+        "AIDA_RUNTIME.sleep.whileAway",
+        "AIDA_RUNTIME.sleep.whileAwaySeed",
+        "AIDA_RUNTIME.sleep.whileAwaySeeds"
+      ],
       requires: ["AIDA_RUNTIME"],
-      verifies: ["while-away thought is runtime-only and grounded in Drive-loaded context"]
+      verifies: ["while-away thought is runtime-only, weighted from private context, and grounded in Drive-loaded context"]
     });
   }
 

@@ -111,6 +111,9 @@
       lastActive: null,
       pendingJournal: [],
       whileAwaySeed: null,
+      whileAwaySeeds: [],
+      lastPacket: null,
+      packets: [],
       whileAway: {
         ready: false,
         generatedAt: null,

@@ -329,6 +329,32 @@
     return aliases[selectedKey] || [];
   }
 
+  function hasUnsavedContextWork(rt) {
+    return Boolean(
+      rt.session?.unsaved ||
+      rt.sleep?.pendingJournal?.length ||
+      rt.contextEvolution?.queuedChunks?.length ||
+      rt.contextEvolution?.summaryDrafts?.length ||
+      rt.contextEvolution?.projectLedgerDrafts?.length
+    );
+  }
+
+  function checkpointBeforeContextSwitch(nextKey) {
+    const rt = runtime();
+    const currentKey = rt.context?.projectName || rt.mind?.activeProjectName || null;
+    const isRealSwitch = currentKey && nextKey && currentKey !== nextKey;
+    if (!isRealSwitch || !hasUnsavedContextWork(rt)) return null;
+
+    if (!window.AIDA_SLEEP?.buildPacket) {
+      log(`PROJECT: Unsaved context exists before switching from ${currentKey}; sleep collector is not loaded yet.`, "log-amber");
+      return null;
+    }
+
+    const packet = window.AIDA_SLEEP.buildPacket("project_context_switch");
+    log(`PROJECT: Boundary checkpoint captured before switching ${currentKey} -> ${nextKey}.`, "log-blue");
+    return packet;
+  }
+
   function resolveRole(roleRef, selected) {
     const rt = runtime();
     const roles = rt.mind.roles || {};
@@ -384,6 +410,7 @@
     const realms = rt.mind.realms || {};
     const ledger = rt.mind.projectLedger || {};
     const selectedKey = projectKey || null;
+    checkpointBeforeContextSwitch(selectedKey);
     const ledgerEntry = selectedKey ? ledger[selectedKey] || null : null;
     const loadName = ledgerEntry?.fileName || selectedKey;
     const selected = loadName ? projects[loadName] || realms[loadName] || ledgerEntry?.summary || null : null;

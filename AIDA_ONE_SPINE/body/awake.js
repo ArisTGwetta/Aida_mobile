@@ -265,7 +265,12 @@
 
     if (sleep) {
       sleep.addEventListener("click", () => {
-        pulse("Sleep placeholder. Sleep spine will own journaling and while-away.");
+        if (window.AIDA_SLEEP?.sleepNow) {
+          window.AIDA_SLEEP.sleepNow("manual_sleep_button");
+          return;
+        }
+
+        pulse("Sleep collector unavailable. Running body departure only.");
         if (typeof window.aida_depart === "function") window.aida_depart();
       });
     }
