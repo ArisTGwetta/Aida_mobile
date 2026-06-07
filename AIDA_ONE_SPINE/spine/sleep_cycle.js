@@ -22,6 +22,16 @@
     }
   }
 
+  function stageWithLibrarian(packet) {
+    if (!window.AIDA_LIBRARIAN?.ingestSleep) return null;
+    try {
+      return window.AIDA_LIBRARIAN.ingestSleep(packet);
+    } catch (error) {
+      log(`SLEEP: Librarian staging failed. ${error.message}`, "log-amber");
+      return null;
+    }
+  }
+
   function nowIso() {
     return new Date().toISOString();
   }
@@ -616,6 +626,7 @@
       rt.sleep.lastPacket = packet;
       log(`SLEEP LLM: complete. diary=${distillation.counts.diaryDrafts}, facts=${distillation.counts.factCandidates}, insights=${distillation.counts.insightCandidates}.`, "log-blue");
       consoleReport("AIDA_SLEEP_LLM_DISTILLATION", getPreferredDistillation(packet));
+      stageWithLibrarian(packet);
       return distillation;
     } catch (error) {
       packet.distillation.llm = {
@@ -680,6 +691,7 @@
     log(`SLEEP: exchanges=${packet.session.exchangeCount}, pendingJournal=${packet.pendingJournal.length}, summaries=${packet.contextEvolution.summaryDrafts.length}, ledgerDrafts=${packet.projectLedgerDrafts.length}.`);
     log(`SLEEP DISTILLATION: diary=${packet.distillation.counts.diaryDrafts}, facts=${packet.distillation.counts.factCandidates}, insights=${packet.distillation.counts.insightCandidates}, method=${packet.distillation.method}.`);
     consoleReport("AIDA_SLEEP_FALLBACK_DISTILLATION", getPreferredDistillation(packet));
+    stageWithLibrarian(packet);
     return packet;
   }
 
@@ -783,6 +795,7 @@
         "AIDA_RUNTIME.sleep.packets",
         "AIDA_RUNTIME.contextEvolution.rollingSummaries",
         "AIDA_RUNTIME.contextEvolution.longSummaryDrafts",
+        "AIDA_RUNTIME.librarian",
         "AIDA_RUNTIME.drive.syncQueue"
       ],
       requires: ["AIDA_RUNTIME", "AIDA_SESSION_CAPTURE", "AIDA_CONTEXT_EVOLUTION", "AIDA_WHILE_AWAY"],

@@ -5,6 +5,7 @@ const path = require("path");
 
 const repoRoot = path.resolve(__dirname, "..", "..");
 const sleepCyclePath = path.join(repoRoot, "AIDA_ONE_SPINE", "spine", "sleep_cycle.js");
+const librarianPath = path.join(repoRoot, "AIDA_ONE_SPINE", "spine", "librarian.js");
 
 function assert(condition, message, details = null) {
   if (!condition) {
@@ -178,9 +179,10 @@ function installBrowserMocks(runtime, options = {}) {
 
 function loadSleepCycle(runtime, options = {}) {
   installBrowserMocks(runtime, options);
-  const source = fs.readFileSync(sleepCyclePath, "utf8");
-  Function(source)();
+  Function(fs.readFileSync(sleepCyclePath, "utf8"))();
+  Function(fs.readFileSync(librarianPath, "utf8"))();
   assert(global.window.AIDA_SLEEP?.buildPacket, "AIDA_SLEEP.buildPacket was not installed.");
+  assert(global.window.AIDA_LIBRARIAN?.ingestSleep, "AIDA_LIBRARIAN.ingestSleep was not installed.");
   return global.window.AIDA_SLEEP;
 }
 
@@ -206,6 +208,8 @@ function runOneTurnFallbackTest() {
   assert(packet.distillation.factCandidates.length >= 1, "One-turn packet did not stage a fact candidate.");
   assert(runtime.contextEvolution.rollingSummaries.length >= 1, "Runtime rolling summaries were not updated.");
   assert(runtime.contextEvolution.longSummaryDrafts.length >= 1, "Runtime long summary drafts were not updated.");
+  assert(runtime.librarian?.diaryDrafts?.length >= 1, "Librarian did not stage fallback diary drafts.");
+  assert(runtime.librarian?.projectBriefcaseDrafts?.length >= 1, "Librarian did not stage fallback project briefcase drafts.");
 
   return {
     packetId: packet.id,
@@ -215,7 +219,9 @@ function runOneTurnFallbackTest() {
     factCandidates: packet.distillation.factCandidates.length,
     insightCandidates: packet.distillation.insightCandidates.length,
     preferredSource: preferred.source,
-    preferredMethod: preferred.method
+    preferredMethod: preferred.method,
+    librarianDiaryDrafts: runtime.librarian.diaryDrafts.length,
+    librarianProjectDrafts: runtime.librarian.projectBriefcaseDrafts.length
   };
 }
 
@@ -264,6 +270,7 @@ function runChunkDraftTest() {
   assert(Array.isArray(ledgerDraft.update?.facts_to_consider), "Project ledger draft facts_to_consider is missing.", ledgerDraft);
   assert(packet.distillation.counts.summaryDraftsFilled === 1, "Packet did not count one filled summary draft.");
   assert(packet.distillation.counts.ledgerDraftsFilled === 1, "Packet did not count one filled ledger draft.");
+  assert(runtime.librarian?.projectBriefcaseDrafts?.length >= 1, "Librarian did not stage chunk project briefcase draft.");
 
   return {
     packetId: packet.id,
@@ -271,7 +278,8 @@ function runChunkDraftTest() {
     ledgerStatus: ledgerDraft.status,
     ledgerHasSummary: Boolean(ledgerDraft.update.latest_summary),
     factsToConsider: ledgerDraft.update.facts_to_consider.length,
-    insightsToConsider: ledgerDraft.update.insights_to_consider.length
+    insightsToConsider: ledgerDraft.update.insights_to_consider.length,
+    librarianProjectDrafts: runtime.librarian.projectBriefcaseDrafts.length
   };
 }
 
@@ -295,6 +303,9 @@ async function runLlmRefinementTest() {
   assert(distillation.fallback?.status === "draft_filled", "LLM refinement did not preserve fallback distillation.", distillation);
   assert(distillation.llm?.status === "complete", "LLM refinement did not mark llm status complete.", distillation);
   assert(distillation.diaryDrafts[0]?.id === "diary_llm_smoke", "LLM diary draft was not applied.", distillation);
+  assert(runtime.librarian?.diaryDrafts?.some((item) => item.id === "diary_llm_smoke"), "Librarian did not stage LLM diary draft.", runtime.librarian);
+  assert(runtime.librarian?.diaryDrafts?.length === 1, "Librarian should replace fallback diary drafts for the same packet after LLM refinement.", runtime.librarian);
+  assert(runtime.librarian?.projectBriefcaseDrafts?.some((item) => item.source === "llm"), "Librarian did not stage an LLM project briefcase draft.", runtime.librarian);
 
   return {
     packetId: packet.id,
@@ -305,7 +316,9 @@ async function runLlmRefinementTest() {
     diaryDrafts: distillation.diaryDrafts.length,
     factCandidates: distillation.factCandidates.length,
     preferredSource: preferred.source,
-    preferredMethod: preferred.method
+    preferredMethod: preferred.method,
+    librarianDiaryDrafts: runtime.librarian.diaryDrafts.length,
+    librarianProjectDrafts: runtime.librarian.projectBriefcaseDrafts.length
   };
 }
 
@@ -313,6 +326,7 @@ async function main() {
   const startedAt = new Date().toISOString();
   try {
     assert(fs.existsSync(sleepCyclePath), `Missing sleep cycle source: ${sleepCyclePath}`);
+    assert(fs.existsSync(librarianPath), `Missing librarian source: ${librarianPath}`);
     const result = {
       status: "pass",
       startedAt,

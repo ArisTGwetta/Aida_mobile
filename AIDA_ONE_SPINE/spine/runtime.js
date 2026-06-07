@@ -86,6 +86,17 @@
       rollingSummaries: [],
       longSummaryDrafts: []
     },
+    librarian: {
+      lastIngestedPacketId: null,
+      lastIngestedAt: null,
+      diaryDrafts: [],
+      rollingSummaryDrafts: [],
+      longSummaryDrafts: [],
+      factCandidates: [],
+      insightCandidates: [],
+      projectBriefcaseDrafts: [],
+      ingestLog: []
+    },
     emotionEngine: {
       ready: false,
       lastAppliedAt: null,
