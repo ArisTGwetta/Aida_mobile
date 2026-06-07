@@ -10,6 +10,7 @@ const crashBufferPath = path.join(repoRoot, "AIDA_ONE_SPINE", "spine", "crash_bu
 const curatorPath = path.join(repoRoot, "AIDA_ONE_SPINE", "spine", "curator.js");
 const crawlerPath = path.join(repoRoot, "AIDA_ONE_SPINE", "spine", "crawler.js");
 const llmMessagesPath = path.join(repoRoot, "AIDA_ONE_SPINE", "spine", "llm_messages.js");
+const driveWritebackPath = path.join(repoRoot, "AIDA_ONE_SPINE", "spine", "drive_writeback.js");
 
 function assert(condition, message, details = null) {
   if (!condition) {
@@ -107,6 +108,10 @@ function makeRuntime(turns, contextEvolution = {}, options = {}) {
       key: "AIDA_CRAWLER_INDEX_V1",
       entries: [],
       searches: []
+    },
+    driveWriteback: {
+      operations: [],
+      history: []
     }
   };
 }
@@ -228,10 +233,12 @@ function loadSleepCycle(runtime, options = {}) {
   Function(fs.readFileSync(librarianPath, "utf8"))();
   Function(fs.readFileSync(curatorPath, "utf8"))();
   Function(fs.readFileSync(crawlerPath, "utf8"))();
+  Function(fs.readFileSync(driveWritebackPath, "utf8"))();
   assert(global.window.AIDA_SLEEP?.buildPacket, "AIDA_SLEEP.buildPacket was not installed.");
   assert(global.window.AIDA_LIBRARIAN?.ingestSleep, "AIDA_LIBRARIAN.ingestSleep was not installed.");
   assert(global.window.AIDA_CURATOR?.reviewLibrarian, "AIDA_CURATOR.reviewLibrarian was not installed.");
   assert(global.window.AIDA_CRAWLER?.search, "AIDA_CRAWLER.search was not installed.");
+  assert(global.window.AIDA_DRIVE_WRITEBACK?.preview, "AIDA_DRIVE_WRITEBACK.preview was not installed.");
   return global.window.AIDA_SLEEP;
 }
 
@@ -326,6 +333,35 @@ function runMemoryBoundaryMessageTest() {
     messageCount: built.messages.length,
     recallFound: runtime.context.lastCrawlerRecall?.found,
     systemHasStrictRule: system.includes("Strict memory rule")
+  };
+}
+
+async function runDriveWritebackDryRunTest() {
+  const turns = [
+    makeTurn(
+      1,
+      "Writeback should append diary and update the project summary after curator review.",
+      "I will stage Drive operations but only dry-run in smoke."
+    )
+  ];
+  const runtime = makeRuntime(turns);
+  const sleep = loadSleepCycle(runtime);
+  const packet = sleep.buildPacket("smoke_drive_writeback");
+  global.window.AIDA_CURATOR.reviewLibrarian();
+  const preview = global.window.AIDA_DRIVE_WRITEBACK.preview();
+  assert(preview.ready, "Drive writeback preview was not ready.", preview);
+  assert(preview.operations.some((op) => op.fileName === "diary_log.json"), "Drive writeback preview is missing diary_log.json.", preview);
+  assert(preview.operations.some((op) => op.fileName === "project_summary.json"), "Drive writeback preview is missing project_summary.json.", preview);
+  const dryRun = await global.window.AIDA_DRIVE_WRITEBACK.apply();
+  assert(dryRun.ready, "Drive writeback dry-run was not ready.", dryRun);
+  assert(dryRun.dryRun, "Drive writeback smoke should not perform real Drive writes.", dryRun);
+  assert(dryRun.operations.length >= 3, "Drive writeback dry-run did not build expected operations.", dryRun);
+
+  return {
+    packetId: packet.id,
+    previewOperations: preview.operations.length,
+    dryRunOperations: dryRun.operations.length,
+    targets: dryRun.operations.map((op) => op.target)
   };
 }
 
@@ -507,6 +543,7 @@ async function main() {
     assert(fs.existsSync(curatorPath), `Missing curator source: ${curatorPath}`);
     assert(fs.existsSync(crawlerPath), `Missing crawler source: ${crawlerPath}`);
     assert(fs.existsSync(llmMessagesPath), `Missing LLM message source: ${llmMessagesPath}`);
+    assert(fs.existsSync(driveWritebackPath), `Missing Drive writeback source: ${driveWritebackPath}`);
     const result = {
       status: "pass",
       startedAt,
@@ -517,7 +554,8 @@ async function main() {
         chunkDraft: runChunkDraftTest(),
         llmRefinement: await runLlmRefinementTest(),
         crashBufferRestore: runCrashBufferRestoreTest(),
-        memoryBoundary: runMemoryBoundaryMessageTest()
+        memoryBoundary: runMemoryBoundaryMessageTest(),
+        driveWritebackDryRun: await runDriveWritebackDryRunTest()
       }
     };
     console.log(JSON.stringify(result, null, 2));

@@ -125,6 +125,13 @@
       entries: [],
       searches: []
     },
+    driveWriteback: {
+      lastPreviewAt: null,
+      lastAppliedAt: null,
+      lastStatus: null,
+      operations: [],
+      history: []
+    },
     emotionEngine: {
       ready: false,
       lastAppliedAt: null,
