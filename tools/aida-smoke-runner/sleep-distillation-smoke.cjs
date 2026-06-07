@@ -271,18 +271,23 @@ function runOneTurnFallbackTest() {
   assert(preferred.ready, "Preferred fallback distillation was not ready.", preferred);
   assert(preferred.source === "fallback", "Preferred one-turn distillation should be fallback.", preferred);
   assert(packet.distillation.diaryDrafts.length >= 1, "One-turn packet did not create a diary draft.");
+  assert(packet.distillation.diaryDrafts[0].review_window?.turn_start === 1, "Diary draft did not include a review window.", packet.distillation.diaryDrafts[0]);
   assert(packet.distillation.rollingSummaries.length >= 1, "One-turn packet did not create a rolling summary.");
   assert(packet.distillation.longSummaryCandidates.length >= 1, "One-turn packet did not create a long summary candidate.");
   assert(packet.distillation.factCandidates.length >= 1, "One-turn packet did not stage a fact candidate.");
   assert(runtime.contextEvolution.rollingSummaries.length >= 1, "Runtime rolling summaries were not updated.");
   assert(runtime.contextEvolution.longSummaryDrafts.length >= 1, "Runtime long summary drafts were not updated.");
   assert(runtime.librarian?.diaryDrafts?.length >= 1, "Librarian did not stage fallback diary drafts.");
+  assert(runtime.librarian.diaryDrafts[0].review_window?.source_refs?.length >= 1, "Librarian diary draft did not preserve review window source refs.", runtime.librarian.diaryDrafts[0]);
   assert(runtime.librarian?.projectBriefcaseDrafts?.length >= 1, "Librarian did not stage fallback project briefcase drafts.");
   global.window.AIDA_CURATOR.reviewLibrarian();
   assert(runtime.curator?.projectListingDrafts?.length >= 1, "Curator did not stage fallback project listing draft.", runtime.curator);
   assert(runtime.curator?.writePlanDrafts?.length >= 1, "Curator did not stage fallback write plan.", runtime.curator);
   const recall = global.window.AIDA_CRAWLER.remember("project ledger updates");
   assert(recall.found, "Crawler did not recall fallback memory.", recall);
+  const diaryEntry = runtime.crawler.entries.find((item) => item.type === "diary_draft");
+  assert(diaryEntry?.reviewWindow?.turn_start === 1, "Crawler did not index diary review window.", diaryEntry);
+  assert(/Review window/i.test(diaryEntry.text), "Crawler diary entry did not include review window text.", diaryEntry);
   const unknown = global.window.AIDA_CRAWLER.remember("the blue pineapple deployment password");
   assert(!unknown.found, "Crawler fabricated a recall for an unknown memory.", unknown);
   assert(/do not know/i.test(unknown.reply), "Unknown recall reply should admit not knowing.", unknown);
@@ -297,6 +302,7 @@ function runOneTurnFallbackTest() {
     preferredSource: preferred.source,
     preferredMethod: preferred.method,
     librarianDiaryDrafts: runtime.librarian.diaryDrafts.length,
+    diaryReviewWindow: runtime.librarian.diaryDrafts[0].review_window,
     librarianProjectDrafts: runtime.librarian.projectBriefcaseDrafts.length,
     curatorProjectListings: runtime.curator.projectListingDrafts.length,
     curatorWritePlans: runtime.curator.writePlanDrafts.length,

@@ -203,8 +203,17 @@
     const role = tags?.role || dominantValue(turns, (turn) => turn.tags?.role, "unknown_role");
     const sourceRefs = turns.map((turn) => sourceRef(turn.tags?.session_id || sessionId, turn.turnIndex));
     const sourceTurns = turns.map((turn) => turn.turnIndex);
+    const capturedTimes = turns.map((turn) => turn.capturedAt).filter(Boolean);
     const summary = summarizeTurns(turns, { project, role });
     const facts = extractFactCandidates(turns, createdAt);
+    const reviewWindow = {
+      session_id: sessionId,
+      turn_start: sourceTurns[0] || null,
+      turn_end: sourceTurns[sourceTurns.length - 1] || null,
+      startedAt: capturedTimes[0] || createdAt,
+      endedAt: capturedTimes[capturedTimes.length - 1] || createdAt,
+      source_refs: sourceRefs
+    };
 
     return {
       rolling_summary: {
@@ -231,6 +240,7 @@
         entry: `Aida and the user spent this sleep window in ${project}. ${summary}`,
         source_turns: sourceTurns,
         source_refs: sourceRefs,
+        review_window: reviewWindow,
         createdAt
       },
       fact_candidates: facts,
@@ -296,6 +306,7 @@
       "Do not invent facts outside the packet.",
       "Keep facts and insights as candidate or needs_confirmation unless the user explicitly stated a low-risk stable preference or project requirement.",
       "Preserve source_refs/source_turns wherever possible.",
+      "For each diaryDraft, preserve or create review_window with session_id, turn_start, turn_end, startedAt, endedAt, and source_refs so the diary can point retrieval toward the right log timeframe.",
       "Use this exact top-level shape:",
       "{",
       '  "diaryDrafts": [],',

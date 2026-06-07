@@ -142,6 +142,37 @@
     state.projectBriefcaseDrafts = state.projectBriefcaseDrafts.filter((item) => item.packetId !== packetId);
   }
 
+  function sourceTurnRange(sourceTurns = []) {
+    const turns = safeArray(sourceTurns)
+      .map((turn) => Number(turn))
+      .filter((turn) => Number.isFinite(turn));
+    if (!turns.length) return { turn_start: null, turn_end: null };
+    return {
+      turn_start: Math.min(...turns),
+      turn_end: Math.max(...turns)
+    };
+  }
+
+  function normalizeDiaryDraft(item, preferred, packet, ingestedAt) {
+    const packetSession = packet?.session || {};
+    const range = sourceTurnRange(item.source_turns);
+    return {
+      ...item,
+      review_window: item.review_window || {
+        session_id: item.session_id || packetSession.id || null,
+        turn_start: range.turn_start,
+        turn_end: range.turn_end,
+        startedAt: packetSession.startedAt || preferred.capturedAt || ingestedAt,
+        endedAt: packetSession.lastTurnAt || preferred.capturedAt || ingestedAt,
+        source_refs: safeArray(item.source_refs)
+      },
+      packetId: preferred.packetId,
+      source: preferred.source,
+      method: preferred.method,
+      ingestedAt
+    };
+  }
+
   function getStaged() {
     const state = ensureState();
     return {
@@ -189,7 +220,7 @@
     const ingestedAt = nowIso();
     const output = preferred.output || {};
     removePacketEntries(state, preferred.packetId);
-    safeArray(output.diaryDrafts).forEach((item) => upsertById(state.diaryDrafts, { ...item, packetId: preferred.packetId, source: preferred.source, method: preferred.method, ingestedAt }));
+    safeArray(output.diaryDrafts).forEach((item) => upsertById(state.diaryDrafts, normalizeDiaryDraft(item, preferred, packet, ingestedAt)));
     safeArray(output.rollingSummaries).forEach((item) => upsertById(state.rollingSummaryDrafts, { ...item, packetId: preferred.packetId, source: preferred.source, method: preferred.method, ingestedAt }));
     safeArray(output.longSummaryCandidates).forEach((item) => upsertById(state.longSummaryDrafts, { ...item, packetId: preferred.packetId, source: preferred.source, method: preferred.method, ingestedAt }));
     safeArray(output.factCandidates).forEach((item) => upsertById(state.factCandidates, { ...item, packetId: preferred.packetId, source: preferred.source, method: preferred.method, ingestedAt }));

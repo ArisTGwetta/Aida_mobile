@@ -95,6 +95,7 @@
       text: cleaned,
       tokens: tokenSet(`${title} ${cleaned}`),
       sourceRefs: safeArray(meta.sourceRefs),
+      reviewWindow: meta.reviewWindow || null,
       project: meta.project || null,
       realm: meta.realm || null,
       packetId: meta.packetId || null,
@@ -140,20 +141,27 @@
 
   function librarianEntries(staged, indexedAt) {
     const entries = [];
-    safeArray(staged.diaryDrafts).forEach((item) => entries.push(entry(
-      `diary_${slug(item.id)}`,
-      "diary_draft",
-      `Diary: ${item.project || "project"}`,
-      item.entry,
-      {
-        sourceRefs: item.source_refs,
-        project: item.project,
-        realm: item.realm,
-        packetId: item.packetId,
-        humanSource: "AIDA_RUNTIME.librarian.diaryDrafts",
-        indexedAt
-      }
-    )));
+    safeArray(staged.diaryDrafts).forEach((item) => {
+      const windowInfo = item.review_window || null;
+      const windowText = windowInfo
+        ? ` Review window: session ${windowInfo.session_id || item.session_id || "unknown"}, turns ${windowInfo.turn_start ?? "?"}-${windowInfo.turn_end ?? "?"}, ${windowInfo.startedAt || "unknown_start"} to ${windowInfo.endedAt || "unknown_end"}.`
+        : "";
+      entries.push(entry(
+        `diary_${slug(item.id)}`,
+        "diary_draft",
+        `Diary: ${item.project || "project"}`,
+        `${item.entry || ""}${windowText}`,
+        {
+          sourceRefs: item.source_refs,
+          reviewWindow: windowInfo,
+          project: item.project,
+          realm: item.realm,
+          packetId: item.packetId,
+          humanSource: "AIDA_RUNTIME.librarian.diaryDrafts",
+          indexedAt
+        }
+      ));
+    });
     safeArray(staged.rollingSummaryDrafts).forEach((item) => entries.push(entry(
       `rolling_${slug(item.id)}`,
       "rolling_summary",
@@ -353,6 +361,7 @@
         text: item.text,
         score: item.score,
         sourceRefs: item.sourceRefs,
+        reviewWindow: item.reviewWindow,
         project: item.project,
         humanSource: item.humanSource,
         packetId: item.packetId
