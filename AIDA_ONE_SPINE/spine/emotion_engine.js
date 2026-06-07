@@ -14,8 +14,8 @@
     oracle_voice: "calm",
     "publishing-advisor": "happy",
     publishing_advisor: "happy",
-    "architect-companion": "focused",
-    architect_companion: "focused"
+    "architect-companion": "happy",
+    architect_companion: "happy"
   };
   const REALM_DEFAULTS = {
     rpg: "mischievous",
@@ -24,7 +24,7 @@
     chronicle: "calm",
     oracle: "calm",
     shirley_holmes: "happy",
-    aida_architecture: "focused",
+    aida_architecture: "happy",
     ghost_in_the_house: "concerned"
   };
 
