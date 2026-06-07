@@ -13,6 +13,15 @@
     if (window.AIDA_BODY?.pulse) window.AIDA_BODY.pulse(message);
   }
 
+  function consoleReport(label, value) {
+    if (typeof console === "undefined" || !console.log) return;
+    try {
+      console.log(label, copyJson(value, value));
+    } catch (error) {
+      console.log(label, value);
+    }
+  }
+
   function nowIso() {
     return new Date().toISOString();
   }
@@ -509,6 +518,66 @@
     return packet.distillation;
   }
 
+  function getPreferredDistillation(packet = runtime()?.sleep?.lastPacket) {
+    const distillation = packet?.distillation || null;
+    if (!packet || !distillation) {
+      return {
+        ready: false,
+        packetId: packet?.id || null,
+        source: "none",
+        status: "missing",
+        method: null,
+        llmStatus: null,
+        counts: {
+          diaryDrafts: 0,
+          rollingSummaries: 0,
+          longSummaryCandidates: 0,
+          factCandidates: 0,
+          insightCandidates: 0,
+          openThreads: 0
+        },
+        output: null
+      };
+    }
+
+    const output = {
+      diaryDrafts: safeArray(distillation.diaryDrafts),
+      rollingSummaries: safeArray(distillation.rollingSummaries),
+      longSummaryCandidates: safeArray(distillation.longSummaryCandidates),
+      factCandidates: safeArray(distillation.factCandidates),
+      insightCandidates: safeArray(distillation.insightCandidates),
+      projectLedgerUpdates: safeArray(distillation.projectLedgerUpdates),
+      openThreads: safeArray(distillation.openThreads)
+    };
+
+    return {
+      ready: true,
+      packetId: packet.id,
+      capturedAt: packet.capturedAt,
+      source: distillation.method === "llm_refined_draft" ? "llm" : "fallback",
+      status: distillation.status || "unknown",
+      method: distillation.method || "unknown",
+      llmStatus: distillation.llm?.status || null,
+      llmError: distillation.llm?.error || null,
+      counts: {
+        diaryDrafts: output.diaryDrafts.length,
+        rollingSummaries: output.rollingSummaries.length,
+        longSummaryCandidates: output.longSummaryCandidates.length,
+        factCandidates: output.factCandidates.length,
+        insightCandidates: output.insightCandidates.length,
+        openThreads: output.openThreads.length
+      },
+      preview: {
+        diary: cleanText(output.diaryDrafts[0]?.entry, 220),
+        rolling: cleanText(output.rollingSummaries[0]?.text, 220),
+        long: cleanText(output.longSummaryCandidates[0]?.text, 220),
+        fact: cleanText(output.factCandidates[0]?.claim, 220),
+        insight: cleanText(output.insightCandidates[0]?.guidance, 220)
+      },
+      output
+    };
+  }
+
   async function refinePacketWithLlm(packet = runtime()?.sleep?.lastPacket) {
     const rt = runtime();
     if (!packet) return null;
@@ -520,6 +589,7 @@
         checkedAt: nowIso()
       };
       log("SLEEP LLM: skipped. OpenAI route is not ready.", "log-amber");
+      consoleReport("AIDA_SLEEP_LLM_DISTILLATION", getPreferredDistillation(packet));
       return packet.distillation;
     }
 
@@ -545,6 +615,7 @@
       };
       rt.sleep.lastPacket = packet;
       log(`SLEEP LLM: complete. diary=${distillation.counts.diaryDrafts}, facts=${distillation.counts.factCandidates}, insights=${distillation.counts.insightCandidates}.`, "log-blue");
+      consoleReport("AIDA_SLEEP_LLM_DISTILLATION", getPreferredDistillation(packet));
       return distillation;
     } catch (error) {
       packet.distillation.llm = {
@@ -554,6 +625,7 @@
         error: error.message
       };
       log(`SLEEP LLM: failed; fallback distillation remains active. ${error.message}`, "log-amber");
+      consoleReport("AIDA_SLEEP_LLM_DISTILLATION", getPreferredDistillation(packet));
       return packet.distillation;
     }
   }
@@ -564,7 +636,7 @@
 
     const capturedAt = nowIso();
     const packet = {
-      id: `sleep_${capturedAt.replace(/[-:.TZ]/g, "").slice(0, 14)}`,
+      id: `sleep_${capturedAt.replace(/[-:.TZ]/g, "").slice(0, 17)}`,
       status: "ready_for_drive_sync",
       reason,
       capturedAt,
@@ -607,6 +679,7 @@
     log(`SLEEP: Packet ${packet.id} collected. Drive write remains disabled.`, "log-blue");
     log(`SLEEP: exchanges=${packet.session.exchangeCount}, pendingJournal=${packet.pendingJournal.length}, summaries=${packet.contextEvolution.summaryDrafts.length}, ledgerDrafts=${packet.projectLedgerDrafts.length}.`);
     log(`SLEEP DISTILLATION: diary=${packet.distillation.counts.diaryDrafts}, facts=${packet.distillation.counts.factCandidates}, insights=${packet.distillation.counts.insightCandidates}, method=${packet.distillation.method}.`);
+    consoleReport("AIDA_SLEEP_FALLBACK_DISTILLATION", getPreferredDistillation(packet));
     return packet;
   }
 
@@ -632,9 +705,14 @@
       emotionSnapCount: packet.emotion.snapLog.length,
       faceWishlistCount: packet.emotion.faceWishlist.length,
       whileAwaySource: packet.whileAway.prepared?.source || "none",
-      diaryDraftCount: packet.distillation?.counts?.diaryDrafts || 0,
-      factCandidateCount: packet.distillation?.counts?.factCandidates || 0,
-      insightCandidateCount: packet.distillation?.counts?.insightCandidates || 0,
+      distillationSource: getPreferredDistillation(packet).source,
+      distillationStatus: packet.distillation?.status || "missing",
+      distillationMethod: packet.distillation?.method || "missing",
+      llmStatus: packet.distillation?.llm?.status || "not_started",
+      llmError: packet.distillation?.llm?.error || null,
+      diaryDraftCount: getPreferredDistillation(packet).counts.diaryDrafts,
+      factCandidateCount: getPreferredDistillation(packet).counts.factCandidates,
+      insightCandidateCount: getPreferredDistillation(packet).counts.insightCandidates,
       syncQueueCount: rt.drive?.syncQueue?.length || 0
     };
   }
@@ -648,7 +726,10 @@
     }
     log(`SLEEP: packet=${summary.packetId}, exchanges=${summary.exchangeCount}, pending=${summary.pendingJournalCount}, syncQueue=${summary.syncQueueCount}`);
     log(`SLEEP DRAFTS: summaries=${summary.summaryDraftCount}, ledgers=${summary.projectLedgerDraftCount}, emotionSnaps=${summary.emotionSnapCount}, faceWishlist=${summary.faceWishlistCount}, awaySource=${summary.whileAwaySource}`);
-    log(`SLEEP DISTILLATION: diary=${summary.diaryDraftCount}, facts=${summary.factCandidateCount}, insights=${summary.insightCandidateCount}`);
+    log(`SLEEP DISTILLATION: source=${summary.distillationSource}, status=${summary.distillationStatus}, method=${summary.distillationMethod}, llm=${summary.llmStatus}`);
+    log(`SLEEP DISTILLATION COUNTS: diary=${summary.diaryDraftCount}, facts=${summary.factCandidateCount}, insights=${summary.insightCandidateCount}`);
+    if (summary.llmError) log(`SLEEP DISTILLATION LLM ERROR: ${summary.llmError}`, "log-amber");
+    consoleReport("AIDA_SLEEP_INSPECT", getPreferredDistillation());
     return summary;
   }
 
@@ -678,6 +759,7 @@
   window.AIDA_SLEEP = {
     buildPacket,
     refinePacketWithLlm,
+    getPreferredDistillation,
     sleepNow,
     inspect,
     safeSummary

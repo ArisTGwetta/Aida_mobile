@@ -195,8 +195,11 @@ function runOneTurnFallbackTest() {
   const runtime = makeRuntime(turns);
   const sleep = loadSleepCycle(runtime);
   const packet = sleep.buildPacket("smoke_one_turn_fallback");
+  const preferred = sleep.getPreferredDistillation(packet);
 
   assert(packet.distillation?.status === "draft_filled", "One-turn packet did not fill distillation.");
+  assert(preferred.ready, "Preferred fallback distillation was not ready.", preferred);
+  assert(preferred.source === "fallback", "Preferred one-turn distillation should be fallback.", preferred);
   assert(packet.distillation.diaryDrafts.length >= 1, "One-turn packet did not create a diary draft.");
   assert(packet.distillation.rollingSummaries.length >= 1, "One-turn packet did not create a rolling summary.");
   assert(packet.distillation.longSummaryCandidates.length >= 1, "One-turn packet did not create a long summary candidate.");
@@ -210,7 +213,9 @@ function runOneTurnFallbackTest() {
     rollingSummaries: packet.distillation.rollingSummaries.length,
     longSummaryCandidates: packet.distillation.longSummaryCandidates.length,
     factCandidates: packet.distillation.factCandidates.length,
-    insightCandidates: packet.distillation.insightCandidates.length
+    insightCandidates: packet.distillation.insightCandidates.length,
+    preferredSource: preferred.source,
+    preferredMethod: preferred.method
   };
 }
 
@@ -282,8 +287,10 @@ async function runLlmRefinementTest() {
   const sleep = loadSleepCycle(runtime, { mockOpenAI: true });
   const packet = sleep.buildPacket("smoke_llm_refinement");
   const distillation = await sleep.refinePacketWithLlm(packet);
+  const preferred = sleep.getPreferredDistillation(packet);
 
   assert(distillation.status === "llm_draft_filled", "LLM refinement did not mark distillation as llm_draft_filled.", distillation);
+  assert(preferred.source === "llm", "Preferred distillation did not switch to LLM after refinement.", preferred);
   assert(distillation.method === "llm_refined_draft", "LLM refinement did not set method.", distillation);
   assert(distillation.fallback?.status === "draft_filled", "LLM refinement did not preserve fallback distillation.", distillation);
   assert(distillation.llm?.status === "complete", "LLM refinement did not mark llm status complete.", distillation);
@@ -296,7 +303,9 @@ async function runLlmRefinementTest() {
     llmStatus: distillation.llm.status,
     fallbackStatus: distillation.fallback.status,
     diaryDrafts: distillation.diaryDrafts.length,
-    factCandidates: distillation.factCandidates.length
+    factCandidates: distillation.factCandidates.length,
+    preferredSource: preferred.source,
+    preferredMethod: preferred.method
   };
 }
 
