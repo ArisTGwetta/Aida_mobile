@@ -256,6 +256,7 @@
     const summary = safeSummary();
     log(`CURATOR: reviewed packet=${staged.lastIngestedPacketId}, listings=${summary.projectListingDraftCount}, writePlans=${summary.writePlanDraftCount}.`, "log-blue");
     window.AIDA_CRASH_BUFFER?.checkpoint?.("curator_reviewed");
+    window.AIDA_CRAWLER?.indexNow?.("curator_reviewed");
     consoleReport("AIDA_CURATOR_REVIEWED", {
       summary,
       latestProjectListing: state.projectListingDrafts[state.projectListingDrafts.length - 1] || null,

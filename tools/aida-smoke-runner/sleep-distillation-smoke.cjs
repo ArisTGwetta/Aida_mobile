@@ -8,6 +8,8 @@ const sleepCyclePath = path.join(repoRoot, "AIDA_ONE_SPINE", "spine", "sleep_cyc
 const librarianPath = path.join(repoRoot, "AIDA_ONE_SPINE", "spine", "librarian.js");
 const crashBufferPath = path.join(repoRoot, "AIDA_ONE_SPINE", "spine", "crash_buffer.js");
 const curatorPath = path.join(repoRoot, "AIDA_ONE_SPINE", "spine", "curator.js");
+const crawlerPath = path.join(repoRoot, "AIDA_ONE_SPINE", "spine", "crawler.js");
+const llmMessagesPath = path.join(repoRoot, "AIDA_ONE_SPINE", "spine", "llm_messages.js");
 
 function assert(condition, message, details = null) {
   if (!condition) {
@@ -52,7 +54,15 @@ function makeRuntime(turns, contextEvolution = {}, options = {}) {
       }
     },
     context: { emotion: { label: "focused" } },
-    mind: {},
+    mind: {
+      identity: { name: "Aida" },
+      realm: { name: "aida_architecture" },
+      role: { name: "architect_companion" },
+      facts: { items: ["Aida uses indexed memory evidence for recall."] },
+      memory: { summaries: ["Aida is testing strict memory recall boundaries."] },
+      insights: { items: [] },
+      session: { turns: [] }
+    },
     emotionEngine: {
       currentFace: "focused1.png",
       lastAppliedAt: "2026-06-07T00:00:00.000Z",
@@ -92,6 +102,11 @@ function makeRuntime(turns, contextEvolution = {}, options = {}) {
       needsConfirmation: [],
       writePlanDrafts: [],
       reviewLog: []
+    },
+    crawler: {
+      key: "AIDA_CRAWLER_INDEX_V1",
+      entries: [],
+      searches: []
     }
   };
 }
@@ -212,10 +227,31 @@ function loadSleepCycle(runtime, options = {}) {
   Function(fs.readFileSync(sleepCyclePath, "utf8"))();
   Function(fs.readFileSync(librarianPath, "utf8"))();
   Function(fs.readFileSync(curatorPath, "utf8"))();
+  Function(fs.readFileSync(crawlerPath, "utf8"))();
   assert(global.window.AIDA_SLEEP?.buildPacket, "AIDA_SLEEP.buildPacket was not installed.");
   assert(global.window.AIDA_LIBRARIAN?.ingestSleep, "AIDA_LIBRARIAN.ingestSleep was not installed.");
   assert(global.window.AIDA_CURATOR?.reviewLibrarian, "AIDA_CURATOR.reviewLibrarian was not installed.");
+  assert(global.window.AIDA_CRAWLER?.search, "AIDA_CRAWLER.search was not installed.");
   return global.window.AIDA_SLEEP;
+}
+
+function loadCrawlerAndMessages(runtime, options = {}) {
+  installBrowserMocks(runtime, options);
+  runtime.boot.driveLoaded = true;
+  runtime.context.identity = runtime.mind.identity;
+  runtime.context.realm = runtime.mind.realm;
+  runtime.context.role = runtime.mind.role;
+  runtime.context.projectName = "aida_architecture";
+  runtime.context.projectFacts = runtime.mind.facts;
+  runtime.context.projectMemory = runtime.mind.memory;
+  Function(fs.readFileSync(crawlerPath, "utf8"))();
+  Function(fs.readFileSync(llmMessagesPath, "utf8"))();
+  assert(global.window.AIDA_CRAWLER?.remember, "AIDA_CRAWLER.remember was not installed.");
+  assert(global.window.AIDA_LLM_MESSAGES?.build, "AIDA_LLM_MESSAGES.build was not installed.");
+  return {
+    crawler: global.window.AIDA_CRAWLER,
+    messages: global.window.AIDA_LLM_MESSAGES
+  };
 }
 
 function runOneTurnFallbackTest() {
@@ -245,6 +281,11 @@ function runOneTurnFallbackTest() {
   global.window.AIDA_CURATOR.reviewLibrarian();
   assert(runtime.curator?.projectListingDrafts?.length >= 1, "Curator did not stage fallback project listing draft.", runtime.curator);
   assert(runtime.curator?.writePlanDrafts?.length >= 1, "Curator did not stage fallback write plan.", runtime.curator);
+  const recall = global.window.AIDA_CRAWLER.remember("project ledger updates");
+  assert(recall.found, "Crawler did not recall fallback memory.", recall);
+  const unknown = global.window.AIDA_CRAWLER.remember("the blue pineapple deployment password");
+  assert(!unknown.found, "Crawler fabricated a recall for an unknown memory.", unknown);
+  assert(/do not know/i.test(unknown.reply), "Unknown recall reply should admit not knowing.", unknown);
 
   return {
     packetId: packet.id,
@@ -258,7 +299,27 @@ function runOneTurnFallbackTest() {
     librarianDiaryDrafts: runtime.librarian.diaryDrafts.length,
     librarianProjectDrafts: runtime.librarian.projectBriefcaseDrafts.length,
     curatorProjectListings: runtime.curator.projectListingDrafts.length,
-    curatorWritePlans: runtime.curator.writePlanDrafts.length
+    curatorWritePlans: runtime.curator.writePlanDrafts.length,
+    crawlerEntries: runtime.crawler.entries.length,
+    crawlerRecallFound: recall.found,
+    crawlerUnknownRecallFound: unknown.found
+  };
+}
+
+function runMemoryBoundaryMessageTest() {
+  const runtime = makeRuntime([]);
+  const { messages } = loadCrawlerAndMessages(runtime);
+  const built = messages.build("Do you remember the blue pineapple deployment password?");
+  assert(!built.blocked, "LLM message build was blocked unexpectedly.", built);
+  const system = built.messages[0].content;
+  assert(system.includes("Strict memory rule"), "LLM system prompt is missing strict memory rule.", system);
+  assert(system.includes("found\": false"), "LLM retrieval section should say no indexed memory was found.", system);
+  assert(system.includes("Do not invent the missing memory"), "LLM retrieval section is missing no-invention instruction.", system);
+
+  return {
+    messageCount: built.messages.length,
+    recallFound: runtime.context.lastCrawlerRecall?.found,
+    systemHasStrictRule: system.includes("Strict memory rule")
   };
 }
 
@@ -346,6 +407,8 @@ async function runLlmRefinementTest() {
   global.window.AIDA_CURATOR.reviewLibrarian();
   assert(runtime.curator?.projectListingDrafts?.some((item) => item.source === "llm"), "Curator did not stage LLM project listing draft.", runtime.curator);
   assert(runtime.curator?.writePlanDrafts?.length >= 1, "Curator did not stage LLM write plan.", runtime.curator);
+  const search = global.window.AIDA_CRAWLER.search("LLM refinement lane");
+  assert(search.results.length >= 1, "Crawler did not find LLM refinement memory.", search);
 
   return {
     packetId: packet.id,
@@ -360,7 +423,9 @@ async function runLlmRefinementTest() {
     librarianDiaryDrafts: runtime.librarian.diaryDrafts.length,
     librarianProjectDrafts: runtime.librarian.projectBriefcaseDrafts.length,
     curatorProjectListings: runtime.curator.projectListingDrafts.length,
-    curatorWritePlans: runtime.curator.writePlanDrafts.length
+    curatorWritePlans: runtime.curator.writePlanDrafts.length,
+    crawlerEntries: runtime.crawler.entries.length,
+    crawlerSearchResults: search.results.length
   };
 }
 
@@ -434,6 +499,8 @@ async function main() {
     assert(fs.existsSync(librarianPath), `Missing librarian source: ${librarianPath}`);
     assert(fs.existsSync(crashBufferPath), `Missing crash buffer source: ${crashBufferPath}`);
     assert(fs.existsSync(curatorPath), `Missing curator source: ${curatorPath}`);
+    assert(fs.existsSync(crawlerPath), `Missing crawler source: ${crawlerPath}`);
+    assert(fs.existsSync(llmMessagesPath), `Missing LLM message source: ${llmMessagesPath}`);
     const result = {
       status: "pass",
       startedAt,
@@ -443,7 +510,8 @@ async function main() {
         oneTurnFallback: runOneTurnFallbackTest(),
         chunkDraft: runChunkDraftTest(),
         llmRefinement: await runLlmRefinementTest(),
-        crashBufferRestore: runCrashBufferRestoreTest()
+        crashBufferRestore: runCrashBufferRestoreTest(),
+        memoryBoundary: runMemoryBoundaryMessageTest()
       }
     };
     console.log(JSON.stringify(result, null, 2));

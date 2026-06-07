@@ -118,6 +118,13 @@
       writePlanDrafts: [],
       reviewLog: []
     },
+    crawler: {
+      key: "AIDA_CRAWLER_INDEX_V1",
+      lastIndexedAt: null,
+      lastIndexedReason: null,
+      entries: [],
+      searches: []
+    },
     emotionEngine: {
       ready: false,
       lastAppliedAt: null,
