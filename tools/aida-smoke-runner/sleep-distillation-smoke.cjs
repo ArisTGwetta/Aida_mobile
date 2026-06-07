@@ -7,6 +7,7 @@ const repoRoot = path.resolve(__dirname, "..", "..");
 const sleepCyclePath = path.join(repoRoot, "AIDA_ONE_SPINE", "spine", "sleep_cycle.js");
 const librarianPath = path.join(repoRoot, "AIDA_ONE_SPINE", "spine", "librarian.js");
 const crashBufferPath = path.join(repoRoot, "AIDA_ONE_SPINE", "spine", "crash_buffer.js");
+const curatorPath = path.join(repoRoot, "AIDA_ONE_SPINE", "spine", "curator.js");
 
 function assert(condition, message, details = null) {
   if (!condition) {
@@ -81,6 +82,16 @@ function makeRuntime(turns, contextEvolution = {}, options = {}) {
       rollingSummaries: [],
       longSummaryDrafts: [],
       ...contextEvolution
+    },
+    curator: {
+      projectListingDrafts: [],
+      projectBriefcaseWriteDrafts: [],
+      diaryWriteDrafts: [],
+      factWriteDrafts: [],
+      insightWriteDrafts: [],
+      needsConfirmation: [],
+      writePlanDrafts: [],
+      reviewLog: []
     }
   };
 }
@@ -200,8 +211,10 @@ function loadSleepCycle(runtime, options = {}) {
   installBrowserMocks(runtime, options);
   Function(fs.readFileSync(sleepCyclePath, "utf8"))();
   Function(fs.readFileSync(librarianPath, "utf8"))();
+  Function(fs.readFileSync(curatorPath, "utf8"))();
   assert(global.window.AIDA_SLEEP?.buildPacket, "AIDA_SLEEP.buildPacket was not installed.");
   assert(global.window.AIDA_LIBRARIAN?.ingestSleep, "AIDA_LIBRARIAN.ingestSleep was not installed.");
+  assert(global.window.AIDA_CURATOR?.reviewLibrarian, "AIDA_CURATOR.reviewLibrarian was not installed.");
   return global.window.AIDA_SLEEP;
 }
 
@@ -229,6 +242,9 @@ function runOneTurnFallbackTest() {
   assert(runtime.contextEvolution.longSummaryDrafts.length >= 1, "Runtime long summary drafts were not updated.");
   assert(runtime.librarian?.diaryDrafts?.length >= 1, "Librarian did not stage fallback diary drafts.");
   assert(runtime.librarian?.projectBriefcaseDrafts?.length >= 1, "Librarian did not stage fallback project briefcase drafts.");
+  global.window.AIDA_CURATOR.reviewLibrarian();
+  assert(runtime.curator?.projectListingDrafts?.length >= 1, "Curator did not stage fallback project listing draft.", runtime.curator);
+  assert(runtime.curator?.writePlanDrafts?.length >= 1, "Curator did not stage fallback write plan.", runtime.curator);
 
   return {
     packetId: packet.id,
@@ -240,7 +256,9 @@ function runOneTurnFallbackTest() {
     preferredSource: preferred.source,
     preferredMethod: preferred.method,
     librarianDiaryDrafts: runtime.librarian.diaryDrafts.length,
-    librarianProjectDrafts: runtime.librarian.projectBriefcaseDrafts.length
+    librarianProjectDrafts: runtime.librarian.projectBriefcaseDrafts.length,
+    curatorProjectListings: runtime.curator.projectListingDrafts.length,
+    curatorWritePlans: runtime.curator.writePlanDrafts.length
   };
 }
 
@@ -325,6 +343,9 @@ async function runLlmRefinementTest() {
   assert(runtime.librarian?.diaryDrafts?.some((item) => item.id === "diary_llm_smoke"), "Librarian did not stage LLM diary draft.", runtime.librarian);
   assert(runtime.librarian?.diaryDrafts?.length === 1, "Librarian should replace fallback diary drafts for the same packet after LLM refinement.", runtime.librarian);
   assert(runtime.librarian?.projectBriefcaseDrafts?.some((item) => item.source === "llm"), "Librarian did not stage an LLM project briefcase draft.", runtime.librarian);
+  global.window.AIDA_CURATOR.reviewLibrarian();
+  assert(runtime.curator?.projectListingDrafts?.some((item) => item.source === "llm"), "Curator did not stage LLM project listing draft.", runtime.curator);
+  assert(runtime.curator?.writePlanDrafts?.length >= 1, "Curator did not stage LLM write plan.", runtime.curator);
 
   return {
     packetId: packet.id,
@@ -337,7 +358,9 @@ async function runLlmRefinementTest() {
     preferredSource: preferred.source,
     preferredMethod: preferred.method,
     librarianDiaryDrafts: runtime.librarian.diaryDrafts.length,
-    librarianProjectDrafts: runtime.librarian.projectBriefcaseDrafts.length
+    librarianProjectDrafts: runtime.librarian.projectBriefcaseDrafts.length,
+    curatorProjectListings: runtime.curator.projectListingDrafts.length,
+    curatorWritePlans: runtime.curator.writePlanDrafts.length
   };
 }
 
@@ -410,6 +433,7 @@ async function main() {
     assert(fs.existsSync(sleepCyclePath), `Missing sleep cycle source: ${sleepCyclePath}`);
     assert(fs.existsSync(librarianPath), `Missing librarian source: ${librarianPath}`);
     assert(fs.existsSync(crashBufferPath), `Missing crash buffer source: ${crashBufferPath}`);
+    assert(fs.existsSync(curatorPath), `Missing curator source: ${curatorPath}`);
     const result = {
       status: "pass",
       startedAt,

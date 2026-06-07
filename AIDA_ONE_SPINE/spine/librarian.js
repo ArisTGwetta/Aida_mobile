@@ -210,6 +210,7 @@
     const summary = safeSummary();
     log(`LIBRARIAN: staged packet=${preferred.packetId}, source=${preferred.source}, diary=${summary.diaryDraftCount}, projectDrafts=${summary.projectBriefcaseDraftCount}.`, "log-blue");
     window.AIDA_CRASH_BUFFER?.checkpoint?.("librarian_staged");
+    window.AIDA_CURATOR?.reviewLibrarian?.();
     consoleReport("AIDA_LIBRARIAN_STAGED", {
       ...summary,
       preferred: {

@@ -71,7 +71,8 @@
         lastContextCheckpoint: copyJson(rt.sleep?.lastContextCheckpoint || null, null),
         lastActive: rt.sleep?.lastActive || null
       },
-      librarian: copyJson(rt.librarian || null, null)
+      librarian: copyJson(rt.librarian || null, null),
+      curator: copyJson(rt.curator || null, null)
     };
   }
 
@@ -150,6 +151,12 @@
       rt.librarian = {
         ...(rt.librarian || {}),
         ...copyJson(snapshot.librarian, {})
+      };
+    }
+    if (snapshot.curator) {
+      rt.curator = {
+        ...(rt.curator || {}),
+        ...copyJson(snapshot.curator, {})
       };
     }
 

@@ -106,6 +106,18 @@
       projectBriefcaseDrafts: [],
       ingestLog: []
     },
+    curator: {
+      lastReviewedAt: null,
+      lastReviewedPacketId: null,
+      projectListingDrafts: [],
+      projectBriefcaseWriteDrafts: [],
+      diaryWriteDrafts: [],
+      factWriteDrafts: [],
+      insightWriteDrafts: [],
+      needsConfirmation: [],
+      writePlanDrafts: [],
+      reviewLog: []
+    },
     emotionEngine: {
       ready: false,
       lastAppliedAt: null,
