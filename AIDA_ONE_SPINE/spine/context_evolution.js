@@ -161,6 +161,7 @@
     if (queued) {
       log(`EVOLUTION: Queued ${queued} context chunk(s) for sleep summary.`, "log-blue");
       prepareSummaryDrafts();
+      window.AIDA_CRASH_BUFFER?.checkpoint?.("context_chunks_queued");
     }
 
     return queued;
@@ -235,6 +236,7 @@
     if (prepared) {
       log(`EVOLUTION: Prepared ${prepared} summary draft(s). LLM summarization still disabled.`, "log-blue");
       prepareProjectLedgerDrafts();
+      window.AIDA_CRASH_BUFFER?.checkpoint?.("summary_drafts_prepared");
     }
 
     return prepared;
@@ -296,6 +298,7 @@
 
     if (prepared) {
       log(`EVOLUTION: Prepared ${prepared} project ledger draft(s). Drive writes still disabled.`, "log-blue");
+      window.AIDA_CRASH_BUFFER?.checkpoint?.("project_ledger_drafts_prepared");
     }
 
     return prepared;

@@ -196,6 +196,9 @@
     if (window.AIDA_CONTEXT_EVOLUTION?.ingest) {
       window.AIDA_CONTEXT_EVOLUTION.ingest(exchange);
     }
+    if (window.AIDA_CRASH_BUFFER?.checkpoint) {
+      window.AIDA_CRASH_BUFFER.checkpoint("exchange_captured");
+    }
 
     log(`SESSION: Captured exchange ${turnIndex}. unsaved=true.`, "log-blue");
     return exchange;

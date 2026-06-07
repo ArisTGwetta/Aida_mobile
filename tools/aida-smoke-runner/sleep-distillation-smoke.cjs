@@ -6,6 +6,7 @@ const path = require("path");
 const repoRoot = path.resolve(__dirname, "..", "..");
 const sleepCyclePath = path.join(repoRoot, "AIDA_ONE_SPINE", "spine", "sleep_cycle.js");
 const librarianPath = path.join(repoRoot, "AIDA_ONE_SPINE", "spine", "librarian.js");
+const crashBufferPath = path.join(repoRoot, "AIDA_ONE_SPINE", "spine", "crash_buffer.js");
 
 function assert(condition, message, details = null) {
   if (!condition) {
@@ -84,10 +85,21 @@ function makeRuntime(turns, contextEvolution = {}, options = {}) {
   };
 }
 
+function makeMemoryStorage() {
+  const values = new Map();
+  return {
+    getItem: (key) => values.has(key) ? values.get(key) : null,
+    setItem: (key, value) => values.set(key, String(value)),
+    removeItem: (key) => values.delete(key),
+    clear: () => values.clear()
+  };
+}
+
 function installBrowserMocks(runtime, options = {}) {
   const logs = [];
   global.document = { addEventListener() {} };
   global.window = {
+    localStorage: options.localStorage || makeMemoryStorage(),
     AIDA_BIOS: { log: (message) => logs.push(message) },
     AIDA_BODY: {
       pulse: (message) => logs.push(message),
@@ -175,6 +187,13 @@ function installBrowserMocks(runtime, options = {}) {
     };
   }
   return logs;
+}
+
+function loadCrashBuffer(runtime, localStorage) {
+  installBrowserMocks(runtime, { localStorage });
+  Function(fs.readFileSync(crashBufferPath, "utf8"))();
+  assert(global.window.AIDA_CRASH_BUFFER?.checkpoint, "AIDA_CRASH_BUFFER.checkpoint was not installed.");
+  return global.window.AIDA_CRASH_BUFFER;
 }
 
 function loadSleepCycle(runtime, options = {}) {
@@ -322,11 +341,75 @@ async function runLlmRefinementTest() {
   };
 }
 
+function runCrashBufferRestoreTest() {
+  const localStorage = makeMemoryStorage();
+  const turns = [
+    makeTurn(1, "I need this long session to survive a hard restart.", "I will checkpoint the captured exchange."),
+    makeTurn(2, "The project should not lose queued summary drafts.", "I will preserve context evolution state."),
+    makeTurn(3, "We want Librarian to pick this up after reload.", "I will keep the pending journal recoverable.")
+  ];
+  const runtimeBefore = makeRuntime(turns, {
+    queuedChunks: [
+      {
+        id: "session_smoke_chunk_1_3",
+        status: "summary_draft_prepared",
+        sessionId: "session_smoke",
+        turnStart: 1,
+        turnEnd: 3
+      }
+    ],
+    summaryDrafts: [
+      {
+        id: "session_smoke_chunk_1_3_summary_draft",
+        chunkId: "session_smoke_chunk_1_3",
+        status: "needs_llm_summary",
+        sessionId: "session_smoke",
+        turnStart: 1,
+        turnEnd: 3
+      }
+    ],
+    projectLedgerDrafts: [
+      {
+        id: "session_smoke_chunk_1_3_project_ledger_draft",
+        sourceSummaryDraftId: "session_smoke_chunk_1_3_summary_draft",
+        status: "needs_summary_outputs"
+      }
+    ]
+  });
+  runtimeBefore.sleep.pendingJournal = [
+    { type: "exchange", sessionId: "session_smoke", turnIndex: 1 },
+    { type: "summary_draft", sessionId: "session_smoke", draftId: "session_smoke_chunk_1_3_summary_draft" }
+  ];
+
+  const before = loadCrashBuffer(runtimeBefore, localStorage);
+  const checkpoint = before.checkpoint("smoke_restart_checkpoint");
+  assert(checkpoint.ok, "Crash buffer checkpoint failed.", checkpoint);
+
+  const runtimeAfter = makeRuntime([]);
+  const after = loadCrashBuffer(runtimeAfter, localStorage);
+  const restored = after.restore();
+  assert(restored.ok, "Crash buffer restore failed.", restored);
+  assert(runtimeAfter.session.currentTurns.length === 3, "Crash buffer did not restore captured turns.", runtimeAfter.session);
+  assert(runtimeAfter.contextEvolution.summaryDrafts.length === 1, "Crash buffer did not restore summary drafts.", runtimeAfter.contextEvolution);
+  assert(runtimeAfter.contextEvolution.projectLedgerDrafts.length === 1, "Crash buffer did not restore project ledger drafts.", runtimeAfter.contextEvolution);
+  assert(runtimeAfter.sleep.pendingJournal.length === 2, "Crash buffer did not restore pending journal.", runtimeAfter.sleep);
+
+  return {
+    checkpointSavedAt: checkpoint.savedAt,
+    restoredAt: restored.restoredAt,
+    exchangeCount: runtimeAfter.session.currentTurns.length,
+    summaryDraftCount: runtimeAfter.contextEvolution.summaryDrafts.length,
+    projectLedgerDraftCount: runtimeAfter.contextEvolution.projectLedgerDrafts.length,
+    pendingJournalCount: runtimeAfter.sleep.pendingJournal.length
+  };
+}
+
 async function main() {
   const startedAt = new Date().toISOString();
   try {
     assert(fs.existsSync(sleepCyclePath), `Missing sleep cycle source: ${sleepCyclePath}`);
     assert(fs.existsSync(librarianPath), `Missing librarian source: ${librarianPath}`);
+    assert(fs.existsSync(crashBufferPath), `Missing crash buffer source: ${crashBufferPath}`);
     const result = {
       status: "pass",
       startedAt,
@@ -335,7 +418,8 @@ async function main() {
       tests: {
         oneTurnFallback: runOneTurnFallbackTest(),
         chunkDraft: runChunkDraftTest(),
-        llmRefinement: await runLlmRefinementTest()
+        llmRefinement: await runLlmRefinementTest(),
+        crashBufferRestore: runCrashBufferRestoreTest()
       }
     };
     console.log(JSON.stringify(result, null, 2));

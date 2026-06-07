@@ -86,6 +86,15 @@
       rollingSummaries: [],
       longSummaryDrafts: []
     },
+    crashBuffer: {
+      key: "AIDA_SPINE_CRASH_BUFFER_V1",
+      lastCheckpointAt: null,
+      lastCheckpointReason: null,
+      lastRestoredAt: null,
+      restored: false,
+      available: false,
+      error: null
+    },
     librarian: {
       lastIngestedPacketId: null,
       lastIngestedAt: null,
