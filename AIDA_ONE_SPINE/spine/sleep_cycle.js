@@ -220,6 +220,82 @@
     };
   }
 
+  function extractJsonObject(text) {
+    const raw = String(text || "").trim();
+    if (!raw) throw new Error("LLM distillation response was empty.");
+    try {
+      return JSON.parse(raw);
+    } catch (directError) {
+      const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
+      if (fenced?.[1]) return JSON.parse(fenced[1]);
+      const start = raw.indexOf("{");
+      const end = raw.lastIndexOf("}");
+      if (start >= 0 && end > start) return JSON.parse(raw.slice(start, end + 1));
+      throw directError;
+    }
+  }
+
+  function safeArray(value) {
+    return Array.isArray(value) ? value : [];
+  }
+
+  function validateLlmDistillation(candidate) {
+    if (!candidate || typeof candidate !== "object") {
+      throw new Error("LLM distillation JSON was not an object.");
+    }
+
+    return {
+      diaryDrafts: safeArray(candidate.diaryDrafts),
+      rollingSummaries: safeArray(candidate.rollingSummaries),
+      longSummaryCandidates: safeArray(candidate.longSummaryCandidates),
+      factCandidates: safeArray(candidate.factCandidates),
+      insightCandidates: safeArray(candidate.insightCandidates),
+      projectLedgerUpdates: safeArray(candidate.projectLedgerUpdates),
+      openThreads: safeArray(candidate.openThreads)
+    };
+  }
+
+  function buildLlmDistillationMessages(packet) {
+    const compactPacket = {
+      id: packet.id,
+      reason: packet.reason,
+      capturedAt: packet.capturedAt,
+      session: packet.session,
+      contextEvolution: {
+        summaryDrafts: packet.contextEvolution?.summaryDrafts || [],
+        projectLedgerDrafts: packet.contextEvolution?.projectLedgerDrafts || []
+      },
+      emotion: packet.emotion,
+      whileAway: packet.whileAway,
+      fallbackDistillation: packet.distillation
+    };
+
+    const system = [
+      "You are Aida's sleep memory distiller.",
+      "Turn a sleep packet into structured memory drafts only.",
+      "Return strict JSON and no prose.",
+      "Do not invent facts outside the packet.",
+      "Keep facts and insights as candidate or needs_confirmation unless the user explicitly stated a low-risk stable preference or project requirement.",
+      "Preserve source_refs/source_turns wherever possible.",
+      "Use this exact top-level shape:",
+      "{",
+      '  "diaryDrafts": [],',
+      '  "rollingSummaries": [],',
+      '  "longSummaryCandidates": [],',
+      '  "factCandidates": [],',
+      '  "insightCandidates": [],',
+      '  "projectLedgerUpdates": [],',
+      '  "openThreads": []',
+      "}",
+      "Diary preserves felt shape. Rolling summary preserves immediate continuity. Long summary candidates preserve durable project arc. Facts are stable claims. Insights are behavior guidance derived from facts/themes."
+    ].join("\n");
+
+    return [
+      { role: "system", content: system },
+      { role: "user", content: JSON.stringify(compactPacket, null, 2) }
+    ];
+  }
+
   function collectSession(session) {
     const turns = session?.currentTurns || [];
     return {
@@ -381,6 +457,107 @@
     return packet.distillation;
   }
 
+  function llmReady(rt) {
+    return Boolean(
+      rt?.tokens?.llm?.key &&
+      rt.tokens.llm.provider === "openai" &&
+      window.AIDA_OPENAI?.callMessages
+    );
+  }
+
+  function applyLlmDistillation(packet, llmDraft, createdAt) {
+    const fallback = packet.distillation || {};
+    const counts = {
+      summaryDraftsFilled: fallback.counts?.summaryDraftsFilled || 0,
+      ledgerDraftsFilled: fallback.counts?.ledgerDraftsFilled || 0,
+      diaryDrafts: llmDraft.diaryDrafts.length,
+      factCandidates: llmDraft.factCandidates.length,
+      insightCandidates: llmDraft.insightCandidates.length
+    };
+
+    packet.distillation = {
+      ...fallback,
+      status: "llm_draft_filled",
+      method: "llm_refined_draft",
+      fallback,
+      llmFilledAt: createdAt,
+      diaryDrafts: llmDraft.diaryDrafts,
+      rollingSummaries: llmDraft.rollingSummaries,
+      longSummaryCandidates: llmDraft.longSummaryCandidates,
+      factCandidates: llmDraft.factCandidates,
+      insightCandidates: llmDraft.insightCandidates,
+      projectLedgerUpdates: llmDraft.projectLedgerUpdates.length ? llmDraft.projectLedgerUpdates : fallback.projectLedgerUpdates || [],
+      openThreads: llmDraft.openThreads,
+      counts
+    };
+
+    const rt = runtime();
+    if (rt?.contextEvolution) {
+      rt.contextEvolution.rollingSummaries = llmDraft.rollingSummaries.length
+        ? llmDraft.rollingSummaries
+        : rt.contextEvolution.rollingSummaries || [];
+      rt.contextEvolution.longSummaryDrafts = llmDraft.longSummaryCandidates.length
+        ? llmDraft.longSummaryCandidates
+        : rt.contextEvolution.longSummaryDrafts || [];
+      if (llmDraft.projectLedgerUpdates.length) {
+        rt.contextEvolution.projectLedgerDrafts = llmDraft.projectLedgerUpdates;
+        packet.projectLedgerDrafts = copyJson(llmDraft.projectLedgerUpdates, []);
+      }
+      packet.contextEvolution = collectEvolution(rt.contextEvolution);
+    }
+
+    return packet.distillation;
+  }
+
+  async function refinePacketWithLlm(packet = runtime()?.sleep?.lastPacket) {
+    const rt = runtime();
+    if (!packet) return null;
+
+    if (!llmReady(rt)) {
+      packet.distillation.llm = {
+        status: "skipped",
+        reason: "openai_route_not_ready",
+        checkedAt: nowIso()
+      };
+      log("SLEEP LLM: skipped. OpenAI route is not ready.", "log-amber");
+      return packet.distillation;
+    }
+
+    const startedAt = nowIso();
+    packet.distillation.llm = {
+      status: "running",
+      startedAt
+    };
+    log(`SLEEP LLM: refining distillation for ${packet.id}.`, "log-blue");
+
+    try {
+      const maxOutputTokens = window.AIDA_CONFIG?.llm?.sleepMaxOutputTokens || 1800;
+      const responseText = await window.AIDA_OPENAI.callMessages(buildLlmDistillationMessages(packet), {
+        maxOutputTokens
+      });
+      const llmDraft = validateLlmDistillation(extractJsonObject(responseText));
+      const distillation = applyLlmDistillation(packet, llmDraft, nowIso());
+      distillation.llm = {
+        status: "complete",
+        startedAt,
+        finishedAt: distillation.llmFilledAt,
+        maxOutputTokens
+      };
+      rt.sleep.lastPacket = packet;
+      log(`SLEEP LLM: complete. diary=${distillation.counts.diaryDrafts}, facts=${distillation.counts.factCandidates}, insights=${distillation.counts.insightCandidates}.`, "log-blue");
+      return distillation;
+    } catch (error) {
+      packet.distillation.llm = {
+        status: "failed",
+        startedAt,
+        failedAt: nowIso(),
+        error: error.message
+      };
+      log(`SLEEP LLM: failed; fallback distillation remains active. ${error.message}`, "log-amber");
+      return packet.distillation;
+    }
+  }
+
   function buildPacket(reason = "manual_sleep") {
     const rt = runtime();
     if (!rt) return null;
@@ -489,6 +666,7 @@
     if (window.AIDA_BODY?.appendChat) {
       window.AIDA_BODY.appendChat("AIDA", `Sleep packet collected: ${summary.exchangeCount} exchange(s), ${summary.pendingJournalCount} journal item(s), ${summary.syncQueueCount} sync draft(s).`);
     }
+    refinePacketWithLlm(packet);
     if (typeof window.aida_depart === "function") window.aida_depart();
     return packet;
   }
@@ -499,6 +677,7 @@
 
   window.AIDA_SLEEP = {
     buildPacket,
+    refinePacketWithLlm,
     sleepNow,
     inspect,
     safeSummary
@@ -513,7 +692,8 @@
         "AIDA_RUNTIME.sleep.pendingJournal",
         "AIDA_RUNTIME.contextEvolution",
         "AIDA_RUNTIME.emotionEngine",
-        "AIDA_RUNTIME.sleep.whileAway"
+        "AIDA_RUNTIME.sleep.whileAway",
+        "AIDA_RUNTIME.tokens.llm"
       ],
       writes: [
         "AIDA_RUNTIME.sleep.lastActive",
@@ -524,7 +704,7 @@
         "AIDA_RUNTIME.drive.syncQueue"
       ],
       requires: ["AIDA_RUNTIME", "AIDA_SESSION_CAPTURE", "AIDA_CONTEXT_EVOLUTION", "AIDA_WHILE_AWAY"],
-      verifies: ["manual sleep collects session, context, emotion, face wishlist, while-away drafts, and distillation drafts without Drive writes"]
+      verifies: ["manual sleep collects fallback distillation drafts immediately, then optionally refines them through OpenAI without Drive writes"]
     });
   }
 

@@ -38,10 +38,16 @@ function makeTurn(turnIndex, userText, aidaText, overrides = {}) {
   };
 }
 
-function makeRuntime(turns, contextEvolution = {}) {
+function makeRuntime(turns, contextEvolution = {}, options = {}) {
   return {
     boot: {},
     drive: { syncQueue: [] },
+    tokens: {
+      llm: {
+        provider: options.llmReady ? "openai" : null,
+        key: options.llmReady ? "smoke_key" : null
+      }
+    },
     context: { emotion: { label: "focused" } },
     mind: {},
     emotionEngine: {
@@ -77,7 +83,7 @@ function makeRuntime(turns, contextEvolution = {}) {
   };
 }
 
-function installBrowserMocks(runtime) {
+function installBrowserMocks(runtime, options = {}) {
   const logs = [];
   global.document = { addEventListener() {} };
   global.window = {
@@ -95,6 +101,11 @@ function installBrowserMocks(runtime) {
         thought: "A test thought about sleep draft filling."
       })
     },
+    AIDA_CONFIG: {
+      llm: {
+        sleepMaxOutputTokens: 1800
+      }
+    },
     AIDA_MODULES: {
       registry: {},
       register(module) {
@@ -103,11 +114,70 @@ function installBrowserMocks(runtime) {
     },
     AIDA_RUNTIME: runtime
   };
+  if (options.mockOpenAI) {
+    global.window.AIDA_OPENAI = {
+      callMessages: async () => JSON.stringify({
+        diaryDrafts: [
+          {
+            id: "diary_llm_smoke",
+            session_id: "session_smoke",
+            project: "aida_architecture",
+            realm: "aida_architecture",
+            emotional_shape: "focused",
+            entry: "LLM refined diary draft for the smoke packet.",
+            source_turns: [1],
+            source_refs: ["session_smoke#turn_1"]
+          }
+        ],
+        rollingSummaries: [
+          {
+            id: "rolling_llm_smoke",
+            scope: "project:aida_architecture",
+            text: "LLM refined rolling summary.",
+            source_refs: ["session_smoke#turn_1"]
+          }
+        ],
+        longSummaryCandidates: [
+          {
+            id: "long_llm_smoke",
+            scope: "project:aida_architecture",
+            text: "LLM refined long summary candidate.",
+            source_refs: ["session_smoke#turn_1"],
+            status: "candidate"
+          }
+        ],
+        factCandidates: [
+          {
+            id: "fact_llm_smoke",
+            scope: "project:aida_architecture",
+            claim: "The sleep distiller should support an LLM refinement lane.",
+            confidence: 0.7,
+            source_refs: ["session_smoke#turn_1"],
+            status: "candidate",
+            last_seen: "2026-06-07T00:00:01.000Z"
+          }
+        ],
+        insightCandidates: [
+          {
+            id: "insight_llm_smoke",
+            scope: "project:aida_architecture",
+            derived_from: ["fact_llm_smoke"],
+            guidance: "Keep fallback output intact when LLM refinement is unavailable.",
+            confidence: 0.66,
+            status: "candidate",
+            last_evaluated: "2026-06-07T00:00:01.000Z"
+          }
+        ],
+        projectLedgerUpdates: [],
+        openThreads: []
+      })
+    };
+  }
   return logs;
 }
 
-function loadSleepCycle(runtime) {
-  installBrowserMocks(runtime);
+function loadSleepCycle(runtime, options = {}) {
+  installBrowserMocks(runtime, options);
   const source = fs.readFileSync(sleepCyclePath, "utf8");
   Function(source)();
   assert(global.window.AIDA_SLEEP?.buildPacket, "AIDA_SLEEP.buildPacket was not installed.");
@@ -200,7 +270,37 @@ function runChunkDraftTest() {
   };
 }
 
-function main() {
+async function runLlmRefinementTest() {
+  const turns = [
+    makeTurn(
+      1,
+      "I need the LLM sleep distiller to refine the fallback draft.",
+      "I will keep the fallback active and then merge an LLM draft if available."
+    )
+  ];
+  const runtime = makeRuntime(turns, {}, { llmReady: true });
+  const sleep = loadSleepCycle(runtime, { mockOpenAI: true });
+  const packet = sleep.buildPacket("smoke_llm_refinement");
+  const distillation = await sleep.refinePacketWithLlm(packet);
+
+  assert(distillation.status === "llm_draft_filled", "LLM refinement did not mark distillation as llm_draft_filled.", distillation);
+  assert(distillation.method === "llm_refined_draft", "LLM refinement did not set method.", distillation);
+  assert(distillation.fallback?.status === "draft_filled", "LLM refinement did not preserve fallback distillation.", distillation);
+  assert(distillation.llm?.status === "complete", "LLM refinement did not mark llm status complete.", distillation);
+  assert(distillation.diaryDrafts[0]?.id === "diary_llm_smoke", "LLM diary draft was not applied.", distillation);
+
+  return {
+    packetId: packet.id,
+    status: distillation.status,
+    method: distillation.method,
+    llmStatus: distillation.llm.status,
+    fallbackStatus: distillation.fallback.status,
+    diaryDrafts: distillation.diaryDrafts.length,
+    factCandidates: distillation.factCandidates.length
+  };
+}
+
+async function main() {
   const startedAt = new Date().toISOString();
   try {
     assert(fs.existsSync(sleepCyclePath), `Missing sleep cycle source: ${sleepCyclePath}`);
@@ -211,7 +311,8 @@ function main() {
       source: sleepCyclePath,
       tests: {
         oneTurnFallback: runOneTurnFallbackTest(),
-        chunkDraft: runChunkDraftTest()
+        chunkDraft: runChunkDraftTest(),
+        llmRefinement: await runLlmRefinementTest()
       }
     };
     console.log(JSON.stringify(result, null, 2));

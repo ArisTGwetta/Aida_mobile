@@ -79,10 +79,11 @@
     return chunks.join("\n").trim();
   }
 
-  async function callOpenAI(messages) {
+  async function callOpenAI(messages, options = {}) {
     const rt = runtime();
-    const model = config().llm?.model || "gpt-4.1-mini";
-    const maxOutputTokens = config().llm?.maxOutputTokens || 700;
+    const model = options.model || config().llm?.model || "gpt-4.1-mini";
+    const maxOutputTokens = options.maxOutputTokens || config().llm?.maxOutputTokens || 700;
+    const extraBody = options.body && typeof options.body === "object" ? options.body : {};
 
     const response = await fetch(RESPONSES_URL, {
       method: "POST",
@@ -93,7 +94,8 @@
       body: JSON.stringify({
         model,
         input: messages,
-        max_output_tokens: maxOutputTokens
+        max_output_tokens: maxOutputTokens,
+        ...extraBody
       })
     });
 
@@ -189,6 +191,11 @@
       sendFromInput,
       gate
     };
+    window.AIDA_OPENAI = {
+      callMessages: callOpenAI,
+      extractOutputText,
+      gate
+    };
     log("OpenAI conversation organ loaded. Live send is gated.", "log-blue");
   }
 
@@ -199,7 +206,7 @@
       reads: ["AIDA_RUNTIME.context.llmMessages", "AIDA_RUNTIME.tokens.llm.key"],
       writes: ["AIDA_RUNTIME.context.lastLlmResponse", "AIDA_RUNTIME.boot.phase"],
       requires: ["AIDA_RUNTIME", "AIDA_LLM_MESSAGES", "AIDA_SESSION_CAPTURE"],
-      verifies: ["live LLM call is refused unless Drive, airlock, key, and messages are ready"]
+      verifies: ["live LLM call is refused unless Drive, airlock, key, and messages are ready; generic OpenAI calls are exposed for gated spine jobs"]
     });
   }
 
