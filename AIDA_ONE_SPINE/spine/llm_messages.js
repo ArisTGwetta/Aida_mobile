@@ -104,6 +104,58 @@
     return `## ${label}\n${text.slice(0, SECTION_LIMIT)}\n[truncated after ${SECTION_LIMIT} characters]`;
   }
 
+  function looksLikeMemoryRecall(userText) {
+    const text = String(userText || "").toLowerCase();
+    if (!text.trim()) return false;
+    return /\b(remember|recall|mind palace|memory|do you know|did we|have we|find it in your mind)\b/.test(text);
+  }
+
+  function buildMemoryRetrieval(userText, context) {
+    if (!looksLikeMemoryRecall(userText)) {
+      return {
+        requested: false,
+        found: null,
+        note: "No explicit memory recall request detected for this turn."
+      };
+    }
+
+    if (!window.AIDA_CRAWLER?.remember) {
+      return {
+        requested: true,
+        found: false,
+        reason: "crawler_unavailable",
+        instruction: "The user asked for memory recall, but indexed retrieval is unavailable. Say you do not know from memory yet and offer to meditate/search."
+      };
+    }
+
+    const recall = window.AIDA_CRAWLER.remember(userText, {
+      limit: 5
+    });
+    context.rt.context.lastCrawlerRecall = recall;
+
+    if (!recall.found) {
+      return {
+        requested: true,
+        found: false,
+        query: recall.query,
+        searchedAt: recall.searchedAt,
+        resultCount: 0,
+        instruction: "The user asked for memory recall, but indexed retrieval found no strong evidence. Say you do not know from memory yet and offer to meditate/search. Do not invent the missing memory."
+      };
+    }
+
+    return {
+      requested: true,
+      found: true,
+      query: recall.query,
+      searchedAt: recall.searchedAt,
+      confidence: recall.confidence,
+      top: recall.top,
+      results: recall.results,
+      instruction: "The user asked for memory recall. Answer only from this retrieved evidence. If the evidence is partial, say it is partial."
+    };
+  }
+
   function resolveContext() {
     const rt = runtime();
     const mind = rt.mind || {};
@@ -205,7 +257,7 @@
     };
   }
 
-  function buildSystemContent(context, tetrad) {
+  function buildSystemContent(context, tetrad, retrieval) {
     const projectPayload = context.project || {
       mode: context.projectMode,
       note: "No dedicated project briefcase is active. Treat the active realm as the current project context."
@@ -224,8 +276,10 @@
       "",
       "Priority order when context conflicts: core identity, active realm/project, active role, user request, facts, memory summary, recent session, emotion.",
       "Do not replace missing private context with generic chatbot defaults. If something is absent, acknowledge uncertainty lightly and stay anchored to what is present.",
+      "Strict memory rule: when the user asks you to remember, recall, or find something in memory, do not make it up. Use only retrieved memory evidence, loaded facts, summaries, or recent turns. If no evidence is present, say you do not know from memory yet and offer to meditate/search.",
       "",
       boundedSection("TETRAD", tetrad),
+      boundedSection("ON-DEMAND MEMORY RETRIEVAL", retrieval),
       boundedSection("CORE IDENTITY", context.identity),
       boundedSection("ACTIVE REALM", context.realm),
       boundedSection("ACTIVE PROJECT", projectPayload),
@@ -269,8 +323,9 @@
     }
 
     const tetrad = buildTetrad(context);
-    const systemContent = buildSystemContent(context, tetrad);
     const input = userText.trim() || "[No user message supplied yet. This is a preflight message assembly preview.]";
+    const retrieval = buildMemoryRetrieval(input, context);
+    const systemContent = buildSystemContent(context, tetrad, retrieval);
 
     const messages = [
       {
