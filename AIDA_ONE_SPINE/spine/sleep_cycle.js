@@ -305,10 +305,133 @@
     return Array.isArray(value) ? value : [];
   }
 
+  function normalizeLlmReviewDistillation(candidate) {
+    const review = candidate.memoryReview || candidate.review || null;
+    if (!review || typeof review !== "object") return null;
+
+    const packetId = candidate.packetId || candidate.id || "llm_review";
+    const capturedAt = candidate.capturedAt || nowIso();
+    const rawSourceRefs = safeArray(review.source_refs || review.sourceRefs);
+    const firstSourceRef = rawSourceRefs[0] || null;
+    const project = review.project || "aida_architecture";
+    const scope = review.scope || `project:${project}`;
+    const sessionSummary = cleanText(review.sessionSummary || review.summary || "", 900);
+
+    const diaryDrafts = safeArray(review.diary || review.diaryDrafts).map((item, index) => ({
+      id: item.id || `diary_llm_review_${slug(packetId)}_${index + 1}`,
+      session_id: item.session_id || review.session_id || null,
+      project: item.project || project,
+      realm: item.realm || review.realm || project,
+      emotional_shape: item.emotional_shape || item.emotionalShape || review.emotional_shape || "mixed",
+      entry: cleanText(item.entry || item.text || "", 1200),
+      source_turns: safeArray(item.source_turns || item.sourceTurns),
+      source_refs: safeArray(item.source_refs || item.sourceRefs || rawSourceRefs),
+      review_window: item.review_window || item.reviewWindow || null,
+      createdAt: item.createdAt || capturedAt
+    })).filter((item) => item.entry);
+
+    const rollingSummaries = sessionSummary ? [{
+      id: `rolling_llm_review_${slug(packetId)}`,
+      scope,
+      text: sessionSummary,
+      source_refs: rawSourceRefs,
+      createdAt: capturedAt
+    }] : [];
+
+    const longSummaryText = cleanText(review.longSummary || review.durableSummary || sessionSummary, 1200);
+    const longSummaryCandidates = longSummaryText ? [{
+      id: `long_llm_review_${slug(packetId)}`,
+      scope,
+      text: longSummaryText,
+      source_refs: rawSourceRefs,
+      status: "candidate",
+      createdAt: capturedAt
+    }] : [];
+
+    const factCandidates = safeArray(review.durableFacts || review.facts).map((item, index) => ({
+      id: item.id || `fact_llm_review_${slug(packetId)}_${index + 1}`,
+      scope: item.scope || scope,
+      claim: cleanText(item.claim || item.text || "", 500),
+      confidence: Number(item.confidence || 0.72),
+      source_refs: safeArray(item.source_refs || item.sourceRefs || rawSourceRefs),
+      status: item.status || "candidate",
+      last_seen: item.last_seen || item.lastSeen || capturedAt
+    })).filter((item) => item.claim);
+
+    const insightCandidates = safeArray(review.behaviorInsights || review.insights).map((item, index) => ({
+      id: item.id || `insight_llm_review_${slug(packetId)}_${index + 1}`,
+      scope: item.scope || scope,
+      derived_from: safeArray(item.derived_from || item.derivedFrom || item.source_refs || item.sourceRefs || rawSourceRefs),
+      guidance: cleanText(item.guidance || item.text || "", 700),
+      confidence: Number(item.confidence || 0.7),
+      status: item.status || "candidate",
+      last_evaluated: item.last_evaluated || item.lastEvaluated || capturedAt
+    })).filter((item) => item.guidance);
+
+    const sensitiveContextCandidates = safeArray(review.sensitiveContext || review.sensitiveContextCandidates).map((item, index) => ({
+      id: item.id || `sensitive_llm_review_${slug(packetId)}_${index + 1}`,
+      scope: item.scope || "user",
+      note: cleanText(item.note || item.context || item.text || "", 700),
+      handling: item.handling || "Handle gently; do not raise unprompted unless directly relevant.",
+      confidence: Number(item.confidence || 0.68),
+      source_refs: safeArray(item.source_refs || item.sourceRefs || rawSourceRefs),
+      status: item.status || "candidate",
+      last_seen: item.last_seen || item.lastSeen || capturedAt
+    })).filter((item) => item.note);
+
+    const salutationSignals = safeArray(review.toneSignals || review.salutationSignals).map((item, index) => ({
+      id: item.id || `salutation_llm_review_${slug(packetId)}_${index + 1}`,
+      type: "salutation_tone_signal",
+      source_ref: item.source_ref || item.sourceRef || firstSourceRef,
+      observed_text: cleanText(item.observed_text || item.observedText || item.text || "", 220),
+      signal: item.signal || "tone_preference",
+      warmth: item.warmth || "warm",
+      suggested_use: item.suggested_use || item.suggestedUse || item.guidance || "Use as a soft tone preference signal, not as a fixed script.",
+      confidence: Number(item.confidence || 0.64),
+      last_seen: item.last_seen || item.lastSeen || capturedAt
+    })).filter((item) => item.observed_text || item.suggested_use);
+
+    const openThreads = safeArray(review.openThreads).map((item, index) => ({
+      source_ref: item.source_ref || item.sourceRef || firstSourceRef,
+      thread: cleanText(item.thread || item.text || "", 400),
+      status: item.status || "open"
+    })).filter((item) => item.thread);
+
+    const needsFurtherProcessing = Boolean(review.needsFurtherProcessing || review.needs_further_processing);
+    const processingBacklog = needsFurtherProcessing ? [{
+      id: `memory_backlog_llm_review_${slug(packetId)}`,
+      packetId,
+      type: "llm_memory_processing_backlog",
+      reason: review.backlogReason || "llm_review_requested_more_processing",
+      status: "needs_llm_distillation",
+      priority: "normal",
+      source_refs: rawSourceRefs,
+      turn_count: rawSourceRefs.length,
+      createdAt: capturedAt
+    }] : [];
+
+    return {
+      diaryDrafts,
+      rollingSummaries,
+      longSummaryCandidates,
+      factCandidates,
+      insightCandidates,
+      sensitiveContextCandidates,
+      salutationSignals,
+      rawLogEntries: safeArray(candidate.rawLogEntries),
+      processingBacklog,
+      projectLedgerUpdates: safeArray(candidate.projectLedgerUpdates),
+      openThreads
+    };
+  }
+
   function validateLlmDistillation(candidate) {
     if (!candidate || typeof candidate !== "object") {
       throw new Error("LLM distillation JSON was not an object.");
     }
+
+    const normalizedReview = normalizeLlmReviewDistillation(candidate);
+    if (normalizedReview) return normalizedReview;
 
     return {
       diaryDrafts: safeArray(candidate.diaryDrafts),
@@ -326,49 +449,82 @@
   }
 
   function buildLlmDistillationMessages(packet) {
+    const fallback = packet.distillation || {};
+    const rawLogEntries = safeArray(fallback.rawLogEntries).map((item) => ({
+      id: item.id,
+      turnIndex: item.turnIndex,
+      capturedAt: item.capturedAt,
+      project: item.project,
+      source_refs: item.source_refs,
+      user: cleanText(item.user, 900),
+      aida: cleanText(item.aida, 700)
+    }));
+    const sourceRefs = rawLogEntries.flatMap((item) => safeArray(item.source_refs));
     const compactPacket = {
       id: packet.id,
       reason: packet.reason,
       capturedAt: packet.capturedAt,
-      session: packet.session,
-      contextEvolution: {
-        summaryDrafts: packet.contextEvolution?.summaryDrafts || [],
-        projectLedgerDrafts: packet.contextEvolution?.projectLedgerDrafts || []
+      session: {
+        id: packet.session?.id,
+        exchangeCount: packet.session?.exchangeCount,
+        startedAt: packet.session?.startedAt,
+        lastTurnAt: packet.session?.lastTurnAt
       },
-      emotion: packet.emotion,
-      whileAway: packet.whileAway,
-      fallbackDistillation: packet.distillation
+      project: dominantValue(rawLogEntries, (item) => item.project, "aida_architecture"),
+      source_refs: sourceRefs,
+      rawLogEntries,
+      fallbackPreview: {
+        diaryDrafts: safeArray(fallback.diaryDrafts).map((item) => ({
+          id: item.id,
+          entry: cleanText(item.entry, 420),
+          source_refs: item.source_refs
+        })),
+        rollingSummaries: safeArray(fallback.rollingSummaries).map((item) => ({
+          id: item.id,
+          text: cleanText(item.text, 360),
+          source_refs: item.source_refs
+        })),
+        salutationSignals: safeArray(fallback.salutationSignals).map((item) => ({
+          observed_text: item.observed_text,
+          source_ref: item.source_ref,
+          warmth: item.warmth
+        }))
+      }
     };
 
     const system = [
       "You are Aida's sleep memory distiller.",
-      "Turn a sleep packet into structured memory drafts only.",
-      "Return strict JSON and no prose.",
+      "Read the raw log and produce a compact memory review for a human to inspect before Drive writeback.",
+      "Return strict JSON only. No prose. No markdown. No trailing comments.",
       "Do not invent facts outside the packet.",
-      "Keep facts and insights as candidate or needs_confirmation unless the user explicitly stated a low-risk stable preference or project requirement.",
-      "Preserve source_refs/source_turns wherever possible.",
-      "For each diaryDraft, preserve or create review_window with session_id, turn_start, turn_end, startedAt, endedAt, and source_refs so the diary can point retrieval toward the right log timeframe.",
-      "Use this exact top-level shape:",
+      "Prefer short arrays: 1-4 diary items, 0-6 facts, 0-6 insights, 0-4 sensitive context items, 0-4 tone signals.",
+      "Use only source_refs provided in the packet.",
+      "If you cannot extract a useful shelf, return an empty array for that shelf.",
+      "Use this exact top-level shape and key order:",
       "{",
-      '  "diaryDrafts": [],',
-      '  "rollingSummaries": [],',
-      '  "longSummaryCandidates": [],',
-      '  "factCandidates": [],',
-      '  "insightCandidates": [],',
-      '  "sensitiveContextCandidates": [],',
-      '  "salutationSignals": [],',
-      '  "rawLogEntries": [],',
-      '  "processingBacklog": [],',
-      '  "projectLedgerUpdates": [],',
-      '  "openThreads": []',
+      '  "packetId": "",',
+      '  "capturedAt": "",',
+      '  "memoryReview": {',
+      '    "project": "",',
+      '    "source_refs": [],',
+      '    "diary": [{"entry": "", "source_refs": []}],',
+      '    "sessionSummary": "",',
+      '    "longSummary": "",',
+      '    "durableFacts": [{"claim": "", "scope": "user|project:aida_architecture", "confidence": 0.0, "source_refs": []}],',
+      '    "behaviorInsights": [{"guidance": "", "confidence": 0.0, "source_refs": []}],',
+      '    "sensitiveContext": [{"note": "", "handling": "", "confidence": 0.0, "source_refs": []}],',
+      '    "toneSignals": [{"observed_text": "", "guidance": "", "warmth": "", "source_ref": ""}],',
+      '    "openThreads": [{"thread": "", "status": "", "source_ref": ""}],',
+      '    "needsFurtherProcessing": false',
+      '  }',
       "}",
       "Diary preserves felt shape in human-readable prose, not mechanical transition notes.",
-      "Rolling summary preserves immediate continuity. Long summary candidates preserve durable project arc.",
+      "Session summary preserves immediate continuity. Long summary preserves durable project arc.",
       "Facts are stable, specific claims only. Do not turn greetings, transitions, test chatter, vague hopes, or one-off mood into facts.",
       "Insights are behavior guidance derived from themes and source evidence.",
       "Sensitive context candidates are tender biographical or emotional material that Aida should handle gently and avoid raising unprompted unless relevant.",
       "Salutation signals are soft tone preferences: greeting style, affectionate names, formality shifts, and warmth patterns. They are not facts and should not force pet names.",
-      "Raw log entries should preserve enough human-readable source text for later retrieval and reprocessing."
+      "Set needsFurtherProcessing true if the raw log is too large, ambiguous, or emotionally important but not fully processed."
     ].join("\n");
 
     return [
