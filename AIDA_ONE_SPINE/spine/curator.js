@@ -277,6 +277,27 @@
     ));
   }
 
+  function keepOnlyPacketEntries(state, packetId) {
+    if (!packetId) return;
+    for (const key of [
+      "projectListingDrafts",
+      "projectBriefcaseWriteDrafts",
+      "diaryWriteDrafts",
+      "factWriteDrafts",
+      "insightWriteDrafts",
+      "sensitiveContextWriteDrafts",
+      "salutationSignalWriteDrafts",
+      "rawLogWriteDrafts",
+      "processingBacklogWriteDrafts",
+      "needsConfirmation"
+    ]) {
+      state[key] = safeArray(state[key]).filter((item) => (
+        item.sourcePacketId === packetId ||
+        item.packetId === packetId
+      ));
+    }
+  }
+
   function reviewLibrarian() {
     const state = ensureState();
     pruneLegacyFallbackCandidates(state);
@@ -309,6 +330,7 @@
     buildSalutationSignalWrites(staged, reviewedAt).forEach((item) => upsertById(state.salutationSignalWriteDrafts, item));
     buildRawLogWrites(staged, reviewedAt).forEach((item) => upsertById(state.rawLogWriteDrafts, item));
     buildProcessingBacklogWrites(staged, reviewedAt).forEach((item) => upsertById(state.processingBacklogWriteDrafts, item));
+    keepOnlyPacketEntries(state, staged.lastIngestedPacketId);
 
     state.lastReviewedAt = reviewedAt;
     state.lastReviewedPacketId = staged.lastIngestedPacketId;

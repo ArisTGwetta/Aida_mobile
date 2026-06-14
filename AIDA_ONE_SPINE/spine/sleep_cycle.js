@@ -305,6 +305,12 @@
     return Array.isArray(value) ? value : [];
   }
 
+  function confidence(value, fallback) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return fallback;
+    return Math.max(0.05, Math.min(0.95, number));
+  }
+
   function normalizeLlmReviewDistillation(candidate) {
     const review = candidate.memoryReview || candidate.review || null;
     if (!review || typeof review !== "object") return null;
@@ -360,7 +366,7 @@
       id: item.id || `fact_llm_review_${slug(packetId)}_${index + 1}`,
       scope: item.scope || scope,
       claim: cleanText(item.claim || item.text || "", 500),
-      confidence: Number(item.confidence || 0.72),
+      confidence: confidence(item.confidence, 0.72),
       source_refs: safeArray(item.source_refs || item.sourceRefs || rawSourceRefs),
       status: item.status || "candidate",
       last_seen: item.last_seen || item.lastSeen || capturedAt
@@ -371,7 +377,7 @@
       scope: item.scope || scope,
       derived_from: safeArray(item.derived_from || item.derivedFrom || item.source_refs || item.sourceRefs || rawSourceRefs),
       guidance: cleanText(item.guidance || item.text || "", 700),
-      confidence: Number(item.confidence || 0.7),
+      confidence: confidence(item.confidence, 0.7),
       status: item.status || "candidate",
       last_evaluated: item.last_evaluated || item.lastEvaluated || capturedAt
     })).filter((item) => item.guidance);
@@ -381,7 +387,7 @@
       scope: item.scope || "user",
       note: cleanText(item.note || item.context || item.text || "", 700),
       handling: item.handling || "Handle gently; do not raise unprompted unless directly relevant.",
-      confidence: Number(item.confidence || 0.68),
+      confidence: confidence(item.confidence, 0.68),
       source_refs: safeArray(item.source_refs || item.sourceRefs || rawSourceRefs),
       status: item.status || "candidate",
       last_seen: item.last_seen || item.lastSeen || capturedAt
@@ -395,7 +401,7 @@
       signal: item.signal || "tone_preference",
       warmth: item.warmth || "warm",
       suggested_use: item.suggested_use || item.suggestedUse || item.guidance || "Use as a soft tone preference signal, not as a fixed script.",
-      confidence: Number(item.confidence || 0.64),
+      confidence: confidence(item.confidence, 0.64),
       last_seen: item.last_seen || item.lastSeen || capturedAt
     })).filter((item) => item.observed_text || item.suggested_use);
 
@@ -545,6 +551,7 @@
         "Keep diaryEntry, sessionSummary, longSummary, toneSignals, and openThreads empty.",
         "Facts are stable, specific claims only. Do not turn greetings, transitions, test chatter, vague hopes, or one-off mood into facts.",
         "Insights are behavior guidance derived from themes and source evidence.",
+        "Do not tell Aida to proactively raise tender family, grief, identity, or sensitive material. Guidance should say to handle it gently when the user raises it or when directly relevant.",
         "Sensitive context candidates are tender biographical or emotional material that Aida should handle gently and avoid raising unprompted unless relevant."
       ]
     },
