@@ -137,6 +137,7 @@
   function mergeBriefcase(existing, draft, generatedAt) {
     const base = { ...(existing || {}) };
     const update = draft?.update || {};
+    const replaceConsiderationLists = draft?.source === "llm" || draft?.method === "llm_refined_draft";
     return {
       ...base,
       project_name: base.project_name || draft?.project?.name || draft?.project || "unknown_project",
@@ -145,11 +146,11 @@
       latest_status: update.latest_status || base.latest_status || null,
       rolling_summary_ids: appendUnique(base.rolling_summary_ids, update.rolling_summary_ids || []),
       long_summary_candidate_ids: appendUnique(base.long_summary_candidate_ids, update.long_summary_candidate_ids || []),
-      open_threads: appendUnique(base.open_threads, update.open_threads || []),
-      facts_to_consider: appendUnique(base.facts_to_consider, update.facts_to_consider || []),
-      insights_to_consider: appendUnique(base.insights_to_consider, update.insights_to_consider || []),
-      sensitive_context_to_consider: appendUnique(base.sensitive_context_to_consider, update.sensitive_context_to_consider || []),
-      salutation_tone_signals: appendUnique(base.salutation_tone_signals, update.salutation_tone_signals || []),
+      open_threads: replaceConsiderationLists ? safeArray(update.open_threads) : appendUnique(base.open_threads, update.open_threads || []),
+      facts_to_consider: replaceConsiderationLists ? safeArray(update.facts_to_consider) : appendUnique(base.facts_to_consider, update.facts_to_consider || []),
+      insights_to_consider: replaceConsiderationLists ? safeArray(update.insights_to_consider) : appendUnique(base.insights_to_consider, update.insights_to_consider || []),
+      sensitive_context_to_consider: replaceConsiderationLists ? safeArray(update.sensitive_context_to_consider) : appendUnique(base.sensitive_context_to_consider, update.sensitive_context_to_consider || []),
+      salutation_tone_signals: replaceConsiderationLists ? safeArray(update.salutation_tone_signals) : appendUnique(base.salutation_tone_signals, update.salutation_tone_signals || []),
       emotional_notes: appendUnique(base.emotional_notes, update.emotional_notes || []),
       last_active: update.last_active || base.last_active || generatedAt,
       last_updated: generatedAt,

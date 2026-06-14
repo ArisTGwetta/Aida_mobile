@@ -107,7 +107,7 @@
     const openThreads = safeArray(output.openThreads);
     const existingLedger = safeArray(output.projectLedgerUpdates);
 
-    if (existingLedger.length) {
+    if (existingLedger.length && preferred.source !== "llm") {
       return existingLedger.map((draft, index) => ({
         ...draft,
         id: draft.id || `project_briefcase_draft_${slug(project)}_${preferred.packetId}_${index + 1}`,
