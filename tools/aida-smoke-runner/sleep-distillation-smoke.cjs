@@ -748,6 +748,21 @@ async function runPartialLlmMergeTest() {
   assert(distillation.salutationSignals.length >= 1, "Partial LLM merge did not preserve fallback salutation signals.", distillation);
   assert(distillation.processingBacklog.length >= 1, "Partial LLM merge did not preserve backlog for missing semantic memory.", distillation);
   assert(distillation.mergeNotes?.keptProcessingBacklog, "Partial LLM merge did not mark backlog preservation.", distillation);
+  const preferred = sleep.getPreferredDistillation(packet);
+  assert(preferred.mergeNotes?.usedFallbackRollingSummaries, "Preferred distillation did not expose fallback summary provenance.", preferred);
+  assert(runtime.librarian?.projectBriefcaseDrafts?.length >= 1, "Partial LLM did not stage a project briefcase draft.", runtime.librarian);
+  const projectDraft = runtime.librarian.projectBriefcaseDrafts[runtime.librarian.projectBriefcaseDrafts.length - 1];
+  assert(
+    projectDraft.update.latest_summary === distillation.diaryDrafts[0].entry,
+    "Partial LLM project summary should use the LLM diary instead of fallback rolling summary.",
+    projectDraft
+  );
+  assert(
+    !String(projectDraft.update.latest_summary || "").startsWith("Across "),
+    "Partial LLM project summary leaked deterministic fallback prose.",
+    projectDraft
+  );
+  assert(projectDraft.update.rolling_summary_ids.length === 0, "Fallback rolling summary ids should not be written as LLM project summary ids.", projectDraft);
 
   return {
     packetId: packet.id,
@@ -757,7 +772,8 @@ async function runPartialLlmMergeTest() {
     longSummaryCandidates: distillation.longSummaryCandidates.length,
     salutationSignals: distillation.salutationSignals.length,
     processingBacklog: distillation.processingBacklog.length,
-    keptProcessingBacklog: distillation.mergeNotes.keptProcessingBacklog
+    keptProcessingBacklog: distillation.mergeNotes.keptProcessingBacklog,
+    projectSummary: projectDraft.update.latest_summary
   };
 }
 

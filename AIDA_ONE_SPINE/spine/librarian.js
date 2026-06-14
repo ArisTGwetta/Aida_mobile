@@ -30,6 +30,12 @@
     return Array.isArray(value) ? value : [];
   }
 
+  function cleanBriefcaseText(value, maxLength = 1200) {
+    const text = String(value || "").replace(/\s+/g, " ").trim();
+    if (!text) return "";
+    return text.length > maxLength ? `${text.slice(0, maxLength - 1).trim()}...` : text;
+  }
+
   function slug(value, fallback = "project") {
     return String(value || fallback)
       .toLowerCase()
@@ -106,6 +112,14 @@
     const salutations = safeArray(output.salutationSignals);
     const openThreads = safeArray(output.openThreads);
     const existingLedger = safeArray(output.projectLedgerUpdates);
+    const mergeNotes = preferred.mergeNotes || {};
+    const diarySummary = cleanBriefcaseText(safeArray(output.diaryDrafts)[0]?.entry);
+    const usedFallbackRolling = preferred.source === "llm" && mergeNotes.usedFallbackRollingSummaries;
+    const usedFallbackLong = preferred.source === "llm" && mergeNotes.usedFallbackLongSummaryCandidates;
+    const latestSummary = usedFallbackRolling ? diarySummary : cleanBriefcaseText(rolling[0]?.text);
+    const latestStatus = usedFallbackLong ? latestSummary : cleanBriefcaseText(long[0]?.text);
+    const rollingSummaryIds = usedFallbackRolling ? [] : rolling.map((item) => item.id).filter(Boolean);
+    const longSummaryIds = usedFallbackLong ? [] : long.map((item) => item.id).filter(Boolean);
 
     if (existingLedger.length && preferred.source !== "llm") {
       return existingLedger.map((draft, index) => ({
@@ -132,10 +146,10 @@
           realm
         },
         update: {
-          latest_summary: rolling[0]?.text || null,
-          latest_status: long[0]?.text || null,
-          rolling_summary_ids: rolling.map((item) => item.id).filter(Boolean),
-          long_summary_candidate_ids: long.map((item) => item.id).filter(Boolean),
+          latest_summary: latestSummary || null,
+          latest_status: latestStatus || null,
+          rolling_summary_ids: rollingSummaryIds,
+          long_summary_candidate_ids: longSummaryIds,
           open_threads: openThreads,
           facts_to_consider: facts,
           insights_to_consider: insights,

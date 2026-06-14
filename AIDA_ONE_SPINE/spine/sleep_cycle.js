@@ -986,6 +986,7 @@
       llmStatus: distillation.llm?.status || null,
       llmError: distillation.llm?.error || null,
       llmPasses: safeArray(distillation.llm?.passes),
+      mergeNotes: copyJson(distillation.mergeNotes || {}, {}),
       counts: {
         diaryDrafts: output.diaryDrafts.length,
         rollingSummaries: output.rollingSummaries.length,
