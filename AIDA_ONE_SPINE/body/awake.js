@@ -87,6 +87,70 @@
     }
   }
 
+  function ensureSleepCollectedCard() {
+    const veil = $("veil");
+    if (!veil) return null;
+
+    let card = $("sleep-collected-card");
+    if (card) return card;
+
+    card = document.createElement("div");
+    card.id = "sleep-collected-card";
+    card.setAttribute("role", "status");
+    card.setAttribute("aria-live", "polite");
+
+    const title = document.createElement("div");
+    title.className = "sleep-collected-title";
+
+    const detail = document.createElement("div");
+    detail.className = "sleep-collected-detail";
+
+    const close = document.createElement("div");
+    close.className = "sleep-collected-close";
+
+    card.append(title, detail, close);
+    veil.appendChild(card);
+    return card;
+  }
+
+  function showSleepCollected(summary = {}, options = {}) {
+    const card = ensureSleepCollectedCard();
+    const veil = $("veil");
+    if (!card || !veil) return;
+
+    const final = Boolean(options.final);
+    const writeback = window.AIDA_DRIVE_WRITEBACK?.preview?.();
+    const writeCount = writeback?.operations?.length || 0;
+    const title = card.querySelector(".sleep-collected-title");
+    const detail = card.querySelector(".sleep-collected-detail");
+    const close = card.querySelector(".sleep-collected-close");
+
+    if (title) title.textContent = final ? "Sleep collected." : "Collecting sleep...";
+    if (detail) {
+      detail.textContent = [
+        summary.packetId ? `packet ${summary.packetId}` : "",
+        Number.isFinite(summary.exchangeCount) ? `${summary.exchangeCount} exchange(s)` : "",
+        Number.isFinite(summary.diaryDraftCount) ? `${summary.diaryDraftCount} diary draft(s)` : "",
+        Number.isFinite(writeCount) ? `${writeCount} Drive write(s) staged` : ""
+      ].filter(Boolean).join(" | ");
+    }
+    if (close) {
+      close.textContent = final
+        ? "It is OK to close the app now."
+        : "Finishing the quiet writeback staging...";
+    }
+
+    veil.style.background = "black";
+    veil.style.opacity = "1";
+    veil.style.pointerEvents = "auto";
+    card.classList.add("visible");
+  }
+
+  function hideSleepCollected() {
+    const card = $("sleep-collected-card");
+    if (card) card.classList.remove("visible");
+  }
+
   function appendChat(role, text) {
     const flow = $("chat-flow");
     if (!flow) return null;
@@ -496,6 +560,7 @@
     const fastData = $("face-data-fast");
 
     if (!veil || !scanline || !beam || !cone || !face) return;
+    hideSleepCollected();
 
     [uiDock, dataStack, flickerGrid, pixelGrid, sparkLayer, portraitPane, slowData, fastData].forEach((el) => {
       if (el) el.style.opacity = "0";
@@ -666,6 +731,7 @@
     depart: window.aida_depart,
     appendChat,
     pulse,
+    showSleepCollected,
     setFace(src) {
       const portrait = $("aida-portrait");
       if (portrait) portrait.src = src || DEFAULT_FACE;

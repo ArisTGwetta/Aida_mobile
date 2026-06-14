@@ -770,8 +770,14 @@
     if (window.AIDA_BODY?.appendChat) {
       window.AIDA_BODY.appendChat("AIDA", `Sleep packet collected: ${summary.exchangeCount} exchange(s), ${summary.pendingJournalCount} journal item(s), ${summary.syncQueueCount} sync draft(s).`);
     }
-    refinePacketWithLlm(packet);
+    const refinement = refinePacketWithLlm(packet);
     if (typeof window.aida_depart === "function") window.aida_depart();
+    if (window.AIDA_BODY?.showSleepCollected) {
+      setTimeout(() => window.AIDA_BODY.showSleepCollected(summary, { final: false }), 2700);
+      refinement.finally(() => {
+        setTimeout(() => window.AIDA_BODY.showSleepCollected(safeSummary(), { final: true }), 250);
+      });
+    }
     return packet;
   }
 
