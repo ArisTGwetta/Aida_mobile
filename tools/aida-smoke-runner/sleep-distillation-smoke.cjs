@@ -167,6 +167,32 @@ function installBrowserMocks(runtime, options = {}) {
     global.window.AIDA_OPENAI = {
       callMessages: async (messages) => {
         callCount += 1;
+        if (options.mockPartialOpenAI) {
+          return JSON.stringify({
+            diaryDrafts: [
+              {
+                id: "diary_partial_llm_smoke",
+                session_id: "session_smoke",
+                project: "aida_architecture",
+                realm: "aida_architecture",
+                emotional_shape: "focused",
+                entry: "Partial LLM diary only.",
+                source_turns: [1],
+                source_refs: ["session_smoke#turn_1"]
+              }
+            ],
+            rollingSummaries: [],
+            longSummaryCandidates: [],
+            factCandidates: [],
+            insightCandidates: [],
+            sensitiveContextCandidates: [],
+            salutationSignals: [],
+            rawLogEntries: [],
+            processingBacklog: [],
+            projectLedgerUpdates: [],
+            openThreads: []
+          });
+        }
         if (options.mockMalformedOpenAI && callCount === 1) {
           return '{"diaryDrafts":[{"id":"broken_json" "entry":"missing comma"}],"rollingSummaries":[]';
         }
@@ -573,6 +599,40 @@ async function runLlmJsonRepairTest() {
   };
 }
 
+async function runPartialLlmMergeTest() {
+  const turns = [
+    makeTurn(
+      1,
+      "hello my sweet child, preserve fallback shelves when LLM only returns a diary.",
+      "I will not let a partial LLM draft erase useful fallback scaffolding."
+    )
+  ];
+  const runtime = makeRuntime(turns, {}, { llmReady: true });
+  const sleep = loadSleepCycle(runtime, { mockOpenAI: true, mockPartialOpenAI: true });
+  const packet = sleep.buildPacket("smoke_partial_llm_merge");
+  const fallbackCounts = { ...packet.distillation.counts };
+  const distillation = await sleep.refinePacketWithLlm(packet);
+
+  assert(distillation.status === "llm_draft_filled", "Partial LLM merge did not keep LLM status.", distillation);
+  assert(distillation.diaryDrafts[0]?.id === "diary_partial_llm_smoke", "Partial LLM diary was not applied.", distillation);
+  assert(distillation.rollingSummaries.length === fallbackCounts.diaryDrafts, "Partial LLM merge did not preserve fallback rolling summaries.", distillation);
+  assert(distillation.longSummaryCandidates.length === fallbackCounts.diaryDrafts, "Partial LLM merge did not preserve fallback long summaries.", distillation);
+  assert(distillation.salutationSignals.length >= 1, "Partial LLM merge did not preserve fallback salutation signals.", distillation);
+  assert(distillation.processingBacklog.length >= 1, "Partial LLM merge did not preserve backlog for missing semantic memory.", distillation);
+  assert(distillation.mergeNotes?.keptProcessingBacklog, "Partial LLM merge did not mark backlog preservation.", distillation);
+
+  return {
+    packetId: packet.id,
+    status: distillation.status,
+    diaryDrafts: distillation.diaryDrafts.length,
+    rollingSummaries: distillation.rollingSummaries.length,
+    longSummaryCandidates: distillation.longSummaryCandidates.length,
+    salutationSignals: distillation.salutationSignals.length,
+    processingBacklog: distillation.processingBacklog.length,
+    keptProcessingBacklog: distillation.mergeNotes.keptProcessingBacklog
+  };
+}
+
 function runCrashBufferRestoreTest() {
   const localStorage = makeMemoryStorage();
   const turns = [
@@ -656,6 +716,7 @@ async function main() {
         chunkDraft: runChunkDraftTest(),
         llmRefinement: await runLlmRefinementTest(),
         llmJsonRepair: await runLlmJsonRepairTest(),
+        partialLlmMerge: await runPartialLlmMergeTest(),
         crashBufferRestore: runCrashBufferRestoreTest(),
         memoryBoundary: runMemoryBoundaryMessageTest(),
         driveWritebackDryRun: await runDriveWritebackDryRunTest()

@@ -74,6 +74,16 @@
     else list.push(stamped);
   }
 
+  function isLegacyFallbackCandidate(item) {
+    return item?.source === "fallback" || item?.method === "deterministic_runtime_draft";
+  }
+
+  function pruneLegacyFallbackCandidates(state) {
+    state.factWriteDrafts = safeArray(state.factWriteDrafts).filter((item) => !isLegacyFallbackCandidate(item));
+    state.insightWriteDrafts = safeArray(state.insightWriteDrafts).filter((item) => !isLegacyFallbackCandidate(item));
+    state.needsConfirmation = safeArray(state.needsConfirmation).filter((item) => !isLegacyFallbackCandidate(item));
+  }
+
   function projectNameFromDraft(draft) {
     return (
       draft?.project?.name ||
@@ -269,6 +279,7 @@
 
   function reviewLibrarian() {
     const state = ensureState();
+    pruneLegacyFallbackCandidates(state);
     if (!window.AIDA_LIBRARIAN?.getStaged) {
       log("CURATOR: Librarian staging is unavailable.", "log-amber");
       return { ready: false, reason: "librarian_unavailable" };
@@ -333,6 +344,7 @@
 
   function getReviewed() {
     const state = ensureState();
+    pruneLegacyFallbackCandidates(state);
     return {
       lastReviewedAt: state.lastReviewedAt || null,
       lastReviewedPacketId: state.lastReviewedPacketId || null,
@@ -353,6 +365,7 @@
 
   function safeSummary() {
     const state = ensureState();
+    pruneLegacyFallbackCandidates(state);
     return {
       ready: Boolean(state.lastReviewedPacketId),
       lastReviewedAt: state.lastReviewedAt || null,

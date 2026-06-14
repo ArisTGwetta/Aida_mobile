@@ -583,16 +583,40 @@
 
   function applyLlmDistillation(packet, llmDraft, createdAt) {
     const fallback = packet.distillation || {};
+    const merged = {
+      diaryDrafts: llmDraft.diaryDrafts.length ? llmDraft.diaryDrafts : safeArray(fallback.diaryDrafts),
+      rollingSummaries: llmDraft.rollingSummaries.length ? llmDraft.rollingSummaries : safeArray(fallback.rollingSummaries),
+      longSummaryCandidates: llmDraft.longSummaryCandidates.length ? llmDraft.longSummaryCandidates : safeArray(fallback.longSummaryCandidates),
+      factCandidates: llmDraft.factCandidates.length ? llmDraft.factCandidates : safeArray(fallback.factCandidates),
+      insightCandidates: llmDraft.insightCandidates.length ? llmDraft.insightCandidates : safeArray(fallback.insightCandidates),
+      sensitiveContextCandidates: llmDraft.sensitiveContextCandidates.length ? llmDraft.sensitiveContextCandidates : safeArray(fallback.sensitiveContextCandidates),
+      salutationSignals: llmDraft.salutationSignals.length ? llmDraft.salutationSignals : safeArray(fallback.salutationSignals),
+      rawLogEntries: llmDraft.rawLogEntries.length ? llmDraft.rawLogEntries : safeArray(fallback.rawLogEntries),
+      openThreads: llmDraft.openThreads.length ? llmDraft.openThreads : safeArray(fallback.openThreads)
+    };
+    const llmProducedSemanticMemory = Boolean(
+      llmDraft.factCandidates.length ||
+      llmDraft.insightCandidates.length ||
+      llmDraft.sensitiveContextCandidates.length ||
+      llmDraft.rollingSummaries.length ||
+      llmDraft.longSummaryCandidates.length
+    );
+    merged.processingBacklog = llmDraft.processingBacklog.length
+      ? llmDraft.processingBacklog
+      : llmProducedSemanticMemory
+        ? []
+        : safeArray(fallback.processingBacklog);
+
     const counts = {
       summaryDraftsFilled: fallback.counts?.summaryDraftsFilled || 0,
       ledgerDraftsFilled: fallback.counts?.ledgerDraftsFilled || 0,
-      diaryDrafts: llmDraft.diaryDrafts.length,
-      factCandidates: llmDraft.factCandidates.length,
-      insightCandidates: llmDraft.insightCandidates.length,
-      sensitiveContextCandidates: llmDraft.sensitiveContextCandidates.length,
-      salutationSignals: llmDraft.salutationSignals.length,
-      rawLogEntries: llmDraft.rawLogEntries.length,
-      processingBacklog: llmDraft.processingBacklog.length
+      diaryDrafts: merged.diaryDrafts.length,
+      factCandidates: merged.factCandidates.length,
+      insightCandidates: merged.insightCandidates.length,
+      sensitiveContextCandidates: merged.sensitiveContextCandidates.length,
+      salutationSignals: merged.salutationSignals.length,
+      rawLogEntries: merged.rawLogEntries.length,
+      processingBacklog: merged.processingBacklog.length
     };
 
     packet.distillation = {
@@ -601,18 +625,24 @@
       method: "llm_refined_draft",
       fallback,
       llmFilledAt: createdAt,
-      diaryDrafts: llmDraft.diaryDrafts,
-      rollingSummaries: llmDraft.rollingSummaries,
-      longSummaryCandidates: llmDraft.longSummaryCandidates,
-      factCandidates: llmDraft.factCandidates,
-      insightCandidates: llmDraft.insightCandidates,
-      sensitiveContextCandidates: llmDraft.sensitiveContextCandidates,
-      salutationSignals: llmDraft.salutationSignals,
-      rawLogEntries: llmDraft.rawLogEntries.length ? llmDraft.rawLogEntries : fallback.rawLogEntries || [],
-      processingBacklog: llmDraft.processingBacklog,
+      diaryDrafts: merged.diaryDrafts,
+      rollingSummaries: merged.rollingSummaries,
+      longSummaryCandidates: merged.longSummaryCandidates,
+      factCandidates: merged.factCandidates,
+      insightCandidates: merged.insightCandidates,
+      sensitiveContextCandidates: merged.sensitiveContextCandidates,
+      salutationSignals: merged.salutationSignals,
+      rawLogEntries: merged.rawLogEntries,
+      processingBacklog: merged.processingBacklog,
       projectLedgerUpdates: llmDraft.projectLedgerUpdates.length ? llmDraft.projectLedgerUpdates : fallback.projectLedgerUpdates || [],
-      openThreads: llmDraft.openThreads,
-      counts
+      openThreads: merged.openThreads,
+      counts,
+      mergeNotes: {
+        usedFallbackRollingSummaries: !llmDraft.rollingSummaries.length,
+        usedFallbackLongSummaryCandidates: !llmDraft.longSummaryCandidates.length,
+        usedFallbackSalutationSignals: !llmDraft.salutationSignals.length,
+        keptProcessingBacklog: merged.processingBacklog.length > 0
+      }
     };
 
     const rt = runtime();
