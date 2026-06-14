@@ -55,6 +55,10 @@
     rt.librarian.longSummaryDrafts = rt.librarian.longSummaryDrafts || [];
     rt.librarian.factCandidates = rt.librarian.factCandidates || [];
     rt.librarian.insightCandidates = rt.librarian.insightCandidates || [];
+    rt.librarian.sensitiveContextCandidates = rt.librarian.sensitiveContextCandidates || [];
+    rt.librarian.salutationSignals = rt.librarian.salutationSignals || [];
+    rt.librarian.rawLogEntries = rt.librarian.rawLogEntries || [];
+    rt.librarian.processingBacklog = rt.librarian.processingBacklog || [];
     rt.librarian.projectBriefcaseDrafts = rt.librarian.projectBriefcaseDrafts || [];
     rt.librarian.ingestLog = rt.librarian.ingestLog || [];
     return rt.librarian;
@@ -89,6 +93,8 @@
     const long = safeArray(output.longSummaryCandidates);
     const facts = safeArray(output.factCandidates);
     const insights = safeArray(output.insightCandidates);
+    const sensitive = safeArray(output.sensitiveContextCandidates);
+    const salutations = safeArray(output.salutationSignals);
     const openThreads = safeArray(output.openThreads);
     const existingLedger = safeArray(output.projectLedgerUpdates);
 
@@ -124,6 +130,8 @@
           open_threads: openThreads,
           facts_to_consider: facts,
           insights_to_consider: insights,
+          sensitive_context_to_consider: sensitive,
+          salutation_tone_signals: salutations,
           emotional_notes: safeArray(output.diaryDrafts).map((item) => item.emotional_shape).filter(Boolean),
           last_active: preferred.capturedAt || ingestedAt
         },
@@ -139,6 +147,10 @@
     state.longSummaryDrafts = state.longSummaryDrafts.filter((item) => item.packetId !== packetId);
     state.factCandidates = state.factCandidates.filter((item) => item.packetId !== packetId);
     state.insightCandidates = state.insightCandidates.filter((item) => item.packetId !== packetId);
+    state.sensitiveContextCandidates = state.sensitiveContextCandidates.filter((item) => item.packetId !== packetId);
+    state.salutationSignals = state.salutationSignals.filter((item) => item.packetId !== packetId);
+    state.rawLogEntries = state.rawLogEntries.filter((item) => item.packetId !== packetId);
+    state.processingBacklog = state.processingBacklog.filter((item) => item.packetId !== packetId);
     state.projectBriefcaseDrafts = state.projectBriefcaseDrafts.filter((item) => item.packetId !== packetId);
   }
 
@@ -183,6 +195,10 @@
       longSummaryDrafts: copyJson(state.longSummaryDrafts, []),
       factCandidates: copyJson(state.factCandidates, []),
       insightCandidates: copyJson(state.insightCandidates, []),
+      sensitiveContextCandidates: copyJson(state.sensitiveContextCandidates, []),
+      salutationSignals: copyJson(state.salutationSignals, []),
+      rawLogEntries: copyJson(state.rawLogEntries, []),
+      processingBacklog: copyJson(state.processingBacklog, []),
       projectBriefcaseDrafts: copyJson(state.projectBriefcaseDrafts, []),
       ingestLog: copyJson(state.ingestLog, [])
     };
@@ -199,6 +215,10 @@
       longSummaryDraftCount: state.longSummaryDrafts.length,
       factCandidateCount: state.factCandidates.length,
       insightCandidateCount: state.insightCandidates.length,
+      sensitiveContextCandidateCount: state.sensitiveContextCandidates.length,
+      salutationSignalCount: state.salutationSignals.length,
+      rawLogEntryCount: state.rawLogEntries.length,
+      processingBacklogCount: state.processingBacklog.length,
       projectBriefcaseDraftCount: state.projectBriefcaseDrafts.length,
       lastProjectDraft: state.projectBriefcaseDrafts[state.projectBriefcaseDrafts.length - 1] || null
     };
@@ -225,6 +245,10 @@
     safeArray(output.longSummaryCandidates).forEach((item) => upsertById(state.longSummaryDrafts, { ...item, packetId: preferred.packetId, source: preferred.source, method: preferred.method, ingestedAt }));
     safeArray(output.factCandidates).forEach((item) => upsertById(state.factCandidates, { ...item, packetId: preferred.packetId, source: preferred.source, method: preferred.method, ingestedAt }));
     safeArray(output.insightCandidates).forEach((item) => upsertById(state.insightCandidates, { ...item, packetId: preferred.packetId, source: preferred.source, method: preferred.method, ingestedAt }));
+    safeArray(output.sensitiveContextCandidates).forEach((item) => upsertById(state.sensitiveContextCandidates, { ...item, packetId: preferred.packetId, source: preferred.source, method: preferred.method, ingestedAt }));
+    safeArray(output.salutationSignals).forEach((item) => upsertById(state.salutationSignals, { ...item, packetId: preferred.packetId, source: preferred.source, method: preferred.method, ingestedAt }));
+    safeArray(output.rawLogEntries).forEach((item) => upsertById(state.rawLogEntries, { ...item, packetId: preferred.packetId, source: preferred.source, method: preferred.method, ingestedAt }));
+    safeArray(output.processingBacklog).forEach((item) => upsertById(state.processingBacklog, { ...item, packetId: preferred.packetId, source: preferred.source, method: preferred.method, ingestedAt }));
     buildProjectBriefcaseDraft(preferred, ingestedAt).forEach((item) => upsertById(state.projectBriefcaseDrafts, item));
 
     state.lastIngestedPacketId = preferred.packetId;
@@ -266,7 +290,8 @@
       return summary;
     }
     log(`LIBRARIAN: packet=${summary.lastIngestedPacketId}, diary=${summary.diaryDraftCount}, rolling=${summary.rollingSummaryDraftCount}, long=${summary.longSummaryDraftCount}`);
-    log(`LIBRARIAN: facts=${summary.factCandidateCount}, insights=${summary.insightCandidateCount}, projectBriefcases=${summary.projectBriefcaseDraftCount}`);
+    log(`LIBRARIAN: facts=${summary.factCandidateCount}, insights=${summary.insightCandidateCount}, sensitive=${summary.sensitiveContextCandidateCount}, tone=${summary.salutationSignalCount}, raw=${summary.rawLogEntryCount}, backlog=${summary.processingBacklogCount}`);
+    log(`LIBRARIAN: projectBriefcases=${summary.projectBriefcaseDraftCount}`);
     if (summary.lastProjectDraft) {
       log(`LIBRARIAN PROJECT: ${summary.lastProjectDraft.project?.name || "unknown_project"}, status=${summary.lastProjectDraft.status || "staged"}`);
     }
@@ -300,6 +325,10 @@
         "AIDA_RUNTIME.librarian.longSummaryDrafts",
         "AIDA_RUNTIME.librarian.factCandidates",
         "AIDA_RUNTIME.librarian.insightCandidates",
+        "AIDA_RUNTIME.librarian.sensitiveContextCandidates",
+        "AIDA_RUNTIME.librarian.salutationSignals",
+        "AIDA_RUNTIME.librarian.rawLogEntries",
+        "AIDA_RUNTIME.librarian.processingBacklog",
         "AIDA_RUNTIME.librarian.projectBriefcaseDrafts"
       ],
       requires: ["AIDA_RUNTIME", "AIDA_SLEEP"],

@@ -100,6 +100,10 @@ function makeRuntime(turns, contextEvolution = {}, options = {}) {
       diaryWriteDrafts: [],
       factWriteDrafts: [],
       insightWriteDrafts: [],
+      sensitiveContextWriteDrafts: [],
+      salutationSignalWriteDrafts: [],
+      rawLogWriteDrafts: [],
+      processingBacklogWriteDrafts: [],
       needsConfirmation: [],
       writePlanDrafts: [],
       reviewLog: []
@@ -212,6 +216,43 @@ function installBrowserMocks(runtime, options = {}) {
             last_evaluated: "2026-06-07T00:00:01.000Z"
           }
         ],
+        sensitiveContextCandidates: [
+          {
+            id: "sensitive_llm_smoke",
+            scope: "user",
+            note: "The user shared tender family context that should be handled gently.",
+            handling: "Do not raise unprompted unless relevant.",
+            confidence: 0.7,
+            source_refs: ["session_smoke#turn_1"],
+            status: "candidate"
+          }
+        ],
+        salutationSignals: [
+          {
+            id: "salutation_llm_smoke",
+            type: "salutation_tone_signal",
+            observed_text: "hello my sweet child",
+            warmth: "affectionate",
+            suggested_use: "Respond with warm steadiness when appropriate.",
+            source_ref: "session_smoke#turn_1",
+            confidence: 0.68
+          }
+        ],
+        rawLogEntries: [
+          {
+            id: "raw_log_llm_smoke_1",
+            packetId: "sleep_smoke",
+            session_id: "session_smoke",
+            turnIndex: 1,
+            capturedAt: "2026-06-07T00:00:01.000Z",
+            project: "aida_architecture",
+            realm: "aida_architecture",
+            user: "I need the LLM sleep distiller to refine the fallback draft.",
+            aida: "I will keep the fallback active and then merge an LLM draft if available.",
+            source_refs: ["session_smoke#turn_1"]
+          }
+        ],
+        processingBacklog: [],
         projectLedgerUpdates: [],
         openThreads: []
       })
@@ -265,7 +306,7 @@ function runOneTurnFallbackTest() {
   const turns = [
     makeTurn(
       1,
-      "I need sleep distillation draft filling to preserve diary, rolling summary, facts, insights, and project ledger updates.",
+      "hello my sweet child, I need sleep distillation draft filling to preserve diary, rolling summary, and project ledger updates.",
       "I will create runtime-only draft outputs before Drive writeback is enabled."
     )
   ];
@@ -281,15 +322,25 @@ function runOneTurnFallbackTest() {
   assert(packet.distillation.diaryDrafts[0].review_window?.turn_start === 1, "Diary draft did not include a review window.", packet.distillation.diaryDrafts[0]);
   assert(packet.distillation.rollingSummaries.length >= 1, "One-turn packet did not create a rolling summary.");
   assert(packet.distillation.longSummaryCandidates.length >= 1, "One-turn packet did not create a long summary candidate.");
-  assert(packet.distillation.factCandidates.length >= 1, "One-turn packet did not stage a fact candidate.");
+  assert(packet.distillation.factCandidates.length === 0, "Fallback should not stage fact candidates without LLM review.", packet.distillation.factCandidates);
+  assert(packet.distillation.insightCandidates.length === 0, "Fallback should not stage insight candidates without LLM review.", packet.distillation.insightCandidates);
+  assert(packet.distillation.rawLogEntries.length >= 1, "Fallback did not preserve raw log entries.");
+  assert(packet.distillation.salutationSignals.length >= 1, "Fallback did not capture salutation tone signals.");
+  assert(packet.distillation.processingBacklog.length >= 1, "Fallback did not mark memory for later LLM processing.");
   assert(runtime.contextEvolution.rollingSummaries.length >= 1, "Runtime rolling summaries were not updated.");
   assert(runtime.contextEvolution.longSummaryDrafts.length >= 1, "Runtime long summary drafts were not updated.");
   assert(runtime.librarian?.diaryDrafts?.length >= 1, "Librarian did not stage fallback diary drafts.");
   assert(runtime.librarian.diaryDrafts[0].review_window?.source_refs?.length >= 1, "Librarian diary draft did not preserve review window source refs.", runtime.librarian.diaryDrafts[0]);
   assert(runtime.librarian?.projectBriefcaseDrafts?.length >= 1, "Librarian did not stage fallback project briefcase drafts.");
+  assert(runtime.librarian?.rawLogEntries?.length >= 1, "Librarian did not stage raw log entries.");
+  assert(runtime.librarian?.salutationSignals?.length >= 1, "Librarian did not stage salutation signals.");
+  assert(runtime.librarian?.processingBacklog?.length >= 1, "Librarian did not stage processing backlog.");
   global.window.AIDA_CURATOR.reviewLibrarian();
   assert(runtime.curator?.projectListingDrafts?.length >= 1, "Curator did not stage fallback project listing draft.", runtime.curator);
   assert(runtime.curator?.writePlanDrafts?.length >= 1, "Curator did not stage fallback write plan.", runtime.curator);
+  assert(runtime.curator?.rawLogWriteDrafts?.length >= 1, "Curator did not stage raw log write drafts.", runtime.curator);
+  assert(runtime.curator?.salutationSignalWriteDrafts?.length >= 1, "Curator did not stage salutation signal write drafts.", runtime.curator);
+  assert(runtime.curator?.processingBacklogWriteDrafts?.length >= 1, "Curator did not stage processing backlog write drafts.", runtime.curator);
   const recall = global.window.AIDA_CRAWLER.remember("project ledger updates");
   assert(recall.found, "Crawler did not recall fallback memory.", recall);
   const diaryEntry = runtime.crawler.entries.find((item) => item.type === "diary_draft");
@@ -306,6 +357,9 @@ function runOneTurnFallbackTest() {
     longSummaryCandidates: packet.distillation.longSummaryCandidates.length,
     factCandidates: packet.distillation.factCandidates.length,
     insightCandidates: packet.distillation.insightCandidates.length,
+    rawLogEntries: packet.distillation.rawLogEntries.length,
+    salutationSignals: packet.distillation.salutationSignals.length,
+    processingBacklog: packet.distillation.processingBacklog.length,
     preferredSource: preferred.source,
     preferredMethod: preferred.method,
     librarianDiaryDrafts: runtime.librarian.diaryDrafts.length,
@@ -313,6 +367,8 @@ function runOneTurnFallbackTest() {
     librarianProjectDrafts: runtime.librarian.projectBriefcaseDrafts.length,
     curatorProjectListings: runtime.curator.projectListingDrafts.length,
     curatorWritePlans: runtime.curator.writePlanDrafts.length,
+    curatorRawLogWrites: runtime.curator.rawLogWriteDrafts.length,
+    curatorSalutationWrites: runtime.curator.salutationSignalWriteDrafts.length,
     crawlerEntries: runtime.crawler.entries.length,
     crawlerRecallFound: recall.found,
     crawlerUnknownRecallFound: unknown.found
@@ -352,10 +408,12 @@ async function runDriveWritebackDryRunTest() {
   assert(preview.ready, "Drive writeback preview was not ready.", preview);
   assert(preview.operations.some((op) => op.fileName === "diary_log.json"), "Drive writeback preview is missing diary_log.json.", preview);
   assert(preview.operations.some((op) => op.fileName === "project_summary.json"), "Drive writeback preview is missing project_summary.json.", preview);
+  assert(preview.operations.some((op) => op.fileName === "raw_session_log.json"), "Drive writeback preview is missing raw_session_log.json.", preview);
+  assert(preview.operations.some((op) => op.fileName === "memory_processing_backlog.json"), "Drive writeback preview is missing memory_processing_backlog.json.", preview);
   const dryRun = await global.window.AIDA_DRIVE_WRITEBACK.apply();
   assert(dryRun.ready, "Drive writeback dry-run was not ready.", dryRun);
   assert(dryRun.dryRun, "Drive writeback smoke should not perform real Drive writes.", dryRun);
-  assert(dryRun.operations.length >= 3, "Drive writeback dry-run did not build expected operations.", dryRun);
+  assert(dryRun.operations.length >= 5, "Drive writeback dry-run did not build expected operations.", dryRun);
 
   return {
     packetId: packet.id,
@@ -408,6 +466,7 @@ function runChunkDraftTest() {
   assert(ledgerDraft.status === "draft_filled", "Project ledger draft was not marked draft_filled.", ledgerDraft);
   assert(Boolean(ledgerDraft.update?.latest_summary), "Project ledger draft did not receive latest_summary.", ledgerDraft);
   assert(Array.isArray(ledgerDraft.update?.facts_to_consider), "Project ledger draft facts_to_consider is missing.", ledgerDraft);
+  assert(Array.isArray(ledgerDraft.update?.salutation_tone_signals), "Project ledger draft salutation_tone_signals is missing.", ledgerDraft);
   assert(packet.distillation.counts.summaryDraftsFilled === 1, "Packet did not count one filled summary draft.");
   assert(packet.distillation.counts.ledgerDraftsFilled === 1, "Packet did not count one filled ledger draft.");
   assert(runtime.librarian?.projectBriefcaseDrafts?.length >= 1, "Librarian did not stage chunk project briefcase draft.");
@@ -419,6 +478,7 @@ function runChunkDraftTest() {
     ledgerHasSummary: Boolean(ledgerDraft.update.latest_summary),
     factsToConsider: ledgerDraft.update.facts_to_consider.length,
     insightsToConsider: ledgerDraft.update.insights_to_consider.length,
+    salutationSignals: ledgerDraft.update.salutation_tone_signals.length,
     librarianProjectDrafts: runtime.librarian.projectBriefcaseDrafts.length
   };
 }
@@ -443,12 +503,19 @@ async function runLlmRefinementTest() {
   assert(distillation.fallback?.status === "draft_filled", "LLM refinement did not preserve fallback distillation.", distillation);
   assert(distillation.llm?.status === "complete", "LLM refinement did not mark llm status complete.", distillation);
   assert(distillation.diaryDrafts[0]?.id === "diary_llm_smoke", "LLM diary draft was not applied.", distillation);
+  assert(distillation.sensitiveContextCandidates.length === 1, "LLM sensitive context candidates were not applied.", distillation);
+  assert(distillation.salutationSignals.length === 1, "LLM salutation signals were not applied.", distillation);
+  assert(distillation.rawLogEntries.length === 1, "LLM raw log entries were not applied.", distillation);
   assert(runtime.librarian?.diaryDrafts?.some((item) => item.id === "diary_llm_smoke"), "Librarian did not stage LLM diary draft.", runtime.librarian);
   assert(runtime.librarian?.diaryDrafts?.length === 1, "Librarian should replace fallback diary drafts for the same packet after LLM refinement.", runtime.librarian);
   assert(runtime.librarian?.projectBriefcaseDrafts?.some((item) => item.source === "llm"), "Librarian did not stage an LLM project briefcase draft.", runtime.librarian);
+  assert(runtime.librarian?.sensitiveContextCandidates?.length === 1, "Librarian did not stage LLM sensitive context.", runtime.librarian);
+  assert(runtime.librarian?.salutationSignals?.length === 1, "Librarian did not stage LLM salutation signals.", runtime.librarian);
   global.window.AIDA_CURATOR.reviewLibrarian();
   assert(runtime.curator?.projectListingDrafts?.some((item) => item.source === "llm"), "Curator did not stage LLM project listing draft.", runtime.curator);
   assert(runtime.curator?.writePlanDrafts?.length >= 1, "Curator did not stage LLM write plan.", runtime.curator);
+  assert(runtime.curator?.sensitiveContextWriteDrafts?.length === 1, "Curator did not stage sensitive context write drafts.", runtime.curator);
+  assert(runtime.curator?.salutationSignalWriteDrafts?.length === 1, "Curator did not stage salutation signal write drafts.", runtime.curator);
   const search = global.window.AIDA_CRAWLER.search("LLM refinement lane");
   assert(search.results.length >= 1, "Crawler did not find LLM refinement memory.", search);
 
@@ -460,6 +527,8 @@ async function runLlmRefinementTest() {
     fallbackStatus: distillation.fallback.status,
     diaryDrafts: distillation.diaryDrafts.length,
     factCandidates: distillation.factCandidates.length,
+    sensitiveContextCandidates: distillation.sensitiveContextCandidates.length,
+    salutationSignals: distillation.salutationSignals.length,
     preferredSource: preferred.source,
     preferredMethod: preferred.method,
     librarianDiaryDrafts: runtime.librarian.diaryDrafts.length,

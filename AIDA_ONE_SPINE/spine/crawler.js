@@ -214,6 +214,45 @@
         indexedAt
       }
     )));
+    safeArray(staged.sensitiveContextCandidates).forEach((item) => entries.push(entry(
+      `sensitive_${slug(item.id)}`,
+      "sensitive_context_candidate",
+      item.scope || "Sensitive context",
+      item.note || item.context || item.claim || "",
+      {
+        sourceRefs: item.source_refs,
+        project: item.scope?.replace(/^project:/, ""),
+        packetId: item.packetId,
+        humanSource: "AIDA_RUNTIME.librarian.sensitiveContextCandidates",
+        indexedAt
+      }
+    )));
+    safeArray(staged.salutationSignals).forEach((item) => entries.push(entry(
+      `salutation_${slug(item.id)}`,
+      "salutation_tone_signal",
+      "Salutation and tone signal",
+      `${item.observed_text || ""} ${item.suggested_use || item.guidance || ""}`,
+      {
+        sourceRefs: item.source_ref ? [item.source_ref] : item.source_refs,
+        packetId: item.packetId,
+        humanSource: "AIDA_RUNTIME.librarian.salutationSignals",
+        indexedAt
+      }
+    )));
+    safeArray(staged.rawLogEntries).forEach((item) => entries.push(entry(
+      `raw_log_${slug(item.id)}`,
+      "raw_session_log",
+      `Raw turn ${item.turnIndex ?? "?"}`,
+      `User: ${item.user || ""} Aida: ${item.aida || ""}`,
+      {
+        sourceRefs: item.source_refs,
+        project: item.project,
+        realm: item.realm,
+        packetId: item.packetId,
+        humanSource: "AIDA_RUNTIME.librarian.rawLogEntries",
+        indexedAt
+      }
+    )));
     return entries.filter(Boolean);
   }
 

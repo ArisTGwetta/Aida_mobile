@@ -137,47 +137,73 @@
   }
 
   function extractFactCandidates(turns, createdAt) {
-    const candidates = [];
-    const patterns = [
-      { re: /\b(?:i|we)\s+(?:need|want|prefer|like|love|use|work on|am working on|care about)\s+([^.!?]{4,160})/i, scope: "user", confidence: 0.68 },
-      { re: /\b(?:i|we)\s+(?:do not|don't|cannot|can't|won't)\s+([^.!?]{4,160})/i, scope: "user", confidence: 0.62 },
-      { re: /\b(?:this|the)\s+(?:project|system|app|memory|architecture)\s+(?:needs|uses|has|should)\s+([^.!?]{4,160})/i, scope: "project", confidence: 0.6 }
-    ];
-
-    (turns || []).forEach((turn) => {
-      const text = cleanText(turn.user?.text, 500);
-      patterns.forEach((pattern) => {
-        const match = text.match(pattern.re);
-        if (!match) return;
-        const claim = cleanText(match[0], 220);
-        if (!claim || candidates.some((item) => item.claim === claim)) return;
-        const project = turn.tags?.project || "unknown_project";
-        candidates.push({
-          id: `fact_candidate_${slug(project)}_${turn.turnIndex}_${candidates.length + 1}`,
-          scope: pattern.scope === "project" ? `project:${project}` : pattern.scope,
-          claim,
-          confidence: pattern.confidence,
-          source_refs: [sourceRef(turn.tags?.session_id, turn.turnIndex)],
-          status: "candidate",
-          last_seen: turn.capturedAt || createdAt
-        });
-      });
-    });
-
-    return candidates.slice(0, 8);
+    return [];
   }
 
   function buildInsightCandidates(facts, turns, createdAt) {
-    const project = dominantValue(turns, (turn) => turn.tags?.project, "unknown_project");
-    return (facts || []).slice(0, 5).map((fact, index) => ({
-      id: `insight_candidate_${slug(project)}_${index + 1}`,
-      scope: fact.scope?.startsWith("project:") ? fact.scope : `project:${project}`,
-      derived_from: [fact.id],
-      guidance: `When working in ${project}, keep this candidate memory in view: ${fact.claim}`,
-      confidence: Math.max(0.45, Math.min(0.72, (fact.confidence || 0.55) - 0.05)),
-      status: "candidate",
-      last_evaluated: createdAt
+    return [];
+  }
+
+  function buildRawLogEntries({ packetId, sessionId, turns, createdAt }) {
+    return (turns || []).map((turn) => ({
+      id: `raw_log_${slug(packetId)}_${turn.turnIndex}`,
+      packetId,
+      session_id: turn.tags?.session_id || sessionId || null,
+      turnIndex: turn.turnIndex,
+      capturedAt: turn.capturedAt || createdAt,
+      project: turn.tags?.project || "unknown_project",
+      realm: turn.tags?.realm || "unknown_realm",
+      role: turn.tags?.role || "unknown_role",
+      user: cleanText(turn.user?.text, 1200),
+      aida: cleanText(turn.aida?.text, 1200),
+      source_refs: [sourceRef(turn.tags?.session_id || sessionId, turn.turnIndex)]
     }));
+  }
+
+  function extractSalutationSignals(turns, createdAt) {
+    const signals = [];
+    const greetingPattern = /^\s*(hello|hi|hey|good\s+(?:morning|afternoon|evening|night)|goodnight|ok|okay)\b[,\s-]*/i;
+    const affectionatePattern = /\b(my sweet child|sweet child|my dear|dear one|love|lovely|cody|aida)\b/i;
+    const formalPattern = /\b(compliance officer|authoritative|matter of fact|strictly|official|urgent)\b/i;
+
+    (turns || []).forEach((turn) => {
+      const text = String(turn.user?.text || "").trim();
+      if (!text) return;
+      const hasGreeting = greetingPattern.test(text);
+      const affectionate = text.match(affectionatePattern);
+      const formal = text.match(formalPattern);
+      if (!hasGreeting && !affectionate && !formal) return;
+      signals.push({
+        id: `salutation_signal_${slug(turn.tags?.session_id || "session")}_${turn.turnIndex}`,
+        type: "salutation_tone_signal",
+        source_ref: sourceRef(turn.tags?.session_id, turn.turnIndex),
+        observed_text: cleanText(text, 180),
+        signal: hasGreeting ? "opening_salutation" : formal ? "formal_or_directive_tone" : "affectionate_address",
+        warmth: affectionate ? "affectionate" : formal ? "formal" : "friendly",
+        suggested_use: "Use as a soft tone preference signal, not as a fixed script or durable fact.",
+        confidence: 0.58,
+        last_seen: turn.capturedAt || createdAt
+      });
+    });
+
+    return signals.slice(0, 6);
+  }
+
+  function buildProcessingBacklog({ packetId, turns, createdAt, reason }) {
+    if (!turns?.length) return [];
+    return [
+      {
+        id: `memory_backlog_${slug(packetId)}`,
+        packetId,
+        type: "llm_memory_processing_backlog",
+        reason,
+        status: "needs_llm_distillation",
+        priority: "normal",
+        source_refs: turns.map((turn) => sourceRef(turn.tags?.session_id, turn.turnIndex)),
+        turn_count: turns.length,
+        createdAt
+      }
+    ];
   }
 
   function summarizeTurns(turns, labels = {}) {
@@ -206,6 +232,8 @@
     const capturedTimes = turns.map((turn) => turn.capturedAt).filter(Boolean);
     const summary = summarizeTurns(turns, { project, role });
     const facts = extractFactCandidates(turns, createdAt);
+    const rawLogEntries = buildRawLogEntries({ packetId: id, sessionId, turns, createdAt });
+    const salutationSignals = extractSalutationSignals(turns, createdAt);
     const reviewWindow = {
       session_id: sessionId,
       turn_start: sourceTurns[0] || null,
@@ -245,6 +273,15 @@
       },
       fact_candidates: facts,
       insight_candidates: buildInsightCandidates(facts, turns, createdAt),
+      raw_log_entries: rawLogEntries,
+      salutation_signals: salutationSignals,
+      sensitive_context_candidates: [],
+      processing_backlog: buildProcessingBacklog({
+        packetId: id,
+        turns,
+        createdAt,
+        reason: "fallback_kept_facts_and_insights_for_llm_review"
+      }),
       open_threads: buildOpenThreads(turns)
     };
   }
@@ -279,6 +316,10 @@
       longSummaryCandidates: safeArray(candidate.longSummaryCandidates),
       factCandidates: safeArray(candidate.factCandidates),
       insightCandidates: safeArray(candidate.insightCandidates),
+      sensitiveContextCandidates: safeArray(candidate.sensitiveContextCandidates),
+      salutationSignals: safeArray(candidate.salutationSignals || candidate.tonePreferences),
+      rawLogEntries: safeArray(candidate.rawLogEntries),
+      processingBacklog: safeArray(candidate.processingBacklog),
       projectLedgerUpdates: safeArray(candidate.projectLedgerUpdates),
       openThreads: safeArray(candidate.openThreads)
     };
@@ -314,10 +355,20 @@
       '  "longSummaryCandidates": [],',
       '  "factCandidates": [],',
       '  "insightCandidates": [],',
+      '  "sensitiveContextCandidates": [],',
+      '  "salutationSignals": [],',
+      '  "rawLogEntries": [],',
+      '  "processingBacklog": [],',
       '  "projectLedgerUpdates": [],',
       '  "openThreads": []',
       "}",
-      "Diary preserves felt shape. Rolling summary preserves immediate continuity. Long summary candidates preserve durable project arc. Facts are stable claims. Insights are behavior guidance derived from facts/themes."
+      "Diary preserves felt shape in human-readable prose, not mechanical transition notes.",
+      "Rolling summary preserves immediate continuity. Long summary candidates preserve durable project arc.",
+      "Facts are stable, specific claims only. Do not turn greetings, transitions, test chatter, vague hopes, or one-off mood into facts.",
+      "Insights are behavior guidance derived from themes and source evidence.",
+      "Sensitive context candidates are tender biographical or emotional material that Aida should handle gently and avoid raising unprompted unless relevant.",
+      "Salutation signals are soft tone preferences: greeting style, affectionate names, formality shifts, and warmth patterns. They are not facts and should not force pet names.",
+      "Raw log entries should preserve enough human-readable source text for later retrieval and reprocessing."
     ].join("\n");
 
     return [
@@ -391,6 +442,8 @@
       open_threads: copyJson(outputs.open_threads || [], []),
       facts_to_consider: copyJson(outputs.fact_candidates || [], []),
       insights_to_consider: copyJson(outputs.insight_candidates || [], []),
+      sensitive_context_to_consider: copyJson(outputs.sensitive_context_candidates || [], []),
+      salutation_tone_signals: copyJson(outputs.salutation_signals || [], []),
       emotional_notes: outputs.diary_candidate?.emotional_shape ? [outputs.diary_candidate.emotional_shape] : [],
       while_away_seed: copyJson(whileAwaySeed || null, null),
       last_active: createdAt
@@ -406,6 +459,10 @@
     const longSummaryCandidates = [];
     const factCandidates = [];
     const insightCandidates = [];
+    const sensitiveContextCandidates = [];
+    const salutationSignals = [];
+    const rawLogEntries = [];
+    const processingBacklog = [];
     const openThreads = [];
     let filledSummaryDrafts = 0;
     let filledLedgerDrafts = 0;
@@ -431,6 +488,10 @@
       longSummaryCandidates.push(outputs.long_summary_candidate);
       factCandidates.push(...outputs.fact_candidates);
       insightCandidates.push(...outputs.insight_candidates);
+      sensitiveContextCandidates.push(...outputs.sensitive_context_candidates);
+      salutationSignals.push(...outputs.salutation_signals);
+      rawLogEntries.push(...outputs.raw_log_entries);
+      processingBacklog.push(...outputs.processing_backlog);
       openThreads.push(...outputs.open_threads);
 
       const ledgerDraft = (state.projectLedgerDrafts || []).find((item) => item.sourceSummaryDraftId === draft.id);
@@ -454,6 +515,10 @@
       longSummaryCandidates.push(sessionDraft.long_summary_candidate);
       factCandidates.push(...sessionDraft.fact_candidates);
       insightCandidates.push(...sessionDraft.insight_candidates);
+      sensitiveContextCandidates.push(...sessionDraft.sensitive_context_candidates);
+      salutationSignals.push(...sessionDraft.salutation_signals);
+      rawLogEntries.push(...sessionDraft.raw_log_entries);
+      processingBacklog.push(...sessionDraft.processing_backlog);
       openThreads.push(...sessionDraft.open_threads);
     }
 
@@ -471,6 +536,10 @@
       longSummaryCandidates,
       factCandidates,
       insightCandidates,
+      sensitiveContextCandidates,
+      salutationSignals,
+      rawLogEntries,
+      processingBacklog,
       projectLedgerUpdates: copyJson(state.projectLedgerDrafts || [], []),
       openThreads,
       counts: {
@@ -478,7 +547,11 @@
         ledgerDraftsFilled: filledLedgerDrafts,
         diaryDrafts: diaryDrafts.length,
         factCandidates: factCandidates.length,
-        insightCandidates: insightCandidates.length
+        insightCandidates: insightCandidates.length,
+        sensitiveContextCandidates: sensitiveContextCandidates.length,
+        salutationSignals: salutationSignals.length,
+        rawLogEntries: rawLogEntries.length,
+        processingBacklog: processingBacklog.length
       }
     };
 
@@ -502,7 +575,11 @@
       ledgerDraftsFilled: fallback.counts?.ledgerDraftsFilled || 0,
       diaryDrafts: llmDraft.diaryDrafts.length,
       factCandidates: llmDraft.factCandidates.length,
-      insightCandidates: llmDraft.insightCandidates.length
+      insightCandidates: llmDraft.insightCandidates.length,
+      sensitiveContextCandidates: llmDraft.sensitiveContextCandidates.length,
+      salutationSignals: llmDraft.salutationSignals.length,
+      rawLogEntries: llmDraft.rawLogEntries.length,
+      processingBacklog: llmDraft.processingBacklog.length
     };
 
     packet.distillation = {
@@ -516,6 +593,10 @@
       longSummaryCandidates: llmDraft.longSummaryCandidates,
       factCandidates: llmDraft.factCandidates,
       insightCandidates: llmDraft.insightCandidates,
+      sensitiveContextCandidates: llmDraft.sensitiveContextCandidates,
+      salutationSignals: llmDraft.salutationSignals,
+      rawLogEntries: llmDraft.rawLogEntries.length ? llmDraft.rawLogEntries : fallback.rawLogEntries || [],
+      processingBacklog: llmDraft.processingBacklog,
       projectLedgerUpdates: llmDraft.projectLedgerUpdates.length ? llmDraft.projectLedgerUpdates : fallback.projectLedgerUpdates || [],
       openThreads: llmDraft.openThreads,
       counts
@@ -555,6 +636,10 @@
           longSummaryCandidates: 0,
           factCandidates: 0,
           insightCandidates: 0,
+          sensitiveContextCandidates: 0,
+          salutationSignals: 0,
+          rawLogEntries: 0,
+          processingBacklog: 0,
           openThreads: 0
         },
         output: null
@@ -567,6 +652,10 @@
       longSummaryCandidates: safeArray(distillation.longSummaryCandidates),
       factCandidates: safeArray(distillation.factCandidates),
       insightCandidates: safeArray(distillation.insightCandidates),
+      sensitiveContextCandidates: safeArray(distillation.sensitiveContextCandidates),
+      salutationSignals: safeArray(distillation.salutationSignals),
+      rawLogEntries: safeArray(distillation.rawLogEntries),
+      processingBacklog: safeArray(distillation.processingBacklog),
       projectLedgerUpdates: safeArray(distillation.projectLedgerUpdates),
       openThreads: safeArray(distillation.openThreads)
     };
@@ -586,6 +675,10 @@
         longSummaryCandidates: output.longSummaryCandidates.length,
         factCandidates: output.factCandidates.length,
         insightCandidates: output.insightCandidates.length,
+        sensitiveContextCandidates: output.sensitiveContextCandidates.length,
+        salutationSignals: output.salutationSignals.length,
+        rawLogEntries: output.rawLogEntries.length,
+        processingBacklog: output.processingBacklog.length,
         openThreads: output.openThreads.length
       },
       preview: {
@@ -593,7 +686,9 @@
         rolling: cleanText(output.rollingSummaries[0]?.text, 220),
         long: cleanText(output.longSummaryCandidates[0]?.text, 220),
         fact: cleanText(output.factCandidates[0]?.claim, 220),
-        insight: cleanText(output.insightCandidates[0]?.guidance, 220)
+        insight: cleanText(output.insightCandidates[0]?.guidance, 220),
+        sensitive: cleanText(output.sensitiveContextCandidates[0]?.note || output.sensitiveContextCandidates[0]?.context, 220),
+        salutation: cleanText(output.salutationSignals[0]?.observed_text || output.salutationSignals[0]?.guidance, 220)
       },
       output
     };
@@ -736,6 +831,10 @@
       diaryDraftCount: getPreferredDistillation(packet).counts.diaryDrafts,
       factCandidateCount: getPreferredDistillation(packet).counts.factCandidates,
       insightCandidateCount: getPreferredDistillation(packet).counts.insightCandidates,
+      sensitiveContextCandidateCount: getPreferredDistillation(packet).counts.sensitiveContextCandidates,
+      salutationSignalCount: getPreferredDistillation(packet).counts.salutationSignals,
+      rawLogEntryCount: getPreferredDistillation(packet).counts.rawLogEntries,
+      processingBacklogCount: getPreferredDistillation(packet).counts.processingBacklog,
       syncQueueCount: rt.drive?.syncQueue?.length || 0
     };
   }
@@ -751,6 +850,7 @@
     log(`SLEEP DRAFTS: summaries=${summary.summaryDraftCount}, ledgers=${summary.projectLedgerDraftCount}, emotionSnaps=${summary.emotionSnapCount}, faceWishlist=${summary.faceWishlistCount}, awaySource=${summary.whileAwaySource}`);
     log(`SLEEP DISTILLATION: source=${summary.distillationSource}, status=${summary.distillationStatus}, method=${summary.distillationMethod}, llm=${summary.llmStatus}`);
     log(`SLEEP DISTILLATION COUNTS: diary=${summary.diaryDraftCount}, facts=${summary.factCandidateCount}, insights=${summary.insightCandidateCount}`);
+    log(`SLEEP DISTILLATION EXTRA: sensitive=${summary.sensitiveContextCandidateCount}, tone=${summary.salutationSignalCount}, raw=${summary.rawLogEntryCount}, backlog=${summary.processingBacklogCount}`);
     if (summary.llmError) log(`SLEEP DISTILLATION LLM ERROR: ${summary.llmError}`, "log-amber");
     consoleReport("AIDA_SLEEP_INSPECT", getPreferredDistillation());
     return summary;

@@ -55,6 +55,10 @@
     rt.curator.diaryWriteDrafts = rt.curator.diaryWriteDrafts || [];
     rt.curator.factWriteDrafts = rt.curator.factWriteDrafts || [];
     rt.curator.insightWriteDrafts = rt.curator.insightWriteDrafts || [];
+    rt.curator.sensitiveContextWriteDrafts = rt.curator.sensitiveContextWriteDrafts || [];
+    rt.curator.salutationSignalWriteDrafts = rt.curator.salutationSignalWriteDrafts || [];
+    rt.curator.rawLogWriteDrafts = rt.curator.rawLogWriteDrafts || [];
+    rt.curator.processingBacklogWriteDrafts = rt.curator.processingBacklogWriteDrafts || [];
     rt.curator.needsConfirmation = rt.curator.needsConfirmation || [];
     rt.curator.writePlanDrafts = rt.curator.writePlanDrafts || [];
     rt.curator.reviewLog = rt.curator.reviewLog || [];
@@ -87,9 +91,10 @@
   function classifyFact(fact) {
     const claim = String(fact?.claim || "");
     const confidence = Number(fact?.confidence || 0);
-    const risky = /\b(allergy|medical|medicine|legal|law|financial|bank|password|secret|identity|address|phone|email|safety)\b/i.test(claim);
+    const risky = /\b(age|death|died|passed|funeral|father|mother|family|grief|allergy|medical|medicine|legal|law|financial|bank|password|secret|identity|address|phone|email|safety)\b/i.test(claim);
     const explicit = /\b(?:i|we)\s+(?:need|want|prefer|like|love|use|work on|am working on|care about|do not|don't|cannot|can't|won't)\b/i.test(claim);
 
+    if (fact?.source !== "llm" && fact?.method !== "llm_refined_draft") return "needs_confirmation";
     if (risky) return "needs_confirmation";
     if (explicit && confidence >= 0.62) return "candidate";
     return "needs_confirmation";
@@ -112,8 +117,47 @@
     return safeArray(staged.insightCandidates).map((insight) => ({
       ...insight,
       type: "insight_write_draft",
-      reviewStatus: "candidate",
+      reviewStatus: insight?.source === "llm" || insight?.method === "llm_refined_draft" ? "candidate" : "needs_confirmation",
+      writeStatus: insight?.source === "llm" || insight?.method === "llm_refined_draft" ? "staged_candidate" : "needs_confirmation",
+      reviewedAt
+    }));
+  }
+
+  function buildSensitiveContextWrites(staged, reviewedAt) {
+    return safeArray(staged.sensitiveContextCandidates).map((draft) => ({
+      ...draft,
+      type: "sensitive_context_write_draft",
+      reviewStatus: "sensitive_candidate",
       writeStatus: "staged_candidate",
+      handling: draft.handling || "Handle gently; do not raise unprompted unless directly relevant.",
+      reviewedAt
+    }));
+  }
+
+  function buildSalutationSignalWrites(staged, reviewedAt) {
+    return safeArray(staged.salutationSignals).map((draft) => ({
+      ...draft,
+      type: "salutation_signal_write_draft",
+      reviewStatus: "soft_preference_signal",
+      writeStatus: "staged_append",
+      reviewedAt
+    }));
+  }
+
+  function buildRawLogWrites(staged, reviewedAt) {
+    return safeArray(staged.rawLogEntries).map((draft) => ({
+      ...draft,
+      type: "raw_log_write_draft",
+      writeStatus: "staged_append",
+      reviewedAt
+    }));
+  }
+
+  function buildProcessingBacklogWrites(staged, reviewedAt) {
+    return safeArray(staged.processingBacklog).map((draft) => ({
+      ...draft,
+      type: "memory_processing_backlog_write_draft",
+      writeStatus: "staged_append",
       reviewedAt
     }));
   }
@@ -149,6 +193,8 @@
       open_thread_count: safeArray(update.open_threads).length,
       fact_candidate_count: safeArray(update.facts_to_consider).length,
       insight_candidate_count: safeArray(update.insights_to_consider).length,
+      sensitive_context_candidate_count: safeArray(update.sensitive_context_to_consider).length,
+      salutation_signal_count: safeArray(update.salutation_tone_signals).length,
       reviewedAt
     };
   }
@@ -175,6 +221,10 @@
         project_briefcase_updates: state.projectBriefcaseWriteDrafts.length,
         fact_candidates: state.factWriteDrafts.filter((item) => item.writeStatus === "staged_candidate").length,
         insight_candidates: state.insightWriteDrafts.length,
+        sensitive_context_candidates: state.sensitiveContextWriteDrafts.length,
+        salutation_signals: state.salutationSignalWriteDrafts.length,
+        raw_log_entries: state.rawLogWriteDrafts.length,
+        processing_backlog: state.processingBacklogWriteDrafts.length,
         needs_confirmation: state.needsConfirmation.length
       },
       targets: [
@@ -182,7 +232,11 @@
         "project_summary",
         "project_briefcase",
         "facts_candidates",
-        "insights_candidates"
+        "insights_candidates",
+        "sensitive_context_candidates",
+        "salutation_tone_signals",
+        "raw_session_log",
+        "memory_processing_backlog"
       ]
     };
   }
@@ -195,6 +249,10 @@
       "diaryWriteDrafts",
       "factWriteDrafts",
       "insightWriteDrafts",
+      "sensitiveContextWriteDrafts",
+      "salutationSignalWriteDrafts",
+      "rawLogWriteDrafts",
+      "processingBacklogWriteDrafts",
       "needsConfirmation"
     ]) {
       state[key] = safeArray(state[key]).filter((item) => (
@@ -236,6 +294,10 @@
       if (item.writeStatus === "needs_confirmation") upsertById(state.needsConfirmation, item);
     });
     reviewInsights(staged, reviewedAt).forEach((item) => upsertById(state.insightWriteDrafts, item));
+    buildSensitiveContextWrites(staged, reviewedAt).forEach((item) => upsertById(state.sensitiveContextWriteDrafts, item));
+    buildSalutationSignalWrites(staged, reviewedAt).forEach((item) => upsertById(state.salutationSignalWriteDrafts, item));
+    buildRawLogWrites(staged, reviewedAt).forEach((item) => upsertById(state.rawLogWriteDrafts, item));
+    buildProcessingBacklogWrites(staged, reviewedAt).forEach((item) => upsertById(state.processingBacklogWriteDrafts, item));
 
     state.lastReviewedAt = reviewedAt;
     state.lastReviewedPacketId = staged.lastIngestedPacketId;
@@ -249,6 +311,10 @@
       projectBriefcases: state.projectBriefcaseWriteDrafts.length,
       facts: state.factWriteDrafts.length,
       insights: state.insightWriteDrafts.length,
+      sensitive: state.sensitiveContextWriteDrafts.length,
+      salutationSignals: state.salutationSignalWriteDrafts.length,
+      rawLogEntries: state.rawLogWriteDrafts.length,
+      processingBacklog: state.processingBacklogWriteDrafts.length,
       needsConfirmation: state.needsConfirmation.length
     });
     state.reviewLog = state.reviewLog.slice(-20);
@@ -275,6 +341,10 @@
       diaryWriteDrafts: copyJson(state.diaryWriteDrafts, []),
       factWriteDrafts: copyJson(state.factWriteDrafts, []),
       insightWriteDrafts: copyJson(state.insightWriteDrafts, []),
+      sensitiveContextWriteDrafts: copyJson(state.sensitiveContextWriteDrafts, []),
+      salutationSignalWriteDrafts: copyJson(state.salutationSignalWriteDrafts, []),
+      rawLogWriteDrafts: copyJson(state.rawLogWriteDrafts, []),
+      processingBacklogWriteDrafts: copyJson(state.processingBacklogWriteDrafts, []),
       needsConfirmation: copyJson(state.needsConfirmation, []),
       writePlanDrafts: copyJson(state.writePlanDrafts, []),
       reviewLog: copyJson(state.reviewLog, [])
@@ -292,6 +362,10 @@
       diaryWriteDraftCount: state.diaryWriteDrafts.length,
       factWriteDraftCount: state.factWriteDrafts.length,
       insightWriteDraftCount: state.insightWriteDrafts.length,
+      sensitiveContextWriteDraftCount: state.sensitiveContextWriteDrafts.length,
+      salutationSignalWriteDraftCount: state.salutationSignalWriteDrafts.length,
+      rawLogWriteDraftCount: state.rawLogWriteDrafts.length,
+      processingBacklogWriteDraftCount: state.processingBacklogWriteDrafts.length,
       needsConfirmationCount: state.needsConfirmation.length,
       writePlanDraftCount: state.writePlanDrafts.length,
       lastProjectListing: state.projectListingDrafts[state.projectListingDrafts.length - 1] || null,
@@ -308,6 +382,7 @@
     }
     log(`CURATOR: packet=${summary.lastReviewedPacketId}, diary=${summary.diaryWriteDraftCount}, projectListings=${summary.projectListingDraftCount}, briefcases=${summary.projectBriefcaseWriteDraftCount}`);
     log(`CURATOR: facts=${summary.factWriteDraftCount}, insights=${summary.insightWriteDraftCount}, needsConfirmation=${summary.needsConfirmationCount}`);
+    log(`CURATOR: sensitive=${summary.sensitiveContextWriteDraftCount}, tone=${summary.salutationSignalWriteDraftCount}, raw=${summary.rawLogWriteDraftCount}, backlog=${summary.processingBacklogWriteDraftCount}`);
     consoleReport("AIDA_CURATOR_INSPECT", {
       summary,
       reviewed: getReviewed()
@@ -338,6 +413,10 @@
         "AIDA_RUNTIME.curator.diaryWriteDrafts",
         "AIDA_RUNTIME.curator.factWriteDrafts",
         "AIDA_RUNTIME.curator.insightWriteDrafts",
+        "AIDA_RUNTIME.curator.sensitiveContextWriteDrafts",
+        "AIDA_RUNTIME.curator.salutationSignalWriteDrafts",
+        "AIDA_RUNTIME.curator.rawLogWriteDrafts",
+        "AIDA_RUNTIME.curator.processingBacklogWriteDrafts",
         "AIDA_RUNTIME.curator.writePlanDrafts"
       ],
       requires: ["AIDA_RUNTIME", "AIDA_LIBRARIAN"],

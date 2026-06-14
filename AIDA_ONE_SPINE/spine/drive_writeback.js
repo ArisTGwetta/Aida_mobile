@@ -148,6 +148,8 @@
       open_threads: appendUnique(base.open_threads, update.open_threads || []),
       facts_to_consider: appendUnique(base.facts_to_consider, update.facts_to_consider || []),
       insights_to_consider: appendUnique(base.insights_to_consider, update.insights_to_consider || []),
+      sensitive_context_to_consider: appendUnique(base.sensitive_context_to_consider, update.sensitive_context_to_consider || []),
+      salutation_tone_signals: appendUnique(base.salutation_tone_signals, update.salutation_tone_signals || []),
       emotional_notes: appendUnique(base.emotional_notes, update.emotional_notes || []),
       last_active: update.last_active || base.last_active || generatedAt,
       last_updated: generatedAt,
@@ -202,13 +204,54 @@
       });
     }
 
-    if (safeArray(reviewed.insightWriteDrafts).length) {
+    const insightCandidates = safeArray(reviewed.insightWriteDrafts).filter((item) => item.writeStatus === "staged_candidate");
+    if (insightCandidates.length) {
       ops.push({
         target: "insights_candidates",
         fileName: "insights_candidates.json",
         mode: "append",
-        merge: (existing) => mergeAppendStore(existing, "candidates", reviewed.insightWriteDrafts, generatedAt),
-        count: reviewed.insightWriteDrafts.length
+        merge: (existing) => mergeAppendStore(existing, "candidates", insightCandidates, generatedAt),
+        count: insightCandidates.length
+      });
+    }
+
+    if (safeArray(reviewed.sensitiveContextWriteDrafts).length) {
+      ops.push({
+        target: "sensitive_context_candidates",
+        fileName: "sensitive_context_candidates.json",
+        mode: "append",
+        merge: (existing) => mergeAppendStore(existing, "candidates", reviewed.sensitiveContextWriteDrafts, generatedAt),
+        count: reviewed.sensitiveContextWriteDrafts.length
+      });
+    }
+
+    if (safeArray(reviewed.salutationSignalWriteDrafts).length) {
+      ops.push({
+        target: "salutation_tone_signals",
+        fileName: "salutation_tone_signals.json",
+        mode: "append",
+        merge: (existing) => mergeAppendStore(existing, "signals", reviewed.salutationSignalWriteDrafts, generatedAt),
+        count: reviewed.salutationSignalWriteDrafts.length
+      });
+    }
+
+    if (safeArray(reviewed.rawLogWriteDrafts).length) {
+      ops.push({
+        target: "raw_session_log",
+        fileName: "raw_session_log.json",
+        mode: "append",
+        merge: (existing) => mergeAppendStore(existing, "entries", reviewed.rawLogWriteDrafts, generatedAt),
+        count: reviewed.rawLogWriteDrafts.length
+      });
+    }
+
+    if (safeArray(reviewed.processingBacklogWriteDrafts).length) {
+      ops.push({
+        target: "memory_processing_backlog",
+        fileName: "memory_processing_backlog.json",
+        mode: "append",
+        merge: (existing) => mergeAppendStore(existing, "items", reviewed.processingBacklogWriteDrafts, generatedAt),
+        count: reviewed.processingBacklogWriteDrafts.length
       });
     }
 
