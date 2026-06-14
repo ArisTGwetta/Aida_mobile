@@ -68,8 +68,25 @@
   }
 
   function targetBriefcaseFile(draft) {
-    const direct = draft?.project?.file || draft?.project?.fileName || draft?.fileName || null;
-    if (direct) return direct;
+    const candidates = [
+      draft?.project?.briefcaseFile,
+      draft?.project?.briefcase_file,
+      draft?.project?.projectBriefcase,
+      draft?.project?.project_briefcase,
+      draft?.fileName,
+      draft?.project?.file,
+      draft?.project?.fileName
+    ].filter(Boolean).map(String);
+
+    const projectBriefcase = candidates.find((name) => /^project_briefcase_.*\.json$/i.test(name));
+    if (projectBriefcase) return projectBriefcase;
+
+    const briefcase = candidates.find((name) => /^briefcase_.*\.json$/i.test(name));
+    if (briefcase) return briefcase;
+
+    const project = candidates.find((name) => /^project_.*\.json$/i.test(name) && !/^project_summary\.json$/i.test(name));
+    if (project) return project;
+
     return `project_briefcase_${slug(draft?.project?.name || draft?.project || "unknown_project")}.json`;
   }
 
@@ -316,30 +333,51 @@
     const appliedAt = nowIso();
     const results = [];
     for (const op of ops) {
-      const existing = dryRun ? (runtime().drive?.files?.[op.fileName] || null) : await loadExisting(op.fileName);
-      const next = op.merge(existing);
       const file = fileIndex(op.fileName);
       const action = file ? "update" : "create";
-      let driveResult = null;
-      if (!dryRun) {
-        driveResult = file ? await updateFile(op.fileName, next) : await createFile(op.fileName, next);
-        runtime().drive.files[op.fileName] = next;
-        runtime().drive.fileIndex[op.fileName] = {
-          ...(runtime().drive.fileIndex[op.fileName] || {}),
-          id: driveResult.id || file?.id,
-          name: driveResult.name || op.fileName,
-          mimeType: driveResult.mimeType || "application/json",
-          modifiedTime: driveResult.modifiedTime || appliedAt
-        };
+      try {
+        const existing = dryRun ? (runtime().drive?.files?.[op.fileName] || null) : await loadExisting(op.fileName);
+        const next = op.merge(existing);
+        let driveResult = null;
+        if (!dryRun) {
+          driveResult = file ? await updateFile(op.fileName, next) : await createFile(op.fileName, next);
+          runtime().drive.files[op.fileName] = next;
+          runtime().drive.fileIndex[op.fileName] = {
+            ...(runtime().drive.fileIndex[op.fileName] || {}),
+            id: driveResult.id || file?.id,
+            name: driveResult.name || op.fileName,
+            mimeType: driveResult.mimeType || "application/json",
+            modifiedTime: driveResult.modifiedTime || appliedAt
+          };
+        }
+        results.push({
+          target: op.target,
+          fileName: op.fileName,
+          action,
+          count: op.count,
+          dryRun,
+          ok: true
+        });
+      } catch (error) {
+        results.push({
+          target: op.target,
+          fileName: op.fileName,
+          action,
+          count: op.count,
+          dryRun,
+          ok: false,
+          error: error.message
+        });
+        state.lastAppliedAt = null;
+        state.lastStatus = dryRun ? "dry_run_failed" : "apply_failed";
+        state.operations = results;
+        state.history.push({ appliedAt, dryRun, results });
+        state.history = state.history.slice(-20);
+        const failed = { ready: false, status: state.lastStatus, dryRun, operations: results };
+        log(`DRIVE WRITEBACK: failed on ${op.fileName}. ${error.message}`, "log-amber");
+        consoleReport("AIDA_DRIVE_WRITEBACK_APPLY", failed);
+        return failed;
       }
-      results.push({
-        target: op.target,
-        fileName: op.fileName,
-        action,
-        count: op.count,
-        dryRun,
-        ok: true
-      });
     }
 
     state.lastAppliedAt = dryRun ? null : appliedAt;
