@@ -163,14 +163,14 @@
   function extractSalutationSignals(turns, createdAt) {
     const signals = [];
     const greetingPattern = /^\s*(hello|hi|hey|good\s+(?:morning|afternoon|evening|night)|goodnight|ok|okay)\b[,\s-]*/i;
-    const affectionatePattern = /\b(my sweet child|sweet child|my dear|dear one|love|lovely|cody|aida)\b/i;
+    const affectionateAddressPattern = /(^|\b)(my\s+(?:sweet\s+child|dear|sweetheart|love|sweet\s+aida)|sweet\s+child|dear\s+one|hello\s+beautiful|hello\s+my\s+dear|yes\s+love|my\s+sweet\s+aida|cody)\b/i;
     const formalPattern = /\b(compliance officer|authoritative|matter of fact|strictly|official|urgent)\b/i;
 
     (turns || []).forEach((turn) => {
       const text = String(turn.user?.text || "").trim();
       if (!text) return;
       const hasGreeting = greetingPattern.test(text);
-      const affectionate = text.match(affectionatePattern);
+      const affectionate = text.match(affectionateAddressPattern);
       const formal = text.match(formalPattern);
       if (!hasGreeting && !affectionate && !formal) return;
       signals.push({
@@ -374,6 +374,19 @@
     return [
       { role: "system", content: system },
       { role: "user", content: JSON.stringify(compactPacket, null, 2) }
+    ];
+  }
+
+  function buildLlmJsonRepairMessages(rawText, parseError) {
+    const system = [
+      "You repair malformed JSON for Aida's sleep memory distiller.",
+      "Return strict valid JSON only, with no prose and no markdown.",
+      "Preserve the original keys and values as much as possible.",
+      "Use empty arrays for any incomplete or unrecoverable array/object."
+    ].join("\n");
+    return [
+      { role: "system", content: system },
+      { role: "user", content: `Parse error: ${parseError?.message || parseError}\n\nMalformed JSON:\n${rawText}` }
     ];
   }
 
@@ -721,13 +734,26 @@
       const responseText = await window.AIDA_OPENAI.callMessages(buildLlmDistillationMessages(packet), {
         maxOutputTokens
       });
-      const llmDraft = validateLlmDistillation(extractJsonObject(responseText));
+      let parsedDraft = null;
+      let repairAttempted = false;
+      try {
+        parsedDraft = extractJsonObject(responseText);
+      } catch (parseError) {
+        repairAttempted = true;
+        log(`SLEEP LLM: response JSON parse failed; requesting repair. ${parseError.message}`, "log-amber");
+        const repairedText = await window.AIDA_OPENAI.callMessages(buildLlmJsonRepairMessages(responseText, parseError), {
+          maxOutputTokens
+        });
+        parsedDraft = extractJsonObject(repairedText);
+      }
+      const llmDraft = validateLlmDistillation(parsedDraft);
       const distillation = applyLlmDistillation(packet, llmDraft, nowIso());
       distillation.llm = {
         status: "complete",
         startedAt,
         finishedAt: distillation.llmFilledAt,
-        maxOutputTokens
+        maxOutputTokens,
+        repairAttempted
       };
       rt.sleep.lastPacket = packet;
       log(`SLEEP LLM: complete. diary=${distillation.counts.diaryDrafts}, facts=${distillation.counts.factCandidates}, insights=${distillation.counts.insightCandidates}.`, "log-blue");

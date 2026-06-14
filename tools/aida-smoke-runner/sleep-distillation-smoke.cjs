@@ -163,8 +163,14 @@ function installBrowserMocks(runtime, options = {}) {
     AIDA_RUNTIME: runtime
   };
   if (options.mockOpenAI) {
+    let callCount = 0;
     global.window.AIDA_OPENAI = {
-      callMessages: async () => JSON.stringify({
+      callMessages: async (messages) => {
+        callCount += 1;
+        if (options.mockMalformedOpenAI && callCount === 1) {
+          return '{"diaryDrafts":[{"id":"broken_json" "entry":"missing comma"}],"rollingSummaries":[]';
+        }
+        return JSON.stringify({
         diaryDrafts: [
           {
             id: "diary_llm_smoke",
@@ -255,7 +261,8 @@ function installBrowserMocks(runtime, options = {}) {
         processingBacklog: [],
         projectLedgerUpdates: [],
         openThreads: []
-      })
+        });
+      }
     };
   }
   return logs;
@@ -540,6 +547,32 @@ async function runLlmRefinementTest() {
   };
 }
 
+async function runLlmJsonRepairTest() {
+  const turns = [
+    makeTurn(
+      1,
+      "Please repair malformed LLM sleep JSON if the first response is invalid.",
+      "I will ask for a strict JSON repair before falling back."
+    )
+  ];
+  const runtime = makeRuntime(turns, {}, { llmReady: true });
+  const sleep = loadSleepCycle(runtime, { mockOpenAI: true, mockMalformedOpenAI: true });
+  const packet = sleep.buildPacket("smoke_llm_json_repair");
+  const distillation = await sleep.refinePacketWithLlm(packet);
+
+  assert(distillation.status === "llm_draft_filled", "LLM JSON repair did not recover a refined draft.", distillation);
+  assert(distillation.llm?.status === "complete", "LLM JSON repair did not complete.", distillation);
+  assert(distillation.llm?.repairAttempted, "LLM JSON repair path was not marked attempted.", distillation);
+
+  return {
+    packetId: packet.id,
+    status: distillation.status,
+    llmStatus: distillation.llm.status,
+    repairAttempted: distillation.llm.repairAttempted,
+    diaryDrafts: distillation.diaryDrafts.length
+  };
+}
+
 function runCrashBufferRestoreTest() {
   const localStorage = makeMemoryStorage();
   const turns = [
@@ -622,6 +655,7 @@ async function main() {
         oneTurnFallback: runOneTurnFallbackTest(),
         chunkDraft: runChunkDraftTest(),
         llmRefinement: await runLlmRefinementTest(),
+        llmJsonRepair: await runLlmJsonRepairTest(),
         crashBufferRestore: runCrashBufferRestoreTest(),
         memoryBoundary: runMemoryBoundaryMessageTest(),
         driveWritebackDryRun: await runDriveWritebackDryRunTest()

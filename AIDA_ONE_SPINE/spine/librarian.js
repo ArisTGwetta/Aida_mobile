@@ -73,6 +73,15 @@
     else list.push(stamped);
   }
 
+  function isLegacyFallbackCandidate(item) {
+    return item?.source === "fallback" || item?.method === "deterministic_runtime_draft";
+  }
+
+  function pruneLegacyFallbackCandidates(state) {
+    state.factCandidates = safeArray(state.factCandidates).filter((item) => !isLegacyFallbackCandidate(item));
+    state.insightCandidates = safeArray(state.insightCandidates).filter((item) => !isLegacyFallbackCandidate(item));
+  }
+
   function projectFromPreferred(preferred) {
     const firstDiary = preferred.output?.diaryDrafts?.[0] || null;
     const firstSummary = preferred.output?.rollingSummaries?.[0] || preferred.output?.longSummaryCandidates?.[0] || null;
@@ -187,6 +196,7 @@
 
   function getStaged() {
     const state = ensureState();
+    pruneLegacyFallbackCandidates(state);
     return {
       lastIngestedPacketId: state.lastIngestedPacketId || null,
       lastIngestedAt: state.lastIngestedAt || null,
@@ -206,6 +216,7 @@
 
   function safeSummary() {
     const state = ensureState();
+    pruneLegacyFallbackCandidates(state);
     return {
       ready: Boolean(state.lastIngestedPacketId),
       lastIngestedPacketId: state.lastIngestedPacketId || null,
@@ -226,6 +237,7 @@
 
   function ingestSleep(packet = runtime()?.sleep?.lastPacket) {
     const state = ensureState();
+    pruneLegacyFallbackCandidates(state);
     if (!window.AIDA_SLEEP?.getPreferredDistillation) {
       log("LIBRARIAN: sleep preferred distillation helper is unavailable.", "log-amber");
       return { ready: false, reason: "sleep_helper_unavailable" };
