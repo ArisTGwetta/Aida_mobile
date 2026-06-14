@@ -317,7 +317,15 @@
     const scope = review.scope || `project:${project}`;
     const sessionSummary = cleanText(review.sessionSummary || review.summary || "", 900);
 
-    const diaryDrafts = safeArray(review.diary || review.diaryDrafts).map((item, index) => ({
+    const reviewDiary = safeArray(review.diary || review.diaryDrafts);
+    if (!reviewDiary.length && (review.diaryEntry || review.diary_entry)) {
+      reviewDiary.push({
+        entry: review.diaryEntry || review.diary_entry,
+        source_refs: rawSourceRefs
+      });
+    }
+
+    const diaryDrafts = reviewDiary.map((item, index) => ({
       id: item.id || `diary_llm_review_${slug(packetId)}_${index + 1}`,
       session_id: item.session_id || review.session_id || null,
       project: item.project || project,
@@ -448,7 +456,112 @@
     };
   }
 
-  function buildLlmDistillationMessages(packet) {
+  function makeEmptyLlmDraft() {
+    return {
+      diaryDrafts: [],
+      rollingSummaries: [],
+      longSummaryCandidates: [],
+      factCandidates: [],
+      insightCandidates: [],
+      sensitiveContextCandidates: [],
+      salutationSignals: [],
+      rawLogEntries: [],
+      processingBacklog: [],
+      projectLedgerUpdates: [],
+      openThreads: []
+    };
+  }
+
+  function appendUniqueById(target, items) {
+    safeArray(items).forEach((item) => {
+      if (!item) return;
+      const key = item.id || item.source_ref || item.thread || JSON.stringify(item);
+      if (!target.some((existing) => (existing.id || existing.source_ref || existing.thread || JSON.stringify(existing)) === key)) {
+        target.push(item);
+      }
+    });
+  }
+
+  function selectDraftShelvesForPass(draft, passId) {
+    const selected = makeEmptyLlmDraft();
+    if (passId === "continuity") {
+      selected.diaryDrafts = safeArray(draft.diaryDrafts);
+      selected.rollingSummaries = safeArray(draft.rollingSummaries);
+      selected.longSummaryCandidates = safeArray(draft.longSummaryCandidates);
+      selected.projectLedgerUpdates = safeArray(draft.projectLedgerUpdates);
+      return selected;
+    }
+    if (passId === "semantic") {
+      selected.factCandidates = safeArray(draft.factCandidates);
+      selected.insightCandidates = safeArray(draft.insightCandidates);
+      selected.sensitiveContextCandidates = safeArray(draft.sensitiveContextCandidates);
+      return selected;
+    }
+    if (passId === "relationship") {
+      selected.salutationSignals = safeArray(draft.salutationSignals);
+      selected.openThreads = safeArray(draft.openThreads);
+      selected.processingBacklog = safeArray(draft.processingBacklog);
+      return selected;
+    }
+    return draft;
+  }
+
+  function mergeLlmDrafts(drafts) {
+    const merged = makeEmptyLlmDraft();
+    safeArray(drafts).forEach((draft) => {
+      appendUniqueById(merged.diaryDrafts, draft.diaryDrafts);
+      appendUniqueById(merged.rollingSummaries, draft.rollingSummaries);
+      appendUniqueById(merged.longSummaryCandidates, draft.longSummaryCandidates);
+      appendUniqueById(merged.factCandidates, draft.factCandidates);
+      appendUniqueById(merged.insightCandidates, draft.insightCandidates);
+      appendUniqueById(merged.sensitiveContextCandidates, draft.sensitiveContextCandidates);
+      appendUniqueById(merged.salutationSignals, draft.salutationSignals);
+      appendUniqueById(merged.rawLogEntries, draft.rawLogEntries);
+      appendUniqueById(merged.processingBacklog, draft.processingBacklog);
+      appendUniqueById(merged.projectLedgerUpdates, draft.projectLedgerUpdates);
+      appendUniqueById(merged.openThreads, draft.openThreads);
+    });
+    return merged;
+  }
+
+  const LLM_SLEEP_PASSES = [
+    {
+      id: "continuity",
+      label: "continuity summaries",
+      shelves: "diaryEntry, sessionSummary, longSummary",
+      instructions: [
+        "Fill only diaryEntry, sessionSummary, and longSummary.",
+        "Keep durableFacts, behaviorInsights, sensitiveContext, toneSignals, and openThreads empty.",
+        "Diary preserves felt shape in human-readable prose, not mechanical transition notes.",
+        "Session summary preserves immediate continuity. Long summary preserves durable project arc."
+      ]
+    },
+    {
+      id: "semantic",
+      label: "facts, insights, and sensitive context",
+      shelves: "durableFacts, behaviorInsights, sensitiveContext",
+      instructions: [
+        "Fill only durableFacts, behaviorInsights, and sensitiveContext.",
+        "Keep diaryEntry, sessionSummary, longSummary, toneSignals, and openThreads empty.",
+        "Facts are stable, specific claims only. Do not turn greetings, transitions, test chatter, vague hopes, or one-off mood into facts.",
+        "Insights are behavior guidance derived from themes and source evidence.",
+        "Sensitive context candidates are tender biographical or emotional material that Aida should handle gently and avoid raising unprompted unless relevant."
+      ]
+    },
+    {
+      id: "relationship",
+      label: "tone, open threads, and backlog",
+      shelves: "toneSignals, openThreads, needsFurtherProcessing",
+      instructions: [
+        "Fill only toneSignals, openThreads, and needsFurtherProcessing.",
+        "Keep diaryEntry, sessionSummary, longSummary, durableFacts, behaviorInsights, and sensitiveContext empty.",
+        "Salutation signals are soft tone preferences: greeting style, affectionate names, formality shifts, and warmth patterns. They are not facts and should not force pet names.",
+        "Set needsFurtherProcessing true if the raw log is too large, ambiguous, or emotionally important but not fully processed."
+      ]
+    }
+  ];
+
+  function buildLlmDistillationMessages(packet, pass = LLM_SLEEP_PASSES[0]) {
     const fallback = packet.distillation || {};
     const rawLogEntries = safeArray(fallback.rawLogEntries).map((item) => ({
       id: item.id,
@@ -497,7 +610,12 @@
       "Read the raw log and produce a compact memory review for a human to inspect before Drive writeback.",
       "Return strict JSON only. No prose. No markdown. No trailing comments.",
       "Do not invent facts outside the packet.",
-      "Prefer short arrays: 1-4 diary items, 0-6 facts, 0-6 insights, 0-4 sensitive context items, 0-4 tone signals.",
+      `This pass is ${pass.id}: ${pass.label}. Fill only these shelves: ${pass.shelves}.`,
+      ...safeArray(pass.instructions),
+      "Keep output small enough to finish: at most 1 diaryEntry string, 1 sessionSummary, 1 longSummary, and short arrays only.",
+      "Prefer short arrays: 0-4 facts, 0-4 insights, 0-3 sensitive context items, 0-3 tone signals, 0-3 open threads.",
+      "Do not include raw log entries in your answer.",
+      "If the packet is too large to fully process, set needsFurtherProcessing true instead of writing more items.",
       "Use only source_refs provided in the packet.",
       "If you cannot extract a useful shelf, return an empty array for that shelf.",
       "Use this exact top-level shape and key order:",
@@ -507,7 +625,7 @@
       '  "memoryReview": {',
       '    "project": "",',
       '    "source_refs": [],',
-      '    "diary": [{"entry": "", "source_refs": []}],',
+      '    "diaryEntry": "",',
       '    "sessionSummary": "",',
       '    "longSummary": "",',
       '    "durableFacts": [{"claim": "", "scope": "user|project:aida_architecture", "confidence": 0.0, "source_refs": []}],',
@@ -518,13 +636,7 @@
       '    "needsFurtherProcessing": false',
       '  }',
       "}",
-      "Diary preserves felt shape in human-readable prose, not mechanical transition notes.",
-      "Session summary preserves immediate continuity. Long summary preserves durable project arc.",
-      "Facts are stable, specific claims only. Do not turn greetings, transitions, test chatter, vague hopes, or one-off mood into facts.",
-      "Insights are behavior guidance derived from themes and source evidence.",
-      "Sensitive context candidates are tender biographical or emotional material that Aida should handle gently and avoid raising unprompted unless relevant.",
-      "Salutation signals are soft tone preferences: greeting style, affectionate names, formality shifts, and warmth patterns. They are not facts and should not force pet names.",
-      "Set needsFurtherProcessing true if the raw log is too large, ambiguous, or emotionally important but not fully processed."
+      "For shelves outside this pass, return empty strings or empty arrays."
     ].join("\n");
 
     return [
@@ -753,9 +865,7 @@
     const llmProducedSemanticMemory = Boolean(
       llmDraft.factCandidates.length ||
       llmDraft.insightCandidates.length ||
-      llmDraft.sensitiveContextCandidates.length ||
-      llmDraft.rollingSummaries.length ||
-      llmDraft.longSummaryCandidates.length
+      llmDraft.sensitiveContextCandidates.length
     );
     merged.processingBacklog = llmDraft.processingBacklog.length
       ? llmDraft.processingBacklog
@@ -868,6 +978,7 @@
       method: distillation.method || "unknown",
       llmStatus: distillation.llm?.status || null,
       llmError: distillation.llm?.error || null,
+      llmPasses: safeArray(distillation.llm?.passes),
       counts: {
         diaryDrafts: output.diaryDrafts.length,
         rollingSummaries: output.rollingSummaries.length,
@@ -893,6 +1004,44 @@
     };
   }
 
+  async function runLlmDistillationPass(packet, pass, maxOutputTokens) {
+    const startedAt = nowIso();
+    const result = {
+      id: pass.id,
+      label: pass.label,
+      status: "running",
+      startedAt,
+      repairAttempted: false
+    };
+
+    try {
+      const responseText = await window.AIDA_OPENAI.callMessages(buildLlmDistillationMessages(packet, pass), {
+        maxOutputTokens
+      });
+      let parsedDraft = null;
+      try {
+        parsedDraft = extractJsonObject(responseText);
+      } catch (parseError) {
+        result.repairAttempted = true;
+        log(`SLEEP LLM: ${pass.id} JSON parse failed; requesting repair. ${parseError.message}`, "log-amber");
+        const repairedText = await window.AIDA_OPENAI.callMessages(buildLlmJsonRepairMessages(responseText, parseError), {
+          maxOutputTokens
+        });
+        parsedDraft = extractJsonObject(repairedText);
+      }
+      result.draft = selectDraftShelvesForPass(validateLlmDistillation(parsedDraft), pass.id);
+      result.status = "complete";
+      result.finishedAt = nowIso();
+      return result;
+    } catch (error) {
+      result.status = "failed";
+      result.failedAt = nowIso();
+      result.error = error.message;
+      log(`SLEEP LLM: ${pass.id} pass failed. ${error.message}`, "log-amber");
+      return result;
+    }
+  }
+
   async function refinePacketWithLlm(packet = runtime()?.sleep?.lastPacket) {
     const rt = runtime();
     if (!packet) return null;
@@ -916,33 +1065,44 @@
     log(`SLEEP LLM: refining distillation for ${packet.id}.`, "log-blue");
 
     try {
-      const maxOutputTokens = window.AIDA_CONFIG?.llm?.sleepMaxOutputTokens || 1800;
-      const responseText = await window.AIDA_OPENAI.callMessages(buildLlmDistillationMessages(packet), {
-        maxOutputTokens
-      });
-      let parsedDraft = null;
-      let repairAttempted = false;
-      try {
-        parsedDraft = extractJsonObject(responseText);
-      } catch (parseError) {
-        repairAttempted = true;
-        log(`SLEEP LLM: response JSON parse failed; requesting repair. ${parseError.message}`, "log-amber");
-        const repairedText = await window.AIDA_OPENAI.callMessages(buildLlmJsonRepairMessages(responseText, parseError), {
-          maxOutputTokens
-        });
-        parsedDraft = extractJsonObject(repairedText);
+      const maxOutputTokens = window.AIDA_CONFIG?.llm?.sleepMaxOutputTokens || 3200;
+      const passResults = [];
+      const drafts = [];
+      for (const pass of LLM_SLEEP_PASSES) {
+        log(`SLEEP LLM: ${pass.label}.`, "log-blue");
+        const passResult = await runLlmDistillationPass(packet, pass, maxOutputTokens);
+        passResults.push(passResult);
+        if (passResult.status === "complete") drafts.push(passResult.draft);
       }
-      const llmDraft = validateLlmDistillation(parsedDraft);
+      if (!drafts.length) {
+        throw new Error("All staged LLM sleep passes failed.");
+      }
+      const llmDraft = mergeLlmDrafts(drafts);
+      const completedPasses = passResults.filter((item) => item.status === "complete").length;
+      const failedPasses = passResults.filter((item) => item.status === "failed").length;
       const distillation = applyLlmDistillation(packet, llmDraft, nowIso());
       distillation.llm = {
-        status: "complete",
+        status: failedPasses ? "partial" : "complete",
         startedAt,
         finishedAt: distillation.llmFilledAt,
         maxOutputTokens,
-        repairAttempted
+        passCount: passResults.length,
+        completedPasses,
+        failedPasses,
+        repairAttempted: passResults.some((item) => item.repairAttempted),
+        passes: passResults.map((item) => ({
+          id: item.id,
+          label: item.label,
+          status: item.status,
+          startedAt: item.startedAt,
+          finishedAt: item.finishedAt || null,
+          failedAt: item.failedAt || null,
+          repairAttempted: item.repairAttempted,
+          error: item.error || null
+        }))
       };
       rt.sleep.lastPacket = packet;
-      log(`SLEEP LLM: complete. diary=${distillation.counts.diaryDrafts}, facts=${distillation.counts.factCandidates}, insights=${distillation.counts.insightCandidates}.`, "log-blue");
+      log(`SLEEP LLM: ${distillation.llm.status}. passes=${completedPasses}/${passResults.length}, diary=${distillation.counts.diaryDrafts}, facts=${distillation.counts.factCandidates}, insights=${distillation.counts.insightCandidates}.`, "log-blue");
       consoleReport("AIDA_SLEEP_LLM_DISTILLATION", getPreferredDistillation(packet));
       stageWithLibrarian(packet);
       return distillation;

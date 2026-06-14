@@ -13,7 +13,7 @@
     llm: {
       model: "gpt-4.1-mini",
       maxOutputTokens: 700,
-      sleepMaxOutputTokens: 1800
+      sleepMaxOutputTokens: 3200
     }
   };
 })();

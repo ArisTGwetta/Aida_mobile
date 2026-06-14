@@ -167,6 +167,13 @@ function installBrowserMocks(runtime, options = {}) {
     global.window.AIDA_OPENAI = {
       callMessages: async (messages) => {
         callCount += 1;
+        const promptText = messages.map((message) => message.content || "").join("\n");
+        const isContinuityPass = promptText.includes("This pass is continuity");
+        const isSemanticPass = promptText.includes("This pass is semantic");
+        const isRelationshipPass = promptText.includes("This pass is relationship");
+        if (options.mockFailedSemanticPassOpenAI && (isSemanticPass || promptText.includes("unfinished"))) {
+          return '{"packetId":"sleep_smoke","memoryReview":{"durableFacts":[{"claim":"unfinished"';
+        }
         if (options.mockPartialOpenAI) {
           return JSON.stringify({
             diaryDrafts: [
@@ -195,6 +202,45 @@ function installBrowserMocks(runtime, options = {}) {
         }
         if (options.mockMalformedOpenAI && callCount === 1) {
           return '{"diaryDrafts":[{"id":"broken_json" "entry":"missing comma"}],"rollingSummaries":[]';
+        }
+        if (options.mockCompactReviewOpenAI) {
+          return JSON.stringify({
+            packetId: "sleep_smoke",
+            capturedAt: "2026-06-07T00:00:01.000Z",
+            memoryReview: {
+              project: "aida_architecture",
+              source_refs: ["session_smoke#turn_1"],
+              diaryEntry: isContinuityPass ? "Aida and the user tested the compact memory review shape before Drive writeback." : "",
+              sessionSummary: isContinuityPass ? "The compact review should parse into existing sleep shelves." : "",
+              longSummary: isContinuityPass ? "Aida is moving toward LLM-first memory review with fallback shelves preserved." : "",
+              durableFacts: isSemanticPass ? [
+                {
+                  claim: "AIDA sleep writeback now has a compact LLM memory review path.",
+                  scope: "project:aida_architecture",
+                  confidence: 0.76,
+                  source_refs: ["session_smoke#turn_1"]
+                }
+              ] : [],
+              behaviorInsights: isSemanticPass ? [
+                {
+                  guidance: "Show compact sleep summaries for human review before real Drive writes.",
+                  confidence: 0.72,
+                  source_refs: ["session_smoke#turn_1"]
+                }
+              ] : [],
+              sensitiveContext: [],
+              toneSignals: isRelationshipPass ? [
+                {
+                  observed_text: "hello my sweet child",
+                  guidance: "Warm openings are welcome when the user begins affectionately.",
+                  warmth: "affectionate",
+                  source_ref: "session_smoke#turn_1"
+                }
+              ] : [],
+              openThreads: [],
+              needsFurtherProcessing: false
+            }
+          });
         }
         return JSON.stringify({
         diaryDrafts: [
@@ -599,6 +645,88 @@ async function runLlmJsonRepairTest() {
   };
 }
 
+async function runCompactLlmReviewTest() {
+  const turns = [
+    makeTurn(
+      1,
+      "hello my sweet child, please keep sleep summaries compact so I can review before writeback.",
+      "I will produce a small memory review and keep fallback shelves available."
+    )
+  ];
+  const runtime = makeRuntime(turns, {}, { llmReady: true });
+  const sleep = loadSleepCycle(runtime, { mockOpenAI: true, mockCompactReviewOpenAI: true });
+  const packet = sleep.buildPacket("smoke_compact_llm_review");
+  const distillation = await sleep.refinePacketWithLlm(packet);
+  const preferred = sleep.getPreferredDistillation(packet);
+
+  assert(distillation.status === "llm_draft_filled", "Compact LLM review did not fill distillation.", distillation);
+  assert(preferred.source === "llm", "Compact LLM review did not become preferred.", preferred);
+  assert(distillation.llm?.passCount === 3, "Compact LLM review should run three staged passes.", distillation.llm);
+  assert(distillation.llm?.completedPasses === 3, "Compact LLM review should complete all staged passes.", distillation.llm);
+  assert(distillation.diaryDrafts[0]?.entry.includes("compact memory review"), "Compact diaryEntry was not normalized.", distillation.diaryDrafts);
+  assert(distillation.rollingSummaries[0]?.text.includes("compact review"), "Compact sessionSummary was not normalized.", distillation.rollingSummaries);
+  assert(distillation.longSummaryCandidates[0]?.text.includes("LLM-first memory review"), "Compact longSummary was not normalized.", distillation.longSummaryCandidates);
+  assert(distillation.factCandidates.length === 1, "Compact durableFacts were not normalized.", distillation.factCandidates);
+  assert(distillation.insightCandidates.length === 1, "Compact behaviorInsights were not normalized.", distillation.insightCandidates);
+  assert(distillation.salutationSignals.length === 1, "Compact toneSignals were not normalized.", distillation.salutationSignals);
+  assert(distillation.processingBacklog.length === 0, "Compact complete review should clear fallback backlog.", distillation.processingBacklog);
+
+  return {
+    packetId: packet.id,
+    status: distillation.status,
+    llmStatus: distillation.llm.status,
+    passCount: distillation.llm.passCount,
+    completedPasses: distillation.llm.completedPasses,
+    diaryDrafts: distillation.diaryDrafts.length,
+    rollingSummaries: distillation.rollingSummaries.length,
+    longSummaryCandidates: distillation.longSummaryCandidates.length,
+    factCandidates: distillation.factCandidates.length,
+    insightCandidates: distillation.insightCandidates.length,
+    salutationSignals: distillation.salutationSignals.length,
+    processingBacklog: distillation.processingBacklog.length
+  };
+}
+
+async function runPartialStagedLlmPassTest() {
+  const turns = [
+    makeTurn(
+      1,
+      "hello my sweet child, if one sleep pass fails, keep the other LLM shelves and fallback the rest.",
+      "I will merge successful staged passes and leave failed shelves safe."
+    )
+  ];
+  const runtime = makeRuntime(turns, {}, { llmReady: true });
+  const sleep = loadSleepCycle(runtime, { mockOpenAI: true, mockCompactReviewOpenAI: true, mockFailedSemanticPassOpenAI: true });
+  const packet = sleep.buildPacket("smoke_partial_staged_llm_pass");
+  const fallbackBacklogCount = packet.distillation.processingBacklog.length;
+  const distillation = await sleep.refinePacketWithLlm(packet);
+  const preferred = sleep.getPreferredDistillation(packet);
+
+  assert(distillation.status === "llm_draft_filled", "Partial staged LLM should still fill distillation.", distillation);
+  assert(distillation.llm?.status === "partial", "Partial staged LLM should mark llm status partial.", distillation.llm);
+  assert(distillation.llm?.completedPasses === 2, "Partial staged LLM should complete two passes.", distillation.llm);
+  assert(distillation.llm?.failedPasses === 1, "Partial staged LLM should record one failed pass.", distillation.llm);
+  assert(preferred.source === "llm", "Partial staged LLM should still prefer merged LLM shelves.", preferred);
+  assert(distillation.diaryDrafts[0]?.entry.includes("compact memory review"), "Continuity pass result was not kept.", distillation.diaryDrafts);
+  assert(distillation.salutationSignals.length === 1, "Relationship pass result was not kept.", distillation.salutationSignals);
+  assert(distillation.factCandidates.length === 0, "Failed semantic pass should not stage fact candidates.", distillation.factCandidates);
+  assert(distillation.insightCandidates.length === 0, "Failed semantic pass should not stage insight candidates.", distillation.insightCandidates);
+  assert(distillation.processingBacklog.length === fallbackBacklogCount, "Failed semantic pass should preserve fallback backlog.", distillation.processingBacklog);
+
+  return {
+    packetId: packet.id,
+    status: distillation.status,
+    llmStatus: distillation.llm.status,
+    completedPasses: distillation.llm.completedPasses,
+    failedPasses: distillation.llm.failedPasses,
+    diaryDrafts: distillation.diaryDrafts.length,
+    factCandidates: distillation.factCandidates.length,
+    insightCandidates: distillation.insightCandidates.length,
+    salutationSignals: distillation.salutationSignals.length,
+    processingBacklog: distillation.processingBacklog.length
+  };
+}
+
 async function runPartialLlmMergeTest() {
   const turns = [
     makeTurn(
@@ -716,6 +844,8 @@ async function main() {
         chunkDraft: runChunkDraftTest(),
         llmRefinement: await runLlmRefinementTest(),
         llmJsonRepair: await runLlmJsonRepairTest(),
+        compactLlmReview: await runCompactLlmReviewTest(),
+        partialStagedLlmPass: await runPartialStagedLlmPassTest(),
         partialLlmMerge: await runPartialLlmMergeTest(),
         crashBufferRestore: runCrashBufferRestoreTest(),
         memoryBoundary: runMemoryBoundaryMessageTest(),
