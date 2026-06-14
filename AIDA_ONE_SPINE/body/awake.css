@@ -108,10 +108,25 @@ input:disabled {
 #while-away-inspect-btn,
 #shape-inspect-btn,
 #llm-preview-btn,
+#drive-write-preview-btn,
+#drive-write-dryrun-btn,
+#drive-write-apply-btn,
 #boot-preview-btn {
   width: 100%;
   margin: 0;
   padding: 10px 14px;
+}
+
+#drive-write-preview-btn {
+  background: #006d77;
+}
+
+#drive-write-dryrun-btn {
+  background: #4f6f52;
+}
+
+#drive-write-apply-btn {
+  background: #8f2d2d;
 }
 
 #airlock {
@@ -681,4 +696,5 @@ input:disabled {
 #aida-portrait {
     background: transparent !important;
     background-color: transparent !important;
+}
 }

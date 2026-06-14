@@ -35,6 +35,58 @@
     logs.scrollTop = logs.scrollHeight;
   }
 
+  function summarizeDriveWriteback(result) {
+    const ops = Array.isArray(result?.operations) ? result.operations : [];
+    if (!ops.length) return result?.status || "no operations";
+    return ops
+      .map((op) => `${op.action || op.mode || "plan"} ${op.fileName} (${op.count || 0})`)
+      .join("; ");
+  }
+
+  async function runDriveWriteback(action) {
+    const api = window.AIDA_DRIVE_WRITEBACK;
+    if (!api) {
+      appendBios("Drive writeback organ is not loaded.", "log-amber");
+      return;
+    }
+
+    try {
+      if (action === "preview") {
+        const result = api.preview();
+        appendBios(`Drive write preview: ${summarizeDriveWriteback(result)}.`, result.ready ? "log-blue" : "log-amber");
+        return;
+      }
+
+      if (action === "dry_run") {
+        const result = await api.apply({ dryRun: true });
+        appendBios(`Drive write dry-run: ${summarizeDriveWriteback(result)}.`, result.ready ? "log-blue" : "log-amber");
+        return;
+      }
+
+      if (action === "apply") {
+        const preview = api.preview();
+        if (!preview.ready) {
+          appendBios("Drive write apply blocked: nothing staged to write.", "log-amber");
+          return;
+        }
+
+        const confirmed = window.confirm(
+          `Apply ${preview.operations.length} staged Drive write operation(s) to the real JSON vault?`
+        );
+        if (!confirmed) {
+          appendBios("Drive write apply cancelled before network write.", "log-amber");
+          return;
+        }
+
+        const result = await api.apply({ dryRun: false });
+        appendBios(`Drive write applied: ${summarizeDriveWriteback(result)}.`, "log-blue");
+      }
+    } catch (error) {
+      appendBios(`Drive writeback failed: ${error.message}`, "log-amber");
+      console.error(error);
+    }
+  }
+
   function appendChat(role, text) {
     const flow = $("chat-flow");
     if (!flow) return null;
@@ -644,6 +696,21 @@
         appendBios("Previewing Awake body ceremony.", "log-amber");
         window.aida_arrive();
       });
+    }
+
+    const writePreview = $("drive-write-preview-btn");
+    if (writePreview) {
+      writePreview.addEventListener("click", () => runDriveWriteback("preview"));
+    }
+
+    const writeDryRun = $("drive-write-dryrun-btn");
+    if (writeDryRun) {
+      writeDryRun.addEventListener("click", () => runDriveWriteback("dry_run"));
+    }
+
+    const writeApply = $("drive-write-apply-btn");
+    if (writeApply) {
+      writeApply.addEventListener("click", () => runDriveWriteback("apply"));
     }
   });
 
