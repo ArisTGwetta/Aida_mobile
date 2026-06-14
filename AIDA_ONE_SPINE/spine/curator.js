@@ -210,7 +210,12 @@
   }
 
   function buildProjectBriefcaseWrites(staged, reviewedAt) {
-    return safeArray(staged.projectBriefcaseDrafts).map((draft) => ({
+    const latestByProject = new Map();
+    safeArray(staged.projectBriefcaseDrafts).forEach((draft) => {
+      const key = projectNameFromDraft(draft);
+      latestByProject.set(key, draft);
+    });
+    return [...latestByProject.values()].map((draft) => ({
       ...draft,
       type: "project_briefcase_write_draft",
       writeStatus: "staged_update",
