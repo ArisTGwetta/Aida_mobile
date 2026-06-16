@@ -562,6 +562,84 @@ function runChunkDraftTest() {
   };
 }
 
+function runFreshCollectionBoundaryTest() {
+  const turns = [
+    makeTurn(1, "Old restored memory should not be recollected.", "I will remain in the restored buffer.", {
+      capturedAt: "2026-06-14T20:00:00.000Z"
+    }),
+    makeTurn(2, "Old project summary should stay out of the new packet.", "I will not dominate fresh sleep.", {
+      capturedAt: "2026-06-14T20:01:00.000Z"
+    }),
+    makeTurn(3, "Hello Beautiful! how was your nap?", "Hello, Francisco. I am awake and warm.", {
+      capturedAt: "2026-06-16T21:26:38.744Z"
+    }),
+    makeTurn(4, "I need to pick up my mom at the airport. She lives in Kansas City.", "I can help make a plan now, but I cannot remind you later yet.", {
+      capturedAt: "2026-06-16T21:28:00.628Z"
+    }),
+    makeTurn(5, "I think you are good at keeping things organized.", "I will try to live up to that role.", {
+      capturedAt: "2026-06-16T21:29:00.456Z"
+    })
+  ];
+  const runtime = makeRuntime(turns, {
+    summaryDrafts: [
+      {
+        id: "old_chunk_1_2_summary_draft",
+        sessionId: "session_smoke",
+        turnStart: 1,
+        turnEnd: 2,
+        tags: turns[0].tags
+      },
+      {
+        id: "fresh_chunk_3_5_summary_draft",
+        sessionId: "session_smoke",
+        turnStart: 3,
+        turnEnd: 5,
+        tags: turns[2].tags
+      }
+    ],
+    projectLedgerDrafts: [
+      {
+        id: "old_chunk_1_2_summary_draft_project_ledger_draft",
+        sourceSummaryDraftId: "old_chunk_1_2_summary_draft",
+        status: "needs_summary_outputs",
+        project: { name: "aida_architecture", realm: "aida_architecture" },
+        update: {}
+      },
+      {
+        id: "fresh_chunk_3_5_summary_draft_project_ledger_draft",
+        sourceSummaryDraftId: "fresh_chunk_3_5_summary_draft",
+        status: "needs_summary_outputs",
+        project: { name: "aida_architecture", realm: "aida_architecture" },
+        update: {}
+      }
+    ]
+  });
+  runtime.sleep.lastCollectedAt = "2026-06-15T00:00:00.000Z";
+  const sleep = loadSleepCycle(runtime);
+  const packet = sleep.buildPacket("smoke_fresh_collection_boundary");
+  const rawTurns = packet.distillation.rawLogEntries.map((item) => item.turnIndex);
+
+  assert(packet.collectionWindow.since === "2026-06-15T00:00:00.000Z", "Packet did not anchor on prior sleep collection.", packet.collectionWindow);
+  assert(packet.session.exchangeCount === 3, "Fresh sleep packet should include only turns after the collection boundary.", packet.session);
+  assert(packet.session.totalExchangeCount === 5, "Packet should retain total restored exchange count for diagnostics.", packet.session);
+  assert(JSON.stringify(rawTurns) === JSON.stringify([3, 4, 5]), "Raw log entries leaked old restored turns.", rawTurns);
+  assert(packet.contextEvolution.summaryDrafts.length === 1, "Context evolution should include only fresh summary drafts.", packet.contextEvolution);
+  assert(packet.contextEvolution.summaryDrafts[0].id === "fresh_chunk_3_5_summary_draft", "Wrong summary draft survived fresh boundary.", packet.contextEvolution.summaryDrafts);
+  assert(packet.projectLedgerDrafts.length === 1, "Packet should include only ledger drafts tied to fresh summary drafts.", packet.projectLedgerDrafts);
+  assert(packet.projectLedgerDrafts[0].sourceSummaryDraftId === "fresh_chunk_3_5_summary_draft", "Old ledger draft leaked through fresh boundary.", packet.projectLedgerDrafts);
+  assert(runtime.sleep.lastCollectedAt === packet.capturedAt, "Sleep collection boundary was not advanced after packet build.", runtime.sleep);
+
+  return {
+    packetId: packet.id,
+    since: packet.collectionWindow.since,
+    exchangeCount: packet.session.exchangeCount,
+    totalExchangeCount: packet.session.totalExchangeCount,
+    rawTurns,
+    summaryDrafts: packet.contextEvolution.summaryDrafts.length,
+    ledgerDrafts: packet.projectLedgerDrafts.length
+  };
+}
+
 async function runLlmRefinementTest() {
   const turns = [
     makeTurn(
@@ -858,6 +936,7 @@ async function main() {
       tests: {
         oneTurnFallback: runOneTurnFallbackTest(),
         chunkDraft: runChunkDraftTest(),
+        freshCollectionBoundary: runFreshCollectionBoundaryTest(),
         llmRefinement: await runLlmRefinementTest(),
         llmJsonRepair: await runLlmJsonRepairTest(),
         compactLlmReview: await runCompactLlmReviewTest(),

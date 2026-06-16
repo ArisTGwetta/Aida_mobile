@@ -277,7 +277,8 @@
       .replace(/^note:\s*/i, "")
       .replace(/^thought:\s*/i, "")
       .replace(/\s+/g, " ")
-      .trim(), 150);
+      .trim()
+      .replace(/[.?!]+$/, ""), 150);
   }
 
   function topicFromSeed(seed, fallback) {
@@ -298,14 +299,20 @@
       "something i wanted",
       "one thread in our project",
       "one memory thread",
-      "a question i wanted"
-    ].some((term) => lower.includes(term));
+      "a question i wanted",
+      "observations or ideas",
+      "ongoing projects that emerged during the session",
+      "during the session",
+      "candidate memory",
+      "candidate insight",
+      "summary draft"
+    ].some((term) => lower.includes(term)) || lower.length < 4;
   }
 
   function concreteTopic(seed, fallback) {
     const topic = topicFromSeed(seed?.text || "", fallback);
     if (!isVagueTopic(topic)) return topic;
-    return cleanSeed(seed?.text || fallback);
+    return fallback;
   }
 
   function openingModeForGap(gapBucket, mode) {

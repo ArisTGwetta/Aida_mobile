@@ -85,6 +85,34 @@
     });
   }
 
+  function timeMs(value) {
+    const parsed = Date.parse(value || "");
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  function collectionBoundary(rt) {
+    const sleep = rt?.sleep || {};
+    const lastPacketAt = sleep.lastPacket?.capturedAt || null;
+    return sleep.lastCollectedAt || sleep.lastActive || lastPacketAt || null;
+  }
+
+  function turnsForCollection(turns, window) {
+    const allTurns = turns || [];
+    const sinceMs = timeMs(window?.since);
+    const untilMs = timeMs(window?.until);
+    return allTurns.filter((turn) => {
+      const capturedMs = timeMs(turn.capturedAt);
+      if (sinceMs !== null && capturedMs !== null && capturedMs <= sinceMs) return false;
+      if (untilMs !== null && capturedMs !== null && capturedMs > untilMs) return false;
+      return true;
+    });
+  }
+
+  function draftOverlapsCollection(draft, turns, window) {
+    const rangedTurns = turnsForRange(turns, draft?.turnStart, draft?.turnEnd);
+    return turnsForCollection(rangedTurns, window).length > 0;
+  }
+
   function dominantValue(turns, reader, fallback = "unknown") {
     const counts = new Map();
     (turns || []).forEach((turn) => {
@@ -665,14 +693,17 @@
     ];
   }
 
-  function collectSession(session) {
-    const turns = session?.currentTurns || [];
+  function collectSession(session, window) {
+    const allTurns = session?.currentTurns || [];
+    const turns = turnsForCollection(allTurns, window);
     return {
       id: session?.id || null,
       startedAt: session?.startedAt || null,
       lastTurnAt: session?.lastTurnAt || null,
-      exchangeCount: session?.exchangeCount || turns.length,
+      exchangeCount: turns.length,
+      totalExchangeCount: session?.exchangeCount || allTurns.length,
       unsaved: Boolean(session?.unsaved),
+      collectionWindow: copyJson(window || {}, {}),
       exchanges: turns.map(exchangeSummary),
       latestExchanges: latest(turns, 6).map((exchange) => ({
         ...exchangeSummary(exchange),
@@ -682,11 +713,19 @@
     };
   }
 
-  function collectEvolution(evolution) {
+  function collectEvolution(evolution, session, window) {
+    const turns = session?.currentTurns || [];
+    const summaryDrafts = copyJson(evolution?.summaryDrafts || [], [])
+      .filter((draft) => draftOverlapsCollection(draft, turns, window));
+    const queuedChunks = copyJson(evolution?.queuedChunks || [], [])
+      .filter((draft) => draftOverlapsCollection(draft, turns, window));
+    const summaryIds = new Set(summaryDrafts.map((draft) => draft.id).filter(Boolean));
+    const projectLedgerDrafts = copyJson(evolution?.projectLedgerDrafts || [], [])
+      .filter((draft) => summaryIds.has(draft.sourceSummaryDraftId));
     return {
-      queuedChunks: copyJson(evolution?.queuedChunks || [], []),
-      summaryDrafts: copyJson(evolution?.summaryDrafts || [], []),
-      projectLedgerDrafts: copyJson(evolution?.projectLedgerDrafts || [], []),
+      queuedChunks,
+      summaryDrafts,
+      projectLedgerDrafts,
       rollingSummaries: copyJson(evolution?.rollingSummaries || [], []),
       longSummaryDrafts: copyJson(evolution?.longSummaryDrafts || [], [])
     };
@@ -739,7 +778,7 @@
   }
 
   function distillPacket(packet, rt) {
-    const turns = rt.session?.currentTurns || [];
+    const turns = turnsForCollection(rt.session?.currentTurns || [], packet.collectionWindow);
     const createdAt = packet.capturedAt || nowIso();
     const state = rt.contextEvolution || {};
     const diaryDrafts = [];
@@ -752,6 +791,7 @@
     const rawLogEntries = [];
     const processingBacklog = [];
     const openThreads = [];
+    const projectLedgerUpdates = [];
     let filledSummaryDrafts = 0;
     let filledLedgerDrafts = 0;
 
@@ -785,6 +825,7 @@
       const ledgerDraft = (state.projectLedgerDrafts || []).find((item) => item.sourceSummaryDraftId === draft.id);
       if (ledgerDraft) {
         fillProjectLedgerDraft(ledgerDraft, outputs, packet.whileAway?.seed, createdAt);
+        projectLedgerUpdates.push(copyJson(ledgerDraft, ledgerDraft));
         filledLedgerDrafts += 1;
       }
     });
@@ -828,7 +869,7 @@
       salutationSignals,
       rawLogEntries,
       processingBacklog,
-      projectLedgerUpdates: copyJson(state.projectLedgerDrafts || [], []),
+      projectLedgerUpdates,
       openThreads,
       counts: {
         summaryDraftsFilled: filledSummaryDrafts,
@@ -843,8 +884,8 @@
       }
     };
 
-    packet.contextEvolution = collectEvolution(state);
-    packet.projectLedgerDrafts = copyJson(state.projectLedgerDrafts || [], []);
+    packet.contextEvolution = collectEvolution(state, rt.session, packet.collectionWindow);
+    packet.projectLedgerDrafts = copyJson(projectLedgerUpdates, []);
     return packet.distillation;
   }
 
@@ -930,7 +971,7 @@
         rt.contextEvolution.projectLedgerDrafts = llmDraft.projectLedgerUpdates;
         packet.projectLedgerDrafts = copyJson(llmDraft.projectLedgerUpdates, []);
       }
-      packet.contextEvolution = collectEvolution(rt.contextEvolution);
+      packet.contextEvolution = collectEvolution(rt.contextEvolution, rt.session, packet.collectionWindow);
     }
 
     return packet.distillation;
@@ -1132,15 +1173,22 @@
     if (!rt) return null;
 
     const capturedAt = nowIso();
+    const boundary = collectionBoundary(rt);
+    const collectionWindow = {
+      since: boundary,
+      until: capturedAt,
+      basis: boundary ? "turns_after_last_sleep_collection" : "full_session_no_prior_sleep_collection"
+    };
     const packet = {
       id: `sleep_${capturedAt.replace(/[-:.TZ]/g, "").slice(0, 17)}`,
       status: "ready_for_drive_sync",
       reason,
       capturedAt,
-      session: collectSession(rt.session),
+      collectionWindow,
+      session: collectSession(rt.session, collectionWindow),
       pendingJournal: copyJson(rt.sleep?.pendingJournal || [], []),
-      contextEvolution: collectEvolution(rt.contextEvolution),
-      projectLedgerDrafts: copyJson(rt.contextEvolution?.projectLedgerDrafts || [], []),
+      contextEvolution: collectEvolution(rt.contextEvolution, rt.session, collectionWindow),
+      projectLedgerDrafts: copyJson(collectEvolution(rt.contextEvolution, rt.session, collectionWindow).projectLedgerDrafts, []),
       emotion: collectEmotion(rt.emotionEngine, rt.context?.emotion || rt.mind?.emotion),
       whileAway: collectWhileAway(rt),
       syncPlan: {
@@ -1160,6 +1208,7 @@
     distillPacket(packet, rt);
 
     rt.sleep.lastActive = capturedAt;
+    rt.sleep.lastCollectedAt = capturedAt;
     rt.sleep.lastPacket = packet;
     rt.sleep.packets = rt.sleep.packets || [];
     rt.sleep.packets.push(packet);

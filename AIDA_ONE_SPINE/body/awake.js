@@ -371,8 +371,8 @@
         if (!text) return;
         input.value = "";
         appendChat("USER", text);
-        appendChat("AIDA", "Body received the signal. The mind is not mounted yet.");
-        pulse("Conversation hook fired; waiting for spine/conversation transplant.");
+        appendChat("AIDA", "Body received the signal. Conversation is still warming up.");
+        pulse("Conversation hook fired; waiting for live conversation module.");
       });
     }
 
@@ -661,7 +661,7 @@
               rt.boot.arrived = true;
               rt.boot.phase = "body_ready";
             }
-            pulse("Awake body arrived. Mind transplant pending.");
+            pulse("Awake body arrived. Drive mind mapping is handled by the wake flow.");
           }, 300);
         }, 120);
       }, 700);
