@@ -577,10 +577,15 @@
       instructions: [
         "Fill only durableFacts, behaviorInsights, and sensitiveContext.",
         "Keep diaryEntry, sessionSummary, longSummary, toneSignals, and openThreads empty.",
-        "Facts are stable, specific claims only. Do not turn greetings, transitions, test chatter, vague hopes, or one-off mood into facts.",
+        "Facts are stable, specific claims only. Use practical memory half-life: durable facts should likely still help next week or next month.",
+        "Do not turn greetings, transitions, test chatter, vague hopes, one-off mood, urgency, or temporary errands into durable facts.",
+        "Do not combine temporary context with durable facts in one claim. Split them or omit the temporary part. Example: write 'Francisco's mother lives in Kansas City' as a durable fact; do not write 'Francisco needs to pick up his mother at the airport and she lives in Kansas City' as one fact.",
+        "Use scope 'user' for personal facts about Francisco or family, and 'project:aida_architecture' for facts about the Aida project. Do not output a literal combined scope such as 'user|project:aida_architecture'.",
         "Insights are behavior guidance derived from themes and source evidence.",
+        "Relationship-tone observations belong in behaviorInsights or toneSignals, not durableFacts.",
+        "Capability boundaries belong in behaviorInsights. Example: Aida may help organize a plan now, but should not imply she can send future reminders unless a reminder tool exists.",
         "Do not tell Aida to proactively raise tender family, grief, identity, or sensitive material. Guidance should say to handle it gently when the user raises it or when directly relevant.",
-        "Sensitive context candidates are tender biographical or emotional material that Aida should handle gently and avoid raising unprompted unless relevant."
+        "Sensitive context candidates are tender biographical or emotional material that Aida should handle gently and avoid raising unprompted unless relevant. Do not label ordinary errands or family logistics as caregiving or emotional weight unless the user frames them that way."
       ]
     },
     {
@@ -591,6 +596,9 @@
         "Fill only toneSignals, openThreads, and needsFurtherProcessing.",
         "Keep diaryEntry, sessionSummary, longSummary, durableFacts, behaviorInsights, and sensitiveContext empty.",
         "Salutation signals are soft tone preferences: greeting style, affectionate names, formality shifts, and warmth patterns. They are not facts and should not force pet names.",
+        "Open threads may include ephemeral follow-up hooks from temporary context. Mark them as short-lived and phrase them as gentle continuity, not a scheduled reminder.",
+        "For temporary events, prefer an openThreads item like: thread='airport pickup for Francisco's mom', status='short_lived_followup: ask gently next session whether it went smoothly; expires soon'.",
+        "Do not put temporary errands, current mood, or current urgency into durableFacts.",
         "Set needsFurtherProcessing true if the raw log is too large, ambiguous, or emotionally important but not fully processed."
       ]
     }
@@ -612,6 +620,7 @@
       id: packet.id,
       reason: packet.reason,
       capturedAt: packet.capturedAt,
+      collectionWindow: copyJson(packet.collectionWindow || {}, {}),
       session: {
         id: packet.session?.id,
         exchangeCount: packet.session?.exchangeCount,
@@ -663,7 +672,7 @@
       '    "diaryEntry": "",',
       '    "sessionSummary": "",',
       '    "longSummary": "",',
-      '    "durableFacts": [{"claim": "", "scope": "user|project:aida_architecture", "confidence": 0.0, "source_refs": []}],',
+      '    "durableFacts": [{"claim": "", "scope": "user", "confidence": 0.0, "source_refs": []}],',
       '    "behaviorInsights": [{"guidance": "", "confidence": 0.0, "source_refs": []}],',
       '    "sensitiveContext": [{"note": "", "handling": "", "confidence": 0.0, "source_refs": []}],',
       '    "toneSignals": [{"observed_text": "", "guidance": "", "warmth": "", "source_ref": ""}],',
