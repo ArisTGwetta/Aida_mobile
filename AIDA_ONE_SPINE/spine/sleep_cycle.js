@@ -339,6 +339,75 @@
     return Math.max(0.05, Math.min(0.95, number));
   }
 
+  function temporaryFactReason(claim) {
+    const lower = String(claim || "").toLowerCase();
+    if (!lower) return "";
+    if (/\b(needs?|has|had)\s+to\s+(pick up|drop off|go|leave|call|send|finish|prep|prepare)\b/.test(lower)) return "short_lived_task";
+    if (/\b(going|likely|planning|about)\s+to\b/.test(lower)) return "short_lived_plan";
+    if (/\b(today|tonight|tomorrow|soon|before bed|before that|later)\b/.test(lower)) return "time_bound_context";
+    if (/\b(pick up|pickup|airport|flight|appointment|errand)\b/.test(lower)) return "time_bound_logistics";
+    if (/\b(in a rush|running late|not staying long)\b/.test(lower)) return "momentary_state";
+    return "";
+  }
+
+  function openThreadFromTemporaryFact(item, packetId, capturedAt, index) {
+    const reason = temporaryFactReason(item.claim);
+    if (!reason) return null;
+    return {
+      source_ref: safeArray(item.source_refs)[0] || null,
+      thread: item.claim,
+      status: `short_lived_followup:${reason}; ask gently next session if it still feels relevant; expires soon`,
+      createdAt: capturedAt,
+      expiresAt: new Date(new Date(capturedAt).getTime() + 48 * 60 * 60 * 1000).toISOString(),
+      routedFrom: item.id || `fact_llm_review_${slug(packetId)}_${index + 1}`
+    };
+  }
+
+  function isSensitiveOverreach(item) {
+    const text = `${item.note || ""} ${item.handling || ""}`.toLowerCase();
+    if (!text) return false;
+
+    const tenderTerms = [
+      "grief",
+      "death",
+      "passed",
+      "trauma",
+      "illness",
+      "hospital",
+      "scared",
+      "fear",
+      "tender",
+      "raw",
+      "pain",
+      "loss",
+      "mourning",
+      "crisis"
+    ];
+    if (tenderTerms.some((term) => text.includes(term))) return false;
+
+    const ordinaryLogistics = [
+      "airport",
+      "pick up",
+      "pickup",
+      "flight",
+      "errand",
+      "tired",
+      "not staying long",
+      "in a rush"
+    ];
+    const overreachLabels = [
+      "caregiving",
+      "emotional strain",
+      "physical strain",
+      "family responsibility",
+      "family obligations",
+      "managing"
+    ];
+
+    return ordinaryLogistics.some((term) => text.includes(term)) &&
+      overreachLabels.some((term) => text.includes(term));
+  }
+
   function normalizeLlmReviewDistillation(candidate) {
     const review = candidate.memoryReview || candidate.review || null;
     if (!review || typeof review !== "object") return null;
@@ -390,7 +459,7 @@
       createdAt: capturedAt
     }] : [];
 
-    const factCandidates = safeArray(review.durableFacts || review.facts).map((item, index) => ({
+    const rawFactCandidates = safeArray(review.durableFacts || review.facts).map((item, index) => ({
       id: item.id || `fact_llm_review_${slug(packetId)}_${index + 1}`,
       scope: item.scope || scope,
       claim: cleanText(item.claim || item.text || "", 500),
@@ -399,6 +468,10 @@
       status: item.status || "candidate",
       last_seen: item.last_seen || item.lastSeen || capturedAt
     })).filter((item) => item.claim);
+    const temporaryFactThreads = rawFactCandidates
+      .map((item, index) => openThreadFromTemporaryFact(item, packetId, capturedAt, index))
+      .filter(Boolean);
+    const factCandidates = rawFactCandidates.filter((item) => !temporaryFactReason(item.claim));
 
     const insightCandidates = safeArray(review.behaviorInsights || review.insights).map((item, index) => ({
       id: item.id || `insight_llm_review_${slug(packetId)}_${index + 1}`,
@@ -419,7 +492,7 @@
       source_refs: safeArray(item.source_refs || item.sourceRefs || rawSourceRefs),
       status: item.status || "candidate",
       last_seen: item.last_seen || item.lastSeen || capturedAt
-    })).filter((item) => item.note);
+    })).filter((item) => item.note && !isSensitiveOverreach(item));
 
     const salutationSignals = safeArray(review.toneSignals || review.salutationSignals).map((item, index) => ({
       id: item.id || `salutation_llm_review_${slug(packetId)}_${index + 1}`,
@@ -433,11 +506,14 @@
       last_seen: item.last_seen || item.lastSeen || capturedAt
     })).filter((item) => item.observed_text || item.suggested_use);
 
-    const openThreads = safeArray(review.openThreads).map((item, index) => ({
+    const openThreads = [
+      ...safeArray(review.openThreads).map((item, index) => ({
       source_ref: item.source_ref || item.sourceRef || firstSourceRef,
       thread: cleanText(item.thread || item.text || "", 400),
       status: item.status || "open"
-    })).filter((item) => item.thread);
+      })).filter((item) => item.thread),
+      ...temporaryFactThreads
+    ];
 
     const needsFurtherProcessing = Boolean(review.needsFurtherProcessing || review.needs_further_processing);
     const processingBacklog = needsFurtherProcessing ? [{

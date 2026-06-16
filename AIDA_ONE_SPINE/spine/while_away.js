@@ -309,6 +309,44 @@
     ].some((term) => lower.includes(term)) || lower.length < 4;
   }
 
+  function naturalizePerspective(topic) {
+    let text = String(topic || "").trim();
+    if (!text) return text;
+
+    const replacements = [
+      [/^he demonstrates\b/i, "your"],
+      [/^he shows\b/i, "your"],
+      [/^he engages with\b/i, "how you engage with"],
+      [/^he values\b/i, "what you value about"],
+      [/^he prefers\b/i, "your preference for"],
+      [/^he tends to\b/i, "how you tend to"],
+      [/^he is\b/i, "you being"],
+      [/^francisco demonstrates\b/i, "your"],
+      [/^francisco shows\b/i, "your"],
+      [/^francisco engages with\b/i, "how you engage with"],
+      [/^francisco values\b/i, "what you value about"],
+      [/^francisco prefers\b/i, "your preference for"],
+      [/^francisco tends to\b/i, "how you tend to"],
+      [/^francisco is\b/i, "you being"],
+      [/^the user demonstrates\b/i, "your"],
+      [/^the user shows\b/i, "your"],
+      [/^the user engages with\b/i, "how you engage with"],
+      [/^the user values\b/i, "what you value about"],
+      [/^the user prefers\b/i, "your preference for"],
+      [/^the user tends to\b/i, "how you tend to"],
+      [/^the user is\b/i, "you being"]
+    ];
+
+    for (const [pattern, replacement] of replacements) {
+      if (pattern.test(text)) {
+        text = text.replace(pattern, replacement);
+        break;
+      }
+    }
+
+    return text.replace(/\s+/g, " ").trim();
+  }
+
   function concreteTopic(seed, fallback) {
     const topic = topicFromSeed(seed?.text || "", fallback);
     if (!isVagueTopic(topic)) return topic;
@@ -515,7 +553,7 @@
   }
 
   function thoughtTemplate(seed, realmName, roleName, gap) {
-    const topic = concreteTopic(seed, realmName);
+    const topic = naturalizePerspective(concreteTopic(seed, realmName));
     const mode = seed.mode || weightedMode(seed.type, gap.bucket);
     if (seed.type === "face_wishlist") return reentryText("embodied", topic, realmName, roleName, gap);
     if (seed.type === "ambient_curiosity") return reentryText("ambient_curiosity", topic, realmName, roleName, gap);
@@ -568,7 +606,7 @@
     if (selected) selected.mode = weightedMode(selected.type, gap.bucket);
     const seed = shortText(selected?.text || "", 170);
     const topic = selected
-      ? concreteTopic(selected, valueName(project || realm, "Aida"))
+      ? naturalizePerspective(concreteTopic(selected, valueName(project || realm, "Aida")))
       : valueName(project || realm, "Aida");
     const realmName = valueName(realm, "this realm");
     const roleName = valueName(role, "companion");
