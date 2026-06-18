@@ -1,0 +1,74 @@
+🌟 UPDATED FULL INDEX (WITH NEW BLOCKS)
+Here is the complete index again, now including Blocks 48 & 49 in the correct place:
+BLOCK GROUP A — HTML / UI / STRUCTURE
+Block_0_HTML_Head
+Block_1_Core_CSS
+Block_2_Airlock
+Block_3_Main_Engine
+Block_4_Realm_Modal
+Block_4B_Mind_Palace_Modal
+BLOCK GROUP B — AUTH / GLOBALS / JS ENGINE
+Block_5_Auth_and_Globals
+Block_5B_Realm_JS_Engine
+Block_5C_UI_Builders
+Block_5D_Google_OAuth_and_Hologram_Setup
+Block_5E_Hologram_Engine
+BLOCK GROUP C — PYTHON RUNTIME & TETRAD
+Block_6_Python_Runtime
+Block_7_Tetrad_Chassis
+Block_8_Soul_Sync_Engine
+BLOCK GROUP D — INTERACTION & SNAPSHOTS
+Block_9_Interaction_Engine
+Block_9B_Snapshot_Bridge
+BLOCK GROUP E — PRESENTATION / HOLOGRAM / STYLE
+Block_10_Presentation_Bridge
+Block_11_Presentation_Style_Selector
+Block_12_Style_Aware_Renderer
+Block_14_Color_and_Glow_Engine
+Block_15_Realm_Theme_Engine
+BLOCK GROUP F — MEMORY / FACTS / INSIGHTS
+Block_16_Memory_Organ
+Block_17_Fact_Extractor
+Block_18_Insight_Engine
+Block_19_Delta_Writer
+BLOCK GROUP G — EMOTION / EXPRESSION / HOLOGRAM SYNC
+Block_20_Emotion_Engine
+Block_21_Expression_Engine
+Block_22_Hologram_Sync_Engine
+Block_23_Emotion_UI_Accent
+Block_24_Spark_Layer_Engine
+BLOCK GROUP H — TOKENS / DRIVE / BRIEFCASES
+Block_25_Token_Keeper
+Block_26_Drive_Sync_Engine
+Block_27_Briefcase_Engine
+BLOCK GROUP I — WAKE / FACE / REALM TRANSITIONS
+Block_28_Wake_and_Boot_Engine
+Block_29_Face_Loader
+Block_29B_Face_Integration
+Block_29C_Hologram_Sync_Hook
+Block_29D_Face_Preloader
+Block_29E_Fallback_Face
+Block_30_UI_Color_Engine
+Block_30B_HologramSync_Color_Hook
+Block_30C_CSS_Variables
+Block_31_Realm_Transition_Engine
+BLOCK GROUP J — DEEP MEMORY / PYODIDE / TOOLS
+Block_32_Deep_Memory_Orchestrator
+Block_33_Pyodide_Loader
+Block_34_Drive_FS_Adapter
+Block_35_Python_Execution_Bridge
+Block_36_Python_Source_Loader
+Block_37_Python_Execution_Bridge_Final
+Block_38_Deep_Memory_Orchestrator_Final
+Block_39_Payload_Builders
+Block_40_Deep_Memory_Listeners
+Block_41_While_You_Were_Away
+Block_42_Mind_Palace_Engine
+Block_43_Mind_Palace_Filters
+Block_44_Semantic_Search_Engine
+Block_45_Semantic_Toggle
+Block_46_Find_Similar
+Block_47_Show_Context
+BLOCK GROUP K — LLM ENGINE (NEW)
+Block_48_Model_Router_and_LLM_Engine
+Block_49_Send_Button_Bridge
