@@ -54,6 +54,37 @@
     else if (line) line.textContent = text;
   }
 
+  function projectCommand(text) {
+    const match = String(text || "").match(/^\s*#(?:newproject|new-project|project)\s+(.+?)\s*$/i);
+    if (!match) return null;
+    const payload = match[1].trim();
+    const realmMatch = payload.match(/^#([a-z0-9_-]+)\s+(.+)$/i);
+    return realmMatch
+      ? { realm: realmMatch[1], name: realmMatch[2].trim() }
+      : { realm: null, name: payload };
+  }
+
+  function runProjectCommand(command, visibleUserText) {
+    if (!window.AIDA_PROJECTS?.createDraft) return null;
+    const result = window.AIDA_PROJECTS.createDraft(command.name, {
+      realm: command.realm || undefined
+    });
+    const projectName = result.project?.project_name || result.project?.name || command.name;
+    const reply = result.created
+      ? `New project opened: ${projectName}. I have placed it inside the current realm as a private-candidate draft. Tell me how this story begins, and Sleep can prepare its Drive briefcase.`
+      : `Project opened: ${projectName}. We can continue where it left off.`;
+
+    appendChat("USER", visibleUserText);
+    appendChat("AIDA", reply);
+    window.AIDA_BODY_PROJECTS?.render?.();
+    if (window.AIDA_SESSION_CAPTURE?.captureExchange) {
+      window.AIDA_SESSION_CAPTURE.captureExchange(visibleUserText, reply);
+    }
+    pulse(`${result.created ? "Created" : "Opened"} project ${projectName}.`);
+    log(`PROJECT COMMAND: ${result.created ? "created" : "opened"} ${result.fileName}.`, "log-blue");
+    return result;
+  }
+
   function gate() {
     const rt = runtime();
     const missing = [];
@@ -134,6 +165,17 @@
     if (!text) return false;
 
     const rt = runtime();
+    const command = projectCommand(text);
+    if (command) {
+      try {
+        return Boolean(runProjectCommand(command, text));
+      } catch (error) {
+        appendChat("AIDA", `I could not create that project: ${error.message}`);
+        log(`PROJECT COMMAND: ${error.message}`, "log-amber");
+        return false;
+      }
+    }
+
     const ready = gate();
     if (!ready.pass) {
       log(`LLM SEND: WAIT. Missing ${ready.missing.join(", ")}.`, "log-amber");
@@ -198,10 +240,18 @@
     const attachment = window.AIDA_GLASSES?.peek?.() || null;
     if (!text && !attachment) return false;
 
-    if (input) input.value = "";
     if (send) send.disabled = true;
     try {
-      return await sendText(text, { attachment });
+      const sent = await sendText(text, { attachment });
+      if (sent && input) {
+        input.value = "";
+        try {
+          localStorage.removeItem("AIDA_INPUT_DRAFT_V1");
+        } catch (_) {
+          // Draft persistence is a convenience; sending must not depend on storage.
+        }
+      }
+      return sent;
     } finally {
       if (send) send.disabled = false;
       if (input) input.focus();

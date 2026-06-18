@@ -67,6 +67,7 @@
         mode: "francisco",
         label: "FRANCISCO"
       },
+      newProjectDraft: null,
       tetrad: null,
       memoryWindow: null,
       llmMessages: null

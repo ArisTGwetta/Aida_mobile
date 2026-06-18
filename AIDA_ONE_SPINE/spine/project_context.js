@@ -533,6 +533,101 @@
     return selected;
   }
 
+  function createDraft(name, options = {}) {
+    const rt = runtime();
+    const cleanName = String(name || "").replace(/\s+/g, " ").trim();
+    if (!cleanName) throw new Error("A project name is required.");
+
+    const slug = keyName(cleanName);
+    if (!slug) throw new Error("The project name needs at least one letter or number.");
+
+    const fileName = `project_briefcase_${slug}.json`;
+    const existingKey = Object.keys(rt.mind.projectLedger || {}).find((key) => (
+      keyName(key) === slug ||
+      keyName(rt.mind.projectLedger[key]?.name || "") === slug
+    ));
+    if (existingKey) {
+      select(existingKey);
+      return {
+        created: false,
+        key: existingKey,
+        fileName: rt.mind.projectLedger[existingKey]?.fileName || existingKey,
+        project: rt.context.project
+      };
+    }
+
+    const realmName = String(
+      options.realm ||
+      valueName(rt.context?.realm || rt.mind?.realm, "rpg")
+    ).trim();
+    const createdAt = new Date().toISOString();
+    const project = {
+      project_name: cleanName,
+      name: cleanName,
+      kind: "project",
+      status: "runtime_draft",
+      realm: realmName,
+      role: options.role || "role_co_narrator.json",
+      privacy: options.privacy || "private_candidate",
+      summary: options.summary || `New ${realmName} project created in conversation.`,
+      interaction_rules: {
+        mode: "collaborative roleplay",
+        rules: [
+          "Aida remains the co-author outside labeled character dialogue.",
+          "Keep Aida, Narrator, and character voices distinct.",
+          "Use cinematic discretion to preserve story flow when direct depiction should stop."
+        ]
+      },
+      facts: [],
+      memory: {},
+      recent_turns: [],
+      open_threads: [],
+      created_at: createdAt,
+      last_updated: createdAt,
+      draft: {
+        status: "runtime_only",
+        created_via: "conversation_command",
+        target_file: fileName
+      }
+    };
+
+    rt.mind.projects = rt.mind.projects || {};
+    rt.mind.projectLedger = rt.mind.projectLedger || {};
+    rt.drive.files = rt.drive.files || {};
+
+    rt.mind.projects[fileName] = project;
+    rt.drive.files[fileName] = project;
+    rt.mind.projectLedger[fileName] = {
+      key: fileName,
+      name: cleanName,
+      source: "conversation_draft",
+      status: project.summary,
+      lastActive: createdAt,
+      loaded: true,
+      fileName,
+      summary: project
+    };
+
+    select(fileName);
+    rt.context.projectMode = "new_project_draft";
+    rt.context.newProjectDraft = {
+      name: cleanName,
+      slug,
+      fileName,
+      realm: realmName,
+      createdAt,
+      privacy: project.privacy
+    };
+
+    log(`PROJECT: Created runtime draft ${cleanName} -> ${fileName}.`, "log-blue");
+    return {
+      created: true,
+      key: fileName,
+      fileName,
+      project
+    };
+  }
+
   function needsHydration(projectKey) {
     const rt = runtime();
     const ledger = rt.mind.projectLedger || {};
@@ -627,6 +722,7 @@
     list,
     select,
     selectHydrated,
+    createDraft,
     mapDriveFilesToMind,
     valueName
   };
@@ -636,9 +732,9 @@
       id: MODULE_ID,
       phase: "project_context",
       reads: ["AIDA_RUNTIME.drive.files"],
-      writes: ["AIDA_RUNTIME.mind.projectLedger", "AIDA_RUNTIME.context.project"],
+      writes: ["AIDA_RUNTIME.mind.projectLedger", "AIDA_RUNTIME.context.project", "AIDA_RUNTIME.context.newProjectDraft"],
       requires: ["AIDA_RUNTIME"],
-      verifies: ["project menus and active context are owned by the spine project context organ"]
+      verifies: ["project menus, conversational project drafts, and active context are owned by the spine project context organ"]
     });
   }
 })();

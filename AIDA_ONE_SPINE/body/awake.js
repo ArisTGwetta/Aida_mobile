@@ -395,6 +395,11 @@
         const text = input.value.trim();
         if (!text) return;
         input.value = "";
+        try {
+          localStorage.removeItem("AIDA_INPUT_DRAFT_V1");
+        } catch (_) {
+          // Local draft storage may be unavailable in restricted browser modes.
+        }
         appendChat("USER", text);
         appendChat("AIDA", "Body received the signal. Conversation is still warming up.");
         pulse("Conversation hook fired; waiting for live conversation module.");
@@ -402,6 +407,23 @@
     }
 
     if (input) {
+      try {
+        const savedDraft = localStorage.getItem("AIDA_INPUT_DRAFT_V1");
+        if (savedDraft && !input.value) input.value = savedDraft;
+      } catch (_) {
+        // Local draft storage may be unavailable in restricted browser modes.
+      }
+
+      input.addEventListener("input", () => {
+        try {
+          const value = input.value || "";
+          if (value) localStorage.setItem("AIDA_INPUT_DRAFT_V1", value);
+          else localStorage.removeItem("AIDA_INPUT_DRAFT_V1");
+        } catch (_) {
+          // Input remains fully functional without local draft persistence.
+        }
+      });
+
       input.addEventListener("keydown", (event) => {
         if (event.key === "Enter" && send) send.click();
       });
