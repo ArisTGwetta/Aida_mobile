@@ -203,6 +203,45 @@ function installBrowserMocks(runtime, options = {}) {
         if (options.mockMalformedOpenAI && callCount === 1) {
           return '{"diaryDrafts":[{"id":"broken_json" "entry":"missing comma"}],"rollingSummaries":[]';
         }
+        if (options.mockMemoryRoutingReviewOpenAI) {
+          return JSON.stringify({
+            packetId: "sleep_smoke",
+            capturedAt: "2026-06-16T23:12:33.223Z",
+            memoryReview: {
+              project: "aida_architecture",
+              source_refs: ["session_smoke#turn_1"],
+              diaryEntry: isContinuityPass ? "Francisco clarified that his mother lives in Kansas City while he was driving to the airport." : "",
+              sessionSummary: isContinuityPass ? "A short affectionate exchange included a temporary airport pickup and a durable residence detail." : "",
+              longSummary: isContinuityPass ? "Aida should distinguish temporary logistics from stable user facts." : "",
+              durableFacts: isSemanticPass ? [
+                {
+                  claim: "Francisco's mother lives in Kansas City.",
+                  scope: "user",
+                  confidence: 0.95,
+                  source_refs: ["session_smoke#turn_1"]
+                },
+                {
+                  claim: "Francisco needs to pick up his mom at the airport.",
+                  scope: "user",
+                  confidence: 0.95,
+                  source_refs: ["session_smoke#turn_1"]
+                }
+              ] : [],
+              behaviorInsights: [],
+              sensitiveContext: isSemanticPass ? [
+                {
+                  note: "Francisco is tired and managing caregiving logistics for an airport pickup, indicating emotional and physical strain.",
+                  handling: "Respond gently without probing.",
+                  confidence: 0.9,
+                  source_refs: ["session_smoke#turn_1"]
+                }
+              ] : [],
+              toneSignals: [],
+              openThreads: [],
+              needsFurtherProcessing: false
+            }
+          });
+        }
         if (options.mockCompactReviewOpenAI) {
           return JSON.stringify({
             packetId: "sleep_smoke",
@@ -372,6 +411,7 @@ function loadCrawlerAndMessages(runtime, options = {}) {
   runtime.context.projectFacts = runtime.mind.facts;
   runtime.context.projectMemory = runtime.mind.memory;
   Function(fs.readFileSync(crawlerPath, "utf8"))();
+  Function(fs.readFileSync(librarianPath, "utf8"))();
   Function(fs.readFileSync(llmMessagesPath, "utf8"))();
   assert(global.window.AIDA_CRAWLER?.remember, "AIDA_CRAWLER.remember was not installed.");
   assert(global.window.AIDA_LLM_MESSAGES?.build, "AIDA_LLM_MESSAGES.build was not installed.");
@@ -468,6 +508,112 @@ function runMemoryBoundaryMessageTest() {
     messageCount: built.messages.length,
     recallFound: runtime.context.lastCrawlerRecall?.found,
     systemHasStrictRule: system.includes("Strict memory rule")
+  };
+}
+
+function runDriveBackedLibrarianTest() {
+  const runtime = makeRuntime([]);
+  runtime.drive.files = {
+    "diary_log.json": [
+      {
+        id: "diary_lighthouse",
+        project: "aida_architecture",
+        entry: "Francisco described the lighthouse promise as a way to preserve a precise shared idea.",
+        source_refs: ["session_archive#turn_7"],
+        packetId: "sleep_archive"
+      }
+    ],
+    "raw_session_log.json": [
+      {
+        id: "raw_lighthouse",
+        project: "aida_architecture",
+        user: "Please remember the lighthouse promise.",
+        aida: "I will keep it tied to the source.",
+        source_refs: ["session_archive#turn_7"]
+      }
+    ],
+    "facts.json": {
+      facts: {
+        user: {
+          family: ["Francisco's mother lives in Kansas City."]
+        }
+      },
+      last_updated: "2026-06-16T23:16:19.421Z"
+    },
+    "insights.json": {
+      insights: {
+        collaboration: {
+          memory_style: "Francisco prefers memory claims to remain tied to evidence."
+        }
+      }
+    }
+  };
+  const { crawler, messages } = loadCrawlerAndMessages(runtime);
+  const indexed = crawler.indexNow("smoke_drive_memory");
+  const review = global.window.AIDA_LIBRARIAN.review("librarian, skim the diary for the lighthouse promise", {
+    minScore: 1
+  });
+  const built = messages.build("Librarian, skim my diary for the lighthouse promise.");
+
+  assert(indexed.summary.types.drive_diary >= 1, "Crawler did not index Drive diary records.", indexed.summary);
+  assert(indexed.summary.types.drive_raw_log >= 1, "Crawler did not index Drive raw logs.", indexed.summary);
+  assert(indexed.summary.types.drive_fact >= 1, "Crawler did not flatten nested confirmed facts.", indexed.summary);
+  assert(indexed.summary.types.drive_insight >= 1, "Crawler did not flatten nested confirmed insights.", indexed.summary);
+  assert(review.ready && review.resultCount >= 1, "Librarian review did not return Drive-backed evidence.", review);
+  assert(
+    review.evidence.some((item) => item.text.includes("lighthouse promise")),
+    "Librarian evidence did not include the matching diary text.",
+    review
+  );
+  assert(
+    built.messages[0].content.includes('"tool": "librarian"'),
+    "Conversational librarian request was not routed into the LLM evidence section.",
+    built.messages[0].content
+  );
+
+  return {
+    indexedTypes: indexed.summary.types,
+    reviewResults: review.resultCount,
+    evidenceKinds: Object.keys(review.grouped),
+    routedTool: runtime.context.lastLibrarianReview ? "librarian" : null
+  };
+}
+
+function runMultimodalMessageShapeTest() {
+  const runtime = makeRuntime([]);
+  const { messages } = loadCrawlerAndMessages(runtime);
+  const image = messages.build("What do you notice?", {
+    attachment: {
+      name: "desk.png",
+      kind: "image",
+      type: "image/png",
+      size: 10,
+      dataUrl: "data:image/png;base64,AAAA"
+    }
+  });
+  const pdf = messages.build("Please skim this document.", {
+    attachment: {
+      name: "notes.pdf",
+      kind: "pdf",
+      type: "application/pdf",
+      size: 20,
+      dataUrl: "data:application/pdf;base64,BBBB"
+    }
+  });
+  const imageContent = image.messages[1].content;
+  const pdfContent = pdf.messages[1].content;
+
+  assert(Array.isArray(imageContent), "Image attachment should produce multimodal content.", imageContent);
+  assert(imageContent.some((item) => item.type === "input_image"), "Image attachment is missing input_image.", imageContent);
+  assert(Array.isArray(pdfContent), "PDF attachment should produce multimodal content.", pdfContent);
+  assert(pdfContent.some((item) => item.type === "input_file"), "PDF attachment is missing input_file.", pdfContent);
+  assert(pdfContent.find((item) => item.type === "input_file")?.filename === "notes.pdf", "PDF filename was not preserved.", pdfContent);
+
+  return {
+    imageTypes: imageContent.map((item) => item.type),
+    pdfTypes: pdfContent.map((item) => item.type),
+    imageAttachment: image.safeSummary.attachment,
+    pdfAttachment: pdf.safeSummary.attachment
   };
 }
 
@@ -765,6 +911,50 @@ async function runCompactLlmReviewTest() {
   };
 }
 
+async function runMemoryRoutingGuardrailTest() {
+  const turns = [
+    makeTurn(
+      1,
+      "I need to pick up my mom at the airport. She lives in Kansas City.",
+      "I hope the airport pickup goes smoothly."
+    )
+  ];
+  const runtime = makeRuntime(turns, {}, { llmReady: true });
+  const sleep = loadSleepCycle(runtime, { mockOpenAI: true, mockMemoryRoutingReviewOpenAI: true });
+  const packet = sleep.buildPacket("smoke_memory_routing_guardrail");
+  const distillation = await sleep.refinePacketWithLlm(packet);
+
+  assert(distillation.factCandidates.length === 1, "Temporary logistics should not remain a durable fact.", distillation.factCandidates);
+  assert(
+    distillation.factCandidates[0]?.claim === "Francisco's mother lives in Kansas City.",
+    "The stable residence detail should remain a durable fact candidate.",
+    distillation.factCandidates
+  );
+  assert(distillation.openThreads.length === 1, "Temporary airport logistics should become an open thread.", distillation.openThreads);
+  assert(
+    distillation.openThreads[0]?.thread.includes("pick up his mom at the airport"),
+    "The airport pickup follow-up was not preserved.",
+    distillation.openThreads
+  );
+  assert(
+    distillation.openThreads[0]?.expiresAt,
+    "Rerouted temporary facts should receive an expiration timestamp.",
+    distillation.openThreads
+  );
+  assert(
+    distillation.sensitiveContextCandidates.length === 0,
+    "Ordinary tiredness and airport logistics should not become sensitive caregiving context.",
+    distillation.sensitiveContextCandidates
+  );
+
+  return {
+    packetId: packet.id,
+    factCandidates: distillation.factCandidates.map((item) => item.claim),
+    openThreads: distillation.openThreads.map((item) => item.thread),
+    sensitiveContextCandidates: distillation.sensitiveContextCandidates.length
+  };
+}
+
 async function runPartialStagedLlmPassTest() {
   const turns = [
     makeTurn(
@@ -940,10 +1130,13 @@ async function main() {
         llmRefinement: await runLlmRefinementTest(),
         llmJsonRepair: await runLlmJsonRepairTest(),
         compactLlmReview: await runCompactLlmReviewTest(),
+        memoryRoutingGuardrail: await runMemoryRoutingGuardrailTest(),
         partialStagedLlmPass: await runPartialStagedLlmPassTest(),
         partialLlmMerge: await runPartialLlmMergeTest(),
         crashBufferRestore: runCrashBufferRestoreTest(),
         memoryBoundary: runMemoryBoundaryMessageTest(),
+        driveBackedLibrarian: runDriveBackedLibrarianTest(),
+        multimodalMessages: runMultimodalMessageShapeTest(),
         driveWritebackDryRun: await runDriveWritebackDryRunTest()
       }
     };

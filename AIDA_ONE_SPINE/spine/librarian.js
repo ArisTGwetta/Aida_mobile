@@ -249,6 +249,129 @@
     };
   }
 
+  function evidenceKind(type) {
+    const value = String(type || "");
+    if (value.includes("diary")) return "diary";
+    if (value.includes("raw")) return "raw_log";
+    if (value.includes("fact")) return "fact";
+    if (value.includes("insight")) return "insight";
+    if (value.includes("project") || value.includes("summary") || value.includes("long_") || value.includes("rolling_")) return "summary";
+    if (value.includes("tone") || value.includes("salutation")) return "tone";
+    if (value.includes("sensitive")) return "sensitive";
+    return "other";
+  }
+
+  function review(query, options = {}) {
+    const text = String(query || "").trim();
+    if (!text) {
+      return {
+        ready: false,
+        query: text,
+        reason: "query_required",
+        instruction: "Ask what idea, theme, or memory the Librarian should look for."
+      };
+    }
+    if (!window.AIDA_CRAWLER?.search) {
+      return {
+        ready: false,
+        query: text,
+        reason: "crawler_unavailable",
+        instruction: "The Librarian cannot search the indexed archive yet."
+      };
+    }
+
+    window.AIDA_CRAWLER.indexNow?.("librarian_review");
+    const result = window.AIDA_CRAWLER.search(text, {
+      limit: Number(options.limit || 12),
+      minScore: Number(options.minScore || 1),
+      project: options.project || null
+    });
+    const evidence = safeArray(result.results).map((item) => ({
+      id: item.id,
+      kind: evidenceKind(item.type),
+      type: item.type,
+      title: item.title,
+      text: cleanBriefcaseText(item.text, 900),
+      score: item.score,
+      sourceRefs: safeArray(item.sourceRefs),
+      reviewWindow: item.reviewWindow || null,
+      project: item.project || null,
+      humanSource: item.humanSource || null,
+      packetId: item.packetId || null
+    }));
+    const grouped = evidence.reduce((groups, item) => {
+      groups[item.kind] = groups[item.kind] || [];
+      groups[item.kind].push(item);
+      return groups;
+    }, {});
+    const reviewedAt = nowIso();
+    const response = {
+      ready: true,
+      query: text,
+      reviewedAt,
+      resultCount: evidence.length,
+      evidence,
+      grouped,
+      instruction: evidence.length
+        ? "Synthesize cautiously across this evidence. Distinguish direct log text from summaries, facts, and interpretations. Mention uncertainty when evidence is partial or conflicting."
+        : "No indexed evidence matched. Say the Librarian did not find it rather than inventing an answer."
+    };
+
+    const state = ensureState();
+    state.lastReview = {
+      query: text,
+      reviewedAt,
+      resultCount: evidence.length,
+      topEvidenceIds: evidence.slice(0, 5).map((item) => item.id)
+    };
+    consoleReport("AIDA_LIBRARIAN_REVIEW", response);
+    return response;
+  }
+
+  async function prepareArchive(reason = "librarian_request") {
+    const fetchByName = window.AIDA_DRIVE?.fetchJsonByName;
+    if (!fetchByName) {
+      window.AIDA_CRAWLER?.indexNow?.(`${reason}_runtime_only`);
+      return {
+        ready: false,
+        reason: "drive_lazy_fetch_unavailable",
+        loaded: [],
+        failed: []
+      };
+    }
+
+    const names = [
+      "diary_log.json",
+      "raw_session_log.json",
+      "project_summary.json",
+      "memory_summary.json",
+      "facts.json",
+      "facts_candidates.json",
+      "insights.json",
+      "insights_candidates.json",
+      "sensitive_context_candidates.json",
+      "salutation_tone_signals.json"
+    ];
+    const loaded = [];
+    const failed = [];
+    for (const name of names) {
+      try {
+        await fetchByName(name, reason);
+        loaded.push(name);
+      } catch (error) {
+        failed.push({ name, reason: error.message });
+      }
+    }
+    const indexed = window.AIDA_CRAWLER?.indexNow?.(reason) || null;
+    log(`LIBRARIAN: archive prepared. loaded=${loaded.length}, unavailable=${failed.length}.`, failed.length ? "log-amber" : "log-blue");
+    return {
+      ready: loaded.length > 0,
+      loaded,
+      failed,
+      indexed
+    };
+  }
+
   function ingestSleep(packet = runtime()?.sleep?.lastPacket) {
     const state = ensureState();
     pruneLegacyFallbackCandidates(state);
@@ -335,6 +458,8 @@
 
   window.AIDA_LIBRARIAN = {
     ingestSleep,
+    prepareArchive,
+    review,
     inspect,
     safeSummary,
     getStaged
@@ -344,7 +469,7 @@
     window.AIDA_MODULES.register({
       id: MODULE_ID,
       phase: "memory_staging",
-      reads: ["AIDA_SLEEP.getPreferredDistillation", "AIDA_RUNTIME.sleep.lastPacket"],
+      reads: ["AIDA_SLEEP.getPreferredDistillation", "AIDA_RUNTIME.sleep.lastPacket", "AIDA_CRAWLER.search"],
       writes: [
         "AIDA_RUNTIME.librarian.diaryDrafts",
         "AIDA_RUNTIME.librarian.rollingSummaryDrafts",

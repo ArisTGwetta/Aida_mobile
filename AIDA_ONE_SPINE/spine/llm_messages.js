@@ -110,10 +110,76 @@
     return /\b(remember|recall|mind palace|memory|do you know|did we|have we|find it in your mind)\b/.test(text);
   }
 
+  function looksLikeLibrarianReview(userText) {
+    const text = String(userText || "").toLowerCase();
+    return /\b(librarian|skim (?:my |the )?(?:diary|journal|memories)|look through (?:my |the )?(?:diary|journal)|find (?:an |the )?(?:idea|theme|pattern) in (?:my |the )?(?:diary|journal|memories))\b/.test(text);
+  }
+
+  function looksLikeCrawlerSearch(userText) {
+    const text = String(userText || "").toLowerCase();
+    return /\b(crawler|crawl (?:my |the )?(?:logs|history)|search (?:my |the )?(?:logs|history|raw log)|meditat(?:e|ion).*(?:logs|memory)|mind palace)\b/.test(text);
+  }
+
+  function needsArchive(userText) {
+    return looksLikeLibrarianReview(userText) || looksLikeCrawlerSearch(userText) || looksLikeMemoryRecall(userText);
+  }
+
   function buildMemoryRetrieval(userText, context) {
+    if (looksLikeLibrarianReview(userText)) {
+      if (!window.AIDA_LIBRARIAN?.review) {
+        return {
+          requested: true,
+          tool: "librarian",
+          found: false,
+          reason: "librarian_unavailable",
+          instruction: "The user explicitly asked for the Librarian, but that capability is unavailable. Say so plainly."
+        };
+      }
+      const review = window.AIDA_LIBRARIAN.review(userText, {
+        limit: 12,
+        project: valueName(context.project, context.mind.activeProjectName || "") || null
+      });
+      context.rt.context.lastLibrarianReview = review;
+      return {
+        requested: true,
+        tool: "librarian",
+        found: review.resultCount > 0,
+        ...review
+      };
+    }
+
+    if (looksLikeCrawlerSearch(userText)) {
+      if (!window.AIDA_CRAWLER?.search) {
+        return {
+          requested: true,
+          tool: "crawler",
+          found: false,
+          reason: "crawler_unavailable",
+          instruction: "The user explicitly asked for the Crawler, but indexed search is unavailable. Say so plainly."
+        };
+      }
+      window.AIDA_CRAWLER.indexNow?.("conversation_crawler_request");
+      const result = window.AIDA_CRAWLER.search(userText, {
+        limit: 8,
+        minScore: 1,
+        project: valueName(context.project, context.mind.activeProjectName || "") || null
+      });
+      context.rt.context.lastCrawlerRecall = result;
+      return {
+        requested: true,
+        tool: "crawler",
+        found: result.results.length > 0,
+        ...result,
+        instruction: result.results.length
+          ? "The user explicitly asked the Crawler to search. Answer from these indexed results, distinguish raw logs from summaries, and identify source references when useful."
+          : "The Crawler found no indexed evidence. Say that directly and do not invent a result."
+      };
+    }
+
     if (!looksLikeMemoryRecall(userText)) {
       return {
         requested: false,
+        tool: null,
         found: null,
         note: "No explicit memory recall request detected for this turn."
       };
@@ -122,6 +188,7 @@
     if (!window.AIDA_CRAWLER?.remember) {
       return {
         requested: true,
+        tool: "crawler",
         found: false,
         reason: "crawler_unavailable",
         instruction: "The user asked for memory recall, but indexed retrieval is unavailable. Say you do not know from memory yet and offer to meditate/search."
@@ -146,6 +213,7 @@
 
     return {
       requested: true,
+      tool: "crawler",
       found: true,
       query: recall.query,
       searchedAt: recall.searchedAt,
@@ -277,6 +345,8 @@
       "Priority order when context conflicts: core identity, active realm/project, active role, user request, facts, memory summary, recent session, emotion.",
       "Do not replace missing private context with generic chatbot defaults. If something is absent, acknowledge uncertainty lightly and stay anchored to what is present.",
       "Strict memory rule: when the user asks you to remember, recall, or find something in memory, do not make it up. Use only retrieved memory evidence, loaded facts, summaries, or recent turns. If no evidence is present, say you do not know from memory yet and offer to meditate/search.",
+      "Capability rule: do not claim to have scheduled reminders, calendar access, background monitoring, or future notification ability unless the current on-demand capability evidence explicitly says that action succeeded.",
+      "Inference rule: keep locations and relationships attached to the exact person or event stated by the user. Do not infer that the user's destination is another person's home location.",
       "",
       boundedSection("TETRAD", tetrad),
       boundedSection("ON-DEMAND MEMORY RETRIEVAL", retrieval),
@@ -301,7 +371,28 @@
     ].join("\n");
   }
 
-  function buildMessages(userText = "") {
+  function buildUserContent(input, attachment) {
+    if (!attachment?.dataUrl || !attachment?.kind) return input;
+    if (attachment.kind === "image") {
+      return [
+        { type: "input_text", text: input },
+        { type: "input_image", image_url: attachment.dataUrl }
+      ];
+    }
+    if (attachment.kind === "pdf") {
+      return [
+        {
+          type: "input_file",
+          filename: attachment.name || "aida-document.pdf",
+          file_data: attachment.dataUrl
+        },
+        { type: "input_text", text: input }
+      ];
+    }
+    return input;
+  }
+
+  function buildMessages(userText = "", options = {}) {
     const context = resolveContext();
     const gate = preflightGate(context);
     if (!gate.pass) {
@@ -323,7 +414,12 @@
     }
 
     const tetrad = buildTetrad(context);
-    const input = userText.trim() || "[No user message supplied yet. This is a preflight message assembly preview.]";
+    const attachment = options.attachment || null;
+    const input = userText.trim() || (
+      attachment
+        ? "Please examine the attached file and tell me what you notice."
+        : "[No user message supplied yet. This is a preflight message assembly preview.]"
+    );
     const retrieval = buildMemoryRetrieval(input, context);
     const systemContent = buildSystemContent(context, tetrad, retrieval);
 
@@ -334,7 +430,7 @@
       },
       {
         role: "user",
-        content: input
+        content: buildUserContent(input, attachment)
       }
     ];
 
@@ -350,6 +446,11 @@
         messageCount: messages.length,
         systemChars: systemContent.length,
         userChars: input.length,
+        attachment: attachment ? {
+          name: attachment.name,
+          kind: attachment.kind,
+          size: attachment.size
+        } : null,
         identity: tetrad.identity.name,
         realm: tetrad.arena.realm,
         project: tetrad.arena.project,
@@ -388,6 +489,7 @@
   window.AIDA_LLM_MESSAGES = {
     build: buildMessages,
     preview: previewMessages,
+    needsArchive,
     buildTetrad,
     preflightGate
   };

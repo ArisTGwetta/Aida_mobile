@@ -605,6 +605,8 @@
       selected.factCandidates = safeArray(draft.factCandidates);
       selected.insightCandidates = safeArray(draft.insightCandidates);
       selected.sensitiveContextCandidates = safeArray(draft.sensitiveContextCandidates);
+      // The semantic normalizer may reroute time-bound "facts" into expiring follow-up threads.
+      selected.openThreads = safeArray(draft.openThreads);
       return selected;
     }
     if (passId === "relationship") {

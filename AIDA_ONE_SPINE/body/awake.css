@@ -534,6 +534,46 @@ input:disabled {
   color: var(--aida-green);
 }
 
+#message-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 5px;
+  align-items: stretch;
+}
+
+#glasses-attach-btn {
+  width: 34px;
+  min-height: 32px;
+  border: 1px solid #00d7ff;
+  border-radius: 3px;
+  background: #00171f;
+  color: #00d7ff;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0;
+}
+
+#glasses-attach-btn.has-attachment {
+  border-color: var(--aida-green);
+  color: var(--aida-green);
+  background: #002016;
+}
+
+#glasses-attachment-status {
+  display: none;
+  min-height: 16px;
+  padding: 1px 5px;
+  color: #9eefff;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#glasses-attachment-status.visible {
+  display: block;
+}
+
 #user-in {
   width: 100%;
   min-height: 32px;

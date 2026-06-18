@@ -118,8 +118,13 @@
     return text;
   }
 
-  async function sendText(userText) {
-    const text = (userText || "").trim();
+  async function sendText(userText, options = {}) {
+    const attachment = options.attachment || window.AIDA_GLASSES?.peek?.() || null;
+    const text = (userText || "").trim() || (
+      attachment
+        ? "Please examine the attached file and tell me what you notice."
+        : ""
+    );
     if (!text) return false;
 
     const rt = runtime();
@@ -130,14 +135,20 @@
       return false;
     }
 
-    const built = window.AIDA_LLM_MESSAGES?.build?.(text);
+    if (window.AIDA_LLM_MESSAGES?.needsArchive?.(text)) {
+      pulse("Aida is opening the relevant memory shelves.");
+      await window.AIDA_LIBRARIAN?.prepareArchive?.("conversation_memory_request");
+    }
+
+    const built = window.AIDA_LLM_MESSAGES?.build?.(text, { attachment });
     if (!built || built.blocked || !Array.isArray(rt.context.llmMessages)) {
       const missing = built?.missing?.join(", ") || "message packet";
       log(`LLM SEND: WAIT. Missing ${missing}.`, "log-amber");
       return false;
     }
 
-    appendChat("USER", text);
+    const visibleUserText = attachment ? `${text}\n[Attached: ${attachment.name}]` : text;
+    appendChat("USER", visibleUserText);
     const pending = appendChat("AIDA", "...");
     pulse("LLM request sent. Awaiting Aida response.");
     log(
@@ -154,8 +165,9 @@
         window.AIDA_EMOTIONS.afterExchange(text, reply);
       }
       if (window.AIDA_SESSION_CAPTURE?.captureExchange) {
-        window.AIDA_SESSION_CAPTURE.captureExchange(text, reply);
+        window.AIDA_SESSION_CAPTURE.captureExchange(visibleUserText, reply);
       }
+      if (attachment) window.AIDA_GLASSES?.markSent?.();
       rt.boot.phase = "llm_response_received";
       pulse("Aida response received. Memory write is still disabled.");
       log("LLM SEND: Response received. No memory write performed.", "log-blue");
@@ -173,12 +185,13 @@
     const input = $("user-in");
     const send = $("send-btn");
     const text = input?.value.trim() || "";
-    if (!text) return false;
+    const attachment = window.AIDA_GLASSES?.peek?.() || null;
+    if (!text && !attachment) return false;
 
     if (input) input.value = "";
     if (send) send.disabled = true;
     try {
-      return await sendText(text);
+      return await sendText(text, { attachment });
     } finally {
       if (send) send.disabled = false;
       if (input) input.focus();

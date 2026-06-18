@@ -139,6 +139,132 @@
     });
   }
 
+  function driveRecordText(record) {
+    if (record === null || record === undefined) return "";
+    if (typeof record === "string") return cleanText(record);
+    if (typeof record !== "object") return cleanText(String(record));
+
+    const parts = [
+      record.claim,
+      record.guidance,
+      record.note,
+      record.entry,
+      record.text,
+      record.summary,
+      record.latest_summary,
+      record.latest_status,
+      record.status,
+      record.user,
+      record.aida,
+      record.observed_text,
+      record.suggested_use,
+      record.thread,
+      record.handling
+    ].filter((value) => typeof value === "string" && value.trim());
+
+    return cleanText(parts.join(" "), 2200);
+  }
+
+  function driveRecordList(name, data) {
+    if (!data || typeof data !== "object") return [];
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data.entries)) return data.entries;
+    if (Array.isArray(data.items)) return data.items;
+    if (Array.isArray(data.candidates)) return data.candidates;
+    if (Array.isArray(data.signals)) return data.signals;
+    if (Array.isArray(data.turns)) return data.turns;
+    if (Array.isArray(data.recent_turns)) return data.recent_turns;
+    if (data.projects && typeof data.projects === "object") {
+      return Object.entries(data.projects).map(([key, value]) => ({
+        ...(value && typeof value === "object" ? value : { text: value }),
+        _recordKey: key
+      }));
+    }
+
+    const results = [];
+    function visit(value, path, depth = 0) {
+      if (value === null || value === undefined || depth > 6) return;
+      if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+        const text = cleanText(String(value));
+        if (text) results.push({ _recordKey: path, text });
+        return;
+      }
+      if (Array.isArray(value)) {
+        value.forEach((item, index) => visit(item, `${path}.${index + 1}`, depth + 1));
+        return;
+      }
+      if (typeof value !== "object") return;
+
+      const directText = driveRecordText(value);
+      if (directText) {
+        results.push({ ...value, _recordKey: path });
+        return;
+      }
+      Object.entries(value).forEach(([key, item]) => {
+        if (key === "last_updated" || key.startsWith("__")) return;
+        visit(item, path ? `${path}.${key}` : key, depth + 1);
+      });
+    }
+
+    visit(data, name.replace(/\.json$/i, ""));
+    return results;
+  }
+
+  function driveType(name) {
+    if (name === "raw_session_log.json" || name === "session_log.json" || name === "recent_turns.json") return "drive_raw_log";
+    if (name === "diary_log.json") return "drive_diary";
+    if (name === "project_summary.json" || name.startsWith("project_briefcase_")) return "drive_project_memory";
+    if (name === "facts.json") return "drive_fact";
+    if (name === "facts_candidates.json") return "drive_fact_candidate";
+    if (name === "insights.json") return "drive_insight";
+    if (name === "insights_candidates.json") return "drive_insight_candidate";
+    if (name === "memory_summary.json") return "drive_memory_summary";
+    if (name === "sensitive_context_candidates.json") return "drive_sensitive_candidate";
+    if (name === "salutation_tone_signals.json") return "drive_tone_signal";
+    return "drive_memory";
+  }
+
+  function skipDriveCandidate(name, record) {
+    if (!/_candidates\.json$/i.test(name)) return false;
+    return record?.source === "fallback" || record?.method === "deterministic_runtime_draft";
+  }
+
+  function driveEntries(rt, indexedAt) {
+    const files = rt.drive?.files || {};
+    const allowed = /^(raw_session_log|session_log|recent_turns|diary_log|project_summary|project_briefcase_.+|facts|facts_candidates|insights|insights_candidates|memory_summary|sensitive_context_candidates|salutation_tone_signals)\.json$/i;
+    const results = [];
+
+    Object.entries(files).forEach(([name, data]) => {
+      if (!allowed.test(name)) return;
+      const type = driveType(name);
+      driveRecordList(name, data).forEach((record, index) => {
+        if (skipDriveCandidate(name, record)) return;
+        const text = driveRecordText(record);
+        if (!text) return;
+        const sourceRefs = safeArray(record?.source_refs || record?.sourceRefs);
+        const project = record?.project || record?.project_name || record?.scope?.replace(/^project:/, "") || record?._recordKey || null;
+        const title = record?.title || record?.claim || record?.project_name || record?._recordKey || `${name} item ${index + 1}`;
+        results.push(entry(
+          `drive_${slug(name)}_${slug(record?.id || record?._recordKey || index + 1)}`,
+          type,
+          title,
+          text,
+          {
+            sourceRefs,
+            reviewWindow: record?.review_window || null,
+            project,
+            realm: record?.realm || null,
+            packetId: record?.packetId || record?.sourcePacketId || null,
+            humanSource: `AIDA_RUNTIME.drive.files["${name}"]`,
+            indexedAt
+          }
+        ));
+      });
+    });
+
+    return results.filter(Boolean);
+  }
+
   function librarianEntries(staged, indexedAt) {
     const entries = [];
     safeArray(staged.diaryDrafts).forEach((item) => {
@@ -341,6 +467,7 @@
     const reviewed = window.AIDA_CURATOR?.getReviewed?.() || {};
     const entries = [
       ...sessionEntries(rt, indexedAt),
+      ...driveEntries(rt, indexedAt),
       ...librarianEntries(staged, indexedAt),
       ...curatorEntries(reviewed, indexedAt)
     ];
@@ -369,6 +496,15 @@
     const typeBoosts = {
       fact_candidate: 2,
       insight_candidate: 2,
+      drive_fact: 2.5,
+      drive_insight: 2.5,
+      drive_fact_candidate: 0.5,
+      drive_insight_candidate: 0.5,
+      drive_diary: 2,
+      drive_raw_log: 1.5,
+      drive_project_memory: 1.5,
+      drive_memory_summary: 1.5,
+      drive_sensitive_candidate: 0.25,
       diary_draft: 1.5,
       project_listing_draft: 1.5,
       rolling_summary: 1,
@@ -478,7 +614,7 @@
     window.AIDA_MODULES.register({
       id: MODULE_ID,
       phase: "memory_retrieval",
-      reads: ["AIDA_RUNTIME.session", "AIDA_RUNTIME.librarian", "AIDA_RUNTIME.curator"],
+      reads: ["AIDA_RUNTIME.session", "AIDA_RUNTIME.drive.files", "AIDA_RUNTIME.librarian", "AIDA_RUNTIME.curator"],
       writes: ["AIDA_RUNTIME.crawler.entries", "localStorage.AIDA_CRAWLER_INDEX_V1"],
       requires: ["AIDA_RUNTIME"],
       verifies: ["human-readable memory remains source of truth while compact searchable sidecar indexes are built automatically and searched on demand"]

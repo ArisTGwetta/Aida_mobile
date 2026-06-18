@@ -729,6 +729,7 @@
     fetchAllDriveJson,
     fetchBootDriveJson,
     fetchEveryDriveJson,
+    fetchJsonByName,
     fetchContextJson,
     mapDriveFilesToMind,
     listProjects,

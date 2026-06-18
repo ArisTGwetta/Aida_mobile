@@ -132,6 +132,12 @@
       operations: [],
       history: []
     },
+    glasses: {
+      attachment: null,
+      lastPreparedAt: null,
+      lastSentAt: null,
+      error: null
+    },
     emotionEngine: {
       ready: false,
       lastAppliedAt: null,
