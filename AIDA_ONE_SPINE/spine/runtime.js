@@ -63,6 +63,10 @@
       interactionRules: null,
       roleSource: null,
       customTags: [],
+      storyInputMode: {
+        mode: "francisco",
+        label: "FRANCISCO"
+      },
       tetrad: null,
       memoryWindow: null,
       llmMessages: null
@@ -137,6 +141,17 @@
       lastPreparedAt: null,
       lastSentAt: null,
       error: null
+    },
+    director: {
+      enabled: true,
+      narrativeMode: "auto",
+      activeGame: "serana",
+      activeCharacter: null,
+      activeExpression: "pensive",
+      stageMode: "system",
+      lastCueAt: null,
+      lastBeats: [],
+      privateCandidate: true
     },
     emotionEngine: {
       ready: false,

@@ -1,0 +1,16 @@
+{
+  "id": "serana",
+  "display_name": "Princess Serana",
+  "default_expression": "pensive",
+  "expressions": {
+    "coy": "Coy.png",
+    "determined": "Determined.png",
+    "exhausted": "Exhausted.png",
+    "joyful": "Joyful.png",
+    "pensive": "Pensive.png",
+    "picaresque": "Picaresque.png",
+    "postbattle": "PostBattle.png",
+    "satisfied": "Satisfied.png",
+    "wary": "Wary.png"
+  }
+}

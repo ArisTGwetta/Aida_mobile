@@ -1,0 +1,16 @@
+{
+  "id": "system",
+  "display_name": "Aida's Stage",
+  "purpose": "Non-character visual thoughts, transitions, references, and cinematic cutaways.",
+  "expressions": {
+    "celebration": "Celebration.png",
+    "coy": "Coy.png",
+    "determined": "Determined.png",
+    "exhausted": "Exhausted.png",
+    "joyful": "Joyful.png",
+    "pensive": "Pensive.png",
+    "picaresque": "Picaresque.png",
+    "satisfied": "Satisfied.png",
+    "wary": "Wary.png"
+  }
+}

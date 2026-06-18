@@ -151,12 +151,24 @@
     if (card) card.classList.remove("visible");
   }
 
-  function appendChat(role, text) {
+  function appendChat(role, text, options = {}) {
     const flow = $("chat-flow");
     if (!flow) return null;
     const line = document.createElement("div");
-    line.className = `line ${role}`;
-    line.textContent = text;
+    const displayRole = String(options.displayRole || role || "AIDA").trim();
+    const styleRole = String(options.styleRole || role || "AIDA").toUpperCase();
+    line.className = `line ${styleRole}`;
+    line.dataset.speaker = displayRole;
+
+    const speaker = document.createElement("span");
+    speaker.className = "line-speaker";
+    speaker.textContent = displayRole;
+
+    const content = document.createElement("span");
+    content.className = "line-text";
+    content.textContent = text;
+
+    line.append(speaker, content);
     flow.appendChild(line);
     flow.scrollTop = flow.scrollHeight;
     return line;
@@ -304,11 +316,16 @@
     const rt = runtime();
     if (!rt?.context) return [];
 
-    const tags = Array.from(document.querySelectorAll(".tag-btn"))
-      .map((btn) => btn.textContent.trim())
-      .filter((tag) => tag && tag !== "#");
+    const selected = document.querySelector(".tag-btn.selected");
+    const label = selected?.textContent?.trim() || "FRANCISCO";
+    const mode = selected?.dataset?.mode || "francisco";
+    const tags = [label].filter(Boolean);
 
     rt.context.customTags = tags;
+    rt.context.storyInputMode = {
+      mode,
+      label
+    };
     return tags;
   }
 
@@ -320,9 +337,16 @@
 
     tagButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
+        tagButtons.forEach((item) => item.classList.remove("selected"));
+        btn.classList.add("selected");
+        syncCustomTagsFromButtons();
+      });
+
+      btn.addEventListener("dblclick", () => {
         activeTagIndex = btn.dataset.index;
         tagEdit.value = btn.textContent === "#" ? "" : btn.textContent;
         tagEdit.style.display = "block";
+        tagEdit.placeholder = `rename ${btn.dataset.mode || "story lane"}...`;
         tagEdit.focus();
       });
     });
@@ -334,6 +358,7 @@
       if (btn) {
         btn.textContent = val || "#";
         btn.classList.toggle("used", Boolean(val));
+        btn.classList.add("selected");
       }
       syncCustomTagsFromButtons();
       tagEdit.style.display = "none";
@@ -553,6 +578,7 @@
     const flickerGrid = $("flicker-grid");
     const pixelGrid = $("pixelGrid");
     const sparkLayer = $("sparkLayer");
+    const portraitSpacer = $("portrait-spacer");
     const portraitPane = $("portrait-pane");
     const uiDock = $("input-dock");
     const dataStack = $("data-stack");
@@ -562,7 +588,7 @@
     if (!veil || !scanline || !beam || !cone || !face) return;
     hideSleepCollected();
 
-    [uiDock, dataStack, flickerGrid, pixelGrid, sparkLayer, portraitPane, slowData, fastData].forEach((el) => {
+    [uiDock, dataStack, flickerGrid, pixelGrid, sparkLayer, portraitSpacer, portraitPane, slowData, fastData].forEach((el) => {
       if (el) el.style.opacity = "0";
     });
 
@@ -645,7 +671,7 @@
           face.style.opacity = "0";
           face.style.display = "none";
           veil.style.background = "black";
-          [uiDock, dataStack, flickerGrid, portraitPane].forEach((el) => {
+          [uiDock, dataStack, flickerGrid, portraitSpacer, portraitPane].forEach((el) => {
             if (el) el.style.opacity = "1";
           });
           if (slowData) slowData.style.opacity = "";

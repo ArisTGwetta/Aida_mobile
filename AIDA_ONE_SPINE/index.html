@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="Aida">
   <link rel="apple-touch-icon" href="body/assets/aida_icon.png">
   <link rel="icon" type="image/png" href="body/assets/aida_icon.png">
-  <link rel="stylesheet" href="body/awake.css?v=20260618a">
+  <link rel="stylesheet" href="body/awake.css?v=20260618c">
 <style>
     /* Absolute system fallback shield to kill startup white flash artifacts */
     html, body, #bios-screen, #aida-interface, #main-engine {
@@ -37,6 +37,7 @@
       <button id="drive-write-dryrun-btn" type="button">Dry-Run Drive Writes</button>
       <button id="drive-write-apply-btn" type="button">Apply Drive Writes</button>
       <button id="boot-preview-btn" type="button">Preview Awake Body</button>
+      <button id="director-demo-btn" type="button">Offline Director</button>
     </div>
     <div id="bios-latest" aria-live="polite">>>> BIOS ready.</div>
     <div id="bios-logs">
@@ -91,7 +92,26 @@
       </div>
 
       <div id="aida-display">
-        <div id="portrait-spacer" aria-hidden="true"></div>
+        <div id="portrait-spacer">
+          <section id="director-stage" aria-label="Aida's director stage">
+            <div
+              id="director-stage-frame"
+              role="button"
+              tabindex="0"
+              title="Tap to advance the offline Director demonstration"
+              aria-label="Advance offline Director demonstration"
+            >
+              <img
+                id="director-stage-image"
+                src="body/assets/stage/System/Pensive.png"
+                alt="Aida's current presentation"
+              >
+              <div id="director-stage-scan" aria-hidden="true"></div>
+              <div id="director-stage-label">AIDA'S STAGE</div>
+            </div>
+            <div id="director-stage-caption">A quiet thought, held beside the conversation.</div>
+          </section>
+        </div>
 
         <div id="portrait-pane">
           <div id="flicker-grid"></div>
@@ -115,12 +135,12 @@
 
       <div id="input-dock">
         <div id="tag-buttons">
-          <button class="tag-btn" data-index="0" type="button">#</button>
-          <button class="tag-btn" data-index="1" type="button">#</button>
-          <button class="tag-btn" data-index="2" type="button">#</button>
-          <button class="tag-btn" data-index="3" type="button">#</button>
-          <button class="tag-btn" data-index="4" type="button">#</button>
-          <button class="tag-btn" data-index="5" type="button">#</button>
+          <button class="tag-btn selected" data-index="0" data-mode="francisco" type="button">FRANCISCO</button>
+          <button class="tag-btn" data-index="1" data-mode="narrator" type="button">NARRATOR</button>
+          <button class="tag-btn" data-index="2" data-mode="director" type="button">DIRECTOR</button>
+          <button class="tag-btn" data-index="3" data-mode="action" type="button">ACTION</button>
+          <button class="tag-btn" data-index="4" data-mode="character" type="button">CHARACTER</button>
+          <button class="tag-btn" data-index="5" data-mode="character_2" type="button">CHARACTER 2</button>
           <input id="tag-edit" type="text" placeholder="type tag...">
         </div>
 
@@ -140,15 +160,15 @@
       </div>
     </div>
   </section>
-  <script src="spine/runtime.js?v=20260618a"></script>
+  <script src="spine/runtime.js?v=20260618c"></script>
   <script src="spine/config.js?v=20260614a"></script>
   <script src="spine/bios_console.js?v=20260606i"></script>
-  <script src="body/awake.js?v=20260616a"></script>
+  <script src="body/awake.js?v=20260618d"></script>
   <script src="spine/airlock.js?v=20260606i"></script>
   <script src="spine/project_context.js?v=20260606i"></script>
   <script src="spine/drive_oauth.js?v=20260618a"></script>
   <script src="spine/context_inspector.js?v=20260606i"></script>
-  <script src="spine/llm_messages.js?v=20260618a"></script>
+  <script src="spine/llm_messages.js?v=20260618b"></script>
   <script src="spine/crash_buffer.js?v=20260607e"></script>
   <script src="spine/session_capture.js?v=20260607d"></script>
   <script src="spine/context_evolution.js?v=20260607d"></script>
@@ -160,7 +180,8 @@
   <script src="spine/crawler.js?v=20260618a"></script>
   <script src="spine/drive_writeback.js?v=20260614d"></script>
   <script src="spine/glasses.js?v=20260618a"></script>
-  <script src="spine/llm_openai.js?v=20260618a"></script>
+  <script src="spine/director_stage.js?v=20260618d"></script>
+  <script src="spine/llm_openai.js?v=20260618b"></script>
   <script src="spine/boot_flow.js?v=20260606i"></script>
 </body>
 </html>

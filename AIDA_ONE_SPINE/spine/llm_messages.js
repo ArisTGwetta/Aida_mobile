@@ -330,6 +330,7 @@
       mode: context.projectMode,
       note: "No dedicated project briefcase is active. Treat the active realm as the current project context."
     };
+    const directorContract = window.AIDA_DIRECTOR?.promptContract?.(context) || "";
 
     return [
       "AIDA SPINE CONTEXT",
@@ -347,6 +348,7 @@
       "Strict memory rule: when the user asks you to remember, recall, or find something in memory, do not make it up. Use only retrieved memory evidence, loaded facts, summaries, or recent turns. If no evidence is present, say you do not know from memory yet and offer to meditate/search.",
       "Capability rule: do not claim to have scheduled reminders, calendar access, background monitoring, or future notification ability unless the current on-demand capability evidence explicitly says that action succeeded.",
       "Inference rule: keep locations and relationships attached to the exact person or event stated by the user. Do not infer that the user's destination is another person's home location.",
+      directorContract,
       "",
       boundedSection("TETRAD", tetrad),
       boundedSection("ON-DEMAND MEMORY RETRIEVAL", retrieval),

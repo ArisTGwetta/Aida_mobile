@@ -48,6 +48,12 @@
     return line;
   }
 
+  function setPendingText(line, text) {
+    const content = line?.querySelector?.(".line-text");
+    if (content) content.textContent = text;
+    else if (line) line.textContent = text;
+  }
+
   function gate() {
     const rt = runtime();
     const missing = [];
@@ -159,13 +165,17 @@
     try {
       rt.boot.phase = "llm_request";
       const reply = await callOpenAI(rt.context.llmMessages);
-      if (pending) pending.textContent = reply;
-      else appendChat("AIDA", reply);
+      const directed = window.AIDA_DIRECTOR?.present?.(reply, pending) || null;
+      if (!directed) {
+        setPendingText(pending, reply);
+        if (!pending) appendChat("AIDA", reply);
+      }
+      const transcript = directed?.transcript || reply;
       if (window.AIDA_EMOTIONS?.afterExchange) {
-        window.AIDA_EMOTIONS.afterExchange(text, reply);
+        window.AIDA_EMOTIONS.afterExchange(text, transcript);
       }
       if (window.AIDA_SESSION_CAPTURE?.captureExchange) {
-        window.AIDA_SESSION_CAPTURE.captureExchange(visibleUserText, reply);
+        window.AIDA_SESSION_CAPTURE.captureExchange(visibleUserText, transcript);
       }
       if (attachment) window.AIDA_GLASSES?.markSent?.();
       rt.boot.phase = "llm_response_received";
@@ -173,7 +183,7 @@
       log("LLM SEND: Response received. No memory write performed.", "log-blue");
       return true;
     } catch (error) {
-      if (pending) pending.textContent = `LLM call failed: ${error.message}`;
+      setPendingText(pending, `LLM call failed: ${error.message}`);
       rt.boot.phase = "llm_request_failed";
       pulse(`LLM call failed: ${error.message}`);
       log(`LLM SEND: ${error.message}`, "log-amber");
