@@ -52,6 +52,13 @@
 
     const rt = runtime();
     if (rt) rt.boot.phase = "airlock";
+    const routes = safeRoutes();
+    log(
+      routes.length
+        ? `AIRLOCK: Ready. ${routes.length} route(s) loaded.`
+        : "AIRLOCK: No routes loaded. Fetch Drive JSON before selecting a provider.",
+      routes.length ? "log-blue" : "log-amber"
+    );
   }
 
   function hideAirlock() {
@@ -97,6 +104,8 @@
     if (value === "CLR") {
       input.value = "";
       input.dataset.realPin = "";
+      const status = $("airlock-status");
+      if (status) status.textContent = "Zeros are decoys. Three meaningful fragments required.";
       return;
     }
 
@@ -111,6 +120,13 @@
 
     input.dataset.realPin += value;
     input.value = "*".repeat(input.dataset.realPin.length);
+    const meaningfulCount = meaningfulDigits(input.dataset.realPin).length;
+    const status = $("airlock-status");
+    if (status) {
+      status.textContent = meaningfulCount === MAX_REAL_DIGITS
+        ? "Three meaningful digits entered. Press OK."
+        : `${meaningfulCount} of ${MAX_REAL_DIGITS} meaningful digits entered.`;
+    }
   }
 
   function assembleRouteKey(route, cleanPin) {
@@ -232,6 +248,8 @@
     const input = $("scramble-pin");
     const rawPin = input?.dataset.realPin || "";
     const cleanPin = meaningfulDigits(rawPin);
+    const status = $("airlock-status");
+    if (status) status.textContent = `Checking route ${cleanPin || "..."}...`;
 
     if (cleanPin.length !== MAX_REAL_DIGITS) {
       log(`AIRLOCK: Need ${MAX_REAL_DIGITS} meaningful digits; received ${cleanPin.length}.`, "log-amber");
@@ -243,6 +261,14 @@
     }
 
     try {
+      const available = safeRoutes();
+      if (!available.some((item) => item.pin === cleanPin)) {
+        throw new Error(
+          available.length
+            ? `Route ${cleanPin} is not loaded. Available routes: ${available.map((item) => item.pin).join(", ")}.`
+            : "No routes are loaded. Return to BIOS and Fetch Drive JSON."
+        );
+      }
       const assembled = assembleLlmKey(cleanPin);
       const key = assembled.key;
       const route = assembled.route;
@@ -344,6 +370,8 @@
     if (bios) bios.addEventListener("click", returnToBios);
 
     keys.forEach((button) => {
+      if (button.dataset.airlockBound === "true") return;
+      button.dataset.airlockBound = "true";
       const value = button.textContent.trim();
       if (value === "OK") {
         button.addEventListener("click", requestToken);
@@ -357,7 +385,10 @@
       input.dataset.realPin = "";
     }
 
-    restoreTokenFromSession();
+    if (document.documentElement?.dataset.airlockInstalled !== "true") {
+      if (document.documentElement) document.documentElement.dataset.airlockInstalled = "true";
+      restoreTokenFromSession();
+    }
     log("Airlock module loaded. Waiting for private fragments or session token.", "log-blue");
   }
 
@@ -384,5 +415,9 @@
     });
   }
 
-  document.addEventListener("DOMContentLoaded", install);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", install, { once: true });
+  } else {
+    install();
+  }
 })();

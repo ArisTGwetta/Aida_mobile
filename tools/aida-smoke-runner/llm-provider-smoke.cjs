@@ -122,6 +122,85 @@ function runCredentialClearTest() {
   return { keyCleared: true, routeCleared: true, runtimeCleared: true, keypadCleared: true };
 }
 
+function runAirlockSelectionTest(pin, expectedProvider) {
+  const sessionStorage = makeStorage();
+  const input = { value: "", dataset: { realPin: "" } };
+  const status = { textContent: "" };
+  const runtime = {
+    boot: { airlockCleared: false, phase: "airlock" },
+    tokens: {
+      openai: { key: null, source: null },
+      llm: {
+        provider: null,
+        profile: null,
+        key: null,
+        source: null,
+        fragments: {
+          routes: {
+            "456": {
+              label: "Grok Director",
+              provider: "xai",
+              profile: "grok-roleplay",
+              model: "grok-4.3",
+              prefix: "xai-",
+              segments: { "4": "first", "5": "second", "6": "third" }
+            },
+            "789": {
+              label: "Local Private Aida",
+              provider: "ollama",
+              profile: "private-local",
+              model: "llama3:latest",
+              auth: "none",
+              endpoint: "http://127.0.0.1:11434/v1/responses"
+            }
+          }
+        }
+      }
+    }
+  };
+  global.CustomEvent = function CustomEvent(type, options) {
+    this.type = type;
+    this.detail = options?.detail;
+  };
+  global.document = {
+    readyState: "complete",
+    documentElement: { dataset: {} },
+    addEventListener() {},
+    getElementById: (id) => {
+      if (id === "scramble-pin") return input;
+      if (id === "airlock-status") return status;
+      return null;
+    },
+    querySelectorAll: () => []
+  };
+  global.window = {
+    sessionStorage,
+    dispatchEvent() {},
+    AIDA_RUNTIME: runtime,
+    AIDA_BIOS: { log() {}, show() {} },
+    AIDA_MODULES: { register() {} }
+  };
+  global.sessionStorage = sessionStorage;
+  Function(fs.readFileSync(airlockPath, "utf8"))();
+  pin.split("").forEach((digit) => global.window.AIDA_AIRLOCK.pressKey(digit));
+  const selected = global.window.AIDA_AIRLOCK.requestToken();
+
+  assert(selected, `Airlock route ${pin} did not select.`);
+  assert(runtime.tokens.llm.provider === expectedProvider, `Airlock route ${pin} selected the wrong provider.`, runtime.tokens.llm);
+  assert(runtime.boot.airlockCleared, `Airlock route ${pin} did not clear the airlock.`);
+  if (expectedProvider === "ollama") {
+    assert(runtime.tokens.llm.key === null, "Ollama route should not assemble a key.");
+  } else {
+    assert(runtime.tokens.llm.key === "xai-firstsecondthird", "xAI route assembled the wrong mock key.");
+  }
+  return {
+    pin,
+    provider: runtime.tokens.llm.provider,
+    profile: runtime.tokens.llm.profile,
+    keyRequired: runtime.tokens.llm.key !== null
+  };
+}
+
 function runOllamaWakeGateSourceTest() {
   const source = fs.readFileSync(bootFlowPath, "utf8");
   assert(
@@ -165,6 +244,8 @@ async function main() {
         normalizedProvider: "ollama"
       }),
       credentialClear: runCredentialClearTest(),
+      grokAirlockSelection: runAirlockSelectionTest("456", "xai"),
+      ollamaAirlockSelection: runAirlockSelectionTest("789", "ollama"),
       ollamaWakeGate: runOllamaWakeGateSourceTest()
     };
     console.log(JSON.stringify({
