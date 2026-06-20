@@ -20,7 +20,10 @@
         provider: null,
         profile: null,
         key: null,
-        source: null
+        source: null,
+        model: null,
+        endpoint: null,
+        auth: null
       }
     },
     drive: {

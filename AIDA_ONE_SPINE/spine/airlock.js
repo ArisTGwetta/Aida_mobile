@@ -2,6 +2,7 @@
   const MODULE_ID = "spine.airlock";
   const MAX_REAL_DIGITS = 3;
   const STORAGE_KEY = "aida_active_key";
+  const STORAGE_ROUTE = "aida_active_route";
 
   function $(id) {
     return document.getElementById(id);
@@ -113,6 +114,9 @@
   }
 
   function assembleRouteKey(route, cleanPin) {
+    if (route.auth === "none" || route.requiresKey === false || route.provider === "ollama") {
+      return null;
+    }
     const prefix = route.prefix || "";
     const segments = route.segments || {};
     const parts = cleanPin.split("").map((digit) => {
@@ -168,8 +172,39 @@
       label: route.label || route.profile || "Unnamed route",
       provider: route.provider || "openai",
       profile: route.profile || pin,
+      model: route.model || null,
+      requiresKey: !(route.auth === "none" || route.requiresKey === false || route.provider === "ollama"),
       hasSegments: Boolean(route.segments)
     }));
+  }
+
+  function safeRouteMetadata(route, cleanPin) {
+    return {
+      provider: route.provider || "openai",
+      profile: route.profile || cleanPin,
+      model: route.model || null,
+      endpoint: route.provider === "ollama" ? route.endpoint || null : null,
+      auth: route.auth || (route.provider === "ollama" ? "none" : "bearer")
+    };
+  }
+
+  function applyRouteToRuntime(routeMetadata, key, source) {
+    const rt = runtime();
+    rt.tokens.llm.key = key || null;
+    rt.tokens.llm.provider = routeMetadata.provider || "openai";
+    rt.tokens.llm.profile = routeMetadata.profile || "default";
+    rt.tokens.llm.model = routeMetadata.model || null;
+    rt.tokens.llm.endpoint = routeMetadata.endpoint || null;
+    rt.tokens.llm.auth = routeMetadata.auth || (rt.tokens.llm.provider === "ollama" ? "none" : "bearer");
+    rt.tokens.llm.source = source;
+
+    if (rt.tokens.llm.provider === "openai") {
+      rt.tokens.openai.key = key || null;
+      rt.tokens.openai.source = source;
+    } else {
+      rt.tokens.openai.key = null;
+      rt.tokens.openai.source = null;
+    }
   }
 
   function inspectRoutes() {
@@ -211,21 +246,13 @@
       const assembled = assembleLlmKey(cleanPin);
       const key = assembled.key;
       const route = assembled.route;
-      sessionStorage.setItem(STORAGE_KEY, key);
+      const routeMetadata = safeRouteMetadata(route, cleanPin);
+      if (key) sessionStorage.setItem(STORAGE_KEY, key);
+      else sessionStorage.removeItem(STORAGE_KEY);
+      sessionStorage.setItem(STORAGE_ROUTE, JSON.stringify(routeMetadata));
 
       const rt = runtime();
-      rt.tokens.llm.key = key;
-      rt.tokens.llm.provider = route.provider || "openai";
-      rt.tokens.llm.profile = route.profile || cleanPin;
-      rt.tokens.llm.source = "airlock_route";
-
-      if (rt.tokens.llm.provider === "openai") {
-        rt.tokens.openai.key = key;
-        rt.tokens.openai.source = "airlock_route";
-      } else {
-        rt.tokens.openai.key = null;
-        rt.tokens.openai.source = null;
-      }
+      applyRouteToRuntime(routeMetadata, key, "airlock_route");
 
       rt.boot.airlockCleared = true;
       rt.boot.phase = "airlock_cleared";
@@ -248,16 +275,28 @@
 
   function restoreTokenFromSession() {
     const key = sessionStorage.getItem(STORAGE_KEY);
-    if (!key) return false;
+    const rawRoute = sessionStorage.getItem(STORAGE_ROUTE);
+    if (!key && !rawRoute) return false;
+
+    let routeMetadata = null;
+    try {
+      routeMetadata = rawRoute ? JSON.parse(rawRoute) : null;
+    } catch (_) {
+      sessionStorage.removeItem(STORAGE_ROUTE);
+    }
+    routeMetadata = routeMetadata || {
+      provider: "openai",
+      profile: "restored_session",
+      model: null,
+      endpoint: null,
+      auth: "bearer"
+    };
+    if (routeMetadata.provider !== "ollama" && !key) return false;
+
     const rt = runtime();
-    rt.tokens.openai.key = key;
-    rt.tokens.openai.source = "sessionStorage";
-    rt.tokens.llm.key = key;
-    rt.tokens.llm.provider = rt.tokens.llm.provider || "openai";
-    rt.tokens.llm.profile = rt.tokens.llm.profile || "restored_session";
-    rt.tokens.llm.source = "sessionStorage";
+    applyRouteToRuntime(routeMetadata, key, "sessionStorage");
     rt.boot.airlockCleared = true;
-    log("AIRLOCK: Restored OpenAI token from this browser session.", "log-blue");
+    log(`AIRLOCK: Restored ${routeMetadata.provider} route from this browser session.`, "log-blue");
     return true;
   }
 
@@ -305,8 +344,8 @@
     window.AIDA_MODULES.register({
       id: MODULE_ID,
       phase: "airlock",
-      reads: ["AIDA_TOKEN_FRAGMENTS.openai.segments", "sessionStorage.aida_active_key"],
-      writes: ["AIDA_RUNTIME.tokens.openai.key", "AIDA_RUNTIME.boot.airlockCleared"],
+      reads: ["AIDA_TOKEN_FRAGMENTS.routes", "sessionStorage.aida_active_key", "sessionStorage.aida_active_route"],
+      writes: ["AIDA_RUNTIME.tokens.llm", "AIDA_RUNTIME.tokens.openai.key", "AIDA_RUNTIME.boot.airlockCleared"],
       requires: ["AIDA_RUNTIME"],
       verifies: ["runtime token is set only after three meaningful non-zero digits"]
     });

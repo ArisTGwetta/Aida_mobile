@@ -13,7 +13,19 @@
     llm: {
       model: "gpt-4.1-mini",
       maxOutputTokens: 700,
-      sleepMaxOutputTokens: 3200
+      sleepMaxOutputTokens: 3200,
+      providers: {
+        openai: {
+          model: "gpt-4.1-mini"
+        },
+        xai: {
+          model: "grok-4.3"
+        },
+        ollama: {
+          model: "llama3:latest",
+          endpoint: "http://127.0.0.1:11434/v1/responses"
+        }
+      }
     }
   };
 })();

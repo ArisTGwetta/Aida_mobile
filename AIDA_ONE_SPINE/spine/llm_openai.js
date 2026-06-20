@@ -1,6 +1,5 @@
 (function () {
-  const MODULE_ID = "spine.llm.openai";
-  const RESPONSES_URL = "https://api.openai.com/v1/responses";
+  const MODULE_ID = "spine.llm.conversation";
 
   function $(id) {
     return document.getElementById(id);
@@ -91,68 +90,15 @@
 
     if (!rt?.boot?.driveLoaded) missing.push("Drive JSON fetch");
     if (!rt?.boot?.airlockCleared) missing.push("airlock");
-    if (!rt?.tokens?.llm?.key) missing.push("LLM key");
-    if (rt?.tokens?.llm?.provider !== "openai") missing.push("OpenAI route");
+    const providerReady = window.AIDA_LLM_PROVIDER?.readiness?.();
+    if (!window.AIDA_LLM_PROVIDER?.callMessages) missing.push("LLM provider dispatcher");
+    if (providerReady && !providerReady.pass) missing.push(...providerReady.missing);
     if (!window.AIDA_LLM_MESSAGES?.build) missing.push("LLM message builder");
 
     return {
       pass: missing.length === 0,
       missing
     };
-  }
-
-  function extractOutputText(data) {
-    if (typeof data?.output_text === "string" && data.output_text.trim()) {
-      return data.output_text.trim();
-    }
-
-    const chunks = [];
-    for (const item of data?.output || []) {
-      for (const content of item.content || []) {
-        if (typeof content.text === "string") chunks.push(content.text);
-      }
-    }
-
-    return chunks.join("\n").trim();
-  }
-
-  async function callOpenAI(messages, options = {}) {
-    const rt = runtime();
-    const model = options.model || config().llm?.model || "gpt-4.1-mini";
-    const maxOutputTokens = options.maxOutputTokens || config().llm?.maxOutputTokens || 700;
-    const extraBody = options.body && typeof options.body === "object" ? options.body : {};
-
-    const response = await fetch(RESPONSES_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${rt.tokens.llm.key}`
-      },
-      body: JSON.stringify({
-        model,
-        input: messages,
-        max_output_tokens: maxOutputTokens,
-        ...extraBody
-      })
-    });
-
-    const data = await response.json().catch(() => null);
-    if (!response.ok) {
-      const detail = data?.error?.message || `HTTP ${response.status}`;
-      throw new Error(detail);
-    }
-
-    const text = extractOutputText(data);
-    if (!text) throw new Error("OpenAI response did not contain text output.");
-
-    rt.context.lastLlmResponse = {
-      provider: "openai",
-      model,
-      responseId: data.id || null,
-      createdAt: new Date().toISOString()
-    };
-
-    return text;
   }
 
   async function sendText(userText, options = {}) {
@@ -200,13 +146,13 @@
     const pending = appendChat("AIDA", "...");
     pulse("LLM request sent. Awaiting Aida response.");
     log(
-      `LLM SEND: provider=openai, profile=${rt.tokens.llm.profile || "unknown"}, messages=${rt.context.llmMessages.length}.`,
+      `LLM SEND: provider=${rt.tokens.llm.provider || "unknown"}, profile=${rt.tokens.llm.profile || "unknown"}, messages=${rt.context.llmMessages.length}.`,
       "log-blue"
     );
 
     try {
       rt.boot.phase = "llm_request";
-      const reply = await callOpenAI(rt.context.llmMessages);
+      const reply = await window.AIDA_LLM_PROVIDER.callMessages(rt.context.llmMessages);
       const directed = window.AIDA_DIRECTOR?.present?.(reply, pending) || null;
       if (!directed) {
         setPendingText(pending, reply);
@@ -264,12 +210,13 @@
       sendFromInput,
       gate
     };
-    window.AIDA_OPENAI = {
-      callMessages: callOpenAI,
-      extractOutputText,
+    window.AIDA_LLM = {
+      callMessages: window.AIDA_LLM_PROVIDER.callMessages,
+      extractOutputText: window.AIDA_LLM_PROVIDER.extractOutputText,
       gate
     };
-    log("OpenAI conversation organ loaded. Live send is gated.", "log-blue");
+    window.AIDA_OPENAI = window.AIDA_LLM;
+    log("Multi-provider conversation organ loaded. Live send is gated.", "log-blue");
   }
 
   if (window.AIDA_MODULES) {
@@ -279,7 +226,7 @@
       reads: ["AIDA_RUNTIME.context.llmMessages", "AIDA_RUNTIME.tokens.llm.key"],
       writes: ["AIDA_RUNTIME.context.lastLlmResponse", "AIDA_RUNTIME.boot.phase"],
       requires: ["AIDA_RUNTIME", "AIDA_LLM_MESSAGES", "AIDA_SESSION_CAPTURE"],
-      verifies: ["live LLM call is refused unless Drive, airlock, key, and messages are ready; generic OpenAI calls are exposed for gated spine jobs"]
+      verifies: ["live LLM call is refused unless Drive, airlock, provider credentials, and messages are ready; a provider-neutral call is exposed for gated spine jobs"]
     });
   }
 

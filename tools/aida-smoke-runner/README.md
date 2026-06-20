@@ -48,6 +48,16 @@ Expected output is JSON with:
 
 Failure returns non-zero exit code and prints JSON with the failed assertion.
 
+## LLM Provider Smoke
+
+Run:
+
+```powershell
+node .\tools\aida-smoke-runner\llm-provider-smoke.cjs
+```
+
+This mocks network requests and verifies that OpenAI, xAI/Grok, and Ollama select the expected endpoint, model, output parser, and authorization behavior. It never uses real API keys.
+
 ## Scope
 
 This validates the runtime shape and draft-filling contract. It does not validate final memory quality, Drive writeback, OAuth, real networked LLM distillation, or the visible browser UI.

@@ -171,7 +171,7 @@
       reads: ["browser File API"],
       writes: ["AIDA_RUNTIME.glasses.attachment"],
       requires: ["AIDA_RUNTIME"],
-      verifies: ["one image or PDF is retained in browser runtime until the next successful OpenAI response"]
+      verifies: ["one image or PDF is retained in browser runtime until the next successful LLM response"]
     });
   }
 

@@ -977,11 +977,7 @@
   }
 
   function llmReady(rt) {
-    return Boolean(
-      rt?.tokens?.llm?.key &&
-      rt.tokens.llm.provider === "openai" &&
-      window.AIDA_OPENAI?.callMessages
-    );
+    return Boolean(rt && window.AIDA_LLM_PROVIDER?.readiness?.().pass && window.AIDA_LLM_PROVIDER?.callMessages);
   }
 
   function applyLlmDistillation(packet, llmDraft, createdAt) {
@@ -1151,7 +1147,7 @@
     };
 
     try {
-      const responseText = await window.AIDA_OPENAI.callMessages(buildLlmDistillationMessages(packet, pass), {
+      const responseText = await window.AIDA_LLM_PROVIDER.callMessages(buildLlmDistillationMessages(packet, pass), {
         maxOutputTokens
       });
       let parsedDraft = null;
@@ -1160,7 +1156,7 @@
       } catch (parseError) {
         result.repairAttempted = true;
         log(`SLEEP LLM: ${pass.id} JSON parse failed; requesting repair. ${parseError.message}`, "log-amber");
-        const repairedText = await window.AIDA_OPENAI.callMessages(buildLlmJsonRepairMessages(responseText, parseError), {
+        const repairedText = await window.AIDA_LLM_PROVIDER.callMessages(buildLlmJsonRepairMessages(responseText, parseError), {
           maxOutputTokens
         });
         parsedDraft = extractJsonObject(repairedText);
@@ -1185,10 +1181,10 @@
     if (!llmReady(rt)) {
       packet.distillation.llm = {
         status: "skipped",
-        reason: "openai_route_not_ready",
+        reason: "llm_route_not_ready",
         checkedAt: nowIso()
       };
-      log("SLEEP LLM: skipped. OpenAI route is not ready.", "log-amber");
+      log("SLEEP LLM: skipped. The selected LLM route is not ready.", "log-amber");
       consoleReport("AIDA_SLEEP_LLM_DISTILLATION", getPreferredDistillation(packet));
       return packet.distillation;
     }
@@ -1541,7 +1537,7 @@
         "AIDA_RUNTIME.drive.syncQueue"
       ],
       requires: ["AIDA_RUNTIME", "AIDA_SESSION_CAPTURE", "AIDA_CONTEXT_EVOLUTION", "AIDA_WHILE_AWAY"],
-      verifies: ["manual sleep collects fallback distillation drafts immediately, then optionally refines them through OpenAI without Drive writes"]
+      verifies: ["manual sleep collects fallback distillation drafts immediately, then optionally refines them through the selected LLM provider without Drive writes"]
     });
   }
 

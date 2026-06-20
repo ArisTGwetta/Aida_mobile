@@ -290,6 +290,7 @@
         provider: rt.tokens?.llm?.provider || "none",
         profile: rt.tokens?.llm?.profile || "none",
         keyReady: Boolean(rt.tokens?.llm?.key),
+        routeReady: Boolean(window.AIDA_LLM_PROVIDER?.readiness?.().pass),
         messagesReady: Array.isArray(rt.context?.llmMessages),
         messageCount: Array.isArray(rt.context?.llmMessages) ? rt.context.llmMessages.length : 0,
         tetradReady: Boolean(rt.context?.tetrad)
@@ -330,7 +331,7 @@
     log(`RECENT TURNS: present=${summary.recentTurns.present}, count=${summary.recentTurns.count}`);
     log(`INTERACTION RULES: present=${summary.interactionRules.present}, count=${summary.interactionRules.count}`);
     log(`EMOTION: ${summary.emotion.summary}`);
-    log(`LLM ROUTES: fragments=${summary.llm.fragmentsPresent}, routes=${summary.llm.routeCount}, selected=${summary.llm.provider}/${summary.llm.profile}, keyReady=${summary.llm.keyReady}`);
+    log(`LLM ROUTES: fragments=${summary.llm.fragmentsPresent}, routes=${summary.llm.routeCount}, selected=${summary.llm.provider}/${summary.llm.profile}, routeReady=${summary.llm.routeReady}, keyReady=${summary.llm.keyReady}`);
     log(`LLM MESSAGES: ready=${summary.llm.messagesReady}, count=${summary.llm.messageCount}, tetrad=${summary.llm.tetradReady}`);
     log(`CAPTURED SESSION: id=${summary.capturedSession.id}, exchanges=${summary.capturedSession.exchanges}, unsaved=${summary.capturedSession.unsaved}, pendingJournal=${summary.capturedSession.pendingJournalCount}`);
     log(`WHILE AWAY: ready=${summary.whileAway.ready}, source=${summary.whileAway.source}, topic=${summary.whileAway.topic}, offered=${summary.whileAway.offered}`);

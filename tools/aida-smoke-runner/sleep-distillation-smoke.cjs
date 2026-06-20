@@ -164,7 +164,8 @@ function installBrowserMocks(runtime, options = {}) {
   };
   if (options.mockOpenAI) {
     let callCount = 0;
-    global.window.AIDA_OPENAI = {
+    global.window.AIDA_LLM_PROVIDER = {
+      readiness: () => ({ pass: true, provider: runtime.tokens.llm.provider, missing: [] }),
       callMessages: async (messages) => {
         callCount += 1;
         const promptText = messages.map((message) => message.content || "").join("\n");
@@ -375,6 +376,7 @@ function installBrowserMocks(runtime, options = {}) {
         });
       }
     };
+    global.window.AIDA_OPENAI = global.window.AIDA_LLM_PROVIDER;
   }
   return logs;
 }
