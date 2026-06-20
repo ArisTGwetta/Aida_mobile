@@ -300,6 +300,38 @@
     return true;
   }
 
+  function clearSessionCredentials(reason = "session_complete") {
+    sessionStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem(STORAGE_ROUTE);
+
+    const rt = runtime();
+    if (rt?.tokens?.llm) {
+      rt.tokens.llm.key = null;
+      rt.tokens.llm.provider = null;
+      rt.tokens.llm.profile = null;
+      rt.tokens.llm.model = null;
+      rt.tokens.llm.endpoint = null;
+      rt.tokens.llm.auth = null;
+      rt.tokens.llm.source = null;
+    }
+    if (rt?.tokens?.openai) {
+      rt.tokens.openai.key = null;
+      rt.tokens.openai.source = null;
+    }
+    if (rt?.boot) {
+      rt.boot.airlockCleared = false;
+      rt.boot.phase = reason;
+    }
+
+    const input = $("scramble-pin");
+    if (input) {
+      input.value = "";
+      input.dataset.realPin = "";
+    }
+    log("AIRLOCK: Active route credentials cleared for the completed session.", "log-blue");
+    return true;
+  }
+
   function install() {
     const begin = $("airlock-start-btn");
     const inspect = $("airlock-inspect-btn");
@@ -335,6 +367,7 @@
     pressKey,
     requestToken,
     restoreTokenFromSession,
+    clearSessionCredentials,
     inspectFromAirlock,
     inspectRoutes,
     safeRoutes
@@ -347,7 +380,7 @@
       reads: ["AIDA_TOKEN_FRAGMENTS.routes", "sessionStorage.aida_active_key", "sessionStorage.aida_active_route"],
       writes: ["AIDA_RUNTIME.tokens.llm", "AIDA_RUNTIME.tokens.openai.key", "AIDA_RUNTIME.boot.airlockCleared"],
       requires: ["AIDA_RUNTIME"],
-      verifies: ["runtime token is set only after three meaningful non-zero digits"]
+      verifies: ["runtime token is set only after three meaningful non-zero digits; completed sessions clear active route credentials"]
     });
   }
 

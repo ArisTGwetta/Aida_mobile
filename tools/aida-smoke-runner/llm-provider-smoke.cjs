@@ -5,6 +5,8 @@ const path = require("path");
 
 const repoRoot = path.resolve(__dirname, "..", "..");
 const providerPath = path.join(repoRoot, "AIDA_ONE_SPINE", "spine", "llm_provider.js");
+const airlockPath = path.join(repoRoot, "AIDA_ONE_SPINE", "spine", "airlock.js");
+const bootFlowPath = path.join(repoRoot, "AIDA_ONE_SPINE", "spine", "boot_flow.js");
 
 function assert(condition, message, details = null) {
   if (!condition) {
@@ -66,6 +68,73 @@ async function runRoute(provider, route, expected) {
   };
 }
 
+function makeStorage(values = {}) {
+  const entries = new Map(Object.entries(values));
+  return {
+    getItem: (key) => entries.has(key) ? entries.get(key) : null,
+    setItem: (key, value) => entries.set(key, String(value)),
+    removeItem: (key) => entries.delete(key)
+  };
+}
+
+function runCredentialClearTest() {
+  const sessionStorage = makeStorage({
+    aida_active_key: "secret-test-key",
+    aida_active_route: JSON.stringify({ provider: "xai", profile: "grok-roleplay", auth: "bearer" })
+  });
+  const input = { value: "***", dataset: { realPin: "456" } };
+  const runtime = {
+    boot: { airlockCleared: true, phase: "wake_complete" },
+    tokens: {
+      openai: { key: null, source: null },
+      llm: {
+        provider: "xai",
+        profile: "grok-roleplay",
+        key: "secret-test-key",
+        model: "grok-4.3",
+        endpoint: null,
+        auth: "bearer",
+        source: "airlock_route"
+      }
+    }
+  };
+  global.document = {
+    addEventListener() {},
+    getElementById: (id) => id === "scramble-pin" ? input : null,
+    querySelectorAll: () => []
+  };
+  global.window = {
+    sessionStorage,
+    AIDA_RUNTIME: runtime,
+    AIDA_MODULES: { register() {} }
+  };
+  global.sessionStorage = sessionStorage;
+
+  Function(fs.readFileSync(airlockPath, "utf8"))();
+  assert(global.window.AIDA_AIRLOCK?.clearSessionCredentials, "Airlock credential clear API was not installed.");
+  global.window.AIDA_AIRLOCK.clearSessionCredentials("sleep_complete");
+
+  assert(sessionStorage.getItem("aida_active_key") === null, "Session key was not removed.");
+  assert(sessionStorage.getItem("aida_active_route") === null, "Session route was not removed.");
+  assert(runtime.tokens.llm.key === null && runtime.tokens.llm.provider === null, "Runtime LLM credentials were not cleared.", runtime.tokens.llm);
+  assert(runtime.boot.airlockCleared === false, "Airlock state remained cleared.");
+  assert(input.value === "" && input.dataset.realPin === "", "Keypad input was not cleared.", input);
+  return { keyCleared: true, routeCleared: true, runtimeCleared: true, keypadCleared: true };
+}
+
+function runOllamaWakeGateSourceTest() {
+  const source = fs.readFileSync(bootFlowPath, "utf8");
+  assert(
+    source.includes("AIDA_LLM_PROVIDER?.readiness?.().pass"),
+    "Wake gate is not provider-aware."
+  );
+  assert(
+    !source.includes("rt.boot?.airlockCleared && rt.tokens?.llm?.key"),
+    "Wake gate still requires a key and would reject Ollama."
+  );
+  return { providerAwareReadiness: true, keylessOllamaAllowed: true };
+}
+
 async function main() {
   const startedAt = new Date().toISOString();
   try {
@@ -94,7 +163,9 @@ async function main() {
         model: "llama3:latest",
         hasAuth: false,
         normalizedProvider: "ollama"
-      })
+      }),
+      credentialClear: runCredentialClearTest(),
+      ollamaWakeGate: runOllamaWakeGateSourceTest()
     };
     console.log(JSON.stringify({
       status: "pass",

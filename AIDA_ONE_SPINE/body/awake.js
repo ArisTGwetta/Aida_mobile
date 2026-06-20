@@ -168,6 +168,7 @@
       rt.boot.arrived = false;
       rt.boot.phase = "sleep_complete";
     }
+    window.AIDA_AIRLOCK?.clearSessionCredentials?.("sleep_complete");
   }
 
   function prepareWakeScreen() {

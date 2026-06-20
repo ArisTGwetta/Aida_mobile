@@ -63,10 +63,10 @@
 
   function ensureAirlock() {
     const rt = runtime();
-    if (rt.boot?.airlockCleared && rt.tokens?.llm?.key) return true;
+    if (rt.boot?.airlockCleared && window.AIDA_LLM_PROVIDER?.readiness?.().pass) return true;
 
     pendingWakeAfterAirlock = true;
-    log("WAKE: Airlock required. Enter route 123, then OK.", "log-amber");
+    log("WAKE: Airlock required. Enter an available route, then OK.", "log-amber");
     window.AIDA_AIRLOCK?.inspectRoutes?.();
     window.AIDA_AIRLOCK?.show?.();
     return false;
