@@ -1372,6 +1372,113 @@
     return summary;
   }
 
+  function itemBelongsToPacket(item, packetId) {
+    if (!item || !packetId) return false;
+    return (
+      item.packetId === packetId ||
+      item.sourcePacketId === packetId ||
+      item.id === `write_plan_${packetId}` ||
+      String(item.id || "").includes(packetId)
+    );
+  }
+
+  function clearPacketStaging(packetId) {
+    const rt = runtime();
+    const librarianKeys = [
+      "diaryDrafts",
+      "rollingSummaryDrafts",
+      "longSummaryDrafts",
+      "factCandidates",
+      "insightCandidates",
+      "sensitiveContextCandidates",
+      "salutationSignals",
+      "rawLogEntries",
+      "processingBacklog",
+      "projectBriefcaseDrafts"
+    ];
+    const curatorKeys = [
+      "projectListingDrafts",
+      "projectBriefcaseWriteDrafts",
+      "diaryWriteDrafts",
+      "factWriteDrafts",
+      "insightWriteDrafts",
+      "sensitiveContextWriteDrafts",
+      "salutationSignalWriteDrafts",
+      "rawLogWriteDrafts",
+      "processingBacklogWriteDrafts",
+      "needsConfirmation",
+      "writePlanDrafts"
+    ];
+
+    let removed = 0;
+    librarianKeys.forEach((key) => {
+      const before = safeArray(rt.librarian?.[key]);
+      const after = before.filter((item) => !itemBelongsToPacket(item, packetId));
+      removed += before.length - after.length;
+      if (rt.librarian) rt.librarian[key] = after;
+    });
+    curatorKeys.forEach((key) => {
+      const before = safeArray(rt.curator?.[key]);
+      const after = before.filter((item) => !itemBelongsToPacket(item, packetId));
+      removed += before.length - after.length;
+      if (rt.curator) rt.curator[key] = after;
+    });
+
+    if (rt.librarian?.lastIngestedPacketId === packetId) {
+      rt.librarian.lastIngestedPacketId = null;
+      rt.librarian.lastIngestedAt = null;
+    }
+    if (rt.curator?.lastReviewedPacketId === packetId) {
+      rt.curator.lastReviewedPacketId = null;
+      rt.curator.lastReviewedAt = null;
+    }
+    rt.drive.syncQueue = safeArray(rt.drive?.syncQueue).filter((item) => item.packetId !== packetId);
+    window.AIDA_CRAWLER?.indexNow?.("sleep_packet_staging_cleared");
+    return removed;
+  }
+
+  function markLastPacketSaved() {
+    const rt = runtime();
+    const packet = rt?.sleep?.lastPacket;
+    if (!packet) return { ok: false, reason: "no_packet" };
+
+    packet.status = "saved_to_drive";
+    packet.savedAt = nowIso();
+    const removedDraftCount = clearPacketStaging(packet.id);
+    rt.session.unsaved = false;
+    rt.sleep.pendingJournal = [];
+    window.AIDA_CRASH_BUFFER?.clear?.("sleep_packet_saved_to_drive");
+    return {
+      ok: true,
+      packetId: packet.id,
+      savedAt: packet.savedAt,
+      removedDraftCount
+    };
+  }
+
+  function discardLastDrafts() {
+    const rt = runtime();
+    const packet = rt?.sleep?.lastPacket;
+    if (!packet) return { ok: false, reason: "no_packet" };
+
+    const packetId = packet.id;
+    const removedDraftCount = clearPacketStaging(packetId);
+    const priorBoundary = packet.collectionWindow?.since || null;
+    rt.sleep.packets = safeArray(rt.sleep.packets).filter((item) => item.id !== packetId);
+    rt.sleep.lastPacket = rt.sleep.packets[rt.sleep.packets.length - 1] || null;
+    rt.sleep.lastCollectedAt = priorBoundary;
+    rt.sleep.lastActive = priorBoundary;
+    rt.sleep.lastVisibleSummary = null;
+    rt.boot.phase = "sleep_drafts_discarded";
+    window.AIDA_CRASH_BUFFER?.checkpoint?.("sleep_drafts_discarded_raw_turns_preserved");
+    return {
+      ok: true,
+      packetId,
+      removedDraftCount,
+      rawExchangeCountPreserved: rt.session?.currentTurns?.length || 0
+    };
+  }
+
   function sleepNow(reason = "manual_sleep") {
     const packet = buildPacket(reason);
     const summary = safeSummary();
@@ -1406,6 +1513,8 @@
     refinePacketWithLlm,
     getPreferredDistillation,
     sleepNow,
+    markLastPacketSaved,
+    discardLastDrafts,
     inspect,
     safeSummary
   };

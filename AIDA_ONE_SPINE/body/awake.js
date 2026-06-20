@@ -108,9 +108,119 @@
     const close = document.createElement("div");
     close.className = "sleep-collected-close";
 
-    card.append(title, detail, close);
+    const status = document.createElement("div");
+    status.className = "sleep-collected-status";
+
+    const actions = document.createElement("div");
+    actions.className = "sleep-collected-actions";
+
+    const save = document.createElement("button");
+    save.type = "button";
+    save.className = "sleep-action sleep-action-save";
+    save.textContent = "SAVE TO DRIVE";
+
+    const keep = document.createElement("button");
+    keep.type = "button";
+    keep.className = "sleep-action sleep-action-keep";
+    keep.textContent = "KEEP FOR LATER";
+
+    const discard = document.createElement("button");
+    discard.type = "button";
+    discard.className = "sleep-action sleep-action-discard";
+    discard.textContent = "DISCARD DRAFTS";
+
+    actions.append(save, keep, discard);
+    card.append(title, detail, close, status, actions);
     veil.appendChild(card);
     return card;
+  }
+
+  function setSleepCardStatus(message, tone = "normal") {
+    const status = $("sleep-collected-card")?.querySelector(".sleep-collected-status");
+    if (!status) return;
+    status.textContent = message || "";
+    status.dataset.tone = tone;
+  }
+
+  function setSleepActionsBusy(busy) {
+    document.querySelectorAll("#sleep-collected-card .sleep-action").forEach((button) => {
+      button.disabled = Boolean(busy);
+    });
+  }
+
+  function installSleepActions(card) {
+    if (!card || card.dataset.actionsInstalled === "true") return;
+    card.dataset.actionsInstalled = "true";
+
+    const save = card.querySelector(".sleep-action-save");
+    const keep = card.querySelector(".sleep-action-keep");
+    const discard = card.querySelector(".sleep-action-discard");
+    let discardArmedUntil = 0;
+
+    save?.addEventListener("click", async () => {
+      const api = window.AIDA_DRIVE_WRITEBACK;
+      if (!api?.apply) {
+        setSleepCardStatus("Drive writeback is unavailable. Drafts remain safe.", "error");
+        return;
+      }
+      if (!runtime()?.tokens?.drive?.accessToken) {
+        setSleepCardStatus("Drive connection expired. Reconnect, then tap Save again.", "error");
+        window.AIDA_DRIVE?.requestDriveToken?.();
+        return;
+      }
+
+      setSleepActionsBusy(true);
+      setSleepCardStatus("Saving reviewed memory to Drive...", "working");
+      try {
+        const result = await api.apply({ dryRun: false });
+        if (!result?.ready || result.status !== "applied") {
+          throw new Error(result?.status || "Drive write did not complete.");
+        }
+        window.AIDA_SLEEP?.markLastPacketSaved?.();
+        setSleepCardStatus(`Saved ${result.operations.length} memory update(s) to Drive.`, "success");
+        if (save) {
+          save.textContent = "SAVED";
+          save.hidden = true;
+        }
+        if (keep) keep.textContent = "CLOSE";
+        if (discard) discard.hidden = true;
+      } catch (error) {
+        setSleepCardStatus(`Save failed: ${error.message}. Drafts remain safe.`, "error");
+      } finally {
+        setSleepActionsBusy(false);
+      }
+    });
+
+    keep?.addEventListener("click", () => {
+      hideSleepCollected();
+      setSleepCardStatus("");
+    });
+
+    discard?.addEventListener("click", () => {
+      const now = Date.now();
+      if (now > discardArmedUntil) {
+        discardArmedUntil = now + 7000;
+        discard.textContent = "CONFIRM DISCARD";
+        setSleepCardStatus("Tap again to discard generated drafts. Raw conversation will remain.", "warning");
+        window.setTimeout(() => {
+          if (Date.now() >= discardArmedUntil && discard) discard.textContent = "DISCARD DRAFTS";
+        }, 7100);
+        return;
+      }
+
+      const result = window.AIDA_SLEEP?.discardLastDrafts?.();
+      if (!result?.ok) {
+        setSleepCardStatus("No sleep drafts were available to discard.", "error");
+        return;
+      }
+      setSleepCardStatus(
+        `Drafts discarded. ${result.rawExchangeCountPreserved} raw exchange(s) remain available for a future Sleep.`,
+        "success"
+      );
+      if (save) save.hidden = true;
+      if (discard) discard.hidden = true;
+      if (keep) keep.textContent = "CLOSE";
+    });
   }
 
   function showSleepCollected(summary = {}, options = {}) {
@@ -124,6 +234,8 @@
     const title = card.querySelector(".sleep-collected-title");
     const detail = card.querySelector(".sleep-collected-detail");
     const close = card.querySelector(".sleep-collected-close");
+    const actions = card.querySelector(".sleep-collected-actions");
+    installSleepActions(card);
 
     if (title) title.textContent = final ? "Sleep collected." : "Collecting sleep...";
     if (detail) {
@@ -131,6 +243,8 @@
         summary.packetId ? `packet ${summary.packetId}` : "",
         Number.isFinite(summary.exchangeCount) ? `${summary.exchangeCount} exchange(s)` : "",
         Number.isFinite(summary.diaryDraftCount) ? `${summary.diaryDraftCount} diary draft(s)` : "",
+        Number.isFinite(summary.factCandidateCount) ? `${summary.factCandidateCount} fact candidate(s)` : "",
+        Number.isFinite(summary.insightCandidateCount) ? `${summary.insightCandidateCount} insight candidate(s)` : "",
         Number.isFinite(writeCount) ? `${writeCount} Drive write(s) staged` : ""
       ].filter(Boolean).join(" | ");
     }
@@ -138,6 +252,28 @@
       close.textContent = final
         ? "It is OK to close the app now."
         : "Finishing the quiet writeback staging...";
+    }
+    if (actions) actions.hidden = !final;
+    if (!final) {
+      const save = card.querySelector(".sleep-action-save");
+      const keep = card.querySelector(".sleep-action-keep");
+      const discard = card.querySelector(".sleep-action-discard");
+      if (save) {
+        save.hidden = false;
+        save.disabled = false;
+        save.textContent = "SAVE TO DRIVE";
+      }
+      if (keep) {
+        keep.hidden = false;
+        keep.disabled = false;
+        keep.textContent = "KEEP FOR LATER";
+      }
+      if (discard) {
+        discard.hidden = false;
+        discard.disabled = false;
+        discard.textContent = "DISCARD DRAFTS";
+      }
+      setSleepCardStatus("");
     }
 
     veil.style.background = "black";
@@ -149,6 +285,11 @@
   function hideSleepCollected() {
     const card = $("sleep-collected-card");
     if (card) card.classList.remove("visible");
+    const veil = $("veil");
+    if (veil) {
+      veil.style.opacity = "0";
+      veil.style.pointerEvents = "none";
+    }
   }
 
   function appendChat(role, text, options = {}) {
