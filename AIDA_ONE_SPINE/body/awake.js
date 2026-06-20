@@ -148,6 +148,44 @@
     });
   }
 
+  function finishSleepScreen() {
+    const card = $("sleep-collected-card");
+    const veil = $("veil");
+    const engine = $("main-engine");
+    if (card) {
+      card.classList.remove("visible");
+      card.style.display = "none";
+    }
+    if (engine) engine.style.visibility = "hidden";
+    if (veil) {
+      veil.style.background = "black";
+      veil.style.opacity = "1";
+      veil.style.pointerEvents = "auto";
+    }
+    const rt = runtime();
+    if (rt) {
+      rt.body.arrivalComplete = false;
+      rt.boot.arrived = false;
+      rt.boot.phase = "sleep_complete";
+    }
+  }
+
+  function prepareWakeScreen() {
+    const card = $("sleep-collected-card");
+    const veil = $("veil");
+    const engine = $("main-engine");
+    if (card) {
+      card.classList.remove("visible");
+      card.style.display = "none";
+    }
+    if (engine) engine.style.visibility = "visible";
+    if (veil) {
+      veil.style.background = "black";
+      veil.style.opacity = "1";
+      veil.style.pointerEvents = "auto";
+    }
+  }
+
   function installSleepActions(card) {
     if (!card || card.dataset.actionsInstalled === "true") return;
     card.dataset.actionsInstalled = "true";
@@ -192,7 +230,7 @@
     });
 
     keep?.addEventListener("click", () => {
-      hideSleepCollected();
+      finishSleepScreen();
       setSleepCardStatus("");
     });
 
@@ -236,6 +274,7 @@
     const close = card.querySelector(".sleep-collected-close");
     const actions = card.querySelector(".sleep-collected-actions");
     installSleepActions(card);
+    card.style.display = "block";
 
     if (title) title.textContent = final ? "Sleep collected." : "Collecting sleep...";
     if (detail) {
@@ -729,6 +768,7 @@
 
   window.aida_arrive = function () {
     showBody();
+    prepareWakeScreen();
     createHologramLayer();
     resetRitualElements();
     setBootPhase("body_arrival");
@@ -921,6 +961,8 @@
     appendChat,
     pulse,
     showSleepCollected,
+    finishSleepScreen,
+    prepareWakeScreen,
     setFace(src) {
       const portrait = $("aida-portrait");
       if (portrait) portrait.src = src || DEFAULT_FACE;

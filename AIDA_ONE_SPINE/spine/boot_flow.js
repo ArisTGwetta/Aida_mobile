@@ -116,6 +116,7 @@
     if (button) button.disabled = true;
 
     try {
+      window.AIDA_BODY?.prepareWakeScreen?.();
       log("WAKE: Starting Aida wake flow.", "log-blue");
       await ensureDriveConnected();
       await ensureDriveLoaded();
