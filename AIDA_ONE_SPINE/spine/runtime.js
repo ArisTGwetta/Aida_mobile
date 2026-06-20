@@ -146,10 +146,12 @@
     director: {
       enabled: true,
       narrativeMode: "auto",
+      contentRating: "R",
       activeGame: "serana",
       activeCharacter: null,
       activeExpression: "pensive",
       stageMode: "system",
+      holdLastStage: true,
       lastCueAt: null,
       lastBeats: [],
       privateCandidate: true

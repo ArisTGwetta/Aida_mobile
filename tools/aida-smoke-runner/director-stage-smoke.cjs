@@ -153,11 +153,31 @@ if (!result.transcript.includes("PRINCESS SERANA: That door was not open before.
   throw new Error("Session-safe transcript was not created.");
 }
 
+const heldImage = elements.get("director-stage-image").src;
+window.AIDA_DIRECTOR.present(JSON.stringify({
+  beats: [
+    {
+      speaker: "NARRATOR",
+      display_name: "NARRATOR",
+      text: "The corridor grows quiet."
+    },
+    {
+      speaker: "AIDA",
+      display_name: "AIDA",
+      text: "I do not think she has relaxed yet."
+    }
+  ]
+}));
+if (elements.get("director-stage-image").src !== heldImage) {
+  throw new Error("Narration or Aida commentary incorrectly replaced the held character image.");
+}
+
 process.stdout.write(JSON.stringify({
   status: "pass",
   beats: result.beats.length,
   speakers: chat.map((item) => item.options.displayRole),
   stageImage: elements.get("director-stage-image").src,
+  heldThroughNarration: elements.get("director-stage-image").src === heldImage,
   stageCaption: elements.get("director-stage-caption").textContent,
   transcript: result.transcript
 }, null, 2));

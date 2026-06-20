@@ -164,6 +164,7 @@
       mode: "francisco",
       label: "FRANCISCO"
     };
+    const contentRating = String(runtime()?.director?.contentRating || "R").toUpperCase();
     return [
       "",
       "DIRECTOR STAGE CONTRACT:",
@@ -173,8 +174,12 @@
       '{"beats":[{"speaker":"AIDA|NARRATOR|CHARACTER","display_name":"AIDA|NARRATOR|character name","text":"visible prose or dialogue","expression":"optional stage expression"}],"stage":{"mode":"character|system|clear","character":"serana or null","expression":"coy|determined|exhausted|joyful|pensive|picaresque|postbattle|satisfied|wary|celebration","caption":"short optional caption"}}',
       "Use AIDA when speaking directly to Francisco. Use NARRATOR for cinematic prose. Use CHARACTER with the character's display_name for in-fiction dialogue.",
       `CURRENT USER INPUT LANE: ${String(inputMode.label || inputMode.mode || "FRANCISCO").toUpperCase()}.`,
+      `CURRENT STORY CAMERA RATING: ${contentRating}.`,
       "Interpret FRANCISCO as private co-author speech to Aida; NARRATOR as requested narrative prose; DIRECTOR as a meta instruction about pacing, camera, tone, or staging; ACTION as the player's in-fiction action; CHARACTER lanes as dialogue or intent belonging to the named player character.",
-      "When direct depiction should become discreet, do not scold, moralize, or break the story. Use cinematic implication, a cutaway, fade, environmental detail, or an aftermath transition. Aida may make one brief warm co-author aside.",
+      "Camera-rating guide: G=gentle/platonic; PG=flirting, hand-holding, light peril; PG-13=kissing, sustained romantic tension, moderate violence; R=adult themes, strong tension or violence, and tasteful implied intimacy; NC-17=adult story-driven intimacy where the camera may remain emotionally present but should use discretion before graphic detail; X=explicit pornography without a storytelling purpose and is beyond this story camera.",
+      "Do not cut away merely because a scene is romantic, affectionate, or approaching intimacy. At R, allow adult romantic development and implication. At NC-17, preserve character, emotion, consent, consequence, and narrative purpose while following the active provider's boundaries. For X-level depiction, decline or redirect briefly and keep the story moving through implication, aftermath, or a change of scene.",
+      "When direct depiction should become discreet, do not scold, moralize, diagnose, or break the story. Use cinematic implication, a cutaway, fade, environmental detail, or an aftermath transition. Aida may make one brief warm co-author aside.",
+      "STAGE CONTINUITY: hold the latest character/location image through Narrator and Aida beats. Do not switch back to a System jewel merely because the current beat is narration or Aida commentary. Change the stage only when a character expression materially changes, another subject/location is shown, or a deliberate cutaway/clear cue is needed.",
       "Do not confuse fictional tragedy, violence, flawed beliefs, or dramatic irony with real-world encouragement. If Francisco expresses genuine immediate real-world danger, respond to that directly instead of hiding it behind a cutaway.",
       "Available first-stage character: Princess Serana. Available expressions: coy, determined, exhausted, joyful, pensive, picaresque, postbattle, satisfied, wary.",
       "System imagery supports non-character presentation with: celebration, coy, determined, exhausted, joyful, pensive, picaresque, satisfied, wary."
@@ -290,11 +295,22 @@
       });
     });
 
-    const stageCue = packet.stage && typeof packet.stage === "object" ? { ...packet.stage } : {};
+    const hasExplicitStage = Boolean(packet.stage && typeof packet.stage === "object");
+    const stageCue = hasExplicitStage ? { ...packet.stage } : {};
     const finalCharacterBeat = [...beats].reverse().find((beat) => beat.styleRole === "CHARACTER");
     if (!stageCue.expression && finalCharacterBeat?.expression) stageCue.expression = finalCharacterBeat.expression;
     if (!stageCue.mode && finalCharacterBeat) stageCue.mode = "character";
-    setStage(stageCue);
+    const hasCharacterCue = Boolean(finalCharacterBeat?.expression);
+    const shouldClear = String(stageCue.mode || "").toLowerCase() === "clear";
+    if (shouldClear) {
+      setStage({
+        mode: "system",
+        expression: stageCue.expression || "pensive",
+        caption: stageCue.caption || "Aida's visual thought-space."
+      });
+    } else if (hasExplicitStage || hasCharacterCue) {
+      setStage(stageCue);
+    }
 
     const rt = runtime();
     if (rt?.director) rt.director.lastBeats = beats;
