@@ -120,11 +120,20 @@
     return /\b(crawler|crawl (?:my |the )?(?:logs|history)|search (?:my |the )?(?:logs|history|raw log)|meditat(?:e|ion).*(?:logs|memory)|mind palace)\b/.test(text);
   }
 
+  function requestedMemoryScope(userText) {
+    const text = String(userText || "").toLowerCase();
+    if (/\b(?:all llms|all models|across llms|across models|every llm)\b/.test(text)) return "all";
+    return "current";
+  }
+
   function needsArchive(userText) {
     return looksLikeLibrarianReview(userText) || looksLikeCrawlerSearch(userText) || looksLikeMemoryRecall(userText);
   }
 
   function buildMemoryRetrieval(userText, context) {
+    const requestedScope = requestedMemoryScope(userText);
+    const grantedScope = window.AIDA_LLM_SCOPE?.retrievalMode?.() || "current";
+    const llmScope = requestedScope === "all" && grantedScope === "all" ? "all" : "current";
     if (looksLikeLibrarianReview(userText)) {
       if (!window.AIDA_LIBRARIAN?.review) {
         return {
@@ -162,7 +171,8 @@
       const result = window.AIDA_CRAWLER.search(userText, {
         limit: 8,
         minScore: 1,
-        project: valueName(context.project, context.mind.activeProjectName || "") || null
+        project: valueName(context.project, context.mind.activeProjectName || "") || null,
+        llmScope
       });
       context.rt.context.lastCrawlerRecall = result;
       return {
@@ -170,6 +180,7 @@
         tool: "crawler",
         found: result.results.length > 0,
         ...result,
+        memoryScope: llmScope,
         instruction: result.results.length
           ? "The user explicitly asked the Crawler to search. Answer from these indexed results, distinguish raw logs from summaries, and identify source references when useful."
           : "The Crawler found no indexed evidence. Say that directly and do not invent a result."
@@ -196,7 +207,8 @@
     }
 
     const recall = window.AIDA_CRAWLER.remember(userText, {
-      limit: 5
+      limit: 5,
+      llmScope
     });
     context.rt.context.lastCrawlerRecall = recall;
 
@@ -220,6 +232,7 @@
       confidence: recall.confidence,
       top: recall.top,
       results: recall.results,
+      memoryScope: llmScope,
       instruction: "The user asked for memory recall. Answer only from this retrieved evidence. If the evidence is partial, say it is partial."
     };
   }

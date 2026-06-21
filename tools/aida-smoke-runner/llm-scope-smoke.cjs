@@ -115,6 +115,18 @@ function main() {
     assert(document.documentElement.dataset.llmProvider === "xai", "Provider visual state did not switch to xAI.");
     assert(badge.textContent === "GROK · HOSTED", "Provider badge did not identify Grok.", badge);
 
+    window.AIDA_LLM_SCOPE.authorizeOnce("all", "smoke_cross_llm_meditation");
+    const allResults = window.AIDA_CRAWLER.search("comet memory", {
+      minScore: 1,
+      limit: 10,
+      llmScope: window.AIDA_LLM_SCOPE.retrievalMode()
+    }).results;
+    assert(allResults.some((item) => item.id === "openai"), "Explicit all-LLM meditation did not include OpenAI memory.", allResults);
+    assert(allResults.some((item) => item.id === "xai"), "Explicit all-LLM meditation did not include Grok memory.", allResults);
+    assert(allResults.some((item) => item.id === "ollama"), "Explicit all-LLM meditation did not include local memory.", allResults);
+    window.AIDA_LLM_SCOPE.consumeAccess();
+    assert(window.AIDA_LLM_SCOPE.retrievalMode() === "current", "One-use meditation grant did not reseal.");
+
     runtime.sleep.whileAway = {
       ready: true,
       llm_provider: "openai",
@@ -123,6 +135,15 @@ function main() {
     };
     const away = window.AIDA_WHILE_AWAY.offerThought();
     assert(away.llm_provider === "xai", "While-away reused another LLM's prepared thought.", away);
+    const shortGreeting = window.AIDA_WHILE_AWAY.buildThought({ gap: { minutes: 180 } });
+    const longGreeting = window.AIDA_WHILE_AWAY.buildThought({ gap: { minutes: 60 * 24 * 7 } });
+    assert(shortGreeting.protocol?.band === "short", "Three-hour absence did not use short WYWA protocol.", shortGreeting.protocol);
+    assert(longGreeting.protocol?.band === "long", "Seven-day absence did not use long WYWA protocol.", longGreeting.protocol);
+    assert(longGreeting.protocol.threadCount > shortGreeting.protocol.threadCount, "Long absence was not richer than short absence.", {
+      short: shortGreeting.protocol,
+      long: longGreeting.protocol
+    });
+    assert(!/waiting in the dark|lonely|counting minutes/i.test(longGreeting.thought), "WYWA greeting used rejected dependent language.", longGreeting.thought);
 
     console.log(JSON.stringify({
       status: "pass",
@@ -131,9 +152,15 @@ function main() {
       tests: {
         openaiVisibleIds: openaiResults.map((item) => item.id),
         grokVisibleIds: grokResults.map((item) => item.id),
+        allLlmVisibleIds: allResults.map((item) => item.id),
+        meditationResealed: window.AIDA_LLM_SCOPE.retrievalMode() === "current",
         capturedProvider: captured.tags.llm_provider,
         badge: badge.textContent,
-        whileAwayProvider: away.llm_provider
+        whileAwayProvider: away.llm_provider,
+        wywaBands: {
+          short: shortGreeting.protocol,
+          long: longGreeting.protocol
+        }
       }
     }, null, 2));
   } catch (error) {

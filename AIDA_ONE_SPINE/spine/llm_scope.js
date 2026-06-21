@@ -16,8 +16,55 @@
       provider,
       profile: route.profile || null,
       model: route.model || window.AIDA_LLM_PROVIDER?.currentInfo?.()?.model || null,
-      scope: provider || "shared"
+      scope: provider || "shared",
+      private: provider === "ollama" || route.profile === "private-local"
     };
+  }
+
+  function ensureAccess() {
+    const rt = runtime();
+    rt.context = rt.context || {};
+    rt.context.llmMemoryAccess = rt.context.llmMemoryAccess || {
+      mode: "current",
+      oneUse: false,
+      reason: null,
+      grantedAt: null
+    };
+    return rt.context.llmMemoryAccess;
+  }
+
+  function authorizeOnce(mode = "current", reason = "explicit_user_request") {
+    const access = ensureAccess();
+    access.mode = mode === "all" ? "all" : "current";
+    access.oneUse = access.mode === "all";
+    access.reason = reason;
+    access.grantedAt = new Date().toISOString();
+    return { ...access };
+  }
+
+  function retrievalMode() {
+    return ensureAccess().mode === "all" ? "all" : "current";
+  }
+
+  function consumeAccess() {
+    const access = ensureAccess();
+    const used = { ...access };
+    if (access.oneUse) {
+      access.mode = "current";
+      access.oneUse = false;
+      access.reason = null;
+      access.grantedAt = null;
+    }
+    return used;
+  }
+
+  function clearAccess() {
+    const access = ensureAccess();
+    access.mode = "current";
+    access.oneUse = false;
+    access.reason = null;
+    access.grantedAt = null;
+    return { ...access };
   }
 
   function from(value, fallback = "shared") {
@@ -85,6 +132,10 @@
     from,
     tag,
     allows,
+    authorizeOnce,
+    retrievalMode,
+    consumeAccess,
+    clearAccess,
     label,
     applyVisuals
   };

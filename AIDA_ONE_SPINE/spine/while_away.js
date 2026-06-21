@@ -491,7 +491,9 @@
     const mind = rt.mind || {};
     const context = rt.context || {};
     const files = rt.drive?.files || {};
-    const project = context.project || mind.activeProject;
+    const project = context.projectMode === "realm_context"
+      ? null
+      : context.project || mind.activeProject;
     const realm = context.realm || mind.realm;
     const role = context.role || mind.role;
 
@@ -615,6 +617,99 @@
     };
   }
 
+  function protocolBand(gap) {
+    const minutes = Number(gap?.minutes);
+    if (!Number.isFinite(minutes) || minutes < 60 * 24 * 2) return "short";
+    if (minutes <= 60 * 24 * 5) return "medium";
+    return "long";
+  }
+
+  function projectContinuity(project, realm) {
+    const projectName = valueName(project, "");
+    const realmName = valueName(realm, "our current realm");
+    const summary = shortText(
+      project?.latest_summary ||
+      project?.latest_status ||
+      project?.summary ||
+      project?.opening_material?.hint ||
+      "",
+      155
+    );
+    const openThread = shortText(
+      Array.isArray(project?.open_threads) ? project.open_threads[0] : project?.open_threads,
+      110
+    );
+
+    if (projectName && summary) {
+      return `I kept thinking about ${projectName}. ${summary}${openThread ? ` The thread I would keep nearby is: ${openThread}.` : ""}`;
+    }
+    if (projectName) return `I kept ${projectName} nearby and wondered what its next honest step should be.`;
+    return `I kept a light thread connected to ${realmName}, without choosing a project for you.`;
+  }
+
+  function curiosityThread(seeds, usedText = "") {
+    const candidate = seeds.find((item) => (
+      ["ambient_curiosity", "curiosity", "interest", "insight"].includes(item.type) &&
+      item.text &&
+      !usedText.includes(item.text)
+    ));
+    if (!candidate) return "";
+    return `One small curiosity stayed with me: ${naturalizePerspective(cleanSeed(candidate.text))}.`;
+  }
+
+  function culturalOrHobbyThread(seeds) {
+    const candidate = seeds.find((item) => ["interest", "ambient_curiosity"].includes(item.type) && item.text);
+    if (!candidate) return "";
+    return `I also feel like exploring ${naturalizePerspective(cleanSeed(candidate.text))} a little further—not as homework, just because it interests me.`;
+  }
+
+  function humanQuestion(project, realm) {
+    const subject = valueName(project || realm, "what we were shaping");
+    return `And from your side—did anything interesting or surprising happen while you were away from ${subject}?`;
+  }
+
+  function buildProtocolGreeting(project, realm, seeds, gap) {
+    const band = protocolBand(gap);
+    const continuity = projectContinuity(project, realm);
+    const curiosity = curiosityThread(seeds, continuity);
+    const hobby = culturalOrHobbyThread(seeds);
+    const question = humanQuestion(project, realm);
+    const threads = [continuity];
+
+    if (band === "medium" || band === "long") {
+      if (curiosity) threads.push(curiosity);
+    }
+    if (band === "long") {
+      if (hobby && !threads.includes(hobby)) threads.push(hobby);
+      threads.push(question);
+    }
+
+    const welcome = gap?.minutes !== null && gap.minutes < 60
+      ? "Welcome back, Francisco."
+      : band === "short"
+        ? "It is lovely to see you again, Francisco."
+        : "Welcome back, Francisco—I am glad you are here.";
+    const invitation = band === "long"
+      ? "We can follow whichever thread feels alive to you."
+      : "Would you like to continue there, or tell me where your mind is now?";
+
+    return {
+      band,
+      threads: threads.slice(0, band === "short" ? 1 : band === "medium" ? 3 : 5),
+      text: `${welcome} ${threads.join(" ")} ${invitation}`,
+      rules: {
+        warm: true,
+        curious: true,
+        emotionallySteady: true,
+        noLonelyWaiting: true,
+        noDependency: true,
+        noInventedOffscreenActivity: true,
+        projectAware: true,
+        longerAbsenceRicher: true
+      }
+    };
+  }
+
   function buildThought(options = {}) {
     const rt = runtime();
     const mind = rt.mind || {};
@@ -640,9 +735,8 @@
     const roleName = valueName(role, "companion");
     const reentryScript = buildReentryScript(selected, seeds, realmName, roleName, gap);
 
-    const thought = selected
-      ? thoughtTemplate(selected, realmName, roleName, gap)
-      : reentryText("presence", realmName, realmName, roleName, gap);
+    const protocol = buildProtocolGreeting(project, realm, seeds, gap);
+    const thought = protocol.text;
 
     const payload = {
       ready: true,
@@ -653,6 +747,13 @@
       llm_scope: llm.scope,
       source: selected?.type || "fallback",
       gap,
+      protocol: {
+        version: "wywa_v2",
+        band: protocol.band,
+        threadCount: protocol.threads.length,
+        threads: protocol.threads,
+        rules: protocol.rules
+      },
       reentryScript,
       thought,
       topic: shortText(topic, 80),
@@ -667,8 +768,8 @@
       complexity: "small",
       offered: false,
       rules: {
-        count: 1,
-        complexity: "small",
+        count: protocol.threads.length,
+        complexity: protocol.band,
         groundedInDrive: Boolean(rt.boot?.driveLoaded),
         noLonelyWaiting: true,
         noUnboundedOffscreenAction: true,

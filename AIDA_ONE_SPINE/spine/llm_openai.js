@@ -67,6 +67,13 @@
     return /^\s*#(?:adopthistory|adopt-history)\s*$/i.test(String(text || ""));
   }
 
+  function meditationScopeRequest(text) {
+    const value = String(text || "").toLowerCase();
+    if (!/\bmeditat(?:e|ion)\b/.test(value)) return null;
+    if (/\b(?:all llms|all models|across llms|across models|every llm)\b/.test(value)) return "all";
+    return "current";
+  }
+
   function navigationCommand(text) {
     const value = String(text || "").trim();
     if (/^(?:list|show)\s+(?:my\s+)?(?:stories|projects|realms)\??$/i.test(value)) {
@@ -255,6 +262,13 @@
     if (!text) return false;
 
     const rt = runtime();
+    const meditationScope = meditationScopeRequest(text);
+    if (meditationScope === "all") {
+      window.AIDA_LLM_SCOPE?.authorizeOnce?.("all", "explicit_cross_llm_meditation");
+      log("MEMORY SCOPE: one-use all-LLM meditation authorized by explicit user request.", "log-amber");
+    } else if (meditationScope === "current") {
+      window.AIDA_LLM_SCOPE?.clearAccess?.();
+    }
     const navigation = navigationCommand(text);
     if (navigation) return runNavigationCommand(navigation, text);
     const namedStory = runPendingStoryTitle(text);
@@ -290,6 +304,7 @@
 
     const built = window.AIDA_LLM_MESSAGES?.build?.(text, { attachment });
     if (!built || built.blocked || !Array.isArray(rt.context.llmMessages)) {
+      window.AIDA_LLM_SCOPE?.clearAccess?.();
       const missing = built?.missing?.join(", ") || "message packet";
       log(`LLM SEND: WAIT. Missing ${missing}.`, "log-amber");
       return false;
@@ -307,6 +322,7 @@
     try {
       rt.boot.phase = "llm_request";
       const reply = await window.AIDA_LLM_PROVIDER.callMessages(rt.context.llmMessages);
+      window.AIDA_LLM_SCOPE?.consumeAccess?.();
       const directed = window.AIDA_DIRECTOR?.present?.(reply, pending) || null;
       if (!directed) {
         setPendingText(pending, reply);
@@ -326,6 +342,7 @@
       log("LLM SEND: Response received. No memory write performed.", "log-blue");
       return true;
     } catch (error) {
+      window.AIDA_LLM_SCOPE?.clearAccess?.();
       setPendingText(pending, `LLM call failed: ${error.message}`);
       rt.boot.phase = "llm_request_failed";
       pulse(`LLM call failed: ${error.message}`);
