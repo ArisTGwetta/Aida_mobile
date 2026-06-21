@@ -221,6 +221,36 @@
     return `${clean.slice(0, limit - 1).trim()}...`;
   }
 
+  function humanText(value, limit = 180) {
+    if (value === null || value === undefined) return "";
+    if (typeof value === "string") return shortText(value, limit);
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const text = humanText(item, limit);
+        if (text) return text;
+      }
+      return "";
+    }
+    if (typeof value !== "object") return shortText(value, limit);
+    for (const key of ["thread", "text", "summary", "latest_summary", "latest_status", "entry", "note", "description", "title", "name"]) {
+      const text = humanText(value[key], limit);
+      if (text) return text;
+    }
+    return "";
+  }
+
+  function conversationalSummary(value) {
+    const text = humanText(value, 170);
+    if (!text || text === "[object Object]") return "";
+    if (
+      /^Across \d+ exchange\(s\)/i.test(text) ||
+      /^In [^,]+, the user raised:/i.test(text) ||
+      /\bAida's latest response was:/i.test(text) ||
+      /\bsource_refs?\b|\bturn_\d+\b|\bsession_\d+\b/i.test(text)
+    ) return "";
+    return text.replace(/\s*\.\.\.$/, "").trim();
+  }
+
   function isThoughtLike(text) {
     const clean = String(text || "").trim();
     if (clean.length < 18) return false;
@@ -627,21 +657,18 @@
   function projectContinuity(project, realm) {
     const projectName = valueName(project, "");
     const realmName = valueName(realm, "our current realm");
-    const summary = shortText(
+    const summary = conversationalSummary(
       project?.latest_summary ||
       project?.latest_status ||
       project?.summary ||
-      project?.opening_material?.hint ||
-      "",
-      155
+      project?.opening_material?.hint
     );
-    const openThread = shortText(
+    const openThread = conversationalSummary(
       Array.isArray(project?.open_threads) ? project.open_threads[0] : project?.open_threads,
-      110
     );
 
     if (projectName && summary) {
-      return `I kept thinking about ${projectName}. ${summary}${openThread ? ` The thread I would keep nearby is: ${openThread}.` : ""}`;
+      return `I kept thinking about ${projectName}. ${summary}.${openThread ? ` One thread still feels open: ${openThread}.` : ""}`;
     }
     if (projectName) return `I kept ${projectName} nearby and wondered what its next honest step should be.`;
     return `I kept a light thread connected to ${realmName}, without choosing a project for you.`;

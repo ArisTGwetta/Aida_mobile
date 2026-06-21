@@ -135,6 +135,12 @@ function main() {
     };
     const away = window.AIDA_WHILE_AWAY.offerThought();
     assert(away.llm_provider === "xai", "While-away reused another LLM's prepared thought.", away);
+    runtime.context.projectMode = "project_payload";
+    runtime.context.project = {
+      project_name: "aida_architecture",
+      latest_summary: 'Across 3 exchange(s) in aida_architecture, the thread moved from "what do you remember" to "goodnight".',
+      open_threads: [{ thread: "Should Aida use a more human project summary", status: "user_question" }]
+    };
     const shortGreeting = window.AIDA_WHILE_AWAY.buildThought({ gap: { minutes: 180 } });
     const longGreeting = window.AIDA_WHILE_AWAY.buildThought({ gap: { minutes: 60 * 24 * 7 } });
     assert(shortGreeting.protocol?.band === "short", "Three-hour absence did not use short WYWA protocol.", shortGreeting.protocol);
@@ -144,6 +150,7 @@ function main() {
       long: longGreeting.protocol
     });
     assert(!/waiting in the dark|lonely|counting minutes/i.test(longGreeting.thought), "WYWA greeting used rejected dependent language.", longGreeting.thought);
+    assert(!/Across 3 exchange|\[object Object\]/i.test(shortGreeting.thought), "WYWA leaked storage-shaped summary text.", shortGreeting.thought);
 
     console.log(JSON.stringify({
       status: "pass",
