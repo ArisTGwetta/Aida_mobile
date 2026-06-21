@@ -63,6 +63,10 @@
       : { realm: null, name: payload };
   }
 
+  function isAdoptHistoryCommand(text) {
+    return /^\s*#(?:adopthistory|adopt-history)\s*$/i.test(String(text || ""));
+  }
+
   function asksForLlmIdentity(text) {
     const value = String(text || "").toLowerCase();
     const asksAboutHistory = /\b(remember|recall|memory|before|earlier|previous|last time|when we|used to)\b/.test(value);
@@ -105,8 +109,11 @@
       realm: command.realm || undefined
     });
     const projectName = result.project?.project_name || result.project?.name || command.name;
+    const adoptable = window.AIDA_PROJECTS?.recentAdoptableHistory?.({ limit: 12 }) || [];
     const reply = result.created
-      ? `New project opened: ${projectName}. I have placed it inside the current realm as a private-candidate draft. Tell me how this story begins, and Sleep can prepare its Drive briefcase.`
+      ? adoptable.length
+        ? `New project opened: ${projectName}. I found ${adoptable.length} earlier same-LLM RPG turn(s) that may belong to it. Say #adopthistory to attach them with source references, or begin fresh.`
+        : `New project opened: ${projectName}. I have placed it inside the current realm as a private-candidate draft. Tell me how this story begins, and Sleep can prepare its Drive briefcase.`
       : `Project opened: ${projectName}. We can continue where it left off.`;
 
     appendChat("USER", visibleUserText);
@@ -118,6 +125,54 @@
     pulse(`${result.created ? "Created" : "Opened"} project ${projectName}.`);
     log(`PROJECT COMMAND: ${result.created ? "created" : "opened"} ${result.fileName}.`, "log-blue");
     return result;
+  }
+
+  async function runAdoptHistoryCommand(visibleUserText) {
+    await window.AIDA_LIBRARIAN?.prepareArchive?.("project_history_adoption");
+    const result = window.AIDA_PROJECTS?.adoptHistory?.();
+    let reply;
+    if (!result?.ok) {
+      reply = result?.reason === "named_project_required"
+        ? "Open or create a named project first, then use #adopthistory."
+        : `I found no recent RPG history from the current LLM to attach. The other LLMs remain sealed.`;
+    } else if (result.alreadyAdopted) {
+      reply = `${result.projectName} already contains the available ${result.provider} history.`;
+    } else {
+      const hint = result.hint ? ` The opening themes look like: ${result.hint}.` : "";
+      reply = `I adopted ${result.count} ${result.provider} RPG turn(s) into ${result.projectName}, preserving source references from ${result.sourceStart} through ${result.sourceEnd}.${hint} Sleep can now make the link durable.`;
+    }
+    appendChat("USER", visibleUserText);
+    appendChat("AIDA", reply);
+    window.AIDA_SESSION_CAPTURE?.captureExchange?.(visibleUserText, reply);
+    window.AIDA_BODY_PROJECTS?.render?.();
+    pulse(result?.ok ? "Earlier RPG history attached to the active project." : "No adoptable history found.");
+    log(`PROJECT HISTORY: ${result?.ok ? `adopted ${result.count || 0}` : result?.reason || "failed"}.`, result?.ok ? "log-blue" : "log-amber");
+    return Boolean(result?.ok);
+  }
+
+  function runPendingStoryTitle(userText) {
+    const result = window.AIDA_PROJECTS?.consumeUnnamedStoryTitle?.(userText);
+    if (!result?.handled) return null;
+    const adopted = result.adopted;
+    const reply = adopted?.ok
+      ? `I created ${result.title} and adopted ${adopted.count} ${adopted.provider} RPG turn(s) as its opening brainstorm, with source references preserved. Sleep can now make it durable.`
+      : `I created ${result.title}. I did not find same-LLM history to adopt, so we will begin fresh.`;
+    appendChat("USER", userText);
+    appendChat("AIDA", reply);
+    window.AIDA_SESSION_CAPTURE?.captureExchange?.(userText, reply);
+    window.AIDA_BODY_PROJECTS?.render?.();
+    pulse(`Created ${result.title} from the unnamed story thread.`);
+    log(`PROJECT NAMING: created ${result.title}, adopted=${adopted?.count || 0}.`, "log-blue");
+    return true;
+  }
+
+  function offerUnnamedStorySuggestion() {
+    const suggestion = window.AIDA_PROJECTS?.suggestUnnamedStory?.();
+    if (!suggestion?.text) return null;
+    appendChat("AIDA", suggestion.text);
+    pulse("Aida noticed an unnamed story thread.");
+    log(`PROJECT SUGGESTION: ${suggestion.count} ${suggestion.provider} RPG turn(s), hint=${suggestion.hint}.`, "log-blue");
+    return suggestion;
   }
 
   function gate() {
@@ -147,6 +202,11 @@
     if (!text) return false;
 
     const rt = runtime();
+    const namedStory = runPendingStoryTitle(text);
+    if (namedStory) return namedStory;
+    if (isAdoptHistoryCommand(text)) {
+      return runAdoptHistoryCommand(text);
+    }
     if (asksForLlmIdentity(text)) {
       return runLocalReply(text, llmIdentityReply());
     }
@@ -204,6 +264,7 @@
       if (window.AIDA_SESSION_CAPTURE?.captureExchange) {
         window.AIDA_SESSION_CAPTURE.captureExchange(visibleUserText, transcript);
       }
+      offerUnnamedStorySuggestion();
       if (attachment) window.AIDA_GLASSES?.markSent?.();
       rt.boot.phase = "llm_response_received";
       pulse("Aida response received. Memory write is still disabled.");

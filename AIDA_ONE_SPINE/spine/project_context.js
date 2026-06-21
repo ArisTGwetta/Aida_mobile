@@ -5,6 +5,10 @@
     return window.AIDA_RUNTIME;
   }
 
+  function safeArray(value) {
+    return Array.isArray(value) ? value : [];
+  }
+
   function log(message, className = "log-green") {
     if (window.AIDA_BIOS?.log) {
       window.AIDA_BIOS.log(message, className);
@@ -628,6 +632,218 @@
     };
   }
 
+  function activeLlmProvider() {
+    return window.AIDA_LLM_SCOPE?.current?.().provider || runtime().tokens?.llm?.provider || null;
+  }
+
+  function isGenericRpg(value) {
+    return /^(rpg|realm_rpg|realm_as_project_rpg)$/i.test(keyName(value || ""));
+  }
+
+  function sourceRef(record, fallbackIndex) {
+    return (
+      safeArray(record?.source_refs)[0] ||
+      record?.source_ref ||
+      `${record?.session_id || record?.tags?.session_id || "session"}#turn_${record?.turnIndex || fallbackIndex}`
+    );
+  }
+
+  function historyRecord(record, fallbackIndex) {
+    const tags = record?.tags || {};
+    return {
+      source_ref: sourceRef(record, fallbackIndex),
+      captured_at: record?.capturedAt || record?.captured_at || null,
+      original_project: record?.project || tags.project || "rpg",
+      original_realm: record?.realm || tags.realm || "rpg",
+      llm_provider: record?.llm_provider || tags.llm_provider || null,
+      llm_scope: record?.llm_scope || tags.llm_scope || record?.llm_provider || tags.llm_provider || null,
+      user: String(record?.user?.text || record?.user || "").trim(),
+      aida: String(record?.aida?.text || record?.aida || "").trim()
+    };
+  }
+
+  function isAdoptableRecord(record, provider) {
+    const item = historyRecord(record, 0);
+    const project = record?.project || record?.tags?.project || item.original_project;
+    const realm = record?.realm || record?.tags?.realm || item.original_realm;
+    const itemProvider = record?.llm_provider || record?.tags?.llm_provider || item.llm_provider;
+    const text = `${item.user} ${item.aida}`;
+    return (
+      itemProvider === provider &&
+      (isGenericRpg(project) || isGenericRpg(realm)) &&
+      !/^\s*#(?:newproject|new-project|project|adopthistory)\b/i.test(item.user) &&
+      !/\bNew project opened:\b/i.test(item.aida) &&
+      text.trim().length > 0
+    );
+  }
+
+  function recentAdoptableHistory(options = {}) {
+    const rt = runtime();
+    const provider = options.provider || activeLlmProvider();
+    const limit = Number(options.limit || 12);
+    const current = safeArray(rt.session?.currentTurns)
+      .filter((record) => isAdoptableRecord(record, provider))
+      .map(historyRecord);
+    if (current.length) return current.slice(-limit);
+
+    const raw = rt.drive?.files?.["raw_session_log.json"];
+    const records = safeArray(raw?.entries || raw);
+    return records
+      .filter((record) => isAdoptableRecord(record, provider))
+      .map(historyRecord)
+      .sort((a, b) => String(a.captured_at || "").localeCompare(String(b.captured_at || "")))
+      .slice(-limit);
+  }
+
+  function openingHint(records) {
+    const words = records
+      .flatMap((item) => `${item.user} ${item.aida}`.toLowerCase().match(/[a-z]{4,}/g) || [])
+      .filter((word) => ![
+        "aida", "francisco", "story", "project", "would", "could", "about", "there",
+        "their", "these", "those", "with", "from", "have", "that", "this", "your",
+        "they", "them", "what", "when", "where", "which", "will", "just", "like"
+      ].includes(word));
+    const counts = words.reduce((map, word) => {
+      map[word] = (map[word] || 0) + 1;
+      return map;
+    }, {});
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([word]) => word)
+      .join(", ");
+  }
+
+  function adoptHistory(options = {}) {
+    const rt = runtime();
+    const project = rt.context?.project;
+    const fileName = rt.context?.projectName;
+    if (!project || !fileName || rt.context?.projectMode === "realm_context") {
+      return { ok: false, reason: "named_project_required" };
+    }
+
+    const records = recentAdoptableHistory(options);
+    if (!records.length) {
+      return {
+        ok: false,
+        reason: "no_same_llm_rpg_history",
+        provider: activeLlmProvider()
+      };
+    }
+
+    const existingRefs = new Set(safeArray(project.adopted_history).map((item) => item.source_ref));
+    const adopted = records.filter((item) => !existingRefs.has(item.source_ref));
+    if (!adopted.length) {
+      return {
+        ok: true,
+        alreadyAdopted: true,
+        count: 0,
+        projectName: valueName(project, fileName),
+        provider: activeLlmProvider()
+      };
+    }
+
+    const adoptedAt = new Date().toISOString();
+    project.adopted_history = [...safeArray(project.adopted_history), ...adopted];
+    project.recent_turns = [...safeArray(project.recent_turns), ...adopted].slice(-24);
+    project.opening_material = {
+      source: "adopted_same_llm_rpg_history",
+      adopted_at: adoptedAt,
+      llm_provider: activeLlmProvider(),
+      source_refs: adopted.map((item) => item.source_ref),
+      turn_count: adopted.length,
+      hint: openingHint(adopted)
+    };
+    project.summary = `Opening brainstorm adopted from ${adopted.length} earlier ${activeLlmProvider()} RPG turn(s).`;
+    project.last_updated = adoptedAt;
+    rt.drive.files[fileName] = project;
+    rt.mind.projects[fileName] = project;
+    rt.context.projectRecentTurns = project.recent_turns;
+    rt.context.projectMemory = project.memory || project.opening_material;
+    rt.context.memoryWindow = {
+      ...(rt.context.memoryWindow || {}),
+      recentTurns: project.recent_turns,
+      summary: project.opening_material
+    };
+    rt.context.tetrad = null;
+    rt.context.llmMessages = null;
+    rt.boot.mindReady = false;
+
+    log(`PROJECT: Adopted ${adopted.length} ${activeLlmProvider()} RPG turn(s) into ${valueName(project, fileName)}.`, "log-blue");
+    window.AIDA_CRASH_BUFFER?.checkpoint?.("project_history_adopted");
+    return {
+      ok: true,
+      count: adopted.length,
+      projectName: valueName(project, fileName),
+      fileName,
+      provider: activeLlmProvider(),
+      sourceStart: adopted[0].source_ref,
+      sourceEnd: adopted[adopted.length - 1].source_ref,
+      hint: project.opening_material.hint
+    };
+  }
+
+  function suggestUnnamedStory() {
+    const rt = runtime();
+    const projectName = rt.context?.projectName;
+    const projectMode = rt.context?.projectMode;
+    if (projectMode !== "realm_context" || !isGenericRpg(projectName)) return null;
+
+    const records = recentAdoptableHistory({ limit: 6 });
+    if (records.length < 3) return null;
+    const signature = records.map((item) => item.source_ref).join("|");
+    if (rt.context?.lastUnnamedStorySuggestion === signature) return null;
+    const storyText = records.map((item) => `${item.user} ${item.aida}`).join(" ");
+    if (!/\b(story|bard|angel|guide|character|king|queen|love|door|quest|dragon|magic|frozen|scene)\b/i.test(storyText)) {
+      return null;
+    }
+
+    rt.context.lastUnnamedStorySuggestion = signature;
+    const hint = openingHint(records) || "the story we have been shaping";
+    rt.context.pendingUnnamedStory = {
+      signature,
+      provider: activeLlmProvider(),
+      count: records.length,
+      hint,
+      offeredAt: new Date().toISOString()
+    };
+    return {
+      text: `This feels like the beginning of a story we have not named yet—something around ${hint}. Do you have a title for it?`,
+      count: records.length,
+      provider: activeLlmProvider(),
+      hint
+    };
+  }
+
+  function consumeUnnamedStoryTitle(text) {
+    const rt = runtime();
+    const pending = rt.context?.pendingUnnamedStory;
+    if (!pending || pending.provider !== activeLlmProvider()) return null;
+    const raw = String(text || "").trim();
+    if (!raw) return null;
+    if (/^(?:no|not yet|maybe later|let me think|skip|cancel)\b/i.test(raw)) {
+      rt.context.pendingUnnamedStory = null;
+      return { handled: false, declined: true };
+    }
+    if (raw.length > 90 || raw.split(/\s+/).length > 14 || /\?$/.test(raw)) return null;
+
+    const title = raw
+      .replace(/^["“”']|["“”']$/g, "")
+      .replace(/^(?:call it|let'?s call it|the title is|title:)\s*/i, "")
+      .trim();
+    if (title.length < 2) return null;
+
+    const created = createDraft(title, { realm: "RPG" });
+    const adopted = adoptHistory();
+    rt.context.pendingUnnamedStory = null;
+    return {
+      handled: true,
+      created,
+      adopted,
+      title: valueName(created.project, title)
+    };
+  }
+
   function needsHydration(projectKey) {
     const rt = runtime();
     const ledger = rt.mind.projectLedger || {};
@@ -723,6 +939,10 @@
     select,
     selectHydrated,
     createDraft,
+    adoptHistory,
+    suggestUnnamedStory,
+    consumeUnnamedStoryTitle,
+    recentAdoptableHistory,
     mapDriveFilesToMind,
     valueName
   };

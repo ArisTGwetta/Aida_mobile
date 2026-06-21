@@ -42,11 +42,42 @@ const runtime = {
       role_name: "co_narrator"
     },
     projectName: "realm_rpg.json",
+    projectMode: "realm_context",
     memoryWindow: {}
   },
   session: {
-    currentTurns: [],
-    exchangeCount: 0
+    id: "session_story_smoke",
+    currentTurns: [
+      {
+        turnIndex: 1,
+        capturedAt: "2026-06-21T14:00:00.000Z",
+        user: { text: "A bard dreams of his frozen true love." },
+        aida: { text: "The frozen woman may be his angel and guide." },
+        tags: { session_id: "session_story_smoke", project: "rpg", realm: "rpg", llm_provider: "openai", llm_scope: "openai" }
+      },
+      {
+        turnIndex: 2,
+        capturedAt: "2026-06-21T14:01:00.000Z",
+        user: { text: "He follows her voice across a magical winter." },
+        aida: { text: "That gives the story a romantic quest." },
+        tags: { session_id: "session_story_smoke", project: "rpg", realm: "rpg", llm_provider: "openai", llm_scope: "openai" }
+      },
+      {
+        turnIndex: 3,
+        capturedAt: "2026-06-21T14:02:00.000Z",
+        user: { text: "Perhaps she is trapped between love and prophecy." },
+        aida: { text: "The bard must decide whether to free or trust his guide." },
+        tags: { session_id: "session_story_smoke", project: "rpg", realm: "rpg", llm_provider: "openai", llm_scope: "openai" }
+      },
+      {
+        turnIndex: 4,
+        capturedAt: "2026-06-21T14:03:00.000Z",
+        user: { text: "A separate Grok-only dragon secret." },
+        aida: { text: "This must remain in the Grok history." },
+        tags: { session_id: "session_story_smoke", project: "rpg", realm: "rpg", llm_provider: "xai", llm_scope: "xai" }
+      }
+    ],
+    exchangeCount: 4
   },
   sleep: {},
   curator: {}
@@ -105,9 +136,16 @@ vm.runInContext(fs.readFileSync(sourcePath, "utf8"), context, {
   filename: sourcePath
 });
 
-const created = window.AIDA_PROJECTS.createDraft("Serana - The Mysterious Door");
+const suggestion = window.AIDA_PROJECTS.suggestUnnamedStory();
+if (!suggestion?.text || suggestion.count !== 3) {
+  throw new Error("Unnamed story suggestion did not detect sustained generic RPG discussion.");
+}
+
+const named = window.AIDA_PROJECTS.consumeUnnamedStoryTitle("Bard and the Frozen Guide");
+if (!named?.handled) throw new Error("Natural title reply did not create the pending unnamed story.");
+const created = named.created;
 if (!created.created) throw new Error("Project draft was not created.");
-if (created.fileName !== "project_briefcase_serana_the_mysterious_door.json") {
+if (created.fileName !== "project_briefcase_bard_and_the_frozen_guide.json") {
   throw new Error(`Unexpected filename: ${created.fileName}`);
 }
 if (runtime.context.projectMode !== "new_project_draft") {
@@ -122,8 +160,18 @@ if (runtime.context.role?.role_name !== "co_narrator") {
 if (runtime.context.newProjectDraft?.privacy !== "private_candidate") {
   throw new Error("Project was not flagged as a private candidate.");
 }
+const adopted = named.adopted;
+if (!adopted.ok || adopted.count !== 3) {
+  throw new Error(`Project did not adopt the prior RPG history: ${JSON.stringify(adopted)}`);
+}
+if (created.project.adopted_history?.length !== 3) {
+  throw new Error("Adopted history was not attached to the project payload.");
+}
+if (created.project.opening_material?.llm_provider !== "openai") {
+  throw new Error("Adopted opening material lost its LLM boundary.");
+}
 
-const reopened = window.AIDA_PROJECTS.createDraft("Serana - The Mysterious Door");
+const reopened = window.AIDA_PROJECTS.createDraft("Bard and the Frozen Guide");
 if (reopened.created) throw new Error("Duplicate project command created a second project.");
 
 window.AIDA_CURATOR = {
@@ -189,6 +237,8 @@ vm.runInContext(fs.readFileSync(writebackPath, "utf8"), context, {
   if (uploadedContent.role !== "role_co_narrator.json") throw new Error("Project role was not preserved.");
   if (!uploadedContent.interaction_rules?.rules?.length) throw new Error("Project interaction rules were not preserved.");
   if (uploadedContent.llm_provider !== "openai") throw new Error("Project LLM scope was not preserved.");
+  if (uploadedContent.adopted_history?.length !== 3) throw new Error("Adopted history did not persist to Drive.");
+  if (uploadedContent.opening_material?.source_refs?.length !== 3) throw new Error("Adopted source references did not persist.");
 
   runtime.drive.files = { [created.fileName]: uploadedContent };
   window.AIDA_PROJECTS.mapDriveFilesToMind(runtime.drive.files, { selectDefault: false });
@@ -203,6 +253,8 @@ vm.runInContext(fs.readFileSync(writebackPath, "utf8"), context, {
     mode: runtime.context.projectMode,
     privacy: durable.privacy,
     duplicateReopened: !reopened.created,
+    unnamedSuggestion: suggestion.text,
+    adoptedTurns: adopted.count,
     driveStatus: applied.status,
     draftStatus: durable.draft.status,
     llmProvider: durable.llm_provider,
