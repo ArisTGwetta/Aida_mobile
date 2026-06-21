@@ -378,6 +378,9 @@
       input.value = "";
       input.dataset.realPin = "";
     }
+    window.dispatchEvent(new CustomEvent("aida:llm-route-cleared", {
+      detail: { reason }
+    }));
     log("AIRLOCK: Active route credentials cleared for the completed session.", "log-blue");
     return true;
   }

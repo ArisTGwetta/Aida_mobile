@@ -333,6 +333,48 @@
     return Array.isArray(value) ? value : [];
   }
 
+  function currentLlmScope(rt = runtime()) {
+    return window.AIDA_LLM_SCOPE?.current?.() || {
+      provider: rt?.tokens?.llm?.provider || null,
+      profile: rt?.tokens?.llm?.profile || null,
+      model: rt?.tokens?.llm?.model || null,
+      scope: rt?.tokens?.llm?.provider || "shared"
+    };
+  }
+
+  function stampLlmScope(value, scope) {
+    if (!value || typeof value !== "object") return value;
+    if (Array.isArray(value)) {
+      value.forEach((item) => stampLlmScope(item, scope));
+      return value;
+    }
+    window.AIDA_LLM_SCOPE?.tag?.(value, scope);
+    if (!window.AIDA_LLM_SCOPE) {
+      value.llm_provider = scope.provider || null;
+      value.llm_profile = scope.profile || null;
+      value.llm_model = scope.model || null;
+      value.llm_scope = scope.scope || scope.provider || "shared";
+    }
+    return value;
+  }
+
+  function stampPacketLlmScope(packet, rt = runtime()) {
+    if (!packet) return packet;
+    const scope = packet.llm || currentLlmScope(rt);
+    packet.llm = { ...scope };
+    stampLlmScope(packet.session?.exchanges, scope);
+    stampLlmScope(packet.session?.latestExchanges, scope);
+    stampLlmScope(packet.pendingJournal, scope);
+    stampLlmScope(packet.contextEvolution?.summaryDrafts, scope);
+    stampLlmScope(packet.contextEvolution?.rollingSummaries, scope);
+    stampLlmScope(packet.contextEvolution?.longSummaryDrafts, scope);
+    stampLlmScope(packet.projectLedgerDrafts, scope);
+    Object.values(packet.distillation || {}).forEach((value) => {
+      if (Array.isArray(value)) stampLlmScope(value, scope);
+    });
+    return packet;
+  }
+
   function confidence(value, fallback) {
     const number = Number(value);
     if (!Number.isFinite(number)) return fallback;
@@ -1057,6 +1099,7 @@
       packet.contextEvolution = collectEvolution(rt.contextEvolution, rt.session, packet.collectionWindow);
     }
 
+    stampPacketLlmScope(packet, rt);
     return packet.distillation;
   }
 
@@ -1268,6 +1311,7 @@
       reason,
       capturedAt,
       collectionWindow,
+      llm: currentLlmScope(rt),
       session: collectSession(rt.session, collectionWindow),
       pendingJournal: copyJson(rt.sleep?.pendingJournal || [], []),
       contextEvolution: collectEvolution(rt.contextEvolution, rt.session, collectionWindow),
@@ -1289,6 +1333,7 @@
     };
 
     distillPacket(packet, rt);
+    stampPacketLlmScope(packet, rt);
 
     rt.sleep.lastActive = capturedAt;
     rt.sleep.lastCollectedAt = capturedAt;

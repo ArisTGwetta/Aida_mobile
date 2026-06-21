@@ -55,6 +55,30 @@
     return bucket;
   }
 
+  function collectScopedStrings(value, bucket = []) {
+    if (!value || bucket.length >= 24) return bucket;
+    if (
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      !window.AIDA_LLM_SCOPE?.allows?.(value, { fallback: "shared" })
+    ) {
+      return bucket;
+    }
+    if (typeof value === "string") {
+      const text = value.trim();
+      if (text) bucket.push(text);
+      return bucket;
+    }
+    if (Array.isArray(value)) {
+      value.forEach((item) => collectScopedStrings(item, bucket));
+      return bucket;
+    }
+    if (typeof value === "object") {
+      Object.values(value).forEach((item) => collectScopedStrings(item, bucket));
+    }
+    return bucket;
+  }
+
   function pick(list, fallback = "") {
     if (!Array.isArray(list) || !list.length) return fallback;
     return list[Math.floor(Math.random() * list.length)] || fallback;
@@ -417,7 +441,7 @@
     const rt = runtime();
     const files = rt.drive?.files || {};
     const source = rt.mind?.whileAway || files["while_away_thoughts.json"] || null;
-    return collectStrings(source).filter(isThoughtLike).map(cleanSeed);
+    return collectScopedStrings(source).filter(isThoughtLike).map(cleanSeed);
   }
 
   function ambientCuriositySeeds(realm, project, role) {
@@ -505,18 +529,17 @@
       weight: 6,
       tone: "focused"
     }));
-    const insights = collectStrings(mind.insights).filter(isThoughtLike).map(cleanSeed).slice(0, 10).map((text) => ({
-      type: "insight",
-      text,
-      weight: 5,
-      tone: "reflective"
-    }));
-    const memories = collectStrings(mind.memory).filter(isThoughtLike).map(cleanSeed).slice(0, 10).map((text) => ({
-      type: "memory",
-      text,
-      weight: 4,
-      tone: "soft-continuity"
-    }));
+    const laneMemory = (window.AIDA_CRAWLER?.entriesForCurrentLlm?.({ limit: 24 }) || [])
+      .filter((item) => !["write_plan_draft", "needs_confirmation"].includes(item.type))
+      .slice(-10)
+      .map((item) => ({
+        type: item.type.includes("insight") ? "insight" : "memory",
+        text: cleanSeed(item.text),
+        weight: item.type.includes("insight") ? 5 : 4,
+        tone: item.type.includes("insight") ? "reflective" : "soft-continuity",
+        llm_provider: item.llmProvider || null,
+        llm_scope: item.llmScope || "shared"
+      }));
     const faceWishlist = (rt.emotionEngine?.faceWishlist || []).slice(-6).map((item) => ({
       type: "face_wishlist",
       text: `the expression gap called ${item.name}`,
@@ -544,8 +567,7 @@
       ...curiosities,
       ...interests,
       ...projectThreads,
-      ...insights,
-      ...memories,
+      ...laneMemory,
       ...faceWishlist,
       ...ambient,
       ...contextFallbacks
@@ -600,6 +622,12 @@
     const realm = context.realm || mind.realm;
     const role = context.role || mind.role;
     const project = context.project || mind.activeProject;
+    const llm = window.AIDA_LLM_SCOPE?.current?.() || {
+      provider: rt.tokens?.llm?.provider || null,
+      profile: rt.tokens?.llm?.profile || null,
+      model: rt.tokens?.llm?.model || null,
+      scope: rt.tokens?.llm?.provider || "shared"
+    };
     const seeds = seedCandidates();
     const gap = computeGap(options.gap || null);
     const selected = weightedPick(seeds, null);
@@ -619,6 +647,10 @@
     const payload = {
       ready: true,
       generatedAt: new Date().toISOString(),
+      llm_provider: llm.provider,
+      llm_profile: llm.profile,
+      llm_model: llm.model,
+      llm_scope: llm.scope,
       source: selected?.type || "fallback",
       gap,
       reentryScript,
@@ -640,7 +672,8 @@
         groundedInDrive: Boolean(rt.boot?.driveLoaded),
         noLonelyWaiting: true,
         noUnboundedOffscreenAction: true,
-        notJustProjectRecap: true
+        notJustProjectRecap: true,
+        currentLlmOnly: true
       }
     };
 
@@ -674,7 +707,11 @@
 
   function offerThought() {
     const rt = runtime();
-    const prepared = rt.sleep?.whileAway?.ready ? rt.sleep.whileAway : buildThought();
+    const activeProvider = window.AIDA_LLM_SCOPE?.current?.().provider || null;
+    const existing = rt.sleep?.whileAway?.ready ? rt.sleep.whileAway : null;
+    const prepared = existing && existing.llm_provider === activeProvider
+      ? existing
+      : buildThought();
     if (!prepared?.thought || prepared.offered) return prepared;
 
     if (window.AIDA_BODY?.appendChat) {
@@ -733,7 +770,7 @@
         "AIDA_RUNTIME.sleep.whileAwaySeeds"
       ],
       requires: ["AIDA_RUNTIME"],
-      verifies: ["while-away thought is runtime-only, weighted from private context, and grounded in Drive-loaded context"]
+      verifies: ["while-away thought is runtime-only, tagged to the active LLM, and cannot reuse another LLM's prepared re-entry thought"]
     });
   }
 

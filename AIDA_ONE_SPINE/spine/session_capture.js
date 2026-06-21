@@ -115,7 +115,8 @@
     const emotionState = emotionSnapshot(emotion);
     const route = {
       provider: rt.tokens?.llm?.provider || "none",
-      profile: rt.tokens?.llm?.profile || "none"
+      profile: rt.tokens?.llm?.profile || "none",
+      model: rt.tokens?.llm?.model || rt.context?.lastLlmResponse?.model || null
     };
     const customTags = cleanCustomTags(context.customTags || []);
 
@@ -131,8 +132,10 @@
       route,
       customTags,
       llm: {
+        provider: route.provider,
+        profile: route.profile,
         responseId: rt.context?.lastLlmResponse?.responseId || null,
-        model: rt.context?.lastLlmResponse?.model || null
+        model: route.model
       }
     };
 
@@ -147,6 +150,10 @@
       role_source: cleanTag(context.roleSource || "unknown_role_source"),
       emotion: cleanTag(emotionState.label, "unknown_emotion"),
       llm_route: cleanTag(`${route.provider}_${route.profile}`),
+      llm_provider: cleanTag(route.provider, "none"),
+      llm_profile: cleanTag(route.profile, "none"),
+      llm_model: cleanTag(route.model || "unknown_model"),
+      llm_scope: cleanTag(route.provider, "shared"),
       source: "awake",
       custom: customTags
     };

@@ -40,7 +40,8 @@
       tags.realm || "unknown_realm",
       tags.project || "unknown_project",
       tags.project_file || "none",
-      tags.role || "unknown_role"
+      tags.role || "unknown_role",
+      tags.llm_provider || "shared"
     ].join("|");
   }
 
@@ -66,6 +67,10 @@
       role_source: tags.role_source || "unknown_role_source",
       emotion: tags.emotion || "unknown_emotion",
       llm_route: tags.llm_route || "unknown_route",
+      llm_provider: tags.llm_provider || "shared",
+      llm_profile: tags.llm_profile || "none",
+      llm_model: tags.llm_model || "unknown_model",
+      llm_scope: tags.llm_scope || tags.llm_provider || "shared",
       source: "awake_context_evolution",
       custom: Array.from(custom)
     };

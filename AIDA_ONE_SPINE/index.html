@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="Aida">
   <link rel="apple-touch-icon" href="body/assets/aida_icon.png">
   <link rel="icon" type="image/png" href="body/assets/aida_icon.png">
-  <link rel="stylesheet" href="body/awake.css?v=20260620b">
+  <link rel="stylesheet" href="body/awake.css?v=20260621a">
 <style>
     /* Absolute system fallback shield to kill startup white flash artifacts */
     html, body, #bios-screen, #aida-interface, #main-engine {
@@ -119,6 +119,8 @@
           <div id="face-data-fast" class="face-data-grid face-data-fast"></div>
           <div class="tint-layer debug-green"></div>
           <div class="tint-layer alert-o"></div>
+          <div class="tint-layer provider-tint" aria-hidden="true"></div>
+          <div id="llm-route-badge" hidden></div>
           <img id="aida-portrait" src="body/assets/neutral1.png" alt="Aida portrait">
         </div>
 
@@ -164,21 +166,22 @@
   <script src="spine/config.js?v=20260620a"></script>
   <script src="spine/bios_console.js?v=20260606i"></script>
   <script src="body/awake.js?v=20260620d"></script>
-  <script src="spine/airlock.js?v=20260620e"></script>
+  <script src="spine/airlock.js?v=20260621a"></script>
   <script src="spine/project_context.js?v=20260618a"></script>
   <script src="spine/drive_oauth.js?v=20260618a"></script>
   <script src="spine/context_inspector.js?v=20260620a"></script>
   <script src="spine/llm_messages.js?v=20260620a"></script>
   <script src="spine/llm_provider.js?v=20260620c"></script>
+  <script src="spine/llm_scope.js?v=20260621a"></script>
   <script src="spine/crash_buffer.js?v=20260607e"></script>
-  <script src="spine/session_capture.js?v=20260607d"></script>
-  <script src="spine/context_evolution.js?v=20260607d"></script>
+  <script src="spine/session_capture.js?v=20260621a"></script>
+  <script src="spine/context_evolution.js?v=20260621a"></script>
   <script src="spine/emotion_engine.js?v=20260607a"></script>
-  <script src="spine/while_away.js?v=20260616b"></script>
-  <script src="spine/sleep_cycle.js?v=20260620c"></script>
+  <script src="spine/while_away.js?v=20260621b"></script>
+  <script src="spine/sleep_cycle.js?v=20260621a"></script>
   <script src="spine/librarian.js?v=20260618a"></script>
   <script src="spine/curator.js?v=20260614f"></script>
-  <script src="spine/crawler.js?v=20260618a"></script>
+  <script src="spine/crawler.js?v=20260621a"></script>
   <script src="spine/drive_writeback.js?v=20260614d"></script>
   <script src="spine/glasses.js?v=20260620a"></script>
   <script src="spine/director_stage.js?v=20260620a"></script>

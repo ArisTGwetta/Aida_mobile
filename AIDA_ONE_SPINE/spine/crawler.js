@@ -88,6 +88,12 @@
   function entry(id, type, title, text, meta = {}) {
     const cleaned = cleanText(text);
     if (!cleaned) return null;
+    const llm = window.AIDA_LLM_SCOPE?.from?.(meta, meta.llmFallback || "shared") || {
+      provider: meta.llmProvider || null,
+      profile: meta.llmProfile || null,
+      model: meta.llmModel || null,
+      scope: meta.llmScope || meta.llmFallback || "shared"
+    };
     return {
       id,
       type,
@@ -100,6 +106,10 @@
       realm: meta.realm || null,
       packetId: meta.packetId || null,
       humanSource: meta.humanSource || null,
+      llmProvider: llm.provider,
+      llmProfile: llm.profile,
+      llmModel: llm.model,
+      llmScope: llm.scope,
       indexedAt: meta.indexedAt || nowIso()
     };
   }
@@ -118,6 +128,11 @@
             sourceRefs: [sourceRef],
             project: tags.project,
             realm: tags.realm,
+            llm_provider: tags.llm_provider,
+            llm_profile: tags.llm_profile,
+            llm_model: tags.llm_model,
+            llm_scope: tags.llm_scope,
+            llmFallback: "legacy",
             humanSource: "AIDA_RUNTIME.session.currentTurns",
             indexedAt
           }
@@ -131,6 +146,11 @@
             sourceRefs: [sourceRef],
             project: tags.project,
             realm: tags.realm,
+            llm_provider: tags.llm_provider,
+            llm_profile: tags.llm_profile,
+            llm_model: tags.llm_model,
+            llm_scope: tags.llm_scope,
+            llmFallback: "legacy",
             humanSource: "AIDA_RUNTIME.session.currentTurns",
             indexedAt
           }
@@ -229,6 +249,10 @@
     return record?.source === "fallback" || record?.method === "deterministic_runtime_draft";
   }
 
+  function driveFallbackScope(name) {
+    return /^(facts|insights|memory_summary)\.json$/i.test(name) ? "shared" : "legacy";
+  }
+
   function driveEntries(rt, indexedAt) {
     const files = rt.drive?.files || {};
     const allowed = /^(raw_session_log|session_log|recent_turns|diary_log|project_summary|project_briefcase_.+|facts|facts_candidates|insights|insights_candidates|memory_summary|sensitive_context_candidates|salutation_tone_signals)\.json$/i;
@@ -255,6 +279,11 @@
             project,
             realm: record?.realm || null,
             packetId: record?.packetId || record?.sourcePacketId || null,
+            llm_provider: record?.llm_provider || record?.tags?.llm_provider,
+            llm_profile: record?.llm_profile || record?.tags?.llm_profile,
+            llm_model: record?.llm_model || record?.tags?.llm_model,
+            llm_scope: record?.llm_scope || record?.tags?.llm_scope,
+            llmFallback: driveFallbackScope(name),
             humanSource: `AIDA_RUNTIME.drive.files["${name}"]`,
             indexedAt
           }
@@ -283,6 +312,8 @@
           project: item.project,
           realm: item.realm,
           packetId: item.packetId,
+          ...item,
+          llmFallback: window.AIDA_LLM_SCOPE?.current?.().provider || "shared",
           humanSource: "AIDA_RUNTIME.librarian.diaryDrafts",
           indexedAt
         }
@@ -297,6 +328,8 @@
         sourceRefs: item.source_refs,
         project: item.scope?.replace(/^project:/, ""),
         packetId: item.packetId,
+        ...item,
+        llmFallback: window.AIDA_LLM_SCOPE?.current?.().provider || "shared",
         humanSource: "AIDA_RUNTIME.librarian.rollingSummaryDrafts",
         indexedAt
       }
@@ -310,6 +343,8 @@
         sourceRefs: item.source_refs,
         project: item.scope?.replace(/^project:/, ""),
         packetId: item.packetId,
+        ...item,
+        llmFallback: window.AIDA_LLM_SCOPE?.current?.().provider || "shared",
         humanSource: "AIDA_RUNTIME.librarian.longSummaryDrafts",
         indexedAt
       }
@@ -323,6 +358,8 @@
         sourceRefs: item.source_refs,
         project: item.scope?.replace(/^project:/, ""),
         packetId: item.packetId,
+        ...item,
+        llmFallback: window.AIDA_LLM_SCOPE?.current?.().provider || "shared",
         humanSource: "AIDA_RUNTIME.librarian.factCandidates",
         indexedAt
       }
@@ -336,6 +373,8 @@
         sourceRefs: item.derived_from,
         project: item.scope?.replace(/^project:/, ""),
         packetId: item.packetId,
+        ...item,
+        llmFallback: window.AIDA_LLM_SCOPE?.current?.().provider || "shared",
         humanSource: "AIDA_RUNTIME.librarian.insightCandidates",
         indexedAt
       }
@@ -349,6 +388,8 @@
         sourceRefs: item.source_refs,
         project: item.scope?.replace(/^project:/, ""),
         packetId: item.packetId,
+        ...item,
+        llmFallback: window.AIDA_LLM_SCOPE?.current?.().provider || "shared",
         humanSource: "AIDA_RUNTIME.librarian.sensitiveContextCandidates",
         indexedAt
       }
@@ -361,6 +402,8 @@
       {
         sourceRefs: item.source_ref ? [item.source_ref] : item.source_refs,
         packetId: item.packetId,
+        ...item,
+        llmFallback: window.AIDA_LLM_SCOPE?.current?.().provider || "shared",
         humanSource: "AIDA_RUNTIME.librarian.salutationSignals",
         indexedAt
       }
@@ -375,6 +418,8 @@
         project: item.project,
         realm: item.realm,
         packetId: item.packetId,
+        ...item,
+        llmFallback: window.AIDA_LLM_SCOPE?.current?.().provider || "shared",
         humanSource: "AIDA_RUNTIME.librarian.rawLogEntries",
         indexedAt
       }
@@ -393,6 +438,8 @@
         project: item.project?.name,
         realm: item.project?.realm,
         packetId: item.sourcePacketId,
+        ...item,
+        llmFallback: window.AIDA_LLM_SCOPE?.current?.().provider || "shared",
         humanSource: "AIDA_RUNTIME.curator.projectListingDrafts",
         indexedAt
       }
@@ -403,6 +450,8 @@
       "Drive write plan draft",
       JSON.stringify(item.writes || {}),
       {
+        ...item,
+        llmFallback: window.AIDA_LLM_SCOPE?.current?.().provider || "shared",
         humanSource: "AIDA_RUNTIME.curator.writePlanDrafts",
         indexedAt
       }
@@ -416,6 +465,8 @@
         sourceRefs: item.source_refs || item.derived_from,
         project: item.scope?.replace(/^project:/, ""),
         packetId: item.packetId,
+        ...item,
+        llmFallback: window.AIDA_LLM_SCOPE?.current?.().provider || "shared",
         humanSource: "AIDA_RUNTIME.curator.needsConfirmation",
         indexedAt
       }
@@ -520,8 +571,14 @@
     const limit = Number(options.limit || 5);
     const minScore = Number(options.minScore || 1);
     const project = options.project ? String(options.project).toLowerCase() : null;
+    const llmScope = options.llmScope || "current";
     const results = state.entries
       .filter((item) => !project || String(item.project || "").toLowerCase() === project)
+      .filter((item) => window.AIDA_LLM_SCOPE?.allows?.(item, {
+        scope: llmScope,
+        provider: options.llmProvider,
+        fallback: item.llmScope || "legacy"
+      }) ?? true)
       .map((item) => ({
         ...item,
         score: scoreEntry(tokens, item)
@@ -539,14 +596,36 @@
         reviewWindow: item.reviewWindow,
         project: item.project,
         humanSource: item.humanSource,
-        packetId: item.packetId
+        packetId: item.packetId,
+        llmProvider: item.llmProvider,
+        llmProfile: item.llmProfile,
+        llmScope: item.llmScope
       }));
 
     const searchedAt = nowIso();
-    state.searches.push({ query, searchedAt, resultCount: results.length, minScore });
+    state.searches.push({
+      query,
+      searchedAt,
+      resultCount: results.length,
+      minScore,
+      llmScope,
+      llmProvider: options.llmProvider || window.AIDA_LLM_SCOPE?.current?.().provider || null
+    });
     state.searches = state.searches.slice(-30);
     consoleReport("AIDA_CRAWLER_SEARCH", { query, resultCount: results.length, minScore, results });
     return { query, searchedAt, minScore, results };
+  }
+
+  function entriesForCurrentLlm(options = {}) {
+    const state = ensureState();
+    if (!state.entries.length) loadPersisted();
+    const limit = Number(options.limit || 24);
+    return state.entries
+      .filter((item) => window.AIDA_LLM_SCOPE?.allows?.(item, {
+        provider: options.llmProvider,
+        fallback: item.llmScope || "legacy"
+      }) ?? true)
+      .slice(-limit);
   }
 
   function remember(query, options = {}) {
@@ -605,6 +684,7 @@
     indexNow,
     search,
     remember,
+    entriesForCurrentLlm,
     inspect,
     safeSummary,
     loadPersisted
@@ -617,7 +697,7 @@
       reads: ["AIDA_RUNTIME.session", "AIDA_RUNTIME.drive.files", "AIDA_RUNTIME.librarian", "AIDA_RUNTIME.curator"],
       writes: ["AIDA_RUNTIME.crawler.entries", "localStorage.AIDA_CRAWLER_INDEX_V1"],
       requires: ["AIDA_RUNTIME"],
-      verifies: ["human-readable memory remains source of truth while compact searchable sidecar indexes are built automatically and searched on demand"]
+      verifies: ["human-readable memory remains source of truth while compact searchable sidecar indexes are built broadly and retrieval is filtered to the active LLM plus shared core memory"]
     });
   }
 

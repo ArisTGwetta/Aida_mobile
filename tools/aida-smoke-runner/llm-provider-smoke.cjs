@@ -155,6 +155,7 @@ function runCredentialClearTest() {
   };
   global.window = {
     sessionStorage,
+    dispatchEvent() {},
     AIDA_RUNTIME: runtime,
     AIDA_MODULES: { register() {} }
   };

@@ -802,6 +802,8 @@ async function runLlmRefinementTest() {
   const distillation = await sleep.refinePacketWithLlm(packet);
   const preferred = sleep.getPreferredDistillation(packet);
 
+  assert(packet.llm?.provider === "openai", "Sleep packet was not tagged with its originating LLM.", packet.llm);
+  assert(distillation.diaryDrafts[0]?.llm_provider === "openai", "Sleep diary draft did not preserve its originating LLM.", distillation.diaryDrafts[0]);
   assert(distillation.status === "llm_draft_filled", "LLM refinement did not mark distillation as llm_draft_filled.", distillation);
   assert(preferred.source === "llm", "Preferred distillation did not switch to LLM after refinement.", preferred);
   assert(distillation.method === "llm_refined_draft", "LLM refinement did not set method.", distillation);
@@ -829,6 +831,7 @@ async function runLlmRefinementTest() {
     status: distillation.status,
     method: distillation.method,
     llmStatus: distillation.llm.status,
+    llmProvider: packet.llm.provider,
     fallbackStatus: distillation.fallback.status,
     diaryDrafts: distillation.diaryDrafts.length,
     factCandidates: distillation.factCandidates.length,
