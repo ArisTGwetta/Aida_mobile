@@ -53,6 +53,7 @@ async function runRoute(provider, route, expected) {
   const text = await global.window.AIDA_LLM_PROVIDER.callMessages([
     { role: "user", content: "Hello" }
   ]);
+  const info = global.window.AIDA_LLM_PROVIDER.currentInfo();
   const request = requests[0];
 
   assert(text === `${provider} says hello`, `${provider} output was not extracted.`, text);
@@ -60,12 +61,16 @@ async function runRoute(provider, route, expected) {
   assert(request.body.model === expected.model, `${provider} model was incorrect.`, request.body);
   assert(Boolean(request.options.headers.Authorization) === expected.hasAuth, `${provider} authorization behavior was incorrect.`, request.options.headers);
   assert(global.window.AIDA_RUNTIME.context.lastLlmResponse.provider === expected.normalizedProvider, `${provider} response metadata was incorrect.`);
+  assert(info.provider === expected.normalizedProvider, `${provider} currentInfo provider was incorrect.`, info);
+  assert(info.model === expected.model, `${provider} currentInfo model was incorrect.`, info);
 
   return {
     provider,
     endpoint: request.url,
     model: request.body.model,
-    hasAuthorization: Boolean(request.options.headers.Authorization)
+    hasAuthorization: Boolean(request.options.headers.Authorization),
+    reportedProvider: info.providerLabel,
+    reportedLocal: info.local
   };
 }
 
@@ -276,6 +281,19 @@ function runIndexedRouteFallbackSourceTest() {
   return { indexedFileDetected: true, directFetchPresent: true, runtimeMountPresent: true };
 }
 
+function runConversationIdentitySourceTest() {
+  const conversationPath = path.join(repoRoot, "AIDA_ONE_SPINE", "spine", "llm_openai.js");
+  const messagesPath = path.join(repoRoot, "AIDA_ONE_SPINE", "spine", "llm_messages.js");
+  const conversation = fs.readFileSync(conversationPath, "utf8");
+  const messages = fs.readFileSync(messagesPath, "utf8");
+  assert(conversation.includes("asksForLlmIdentity"), "Conversation does not detect LLM identity questions.");
+  assert(conversation.includes("current underlying LLM route"), "Conversation does not have a deterministic runtime identity fallback.");
+  assert(conversation.includes("without an API call"), "Conversation identity response is not explicitly local/deterministic.");
+  assert(messages.includes("Runtime identity rule:"), "LLM prompt does not include provider/model identity grounding.");
+  assert(messages.includes("llmModel"), "Tetrad does not carry the active model.");
+  return { deterministicReply: true, promptGrounding: true, modelInTetrad: true };
+}
+
 async function main() {
   const startedAt = new Date().toISOString();
   try {
@@ -311,6 +329,8 @@ async function main() {
       ollamaAirlockSelection: runAirlockSelectionTest("789", "ollama"),
       ollamaWakeGate: runOllamaWakeGateSourceTest(),
       indexedRouteFallback: runIndexedRouteFallbackSourceTest()
+      ,
+      conversationIdentity: runConversationIdentitySourceTest()
     };
     console.log(JSON.stringify({
       status: "pass",

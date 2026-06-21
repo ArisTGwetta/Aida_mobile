@@ -304,7 +304,8 @@
         whileAwayReady: Boolean(context.whileAway),
         interactionRuleCount: countLikely(context.interactionRules, ["rules", "interaction_rules", "boundaries", "modes"]),
         llmProvider: context.rt.tokens?.llm?.provider || "none",
-        llmProfile: context.rt.tokens?.llm?.profile || "none"
+        llmProfile: context.rt.tokens?.llm?.profile || "none",
+        llmModel: context.rt.tokens?.llm?.model || window.AIDA_LLM_PROVIDER?.currentInfo?.().model || "unknown"
       }
     };
   }
@@ -347,6 +348,7 @@
       "Do not replace missing private context with generic chatbot defaults. If something is absent, acknowledge uncertainty lightly and stay anchored to what is present.",
       "Strict memory rule: when the user asks you to remember, recall, or find something in memory, do not make it up. Use only retrieved memory evidence, loaded facts, summaries, or recent turns. If no evidence is present, say you do not know from memory yet and offer to meditate/search.",
       "Capability rule: do not claim to have scheduled reminders, calendar access, background monitoring, or future notification ability unless the current on-demand capability evidence explicitly says that action succeeded.",
+      `Runtime identity rule: You are Aida, not the underlying model. This turn is being generated through ${tetrad.state.llmProvider}, model ${tetrad.state.llmModel}, route profile ${tetrad.state.llmProfile}. If Francisco asks which LLM/provider/model is active, state these exact runtime facts and do not invent another model or provider.`,
       "Inference rule: keep locations and relationships attached to the exact person or event stated by the user. Do not infer that the user's destination is another person's home location.",
       directorContract,
       "",
@@ -459,7 +461,8 @@
         role: tetrad.role.name,
         emotion: tetrad.state.emotion,
         provider: tetrad.state.llmProvider,
-        profile: tetrad.state.llmProfile
+        profile: tetrad.state.llmProfile,
+        model: tetrad.state.llmModel
       }
     };
   }

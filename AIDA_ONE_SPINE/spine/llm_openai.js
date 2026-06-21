@@ -63,6 +63,32 @@
       : { realm: null, name: payload };
   }
 
+  function asksForLlmIdentity(text) {
+    const value = String(text || "").toLowerCase();
+    const mentionsEngine = /\b(llm|language model|model|provider|open\s*ai|openai|grok|xai|ollama|llama)\b/.test(value);
+    const asksWhich = /\b(which|what|who|using|running|powered|underlying|current|right now)\b/.test(value);
+    return mentionsEngine && asksWhich;
+  }
+
+  function llmIdentityReply() {
+    const info = window.AIDA_LLM_PROVIDER?.currentInfo?.();
+    if (!info) return "I’m Aida, but my current underlying LLM route is not available yet.";
+
+    const locality = info.local ? "running locally on this computer" : "through its hosted API";
+    return `I’m Aida—the identity and memory system. Right now my underlying voice engine is ${info.providerLabel}, using ${info.model}, ${locality}.`;
+  }
+
+  function runLocalReply(userText, reply) {
+    appendChat("USER", userText);
+    appendChat("AIDA", reply);
+    if (window.AIDA_SESSION_CAPTURE?.captureExchange) {
+      window.AIDA_SESSION_CAPTURE.captureExchange(userText, reply);
+    }
+    pulse("Aida reported the active LLM route from runtime.");
+    log("LLM IDENTITY: Reported provider/model from runtime without an API call.", "log-blue");
+    return true;
+  }
+
   function runProjectCommand(command, visibleUserText) {
     if (!window.AIDA_PROJECTS?.createDraft) return null;
     const result = window.AIDA_PROJECTS.createDraft(command.name, {
@@ -111,6 +137,9 @@
     if (!text) return false;
 
     const rt = runtime();
+    if (asksForLlmIdentity(text)) {
+      return runLocalReply(text, llmIdentityReply());
+    }
     const command = projectCommand(text);
     if (command) {
       try {

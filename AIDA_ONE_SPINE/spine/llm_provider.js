@@ -78,6 +78,24 @@
     );
   }
 
+  function currentInfo() {
+    if (!route().provider) return null;
+    const provider = normalizeProvider(route().provider);
+    const model = modelFor(provider);
+    const labels = {
+      openai: "OpenAI",
+      xai: "xAI (Grok)",
+      ollama: "local Ollama"
+    };
+    return {
+      provider,
+      providerLabel: labels[provider] || provider,
+      model,
+      profile: route().profile || "default",
+      local: provider === "ollama"
+    };
+  }
+
   function extractOutputText(data) {
     if (typeof data?.output_text === "string" && data.output_text.trim()) {
       return data.output_text.trim();
@@ -153,6 +171,7 @@
     callMessages,
     extractOutputText,
     readiness,
+    currentInfo,
     normalizeProvider,
     requiresKey
   };
