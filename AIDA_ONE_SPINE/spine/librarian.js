@@ -100,9 +100,29 @@
     return preferred.output?.diaryDrafts?.[0]?.realm || projectFromPreferred(preferred);
   }
 
-  function buildProjectBriefcaseDraft(preferred, ingestedAt) {
+  function packetProjectFile(packet) {
+    const exchanges = safeArray(packet?.session?.exchanges);
+    const tagged = exchanges.find((item) => item?.tags?.project_file && item.tags.project_file !== "none");
+    return tagged?.tags?.project_file || runtime()?.context?.newProjectDraft?.fileName || null;
+  }
+
+  function runtimeProject(fileName, projectName) {
+    const rt = runtime();
+    if (fileName && rt?.drive?.files?.[fileName]) return copyJson(rt.drive.files[fileName], null);
+    return copyJson(
+      Object.values(rt?.mind?.projects || {}).find((item) => (
+        item?.project_name === projectName || item?.name === projectName
+      )) || null,
+      null
+    );
+  }
+
+  function buildProjectBriefcaseDraft(preferred, ingestedAt, packet = runtime()?.sleep?.lastPacket) {
     const project = projectFromPreferred(preferred);
     const realm = realmFromPreferred(preferred);
+    const fileName = packetProjectFile(packet) || `project_briefcase_${slug(project)}.json`;
+    const initialProject = runtimeProject(fileName, project);
+    const llm = packet?.llm || {};
     const output = preferred.output || {};
     const rolling = safeArray(output.rollingSummaries);
     const long = safeArray(output.longSummaryCandidates);
@@ -143,8 +163,15 @@
         status: "staged",
         project: {
           name: project,
-          realm
+          realm,
+          file: fileName
         },
+        fileName,
+        initialProject,
+        llm_provider: llm.provider || null,
+        llm_profile: llm.profile || null,
+        llm_model: llm.model || null,
+        llm_scope: llm.scope || llm.provider || "shared",
         update: {
           latest_summary: latestSummary || null,
           latest_status: latestStatus || null,
@@ -398,7 +425,7 @@
     safeArray(output.salutationSignals).forEach((item) => upsertById(state.salutationSignals, { ...item, packetId: preferred.packetId, source: preferred.source, method: preferred.method, ingestedAt }));
     safeArray(output.rawLogEntries).forEach((item) => upsertById(state.rawLogEntries, { ...item, packetId: preferred.packetId, source: preferred.source, method: preferred.method, ingestedAt }));
     safeArray(output.processingBacklog).forEach((item) => upsertById(state.processingBacklog, { ...item, packetId: preferred.packetId, source: preferred.source, method: preferred.method, ingestedAt }));
-    buildProjectBriefcaseDraft(preferred, ingestedAt).forEach((item) => upsertById(state.projectBriefcaseDrafts, item));
+    buildProjectBriefcaseDraft(preferred, ingestedAt, packet).forEach((item) => upsertById(state.projectBriefcaseDrafts, item));
 
     state.lastIngestedPacketId = preferred.packetId;
     state.lastIngestedAt = ingestedAt;

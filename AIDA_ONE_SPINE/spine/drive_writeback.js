@@ -135,13 +135,20 @@
   }
 
   function mergeBriefcase(existing, draft, generatedAt) {
-    const base = { ...(existing || {}) };
+    const base = {
+      ...(draft?.initialProject || {}),
+      ...(existing || {})
+    };
     const update = draft?.update || {};
     const replaceConsiderationLists = draft?.source === "llm" || draft?.method === "llm_refined_draft";
+    const wasRuntimeDraft = base?.draft?.status === "runtime_only" || base?.status === "runtime_draft";
     return {
       ...base,
       project_name: base.project_name || draft?.project?.name || draft?.project || "unknown_project",
+      name: base.name || base.project_name || draft?.project?.name || draft?.project || "unknown_project",
       realm: base.realm || draft?.project?.realm || draft?.project?.name || "unknown_realm",
+      status: wasRuntimeDraft ? "active" : base.status || "active",
+      privacy: base.privacy || "private_candidate",
       latest_summary: update.latest_summary || base.latest_summary || null,
       latest_status: update.latest_status || base.latest_status || null,
       rolling_summary_ids: appendUnique(base.rolling_summary_ids, update.rolling_summary_ids || []),
@@ -154,7 +161,19 @@
       emotional_notes: appendUnique(base.emotional_notes, update.emotional_notes || []),
       last_active: update.last_active || base.last_active || generatedAt,
       last_updated: generatedAt,
-      last_write_packet_id: draft.packetId || base.last_write_packet_id || null
+      last_write_packet_id: draft.packetId || base.last_write_packet_id || null,
+      llm_provider: draft.llm_provider || base.llm_provider || null,
+      llm_profile: draft.llm_profile || base.llm_profile || null,
+      llm_model: draft.llm_model || base.llm_model || null,
+      llm_scope: draft.llm_scope || base.llm_scope || draft.llm_provider || null,
+      draft: wasRuntimeDraft
+        ? {
+            ...(base.draft || {}),
+            status: "persisted",
+            persisted_at: generatedAt,
+            persisted_packet_id: draft.packetId || null
+          }
+        : base.draft || null
     };
   }
 
