@@ -103,7 +103,7 @@
 
   function label(info = current()) {
     if (info.provider === "xai") return "GROK · HOSTED";
-    if (info.provider === "ollama") return "OLLAMA · LOCAL";
+    if (info.provider === "ollama") return "DEBUG · LOCAL";
     if (info.provider === "openai") return "OPENAI · HOSTED";
     return "LLM · UNSELECTED";
   }

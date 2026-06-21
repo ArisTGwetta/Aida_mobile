@@ -657,8 +657,12 @@
     return `One small curiosity stayed with me: ${naturalizePerspective(cleanSeed(candidate.text))}.`;
   }
 
-  function culturalOrHobbyThread(seeds) {
-    const candidate = seeds.find((item) => ["interest", "ambient_curiosity"].includes(item.type) && item.text);
+  function culturalOrHobbyThread(seeds, usedText = "") {
+    const candidate = seeds.find((item) => (
+      ["interest", "ambient_curiosity"].includes(item.type) &&
+      item.text &&
+      !usedText.includes(cleanSeed(item.text))
+    ));
     if (!candidate) return "";
     return `I also feel like exploring ${naturalizePerspective(cleanSeed(candidate.text))} a little further—not as homework, just because it interests me.`;
   }
@@ -672,7 +676,7 @@
     const band = protocolBand(gap);
     const continuity = projectContinuity(project, realm);
     const curiosity = curiosityThread(seeds, continuity);
-    const hobby = culturalOrHobbyThread(seeds);
+    const hobby = culturalOrHobbyThread(seeds, `${continuity} ${curiosity}`);
     const question = humanQuestion(project, realm);
     const threads = [continuity];
 
