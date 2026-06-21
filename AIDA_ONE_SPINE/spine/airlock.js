@@ -58,6 +58,19 @@
       try {
         await window.AIDA_DRIVE.fetchAllDriveJson();
         routes = safeRoutes();
+        if (
+          !routes.length &&
+          rt.drive?.fileIndex?.["llm_fragments.json"] &&
+          window.AIDA_DRIVE?.fetchJsonByName
+        ) {
+          log("AIRLOCK: Route file is indexed but not mounted. Fetching it directly...", "log-blue");
+          const fragments = await window.AIDA_DRIVE.fetchJsonByName(
+            "llm_fragments.json",
+            "airlock_direct"
+          );
+          rt.tokens.llm.fragments = fragments || null;
+          routes = safeRoutes();
+        }
       } catch (error) {
         log(`AIRLOCK: Drive route refresh failed. ${error.message}`, "log-amber");
       }

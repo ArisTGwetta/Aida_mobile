@@ -214,6 +214,23 @@ function runOllamaWakeGateSourceTest() {
   return { providerAwareReadiness: true, keylessOllamaAllowed: true };
 }
 
+function runIndexedRouteFallbackSourceTest() {
+  const source = fs.readFileSync(airlockPath, "utf8");
+  assert(
+    source.includes('rt.drive?.fileIndex?.["llm_fragments.json"]'),
+    "Airlock does not detect an indexed-but-unmounted route file."
+  );
+  assert(
+    source.includes('"llm_fragments.json",\n            "airlock_direct"'),
+    "Airlock does not directly fetch the indexed route file."
+  );
+  assert(
+    source.includes("rt.tokens.llm.fragments = fragments || null"),
+    "Airlock does not mount directly fetched routes into the token runtime."
+  );
+  return { indexedFileDetected: true, directFetchPresent: true, runtimeMountPresent: true };
+}
+
 async function main() {
   const startedAt = new Date().toISOString();
   try {
@@ -246,7 +263,8 @@ async function main() {
       credentialClear: runCredentialClearTest(),
       grokAirlockSelection: runAirlockSelectionTest("456", "xai"),
       ollamaAirlockSelection: runAirlockSelectionTest("789", "ollama"),
-      ollamaWakeGate: runOllamaWakeGateSourceTest()
+      ollamaWakeGate: runOllamaWakeGateSourceTest(),
+      indexedRouteFallback: runIndexedRouteFallbackSourceTest()
     };
     console.log(JSON.stringify({
       status: "pass",
