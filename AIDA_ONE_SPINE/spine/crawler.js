@@ -628,6 +628,86 @@
       .slice(-limit);
   }
 
+  function glanceText(item, limit = 190) {
+    const text = cleanText(item?.text, limit);
+    if (!text || text === "[object Object]") return "";
+    if (
+      /^Across \d+ exchange\(s\)/i.test(text) ||
+      /^In [^,]+, the user raised:/i.test(text) ||
+      /\bReview window: session\b/i.test(text) ||
+      /\bDurable candidates should stay tied\b/i.test(text)
+    ) return "";
+    return text.replace(/\s*(?:\.\.\.|[.!?]+)$/, "").trim();
+  }
+
+  function freshGlance(options = {}) {
+    indexNow("fresh_glance");
+    const state = ensureState();
+    const activeProject = slug(
+      options.project ||
+      runtime().context?.project?.project_name ||
+      runtime().context?.project?.name ||
+      runtime().mind?.activeProject?.project_name ||
+      runtime().mind?.activeProject?.name ||
+      "",
+      ""
+    );
+    const scope = options.llmScope || "current";
+    const visible = state.entries
+      .filter((item) => window.AIDA_LLM_SCOPE?.allows?.(item, {
+        scope,
+        provider: options.llmProvider,
+        fallback: item.llmScope || "legacy"
+      }) ?? true)
+      .filter((item) => !activeProject || slug(item.project || "", "") === activeProject)
+      .slice(-80)
+      .reverse();
+
+    const priorities = [
+      ["project", ["drive_project_memory", "project_listing_draft", "rolling_summary", "long_summary_candidate"]],
+      ["insight", ["drive_insight", "insight_candidate"]],
+      ["fact", ["drive_fact", "fact_candidate"]],
+      ["diary", ["drive_diary", "diary_draft"]],
+      ["conversation", ["drive_raw_log", "raw_turn_user", "raw_turn_aida"]]
+    ];
+    const used = new Set();
+    const threads = [];
+    for (const [kind, types] of priorities) {
+      const match = visible.find((item) => {
+        const text = glanceText(item);
+        if (!types.includes(item.type) || !text) return false;
+        const key = text.toLowerCase();
+        if (used.has(key)) return false;
+        used.add(key);
+        return true;
+      });
+      if (!match) continue;
+      threads.push({
+        kind,
+        text: glanceText(match),
+        project: match.project || null,
+        sourceRefs: safeArray(match.sourceRefs).slice(0, 3),
+        type: match.type
+      });
+      if (threads.length >= Number(options.limit || 3)) break;
+    }
+
+    const provider = window.AIDA_LLM_SCOPE?.current?.().provider || null;
+    const response = {
+      ready: true,
+      reviewedAt: nowIso(),
+      provider,
+      scope,
+      project: activeProject || null,
+      threadCount: threads.length,
+      threads,
+      sourceRefCount: new Set(threads.flatMap((item) => item.sourceRefs)).size
+    };
+    state.lastFreshGlance = response;
+    consoleReport("AIDA_CRAWLER_FRESH_GLANCE", response);
+    return response;
+  }
+
   function remember(query, options = {}) {
     const minScore = Number(options.minScore || DEFAULT_RECALL_MIN_SCORE);
     const result = search(query, { ...options, minScore });
@@ -685,6 +765,7 @@
     search,
     remember,
     entriesForCurrentLlm,
+    freshGlance,
     inspect,
     safeSummary,
     loadPersisted

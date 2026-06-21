@@ -94,6 +94,7 @@ function main() {
       { id: "shared", type: "drive_fact", title: "Shared fact", text: "shared comet memory", tokens: ["shared", "comet", "memory"], llmScope: "shared" },
       { id: "openai", type: "raw_turn_user", title: "OpenAI turn", text: "openai comet memory", tokens: ["openai", "comet", "memory"], llmProvider: "openai", llmScope: "openai" },
       { id: "xai", type: "raw_turn_user", title: "Grok turn", text: "grok comet memory", tokens: ["grok", "comet", "memory"], llmProvider: "xai", llmScope: "xai" },
+      { id: "xai-insight", type: "drive_insight", title: "Grok insight", text: "The frozen guide should remain distinct from Aida.", tokens: ["frozen", "guide", "distinct"], llmProvider: "xai", llmScope: "xai", sourceRefs: ["grok_session#turn_4"] },
       { id: "ollama", type: "raw_turn_user", title: "Local turn", text: "ollama comet memory", tokens: ["ollama", "comet", "memory"], llmProvider: "ollama", llmScope: "ollama" }
     ];
 
@@ -114,6 +115,10 @@ function main() {
     assert(!grokResults.some((item) => item.id === "openai" || item.id === "ollama"), "Grok saw another LLM's memory.", grokResults);
     assert(document.documentElement.dataset.llmProvider === "xai", "Provider visual state did not switch to xAI.");
     assert(badge.textContent === "GROK · HOSTED", "Provider badge did not identify Grok.", badge);
+    const freshGlance = window.AIDA_CRAWLER.freshGlance({ limit: 3 });
+    assert(freshGlance.threadCount >= 2, "Fresh Glance did not produce useful scoped threads.", freshGlance);
+    assert(freshGlance.threads.some((item) => item.text.includes("frozen guide")), "Fresh Glance missed the current-LLM insight.", freshGlance);
+    assert(!freshGlance.threads.some((item) => item.text.includes("openai comet")), "Fresh Glance leaked another LLM's log.", freshGlance);
 
     window.AIDA_LLM_SCOPE.authorizeOnce("all", "smoke_cross_llm_meditation");
     const allResults = window.AIDA_CRAWLER.search("comet memory", {
@@ -160,6 +165,7 @@ function main() {
         openaiVisibleIds: openaiResults.map((item) => item.id),
         grokVisibleIds: grokResults.map((item) => item.id),
         allLlmVisibleIds: allResults.map((item) => item.id),
+        freshGlance: freshGlance.threads,
         meditationResealed: window.AIDA_LLM_SCOPE.retrievalMode() === "current",
         capturedProvider: captured.tags.llm_provider,
         badge: badge.textContent,

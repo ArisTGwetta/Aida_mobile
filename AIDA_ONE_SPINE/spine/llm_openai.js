@@ -74,6 +74,14 @@
     return "current";
   }
 
+  function isFreshGlanceRequest(text) {
+    return /\b(?:fresh glance|review (?:our |the )?(?:recent )?logs|look (?:over|through) (?:our |the )?(?:recent )?logs|what (?:did you notice|stands out) in (?:our |the )?logs|catch me up from (?:our |the )?logs)\b/i.test(String(text || ""));
+  }
+
+  function isFreshGlanceSourcesRequest(text) {
+    return /\b(?:show|give|list)\s+(?:me\s+)?(?:the\s+)?sources?\s+(?:for|from)\s+(?:that|the)\s+(?:fresh\s+)?glance\b/i.test(String(text || ""));
+  }
+
   function navigationCommand(text) {
     const value = String(text || "").trim();
     if (/^(?:list|show)\s+(?:my\s+)?(?:stories|projects|realms)\??$/i.test(value)) {
@@ -158,17 +166,6 @@
         : `I found no recent RPG history from the current LLM to attach. The other LLMs remain sealed.`;
     } else if (result.alreadyAdopted) {
       reply = `${result.projectName} already contains the available ${result.provider} history.`;
-    } else if (command.action === "claim") {
-      const result = await window.AIDA_PROJECTS?.claimProject?.(command.projectName, command.realmName);
-      if (result?.ok) {
-        reply = `Claimed ${result.projectName} under ${result.realmName}. Sleep and Commit will make that filing durable in Drive.`;
-      } else if (result?.reason === "project_not_found") {
-        reply = `I could not find the project "${command.projectName}". Try “list my stories” to see the current names.`;
-      } else if (result?.reason === "realm_not_found") {
-        reply = `I could not find the realm "${command.realmName}". Try “list my stories” to see the current realms.`;
-      } else {
-        reply = `I found ${command.projectName}, but its briefcase is not loaded yet. Please refresh Drive and try the claim again.`;
-      }
     } else {
       const hint = result.hint ? ` The opening themes look like: ${result.hint}.` : "";
       reply = `I adopted ${result.count} ${result.provider} RPG turn(s) into ${result.projectName}, preserving source references from ${result.sourceStart} through ${result.sourceEnd}.${hint} Sleep can now make the link durable.`;
@@ -194,6 +191,17 @@
             return `${realm.name}: ${stories}`;
           }).join("\n")
         : "I do not have a realm or project ledger loaded yet.";
+    } else if (command.action === "claim") {
+      const result = await window.AIDA_PROJECTS?.claimProject?.(command.projectName, command.realmName);
+      if (result?.ok) {
+        reply = `Claimed ${result.projectName} under ${result.realmName}. Sleep and Commit will make that filing durable in Drive.`;
+      } else if (result?.reason === "project_not_found") {
+        reply = `I could not find the project "${command.projectName}". Try “list my stories” to see the current names.`;
+      } else if (result?.reason === "realm_not_found") {
+        reply = `I could not find the realm "${command.realmName}". Try “list my stories” to see the current realms.`;
+      } else {
+        reply = `I found ${command.projectName}, but its briefcase is not loaded yet. Please refresh Drive and try the claim again.`;
+      }
     } else {
       const opened = await window.AIDA_PROJECTS?.openNamed?.(command.name, command.kind);
       reply = opened
@@ -207,6 +215,44 @@
     window.AIDA_SESSION_CAPTURE?.captureExchange?.(visibleUserText, reply);
     window.AIDA_BODY_PROJECTS?.render?.();
     pulse(command.action === "list" ? "Realm and project ledger listed." : "Realm/project navigation completed.");
+    return true;
+  }
+
+  async function runFreshGlance(userText) {
+    await window.AIDA_LIBRARIAN?.prepareArchive?.("fresh_glance");
+    const glance = window.AIDA_CRAWLER?.freshGlance?.({ limit: 3 });
+    runtime().context.lastFreshGlance = glance || null;
+    let reply;
+    if (!glance?.threadCount) {
+      reply = "I took a fresh glance, but nothing clear enough rose above the storage noise yet. We may need one more saved conversation before the pattern becomes useful.";
+    } else {
+      const lines = glance.threads.map((thread) => {
+        if (thread.kind === "project") return `The project thread that still feels alive is ${thread.text}.`;
+        if (thread.kind === "insight") return `Something I noticed beneath it is ${thread.text}.`;
+        if (thread.kind === "fact") return `One detail worth keeping straight is ${thread.text}.`;
+        if (thread.kind === "diary") return `The emotional shape I found was ${thread.text}.`;
+        return `And one recent exchange that still has some energy is ${thread.text}.`;
+      });
+      reply = `I took a fresh glance through the memories available to this LLM. ${lines.join(" ")} Nothing there feels urgent—I just thought those threads were worth bringing back to the table.`;
+    }
+    appendChat("USER", userText);
+    appendChat("AIDA", reply);
+    window.AIDA_SESSION_CAPTURE?.captureExchange?.(userText, reply);
+    pulse(`Fresh Glance reviewed ${glance?.threadCount || 0} memory thread(s).`);
+    log(`FRESH GLANCE: provider=${glance?.provider || "unknown"}, threads=${glance?.threadCount || 0}, refs=${glance?.sourceRefCount || 0}.`, "log-blue");
+    return true;
+  }
+
+  function runFreshGlanceSources(userText) {
+    const glance = runtime().context?.lastFreshGlance;
+    const refs = [...new Set((glance?.threads || []).flatMap((thread) => thread.sourceRefs || []))];
+    const reply = refs.length
+      ? `Here are the memory references behind that glance:\n${refs.map((ref) => `- ${ref}`).join("\n")}`
+      : "That glance came from indexed memory, but its selected threads did not carry turn-level source references.";
+    appendChat("USER", userText);
+    appendChat("AIDA", reply);
+    window.AIDA_SESSION_CAPTURE?.captureExchange?.(userText, reply);
+    pulse(`Fresh Glance sources: ${refs.length}.`);
     return true;
   }
 
@@ -294,6 +340,8 @@
     }
     const returnChoice = await runReturnContextChoice(text);
     if (returnChoice) return returnChoice;
+    if (isFreshGlanceSourcesRequest(text)) return runFreshGlanceSources(text);
+    if (isFreshGlanceRequest(text)) return runFreshGlance(text);
     const navigation = navigationCommand(text);
     if (navigation) return runNavigationCommand(navigation, text);
     const namedStory = runPendingStoryTitle(text);
