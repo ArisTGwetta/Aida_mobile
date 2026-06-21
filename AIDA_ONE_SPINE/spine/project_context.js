@@ -968,6 +968,64 @@
     return selected ? { entry, selected } : null;
   }
 
+  async function claimProject(projectName, realmName) {
+    const rt = runtime();
+    const projectEntry = findByName(projectName, "project");
+    const realmEntry = findByName(realmName, "realm");
+    if (!projectEntry) return { ok: false, reason: "project_not_found" };
+    if (!realmEntry) return { ok: false, reason: "realm_not_found" };
+
+    if (needsHydration(projectEntry.key || projectEntry.fileName)) {
+      await window.AIDA_DRIVE?.fetchContextJson?.(projectEntry.key || projectEntry.fileName);
+      mapDriveFilesToMind(rt.drive.files, { selectDefault: false });
+    }
+
+    const refreshed = findByName(projectName, "project") || projectEntry;
+    const fileName = refreshed.fileName || refreshed.key;
+    const project = rt.mind.projects?.[fileName] || rt.drive?.files?.[fileName] || refreshed.summary;
+    if (!project || typeof project !== "object") {
+      return { ok: false, reason: "project_not_loaded" };
+    }
+
+    const claimedAt = new Date().toISOString();
+    project.realm = realmEntry.name;
+    project.realm_file = realmEntry.fileName;
+    project.last_updated = claimedAt;
+    project.migration = {
+      ...(project.migration || {}),
+      realm_claimed_at: claimedAt,
+      realm_claimed_via: "conversation_command"
+    };
+    rt.drive.files[fileName] = project;
+    rt.mind.projects[fileName] = project;
+
+    const ledgerEntry = rt.mind.projectLedger[refreshed.key] || rt.mind.projectLedger[fileName];
+    if (ledgerEntry) {
+      ledgerEntry.realmKey = realmEntry.realmKey;
+      ledgerEntry.summary = project;
+      ledgerEntry.loaded = true;
+      ledgerEntry.fileName = fileName;
+      ledgerEntry.lastActive = claimedAt;
+    }
+
+    select(refreshed.key || fileName);
+    rt.context.projectMode = project?.draft?.status === "runtime_only" ? "new_project_draft" : "project_payload";
+    rt.context.projectRealmClaim = {
+      fileName,
+      projectName: valueName(project, refreshed.name),
+      realmName: realmEntry.name,
+      claimedAt
+    };
+    window.AIDA_CRASH_BUFFER?.checkpoint?.("project_realm_claimed");
+    log(`PROJECT: Claimed ${valueName(project, refreshed.name)} under realm ${realmEntry.name}.`, "log-blue");
+    return {
+      ok: true,
+      projectName: valueName(project, refreshed.name),
+      realmName: realmEntry.name,
+      fileName
+    };
+  }
+
   function hierarchy() {
     const rt = runtime();
     const realms = Object.values(rt.mind.realmLedger || {});
@@ -983,7 +1041,10 @@
         }))
     }));
     const assigned = new Set(groups.flatMap((realm) => realm.projects.map((project) => project.key)));
-    const unassigned = projects.filter((project) => !assigned.has(project.key));
+    const unassigned = projects.filter((project) => (
+      !assigned.has(project.key) &&
+      !["unknown_project", "rpg"].includes(keyName(project.name || project.key))
+    ));
     if (unassigned.length) {
       groups.push({
         key: "unknown_realm",
@@ -1074,6 +1135,7 @@
     hierarchy,
     findByName,
     openNamed,
+    claimProject,
     select,
     selectHydrated,
     createDraft,

@@ -76,6 +76,8 @@
     if (realm) return { action: "open", kind: "realm", name: realm[1] };
     const project = value.match(/^(?:open|switch to|continue)\s+(?:project|story)\s+(.+?)\s*$/i);
     if (project) return { action: "open", kind: "project", name: project[1] };
+    const claim = value.match(/^(?:claim|move|file)\s+(?:project\s+|story\s+)?(.+?)\s+(?:under|into|to)\s+(?:realm\s+)?(.+?)\s*$/i);
+    if (claim) return { action: "claim", projectName: claim[1], realmName: claim[2] };
     return null;
   }
 
@@ -149,6 +151,17 @@
         : `I found no recent RPG history from the current LLM to attach. The other LLMs remain sealed.`;
     } else if (result.alreadyAdopted) {
       reply = `${result.projectName} already contains the available ${result.provider} history.`;
+    } else if (command.action === "claim") {
+      const result = await window.AIDA_PROJECTS?.claimProject?.(command.projectName, command.realmName);
+      if (result?.ok) {
+        reply = `Claimed ${result.projectName} under ${result.realmName}. Sleep and Commit will make that filing durable in Drive.`;
+      } else if (result?.reason === "project_not_found") {
+        reply = `I could not find the project "${command.projectName}". Try “list my stories” to see the current names.`;
+      } else if (result?.reason === "realm_not_found") {
+        reply = `I could not find the realm "${command.realmName}". Try “list my stories” to see the current realms.`;
+      } else {
+        reply = `I found ${command.projectName}, but its briefcase is not loaded yet. Please refresh Drive and try the claim again.`;
+      }
     } else {
       const hint = result.hint ? ` The opening themes look like: ${result.hint}.` : "";
       reply = `I adopted ${result.count} ${result.provider} RPG turn(s) into ${result.projectName}, preserving source references from ${result.sourceStart} through ${result.sourceEnd}.${hint} Sleep can now make the link durable.`;

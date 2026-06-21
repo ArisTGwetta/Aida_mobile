@@ -25,6 +25,20 @@ const runtime = {
       }
     },
     projectLedger: {},
+    realmLedger: {
+      rpg: {
+        key: "realm_rpg.json",
+        realmKey: "rpg",
+        name: "RPG",
+        kind: "realm",
+        loaded: true,
+        fileName: "realm_rpg.json",
+        summary: {
+          name: "RPG",
+          role: "role_co_narrator.json"
+        }
+      }
+    },
     realm: {
       name: "RPG"
     },
@@ -228,6 +242,17 @@ vm.runInContext(fs.readFileSync(writebackPath, "utf8"), context, {
 });
 
 (async () => {
+  created.project.realm = "UNFILED";
+  runtime.mind.projectLedger[created.fileName].realmKey = "unknown";
+  const claimed = await window.AIDA_PROJECTS.claimProject("Bard and the Frozen Guide", "RPG");
+  if (!claimed.ok || created.project.realm !== "RPG") {
+    throw new Error(`Project realm claim failed: ${JSON.stringify(claimed)}`);
+  }
+  const rpgGroup = window.AIDA_PROJECTS.hierarchy().find((realm) => realm.realmKey === "rpg");
+  if (!rpgGroup?.projects?.some((project) => project.name === "Bard and the Frozen Guide")) {
+    throw new Error("Claimed project did not appear beneath the RPG realm.");
+  }
+
   const applied = await window.AIDA_DRIVE_WRITEBACK.apply({ dryRun: false });
   if (applied.status !== "applied") throw new Error(`Project writeback failed: ${applied.status}`);
   if (!uploadedContent) throw new Error("Project briefcase content was not uploaded.");
@@ -255,6 +280,7 @@ vm.runInContext(fs.readFileSync(writebackPath, "utf8"), context, {
     duplicateReopened: !reopened.created,
     unnamedSuggestion: suggestion.text,
     adoptedTurns: adopted.count,
+    claimedRealm: claimed.realmName,
     driveStatus: applied.status,
     draftStatus: durable.draft.status,
     llmProvider: durable.llm_provider,
