@@ -38,7 +38,7 @@
     }
   }
 
-  function showAirlock() {
+  async function showAirlock() {
     const bios = $("bios-screen");
     const airlock = $("airlock");
     const input = $("scramble-pin");
@@ -52,11 +52,22 @@
 
     const rt = runtime();
     if (rt) rt.boot.phase = "airlock";
-    const routes = safeRoutes();
+    let routes = safeRoutes();
+    if (!routes.length && rt?.tokens?.drive?.accessToken && window.AIDA_DRIVE?.fetchAllDriveJson) {
+      log("AIRLOCK: Refreshing private routes from Drive...", "log-blue");
+      try {
+        await window.AIDA_DRIVE.fetchAllDriveJson();
+        routes = safeRoutes();
+      } catch (error) {
+        log(`AIRLOCK: Drive route refresh failed. ${error.message}`, "log-amber");
+      }
+    }
     log(
       routes.length
         ? `AIRLOCK: Ready. ${routes.length} route(s) loaded.`
-        : "AIRLOCK: No routes loaded. Fetch Drive JSON before selecting a provider.",
+        : rt?.tokens?.drive?.accessToken
+          ? "AIRLOCK: Drive was refreshed, but no LLM routes were loaded."
+          : "AIRLOCK: Connect Drive first, or use Wake Aida for the full startup sequence.",
       routes.length ? "log-blue" : "log-amber"
     );
   }
