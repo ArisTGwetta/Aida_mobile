@@ -146,6 +146,7 @@ vm.createContext(context);
 
 const sourcePath = path.resolve(__dirname, "../../AIDA_ONE_SPINE/spine/project_context.js");
 const writebackPath = path.resolve(__dirname, "../../AIDA_ONE_SPINE/spine/drive_writeback.js");
+const whileAwayPath = path.resolve(__dirname, "../../AIDA_ONE_SPINE/spine/while_away.js");
 vm.runInContext(fs.readFileSync(sourcePath, "utf8"), context, {
   filename: sourcePath
 });
@@ -218,9 +219,9 @@ window.AIDA_CURATOR = {
           llm_model: "gpt-4.1-mini",
           llm_scope: "openai",
           update: {
-            latest_summary: "Serana and Francisco reached the mysterious door.",
-            latest_status: "The ancient door was unexpectedly open.",
-            open_threads: ["What opened the door?"],
+            latest_summary: "The bard chose Liora as the name of his frozen guide.",
+            latest_status: "Liora remains a ghostly muse beside the frozen lake.",
+            open_threads: ["What awakens Liora from stasis?"],
             facts_to_consider: [],
             insights_to_consider: [],
             sensitive_context_to_consider: [],
@@ -269,6 +270,21 @@ vm.runInContext(fs.readFileSync(writebackPath, "utf8"), context, {
   window.AIDA_PROJECTS.mapDriveFilesToMind(runtime.drive.files, { selectDefault: false });
   const durable = runtime.mind.projects[created.fileName];
   if (!durable) throw new Error("Persisted project did not reopen after simulated restart.");
+  const proposedReturn = window.AIDA_PROJECTS.returnContext("openai");
+  if (proposedReturn?.projectName !== "Bard and the Frozen Guide") {
+    throw new Error(`Wake did not propose the latest OpenAI project: ${JSON.stringify(proposedReturn)}`);
+  }
+  vm.runInContext(fs.readFileSync(whileAwayPath, "utf8"), context, {
+    filename: whileAwayPath
+  });
+  const returnGreeting = window.AIDA_WHILE_AWAY.buildThought({ gap: { minutes: 180 } });
+  if (!returnGreeting.thought.includes("Shall we return to Bard and the Frozen Guide")) {
+    throw new Error(`WYWA did not offer the proposed project naturally: ${returnGreeting.thought}`);
+  }
+  const acceptedReturn = await window.AIDA_PROJECTS.acceptReturnContext();
+  if (acceptedReturn?.projectName !== "Bard and the Frozen Guide") {
+    throw new Error(`Wake return context could not be accepted: ${JSON.stringify(acceptedReturn)}`);
+  }
 
   process.stdout.write(JSON.stringify({
     status: "pass",
@@ -284,6 +300,9 @@ vm.runInContext(fs.readFileSync(writebackPath, "utf8"), context, {
     driveStatus: applied.status,
     draftStatus: durable.draft.status,
     llmProvider: durable.llm_provider,
+    proposedReturnProject: proposedReturn.projectName,
+    returnGreeting: returnGreeting.thought,
+    acceptedReturnProject: acceptedReturn.projectName,
     reopenedAfterRestart: Boolean(durable)
   }, null, 2));
 })().catch((error) => {

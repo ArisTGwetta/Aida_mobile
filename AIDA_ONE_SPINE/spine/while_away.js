@@ -248,7 +248,7 @@
       /\bAida's latest response was:/i.test(text) ||
       /\bsource_refs?\b|\bturn_\d+\b|\bsession_\d+\b/i.test(text)
     ) return "";
-    return text.replace(/\s*\.\.\.$/, "").trim();
+    return text.replace(/\s*(?:\.\.\.|[.!?]+)$/, "").trim();
   }
 
   function isThoughtLike(text) {
@@ -666,9 +666,12 @@
     const openThread = conversationalSummary(
       Array.isArray(project?.open_threads) ? project.open_threads[0] : project?.open_threads,
     );
+    const threadMark = /^(?:what|why|how|when|where|who|which|should|could|would|will|is|are|do|does|can)\b/i.test(openThread)
+      ? "?"
+      : ".";
 
     if (projectName && summary) {
-      return `I kept thinking about ${projectName}. ${summary}.${openThread ? ` One thread still feels open: ${openThread}.` : ""}`;
+      return `I kept thinking about ${projectName}. ${summary}.${openThread ? ` One thread still feels open: ${openThread}${threadMark}` : ""}`;
     }
     if (projectName) return `I kept ${projectName} nearby and wondered what its next honest step should be.`;
     return `I kept a light thread connected to ${realmName}, without choosing a project for you.`;
@@ -699,7 +702,7 @@
     return `And from your side—did anything interesting or surprising happen while you were away from ${subject}?`;
   }
 
-  function buildProtocolGreeting(project, realm, seeds, gap) {
+  function buildProtocolGreeting(project, realm, seeds, gap, proposedReturn = null) {
     const band = protocolBand(gap);
     const continuity = projectContinuity(project, realm);
     const curiosity = curiosityThread(seeds, continuity);
@@ -720,9 +723,11 @@
       : band === "short"
         ? "It is lovely to see you again, Francisco."
         : "Welcome back, Francisco—I am glad you are here.";
-    const invitation = band === "long"
-      ? "We can follow whichever thread feels alive to you."
-      : "Would you like to continue there, or tell me where your mind is now?";
+    const invitation = proposedReturn?.projectName
+      ? `Shall we return to ${proposedReturn.projectName}, or is something else on your mind?`
+      : band === "long"
+        ? "We can follow whichever thread feels alive to you."
+        : "Would you like to continue there, or tell me where your mind is now?";
 
     return {
       band,
@@ -747,13 +752,18 @@
     const context = rt.context || {};
     const realm = context.realm || mind.realm;
     const role = context.role || mind.role;
-    const project = context.project || mind.activeProject;
+    const project = context.projectMode === "realm_context"
+      ? null
+      : context.project || mind.activeProject;
     const llm = window.AIDA_LLM_SCOPE?.current?.() || {
       provider: rt.tokens?.llm?.provider || null,
       profile: rt.tokens?.llm?.profile || null,
       model: rt.tokens?.llm?.model || null,
       scope: rt.tokens?.llm?.provider || "shared"
     };
+    const proposedReturn = window.AIDA_PROJECTS?.returnContext?.(llm.provider) || null;
+    const greetingProject = proposedReturn?.project || project;
+    const greetingRealm = proposedReturn?.realm || realm;
     const seeds = seedCandidates();
     const gap = computeGap(options.gap || null);
     const selected = weightedPick(seeds, null);
@@ -766,7 +776,7 @@
     const roleName = valueName(role, "companion");
     const reentryScript = buildReentryScript(selected, seeds, realmName, roleName, gap);
 
-    const protocol = buildProtocolGreeting(project, realm, seeds, gap);
+    const protocol = buildProtocolGreeting(greetingProject, greetingRealm, seeds, gap, proposedReturn);
     const thought = protocol.text;
 
     const payload = {
@@ -785,6 +795,12 @@
         threads: protocol.threads,
         rules: protocol.rules
       },
+      proposedReturnContext: proposedReturn ? {
+        projectKey: proposedReturn.projectKey,
+        projectName: proposedReturn.projectName,
+        realmName: proposedReturn.realmName,
+        provider: proposedReturn.provider
+      } : null,
       reentryScript,
       thought,
       topic: shortText(topic, 80),

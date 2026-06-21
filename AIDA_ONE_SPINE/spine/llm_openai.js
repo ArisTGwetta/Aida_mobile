@@ -210,6 +210,29 @@
     return true;
   }
 
+  async function runReturnContextChoice(userText) {
+    const proposed = runtime().context?.proposedReturnContext;
+    if (!proposed?.projectKey) return null;
+    const value = String(userText || "").trim();
+    const accepts = /^(?:yes|yes please|sure|okay|ok|let'?s|let us)\b.*(?:return|continue|go back|there)?[.!]*$/i.test(value) ||
+      /^(?:return|continue|go back)(?:\s+there)?[.!]*$/i.test(value);
+    if (!accepts) {
+      window.AIDA_PROJECTS?.dismissReturnContext?.();
+      return null;
+    }
+
+    const result = await window.AIDA_PROJECTS?.acceptReturnContext?.();
+    if (!result) return null;
+    const reply = `Lovely. We are back in ${result.projectName}${result.realmName ? ` within ${result.realmName}` : ""}.`;
+    appendChat("USER", userText);
+    appendChat("AIDA", reply);
+    window.AIDA_SESSION_CAPTURE?.captureExchange?.(userText, reply);
+    window.AIDA_BODY_PROJECTS?.render?.();
+    pulse(`Returned to ${result.projectName}.`);
+    log(`PROJECT RETURN: reopened ${result.projectName}.`, "log-blue");
+    return true;
+  }
+
   function runPendingStoryTitle(userText) {
     const result = window.AIDA_PROJECTS?.consumeUnnamedStoryTitle?.(userText);
     if (!result?.handled) return null;
@@ -269,6 +292,8 @@
     } else if (meditationScope === "current") {
       window.AIDA_LLM_SCOPE?.clearAccess?.();
     }
+    const returnChoice = await runReturnContextChoice(text);
+    if (returnChoice) return returnChoice;
     const navigation = navigationCommand(text);
     if (navigation) return runNavigationCommand(navigation, text);
     const namedStory = runPendingStoryTitle(text);

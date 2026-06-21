@@ -182,6 +182,7 @@
         name,
         kind: "project",
         realmKey: keyName(projectData?.realm || projectData?.realm_name || "unknown"),
+        llmProvider: projectData?.llm_provider || projectData?.llmProvider || null,
         source: "project_index",
         status: latestSummary(projectData) || textFrom(projectData, 180),
         lastActive: projectData?.last_active || projectData?.last_updated || null,
@@ -201,6 +202,7 @@
         name: activityName,
         kind: "project",
         realmKey: keyName(activity?.realm || activity?.realm_name || "unknown"),
+        llmProvider: activity?.llm_provider || activity?.llmProvider || null,
         source: "recent_activity",
         status: textFrom(activity?.one_liner || activity, 160),
         lastActive: activity?.last_active || null,
@@ -220,6 +222,7 @@
         name,
         kind: "project",
         realmKey: keyName(project?.realm || project?.realm_name || "unknown"),
+        llmProvider: project?.llm_provider || project?.llmProvider || null,
         source: "project_payload",
         status: latestSummary(project) || textFrom(activity?.one_liner || activity, 160),
         lastActive: project?.last_active || project?.last_updated || activity?.last_active || null,
@@ -237,6 +240,7 @@
         name: fileName.replace(/\.json$/i, "").replace(/^(realm_|project_briefcase_|briefcase_|project_)/i, "").toUpperCase(),
         kind: "project",
         realmKey: "unknown",
+        llmProvider: null,
         source: "indexed_project_payload",
         status: "Available in Drive; loads when selected.",
         lastActive: runtime().drive.fileIndex[fileName]?.modifiedTime || null,
@@ -968,6 +972,89 @@
     return selected ? { entry, selected } : null;
   }
 
+  function returnContext(provider = activeLlmProvider()) {
+    const rt = runtime();
+    const normalizedProvider = String(provider || "").toLowerCase();
+    const ledger = Object.values(rt.mind.projectLedger || {});
+    const rawStore = rt.drive?.files?.["raw_session_log.json"];
+    const rawRecords = safeArray(rawStore?.entries || rawStore);
+    const candidates = [];
+
+    rawRecords.forEach((record) => {
+      const tags = record?.tags || {};
+      const recordProvider = String(record?.llm_provider || tags.llm_provider || "").toLowerCase();
+      const projectFile = record?.project_file || tags.project_file || null;
+      const projectName = record?.project || tags.project || null;
+      if (!recordProvider || recordProvider !== normalizedProvider) return;
+      if (!projectFile || projectFile === "none" || isGenericRpg(projectName) || keyName(projectName) === "unknown_project") return;
+      const entry = ledger.find((item) => (
+        item.fileName === projectFile ||
+        item.key === projectFile ||
+        keyName(item.name) === keyName(projectName)
+      ));
+      if (!entry) return;
+      candidates.push({
+        entry,
+        at: record?.capturedAt || record?.captured_at || record?.last_seen || entry.lastActive || ""
+      });
+    });
+
+    ledger.forEach((entry) => {
+      const entryProvider = String(
+        entry.llmProvider ||
+        entry.summary?.llm_provider ||
+        entry.summary?.llmProvider ||
+        ""
+      ).toLowerCase();
+      if (entryProvider && entryProvider === normalizedProvider) {
+        candidates.push({ entry, at: entry.lastActive || "" });
+      }
+    });
+
+    const chosen = candidates
+      .sort((a, b) => String(b.at).localeCompare(String(a.at)))[0]?.entry || null;
+    if (!chosen) return null;
+    const realmEntry = Object.values(rt.mind.realmLedger || {}).find((realm) => realm.realmKey === chosen.realmKey) || null;
+    const storedProject = rt.mind.projects?.[chosen.fileName] || chosen.summary || {};
+    const projectPayload = {
+      ...(storedProject && typeof storedProject === "object" ? storedProject : {}),
+      project_name: valueName(storedProject, chosen.name),
+      realm: storedProject?.realm || realmEntry?.name || null
+    };
+    const result = {
+      provider: normalizedProvider,
+      projectKey: chosen.key,
+      projectFile: chosen.fileName,
+      projectName: chosen.name,
+      project: projectPayload,
+      realmKey: realmEntry?.key || null,
+      realmName: realmEntry?.name || projectPayload?.realm || null,
+      realm: realmEntry?.summary || null,
+      lastActive: chosen.lastActive || null
+    };
+    rt.context.proposedReturnContext = result;
+    return result;
+  }
+
+  async function acceptReturnContext() {
+    const rt = runtime();
+    const proposed = rt.context?.proposedReturnContext;
+    if (!proposed?.projectKey) return null;
+    const selected = await selectHydrated(proposed.projectKey);
+    if (!selected) return null;
+    rt.context.proposedReturnContext = null;
+    return {
+      selected,
+      projectName: proposed.projectName,
+      realmName: proposed.realmName
+    };
+  }
+
+  function dismissReturnContext() {
+    runtime().context.proposedReturnContext = null;
+    return true;
+  }
+
   async function claimProject(projectName, realmName) {
     const rt = runtime();
     const projectEntry = findByName(projectName, "project");
@@ -1135,6 +1222,9 @@
     hierarchy,
     findByName,
     openNamed,
+    returnContext,
+    acceptReturnContext,
+    dismissReturnContext,
     claimProject,
     select,
     selectHydrated,
