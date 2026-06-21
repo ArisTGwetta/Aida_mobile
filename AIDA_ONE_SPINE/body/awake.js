@@ -373,57 +373,92 @@
     const pane = $("pres-content");
     if (!pane) return;
 
-    const projects = window.AIDA_PROJECTS?.list?.() || window.AIDA_DRIVE?.listProjects?.() || [];
+    const hierarchy = window.AIDA_PROJECTS?.hierarchy?.() || [];
     const rt = runtime();
-    if (tag) tag.textContent = rt?.context?.projectName || "PROJECTS";
+    const activeRealm = hierarchy.find((realm) => realm.active);
+    const activeProject = activeRealm?.projects?.find((project) => project.active);
+    if (tag) {
+      tag.textContent = activeProject
+        ? `${projectLabel(activeRealm)} / ${projectLabel(activeProject)}`
+        : activeRealm
+          ? `${projectLabel(activeRealm)} / ALL PROJECTS`
+          : "REALMS / PROJECTS";
+    }
 
     pane.innerHTML = "";
 
-    if (!projects.length) {
-      pane.textContent = "No project ledger loaded. Fetch Drive JSON first.";
+    if (!hierarchy.length) {
+      pane.textContent = "No realm or project ledger loaded. Fetch Drive JSON first.";
       pulse("Project selector waiting for Drive project ledger.");
       return;
     }
 
-    projects.forEach((project) => {
-      const row = document.createElement("button");
-      row.type = "button";
-      row.className = "project-row";
-      row.dataset.projectName = project.fileName || project.key || "";
-      row.disabled = !project.fileName && !project.summary;
+    const selectEntry = async (entry, row) => {
+      row.disabled = true;
+      let selected = null;
+      try {
+        selected = await (
+          window.AIDA_PROJECTS?.selectHydrated?.(entry.key || entry.fileName) ||
+          window.AIDA_PROJECTS?.select?.(entry.key || entry.fileName) ||
+          window.AIDA_DRIVE?.selectActiveProject?.(entry.key || entry.fileName)
+        );
+      } finally {
+        row.disabled = false;
+      }
+      if (!selected) return;
+      const isRealm = entry.kind === "realm";
+      appendChat(
+        "AIDA",
+        isRealm
+          ? `Realm context switched to ${projectLabel(entry)}. Its projects are available, but no single story is active.`
+          : `Project context switched to ${projectLabel(entry)} inside ${projectLabel(activeRealm || {})}.`
+      );
+      pulse(`${isRealm ? "Realm" : "Project"} switched: ${entry.fileName || entry.key}`);
+      renderProjectSelector();
+    };
 
-      const name = document.createElement("span");
-      name.className = "project-row-name";
-      name.textContent = projectLabel(project);
+    hierarchy.forEach((realm) => {
+      const group = document.createElement("section");
+      group.className = `realm-group${realm.active ? " is-active" : ""}`;
 
-      const meta = document.createElement("span");
-      meta.className = "project-row-meta";
-      meta.textContent = [
-        project.lastActive ? `last ${project.lastActive}` : "",
-        project.status || ""
-      ].filter(Boolean).join(" | ") || project.source || "briefcase";
+      const realmRow = document.createElement("button");
+      realmRow.type = "button";
+      realmRow.className = `project-row realm-row${realm.active ? " is-active" : ""}`;
+      realmRow.dataset.projectName = realm.fileName || realm.key || "";
+      realmRow.disabled = !realm.fileName && !realm.summary;
 
-      row.append(name, meta);
-      row.addEventListener("click", async () => {
-        row.disabled = true;
-        let selected = null;
-        try {
-          selected = await (
-            window.AIDA_PROJECTS?.selectHydrated?.(project.key || project.fileName) ||
-            window.AIDA_PROJECTS?.select?.(project.key || project.fileName) ||
-            window.AIDA_DRIVE?.selectActiveProject?.(project.key || project.fileName)
-          );
-        } finally {
-          row.disabled = false;
-        }
-        if (!selected) return;
-        if (tag) tag.textContent = projectLabel(project);
-        appendChat("AIDA", `Project context switched to ${projectLabel(project)}.`);
-        pulse(`Project switched: ${project.fileName || project.key}`);
-        renderProjectSelector();
+      const realmName = document.createElement("span");
+      realmName.className = "project-row-name";
+      realmName.textContent = projectLabel(realm);
+      const realmMeta = document.createElement("span");
+      realmMeta.className = "project-row-meta";
+      realmMeta.textContent = `${realm.projects.length} project${realm.projects.length === 1 ? "" : "s"} · select realm-wide context`;
+      realmRow.append(realmName, realmMeta);
+      realmRow.addEventListener("click", () => selectEntry(realm, realmRow));
+      group.appendChild(realmRow);
+
+      realm.projects.forEach((project) => {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = `project-row project-child${project.active ? " is-active" : ""}`;
+        row.dataset.projectName = project.fileName || project.key || "";
+        row.disabled = !project.fileName && !project.summary;
+
+        const name = document.createElement("span");
+        name.className = "project-row-name";
+        name.textContent = projectLabel(project);
+        const meta = document.createElement("span");
+        meta.className = "project-row-meta";
+        meta.textContent = [
+          project.lastActive ? `last ${project.lastActive}` : "",
+          project.status || ""
+        ].filter(Boolean).join(" | ") || project.source || "briefcase";
+        row.append(name, meta);
+        row.addEventListener("click", () => selectEntry(project, row));
+        group.appendChild(row);
       });
 
-      pane.appendChild(row);
+      pane.appendChild(group);
     });
   }
 

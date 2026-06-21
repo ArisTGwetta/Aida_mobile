@@ -175,10 +175,13 @@
     for (const [projectKey, projectData] of Object.entries(projectIndex)) {
       const name = valueName(projectData, projectKey);
       const loadFileName = findLoadFileForProject(projectKey, projectData, projects, realms);
+      if (loadFileName && (realms[loadFileName] || isRealmFile(loadFileName))) continue;
 
       ledger[projectKey] = {
         key: projectKey,
         name,
+        kind: "project",
+        realmKey: keyName(projectData?.realm || projectData?.realm_name || "unknown"),
         source: "project_index",
         status: latestSummary(projectData) || textFrom(projectData, 180),
         lastActive: projectData?.last_active || projectData?.last_updated || null,
@@ -191,10 +194,13 @@
     for (const [activityName, activity] of Object.entries(globalActivity)) {
       if (ledger[activityName]) continue;
       const loadFileName = findLoadFileForProject(activityName, activity, projects, realms);
+      if (loadFileName && (realms[loadFileName] || isRealmFile(loadFileName))) continue;
 
       ledger[activityName] = {
         key: activityName,
         name: activityName,
+        kind: "project",
+        realmKey: keyName(activity?.realm || activity?.realm_name || "unknown"),
         source: "recent_activity",
         status: textFrom(activity?.one_liner || activity, 160),
         lastActive: activity?.last_active || null,
@@ -212,6 +218,8 @@
       ledger[fileName] = {
         key: fileName,
         name,
+        kind: "project",
+        realmKey: keyName(project?.realm || project?.realm_name || "unknown"),
         source: "project_payload",
         status: latestSummary(project) || textFrom(activity?.one_liner || activity, 160),
         lastActive: project?.last_active || project?.last_updated || activity?.last_active || null,
@@ -220,30 +228,16 @@
       };
     }
 
-    for (const [fileName, realm] of Object.entries(realms)) {
-      if (ledger[fileName]) continue;
-      const name = valueName(realm, fileName.replace(/\.json$/i, ""));
-      const activity = globalActivity[name] || globalActivity[String(name).toUpperCase()] || null;
-
-      ledger[fileName] = {
-        key: fileName,
-        name,
-        source: "realm_fallback",
-        status: textFrom(realm?.project_summary || realm?.summary || activity?.one_liner || activity, 160),
-        lastActive: realm?.last_active || realm?.last_updated || activity?.last_active || null,
-        loaded: true,
-        fileName
-      };
-    }
-
     for (const fileName of Object.keys(runtime().drive?.fileIndex || {})) {
-      if (!isProjectFile(fileName) && !isRealmFile(fileName)) continue;
+      if (!isProjectFile(fileName)) continue;
       if (ledger[fileName]) continue;
 
       ledger[fileName] = {
         key: fileName,
         name: fileName.replace(/\.json$/i, "").replace(/^(realm_|project_briefcase_|briefcase_|project_)/i, "").toUpperCase(),
-        source: isRealmFile(fileName) ? "indexed_realm" : "indexed_project_payload",
+        kind: "project",
+        realmKey: "unknown",
+        source: "indexed_project_payload",
         status: "Available in Drive; loads when selected.",
         lastActive: runtime().drive.fileIndex[fileName]?.modifiedTime || null,
         loaded: Boolean(projects[fileName] || realms[fileName]),
@@ -251,7 +245,59 @@
       };
     }
 
+    const payloadByName = new Map();
+    for (const entry of Object.values(ledger)) {
+      if (entry.source === "project_payload" || entry.source === "conversation_draft") {
+        payloadByName.set(keyName(entry.name), entry.key);
+      }
+    }
+    for (const [entryKey, entry] of Object.entries(ledger)) {
+      const payloadKey = payloadByName.get(keyName(entry.name));
+      if (payloadKey && payloadKey !== entryKey && entry.source !== "project_payload") {
+        delete ledger[entryKey];
+      }
+    }
+
     return ledger;
+  }
+
+  function buildRealmLedger(realms) {
+    const ledger = {};
+    const addRealm = (fileName, realm, loaded) => {
+      const realmKey = keyName(valueName(realm, fileName));
+      if (!realmKey || ledger[realmKey]?.loaded) return;
+      ledger[realmKey] = {
+        key: fileName,
+        realmKey,
+        name: valueName(realm, realmKey.toUpperCase()),
+        kind: "realm",
+        source: loaded ? "realm_payload" : "indexed_realm",
+        status: loaded
+          ? textFrom(realm?.project_summary || realm?.summary || realm?.description, 160)
+          : "Available in Drive; loads when selected.",
+        lastActive: realm?.last_active || realm?.last_updated || runtime().drive?.fileIndex?.[fileName]?.modifiedTime || null,
+        loaded,
+        fileName,
+        summary: realm
+      };
+    };
+
+    for (const [fileName, realm] of Object.entries(realms)) addRealm(fileName, realm, true);
+    for (const fileName of Object.keys(runtime().drive?.fileIndex || {})) {
+      if (isRealmFile(fileName)) addRealm(fileName, {}, false);
+    }
+    return ledger;
+  }
+
+  function resolveRealmEntry(value) {
+    const rt = runtime();
+    const wanted = keyName(value);
+    return Object.values(rt.mind.realmLedger || {}).find((entry) => (
+      entry.realmKey === wanted ||
+      keyName(entry.key) === wanted ||
+      keyName(entry.fileName) === wanted ||
+      keyName(entry.name) === wanted
+    )) || null;
   }
 
   function contextParts(project) {
@@ -478,11 +524,28 @@
     const isDedicatedProject = Boolean(loadName && projects[loadName]);
     const isRealmContext = Boolean(loadName && realms[loadName] && !isDedicatedProject);
 
-    if (isRealmContext) rt.mind.realm = selected;
+    if (isRealmContext) {
+      rt.mind.realm = selected;
+      rt.mind.activeRealmName = selectedKey;
+      rt.context.activeRealmName = selectedKey;
+      rt.context.activeProjectName = null;
+      rt.context.unnamedStoryBoundaryTurn = safeArray(rt.session?.currentTurns).length;
+      rt.context.pendingUnnamedStory = null;
+    }
+    if (isDedicatedProject) {
+      const realmEntry = resolveRealmEntry(selected?.realm || selected?.realm_name);
+      const realmFile = realmEntry?.fileName;
+      const projectRealm = realmFile ? realms[realmFile] || realmEntry?.summary : null;
+      if (projectRealm) rt.mind.realm = projectRealm;
+      rt.mind.activeRealmName = realmEntry?.key || rt.mind.activeRealmName || null;
+      rt.context.activeRealmName = rt.mind.activeRealmName;
+      rt.context.activeProjectName = selectedKey;
+      rt.context.pendingUnnamedStory = null;
+    }
     rt.mind.activeProject = isDedicatedProject ? selected : null;
-    rt.mind.activeProjectName = selectedKey;
+    rt.mind.activeProjectName = isDedicatedProject ? selectedKey : null;
 
-    rt.context.realm = isRealmContext ? selected : rt.mind.realm;
+    rt.context.realm = rt.mind.realm;
     rt.context.project = selected;
     rt.context.projectName = selectedKey;
     rt.context.projectMode = isDedicatedProject ? "project_payload" : isRealmContext ? "realm_context" : "project_index";
@@ -530,7 +593,9 @@
         key: selectedKey,
         loadName,
         mode: rt.context.projectMode,
-        name: selected ? valueName(selected, ledgerEntry?.name || selectedKey) : null
+        name: selected ? valueName(selected, ledgerEntry?.name || selectedKey) : null,
+        realmKey: rt.context.activeRealmName,
+        projectKey: rt.context.activeProjectName
       }
     }));
 
@@ -604,6 +669,8 @@
     rt.mind.projectLedger[fileName] = {
       key: fileName,
       name: cleanName,
+      kind: "project",
+      realmKey: keyName(realmName),
       source: "conversation_draft",
       status: project.summary,
       lastActive: createdAt,
@@ -787,9 +854,19 @@
     const rt = runtime();
     const projectName = rt.context?.projectName;
     const projectMode = rt.context?.projectMode;
-    if (projectMode !== "realm_context" || !isGenericRpg(projectName)) return null;
+    if (
+      projectMode !== "realm_context" ||
+      rt.context?.activeProjectName ||
+      !isGenericRpg(projectName)
+    ) return null;
 
-    const records = recentAdoptableHistory({ limit: 6 });
+    const boundary = Number(rt.context?.unnamedStoryBoundaryTurn || 0);
+    const provider = activeLlmProvider();
+    const records = safeArray(rt.session?.currentTurns)
+      .slice(boundary)
+      .filter((record) => isAdoptableRecord(record, provider))
+      .map(historyRecord)
+      .slice(-6);
     if (records.length < 3) return null;
     const signature = records.map((item) => item.source_ref).join("|");
     if (rt.context?.lastUnnamedStorySuggestion === signature) return null;
@@ -847,7 +924,10 @@
   function needsHydration(projectKey) {
     const rt = runtime();
     const ledger = rt.mind.projectLedger || {};
-    const ledgerEntry = projectKey ? ledger[projectKey] || null : null;
+    const realmEntry = projectKey
+      ? Object.values(rt.mind.realmLedger || {}).find((entry) => entry.key === projectKey || entry.realmKey === keyName(projectKey))
+      : null;
+    const ledgerEntry = projectKey ? ledger[projectKey] || realmEntry || null : null;
     const loadName = ledgerEntry?.fileName || projectKey;
     return Boolean(
       loadName &&
@@ -869,6 +949,59 @@
     return Object.values(runtime().mind.projectLedger || {});
   }
 
+  function findByName(name, kind = "project") {
+    const wanted = keyName(name);
+    const entries = kind === "realm"
+      ? Object.values(runtime().mind.realmLedger || {})
+      : Object.values(runtime().mind.projectLedger || {});
+    return entries.find((entry) => (
+      keyName(entry.key) === wanted ||
+      keyName(entry.fileName) === wanted ||
+      keyName(entry.name) === wanted
+    )) || entries.find((entry) => keyName(entry.name).includes(wanted)) || null;
+  }
+
+  async function openNamed(name, kind = "project") {
+    const entry = findByName(name, kind);
+    if (!entry) return null;
+    const selected = await selectHydrated(entry.key || entry.fileName);
+    return selected ? { entry, selected } : null;
+  }
+
+  function hierarchy() {
+    const rt = runtime();
+    const realms = Object.values(rt.mind.realmLedger || {});
+    const projects = Object.values(rt.mind.projectLedger || {});
+    const groups = realms.map((realm) => ({
+      ...realm,
+      active: keyName(rt.context?.activeRealmName) === keyName(realm.key),
+      projects: projects
+        .filter((project) => project.realmKey === realm.realmKey)
+        .map((project) => ({
+          ...project,
+          active: rt.context?.activeProjectName === project.key
+        }))
+    }));
+    const assigned = new Set(groups.flatMap((realm) => realm.projects.map((project) => project.key)));
+    const unassigned = projects.filter((project) => !assigned.has(project.key));
+    if (unassigned.length) {
+      groups.push({
+        key: "unknown_realm",
+        realmKey: "unknown",
+        name: "UNFILED",
+        kind: "realm",
+        source: "synthetic",
+        loaded: true,
+        active: false,
+        projects: unassigned.map((project) => ({
+          ...project,
+          active: rt.context?.activeProjectName === project.key
+        }))
+      });
+    }
+    return groups;
+  }
+
   function mapDriveFilesToMind(files = runtime().drive?.files || {}, options = {}) {
     const rt = runtime();
     const selectDefault = options.selectDefault !== false;
@@ -888,6 +1021,7 @@
     rt.mind.projects = Object.fromEntries(Object.entries(files).filter(([name]) => isProjectFile(name)));
     rt.mind.projectSummariesIndex = normalizeProjectIndex(files);
     rt.mind.projectLedger = buildProjectLedger(files, rt.mind.projects, rt.mind.realms);
+    rt.mind.realmLedger = buildRealmLedger(rt.mind.realms);
 
     const architectureRealm = files["realm_aida_architecture.json"] || null;
     const architectRole = files["role_architect_companion.json"] || null;
@@ -930,12 +1064,16 @@
       roles: Object.keys(rt.mind.roles).length,
       projects: Object.keys(rt.mind.projects).length,
       projectLedger: Object.keys(rt.mind.projectLedger).length,
+      realmLedger: Object.keys(rt.mind.realmLedger).length,
       activeProject: Boolean(rt.context.project)
     };
   }
 
   window.AIDA_PROJECTS = {
     list,
+    hierarchy,
+    findByName,
+    openNamed,
     select,
     selectHydrated,
     createDraft,

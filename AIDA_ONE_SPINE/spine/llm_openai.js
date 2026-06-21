@@ -67,6 +67,18 @@
     return /^\s*#(?:adopthistory|adopt-history)\s*$/i.test(String(text || ""));
   }
 
+  function navigationCommand(text) {
+    const value = String(text || "").trim();
+    if (/^(?:list|show)\s+(?:my\s+)?(?:stories|projects|realms)\??$/i.test(value)) {
+      return { action: "list" };
+    }
+    const realm = value.match(/^(?:open|switch to)\s+realm\s+(.+?)\s*$/i);
+    if (realm) return { action: "open", kind: "realm", name: realm[1] };
+    const project = value.match(/^(?:open|switch to|continue)\s+(?:project|story)\s+(.+?)\s*$/i);
+    if (project) return { action: "open", kind: "project", name: project[1] };
+    return null;
+  }
+
   function asksForLlmIdentity(text) {
     const value = String(text || "").toLowerCase();
     const asksAboutHistory = /\b(remember|recall|memory|before|earlier|previous|last time|when we|used to)\b/.test(value);
@@ -150,6 +162,34 @@
     return Boolean(result?.ok);
   }
 
+  async function runNavigationCommand(command, visibleUserText) {
+    let reply = "";
+    if (command.action === "list") {
+      const groups = window.AIDA_PROJECTS?.hierarchy?.() || [];
+      reply = groups.length
+        ? groups.map((realm) => {
+            const stories = realm.projects?.length
+              ? realm.projects.map((project) => project.name).join(", ")
+              : "no named projects yet";
+            return `${realm.name}: ${stories}`;
+          }).join("\n")
+        : "I do not have a realm or project ledger loaded yet.";
+    } else {
+      const opened = await window.AIDA_PROJECTS?.openNamed?.(command.name, command.kind);
+      reply = opened
+        ? command.kind === "realm"
+          ? `Realm opened: ${opened.entry.name}. I can consider its shared context and all projects, but no single project is active.`
+          : `Project opened: ${opened.entry.name}. Its realm context is also active.`
+        : `I could not find a ${command.kind} named "${command.name}". Try “list my stories” to see what is available.`;
+    }
+    appendChat("USER", visibleUserText);
+    appendChat("AIDA", reply);
+    window.AIDA_SESSION_CAPTURE?.captureExchange?.(visibleUserText, reply);
+    window.AIDA_BODY_PROJECTS?.render?.();
+    pulse(command.action === "list" ? "Realm and project ledger listed." : "Realm/project navigation completed.");
+    return true;
+  }
+
   function runPendingStoryTitle(userText) {
     const result = window.AIDA_PROJECTS?.consumeUnnamedStoryTitle?.(userText);
     if (!result?.handled) return null;
@@ -202,6 +242,8 @@
     if (!text) return false;
 
     const rt = runtime();
+    const navigation = navigationCommand(text);
+    if (navigation) return runNavigationCommand(navigation, text);
     const namedStory = runPendingStoryTitle(text);
     if (namedStory) return namedStory;
     if (isAdoptHistoryCommand(text)) {
