@@ -65,9 +65,19 @@
 
   function asksForLlmIdentity(text) {
     const value = String(text || "").toLowerCase();
-    const mentionsEngine = /\b(llm|language model|model|provider|open\s*ai|openai|grok|xai|ollama|llama)\b/.test(value);
-    const asksWhich = /\b(which|what|who|using|running|powered|underlying|current|right now)\b/.test(value);
-    return mentionsEngine && asksWhich;
+    const asksAboutHistory = /\b(remember|recall|memory|before|earlier|previous|last time|when we|used to)\b/.test(value);
+    const explicitlyCurrent = /\b(current|currently|right now|today|this session|working on now)\b/.test(value);
+    if (asksAboutHistory && !explicitlyCurrent) return false;
+
+    const directPatterns = [
+      /\b(?:what|which)\s+(?:llm|language model|model|provider|engine)\b.*\b(?:using|running|on|active|current)\b/,
+      /\b(?:what|which)\b.*\b(?:llm|language model|model|provider|engine)\b.*\b(?:right now|currently|today|this session)\b/,
+      /\b(?:what|which)\s+(?:llm|language model|model|provider|engine)\s+(?:are|is|do)\s+(?:we|you)\b/,
+      /\b(?:are|is)\s+(?:we|you)\s+(?:using|running on|powered by)\s+(?:open\s*ai|openai|grok|xai|ollama|llama)\b/,
+      /\bis it\s+(?:open\s*ai|openai|grok|xai|ollama|llama|something else)\b/,
+      /\bwho\s+(?:is powering|powers|hosts)\s+(?:you|aida)\b/
+    ];
+    return directPatterns.some((pattern) => pattern.test(value));
   }
 
   function llmIdentityReply() {
@@ -237,7 +247,8 @@
     window.AIDA_CONVERSATION = {
       sendText,
       sendFromInput,
-      gate
+      gate,
+      isLlmIdentityQuestion: asksForLlmIdentity
     };
     window.AIDA_LLM = {
       callMessages: window.AIDA_LLM_PROVIDER.callMessages,

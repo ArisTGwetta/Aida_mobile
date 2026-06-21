@@ -294,6 +294,56 @@ function runConversationIdentitySourceTest() {
   return { deterministicReply: true, promptGrounding: true, modelInTetrad: true };
 }
 
+function runIdentityQuestionClassifierTest() {
+  const conversationPath = path.join(repoRoot, "AIDA_ONE_SPINE", "spine", "llm_openai.js");
+  global.document = {
+    addEventListener: (event, callback) => {
+      if (event === "DOMContentLoaded") callback();
+    },
+    getElementById: () => null
+  };
+  global.window = {
+    AIDA_RUNTIME: {
+      boot: {},
+      tokens: { llm: {}, openai: {} },
+      context: {}
+    },
+    AIDA_LLM_PROVIDER: {
+      callMessages: async () => "",
+      extractOutputText: () => "",
+      readiness: () => ({ pass: true }),
+      currentInfo: () => ({
+        provider: "ollama",
+        providerLabel: "local Ollama",
+        model: "llama3:latest",
+        profile: "private-local",
+        local: true
+      })
+    },
+    AIDA_MODULES: { register() {} }
+  };
+  Function(fs.readFileSync(conversationPath, "utf8"))();
+  const classify = global.window.AIDA_CONVERSATION?.isLlmIdentityQuestion;
+  assert(classify, "Conversation identity classifier was not exposed.");
+
+  const direct = [
+    "Can you tell me what LLM are we using right now?",
+    "What llm are we working on today?",
+    "Is it OpenAI, Grok, or something else?"
+  ];
+  const historical = [
+    "Do you remember when we talked and you were using Grok or Ollama?",
+    "What do you remember before this conversation?",
+    "Did we use Ollama earlier?"
+  ];
+  direct.forEach((text) => assert(classify(text), `Direct identity question was missed: ${text}`));
+  historical.forEach((text) => assert(!classify(text), `Historical question was incorrectly intercepted: ${text}`));
+  return {
+    directQuestionsRecognized: direct.length,
+    historicalQuestionsPassedThrough: historical.length
+  };
+}
+
 async function main() {
   const startedAt = new Date().toISOString();
   try {
@@ -331,6 +381,8 @@ async function main() {
       indexedRouteFallback: runIndexedRouteFallbackSourceTest()
       ,
       conversationIdentity: runConversationIdentitySourceTest()
+      ,
+      identityQuestionClassifier: runIdentityQuestionClassifierTest()
     };
     console.log(JSON.stringify({
       status: "pass",
