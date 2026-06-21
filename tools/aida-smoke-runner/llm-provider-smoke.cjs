@@ -20,6 +20,7 @@ async function runRoute(provider, route, expected) {
   const requests = [];
   global.document = { addEventListener() {} };
   global.window = {
+    location: { protocol: "http:", hostname: "127.0.0.1" },
     AIDA_CONFIG: {
       llm: {
         model: "gpt-4.1-mini",
@@ -66,6 +67,50 @@ async function runRoute(provider, route, expected) {
     model: request.body.model,
     hasAuthorization: Boolean(request.options.headers.Authorization)
   };
+}
+
+function runHostedOllamaGuardTest() {
+  global.document = { addEventListener() {} };
+  global.window = {
+    location: { protocol: "https:", hostname: "aristgwetta.github.io" },
+    AIDA_CONFIG: {
+      llm: {
+        providers: {
+          ollama: {
+            model: "llama3:latest",
+            endpoint: "http://127.0.0.1:11434/v1/responses"
+          }
+        }
+      }
+    },
+    AIDA_RUNTIME: {
+      tokens: {
+        llm: {
+          provider: "ollama",
+          profile: "private-local",
+          auth: "none"
+        }
+      },
+      context: {}
+    },
+    AIDA_MODULES: { register() {} }
+  };
+  Function(fs.readFileSync(providerPath, "utf8"))();
+  return global.window.AIDA_LLM_PROVIDER.callMessages([
+    { role: "user", content: "Hello" }
+  ]).then(
+    () => {
+      throw new Error("Hosted Ollama guard did not block the loopback call.");
+    },
+    (error) => {
+      assert(
+        error.message.includes("local Preview Awake"),
+        "Hosted Ollama guard returned an unclear error.",
+        error.message
+      );
+      return { blockedBeforeFetch: true, messageIsActionable: true };
+    }
+  );
 }
 
 function makeStorage(values = {}) {
@@ -260,6 +305,7 @@ async function main() {
         hasAuth: false,
         normalizedProvider: "ollama"
       }),
+      hostedOllamaGuard: await runHostedOllamaGuardTest(),
       credentialClear: runCredentialClearTest(),
       grokAirlockSelection: runAirlockSelectionTest("456", "xai"),
       ollamaAirlockSelection: runAirlockSelectionTest("789", "ollama"),

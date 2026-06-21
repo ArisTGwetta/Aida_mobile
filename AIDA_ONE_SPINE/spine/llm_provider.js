@@ -49,6 +49,25 @@
     return parsed.toString();
   }
 
+  function assertBrowserCanReach(provider, endpoint) {
+    if (provider !== "ollama" || typeof window === "undefined") return;
+
+    let target;
+    try {
+      target = new URL(endpoint);
+    } catch (_) {
+      return;
+    }
+
+    const loopback = ["127.0.0.1", "localhost", "::1"].includes(target.hostname);
+    const hostedHttps = window.location?.protocol === "https:";
+    if (loopback && target.protocol === "http:" && hostedHttps) {
+      throw new Error(
+        "Local Ollama cannot be reached from the hosted GitHub page. Open Aida through the local Preview Awake address (http://127.0.0.1:8765/) and select route 789 there."
+      );
+    }
+  }
+
   function modelFor(provider, override) {
     return (
       override ||
@@ -96,7 +115,9 @@
     const headers = { "Content-Type": "application/json" };
     if (requiresKey(provider)) headers.Authorization = `Bearer ${route().key}`;
 
-    const response = await fetch(endpointFor(provider), {
+    const endpoint = endpointFor(provider);
+    assertBrowserCanReach(provider, endpoint);
+    const response = await fetch(endpoint, {
       method: "POST",
       headers,
       body: JSON.stringify({
