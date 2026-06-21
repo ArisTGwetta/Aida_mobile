@@ -375,6 +375,16 @@
 
     const hierarchy = window.AIDA_PROJECTS?.hierarchy?.() || [];
     const rt = runtime();
+    if (window.AIDA_PROJECTS?.hierarchyNeedsHydration?.()) {
+      pane.innerHTML = '<div class="project-shelf-loading">Loading project shelves from Drive...</div>';
+      window.AIDA_PROJECTS.hydrateHierarchy()
+        .then(() => renderProjectSelector())
+        .catch((error) => {
+          pane.textContent = `Project shelves could not finish loading: ${error.message}`;
+          pulse(`Project hierarchy hydration failed: ${error.message}`);
+        });
+      return;
+    }
     const activeRealm = hierarchy.find((realm) => realm.active);
     const activeProject = activeRealm?.projects?.find((project) => project.active);
     if (tag) {

@@ -628,6 +628,13 @@ html[data-llm-provider="ollama"] #debug-pane {
   font-size: 12px;
 }
 
+.project-shelf-loading {
+  padding: 8px 6px;
+  color: rgba(216, 255, 255, 0.78);
+  font-size: 8px;
+  letter-spacing: 0.4px;
+}
+
 .project-row {
   display: flex;
   flex-direction: column;

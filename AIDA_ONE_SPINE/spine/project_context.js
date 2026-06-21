@@ -949,6 +949,35 @@
     return select(projectKey);
   }
 
+  let hierarchyHydration = null;
+  function hierarchyNeedsHydration() {
+    const rt = runtime();
+    return Object.keys(rt.drive?.fileIndex || {}).some((fileName) => (
+      isProjectFile(fileName) && !rt.drive?.files?.[fileName]
+    ));
+  }
+
+  async function hydrateHierarchy() {
+    if (!hierarchyNeedsHydration()) return hierarchy();
+    if (hierarchyHydration) return hierarchyHydration;
+
+    const rt = runtime();
+    const pending = Object.keys(rt.drive?.fileIndex || {}).filter((fileName) => (
+      isProjectFile(fileName) && !rt.drive?.files?.[fileName]
+    ));
+    hierarchyHydration = (async () => {
+      log(`PROJECT: Hydrating ${pending.length} deferred briefcase(s) for the realm browser.`, "log-blue");
+      for (const fileName of pending) {
+        await window.AIDA_DRIVE?.fetchContextJson?.(fileName);
+      }
+      mapDriveFilesToMind(rt.drive.files, { selectDefault: false });
+      return hierarchy();
+    })().finally(() => {
+      hierarchyHydration = null;
+    });
+    return hierarchyHydration;
+  }
+
   function list() {
     return Object.values(runtime().mind.projectLedger || {});
   }
@@ -1220,6 +1249,8 @@
   window.AIDA_PROJECTS = {
     list,
     hierarchy,
+    hierarchyNeedsHydration,
+    hydrateHierarchy,
     findByName,
     openNamed,
     returnContext,
