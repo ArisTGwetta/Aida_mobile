@@ -110,6 +110,30 @@
     return chunks.join("\n").trim();
   }
 
+  function extractWebSources(data) {
+    const sources = [];
+    for (const item of data?.output || []) {
+      if (item?.type === "web_search_call") {
+        for (const source of item?.action?.sources || []) {
+          if (source?.url) sources.push({ url: source.url, title: source.title || source.url });
+        }
+      }
+      for (const content of item?.content || []) {
+        for (const annotation of content?.annotations || []) {
+          if (annotation?.type === "url_citation" && annotation?.url) {
+            sources.push({ url: annotation.url, title: annotation.title || annotation.url });
+          }
+        }
+      }
+    }
+    const seen = new Set();
+    return sources.filter((source) => {
+      if (seen.has(source.url)) return false;
+      seen.add(source.url);
+      return true;
+    });
+  }
+
   function readiness() {
     const selected = normalizeProvider(route().provider);
     const missing = [];
@@ -167,9 +191,69 @@
     return text;
   }
 
+  async function callWebSearch(query, options = {}) {
+    const ready = readiness();
+    if (!ready.pass) throw new Error(`LLM route is not ready: ${ready.missing.join(", ")}.`);
+    if (ready.provider !== "openai") {
+      throw new Error("Web retrieval currently requires the OpenAI route.");
+    }
+    const model = options.model || config().webSearchModel || "gpt-5.5";
+    const response = await fetch(FIXED_ENDPOINTS.openai, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${route().key}`
+      },
+      body: JSON.stringify({
+        model,
+        tools: [{ type: "web_search" }],
+        tool_choice: "auto",
+        include: ["web_search_call.action.sources"],
+        input: [
+          {
+            role: "system",
+            content: [
+              {
+                type: "input_text",
+                text: "You are Aida's explicit web retriever. Research only the user's stated query. Give a concise answer grounded in current web sources. Distinguish established facts from uncertainty. Do not claim background research, and do not mix private memory into the search request."
+              }
+            ]
+          },
+          {
+            role: "user",
+            content: [{ type: "input_text", text: String(query || "").trim() }]
+          }
+        ],
+        max_output_tokens: options.maxOutputTokens || 1100
+      })
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      const detail = data?.error?.message || data?.detail || `HTTP ${response.status}`;
+      throw new Error(`OpenAI web search failed: ${detail}`);
+    }
+    const text = extractOutputText(data);
+    if (!text) throw new Error("OpenAI web search did not contain text output.");
+    const result = {
+      text,
+      sources: extractWebSources(data),
+      provider: "openai",
+      model,
+      responseId: data.id || null,
+      searchedAt: new Date().toISOString()
+    };
+    const rt = runtime();
+    rt.research = rt.research || {};
+    rt.research.lastWebSearch = result;
+    rt.research.history = [...(rt.research.history || []), result].slice(-10);
+    return result;
+  }
+
   window.AIDA_LLM_PROVIDER = {
     callMessages,
+    callWebSearch,
     extractOutputText,
+    extractWebSources,
     readiness,
     currentInfo,
     normalizeProvider,
@@ -183,7 +267,7 @@
       reads: ["AIDA_RUNTIME.tokens.llm", "AIDA_CONFIG.llm.providers"],
       writes: ["AIDA_RUNTIME.context.lastLlmResponse"],
       requires: ["AIDA_RUNTIME"],
-      verifies: ["OpenAI and xAI use fixed official endpoints; Ollama routes send no bearer key"]
+      verifies: ["OpenAI and xAI use fixed official endpoints; Ollama routes send no bearer key; explicit OpenAI web retrieval returns source metadata"]
     });
   }
 })();

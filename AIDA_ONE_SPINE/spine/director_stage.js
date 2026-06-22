@@ -1,6 +1,7 @@
 (function () {
   const MODULE_ID = "spine.director.stage";
   const ASSET_ROOT = "body/assets/stage";
+  const SERANA_MANIFEST = "character_pack_serana.json";
 
   const SERANA_EXPRESSIONS = {
     coy: "Coy.png",
@@ -132,6 +133,35 @@
     return window.AIDA_RUNTIME;
   }
 
+  function privateCharacters() {
+    const rt = runtime();
+    rt.director = rt.director || {};
+    rt.director.privateCharacters = rt.director.privateCharacters || {};
+    return rt.director.privateCharacters;
+  }
+
+  function seranaManifest() {
+    return privateCharacters().serana || null;
+  }
+
+  async function hydratePrivateCharacters() {
+    if (!runtime()?.tokens?.drive?.accessToken || !window.AIDA_DRIVE?.fetchJsonByName) return null;
+    try {
+      const manifest = await window.AIDA_DRIVE.fetchJsonByName(SERANA_MANIFEST, "director_private_character");
+      if (!manifest?.expressions || manifest.id !== "serana") throw new Error("Serana manifest is malformed.");
+      privateCharacters().serana = manifest;
+      return manifest;
+    } catch (error) {
+      delete privateCharacters().serana;
+      return null;
+    }
+  }
+
+  function driveExpressionFile(expression) {
+    const manifest = seranaManifest();
+    return manifest?.expressions?.[expression] || manifest?.expressions?.pensive || null;
+  }
+
   function cleanKey(value, fallback = "pensive") {
     return String(value || fallback)
       .trim()
@@ -181,7 +211,9 @@
       "When direct depiction should become discreet, do not scold, moralize, diagnose, or break the story. Use cinematic implication, a cutaway, fade, environmental detail, or an aftermath transition. Aida may make one brief warm co-author aside.",
       "STAGE CONTINUITY: hold the latest character/location image through Narrator and Aida beats. Do not switch back to a System jewel merely because the current beat is narration or Aida commentary. Change the stage only when a character expression materially changes, another subject/location is shown, or a deliberate cutaway/clear cue is needed.",
       "Do not confuse fictional tragedy, violence, flawed beliefs, or dramatic irony with real-world encouragement. If Francisco expresses genuine immediate real-world danger, respond to that directly instead of hiding it behind a cutaway.",
-      "Available first-stage character: Princess Serana. Available expressions: coy, determined, exhausted, joyful, pensive, picaresque, postbattle, satisfied, wary.",
+      seranaManifest()
+        ? "Available private-stage character: Princess Serana. Available expressions: coy, determined, exhausted, joyful, pensive, picaresque, postbattle, satisfied, wary."
+        : "No private character pack is currently loaded. Use System imagery until an authenticated character becomes available.",
       "System imagery supports non-character presentation with: celebration, coy, determined, exhausted, joyful, pensive, picaresque, satisfied, wary."
     ].join("\n");
   }
@@ -224,12 +256,26 @@
     const mode = String(cue.mode || (cue.character ? "character" : "system")).toLowerCase();
     const expression = cleanKey(cue.expression);
     if (mode === "character" || cleanKey(cue.character, "") === "serana") {
+      const fileName = driveExpressionFile(expression);
+      const cachedUrl = fileName ? window.AIDA_DRIVE?.cachedBlobUrl?.(fileName) : null;
+      if (!fileName) {
+        return {
+          mode: "system",
+          character: null,
+          expression: "pensive",
+          src: `${ASSET_ROOT}/System/${SYSTEM_EXPRESSIONS.pensive}`,
+          label: "AIDA'S STAGE",
+          privateUnavailable: true
+        };
+      }
       return {
         mode: "character",
         character: "serana",
-        expression: SERANA_EXPRESSIONS[expression] ? expression : "pensive",
-        src: `${ASSET_ROOT}/games/serana/characters/serana/${SERANA_EXPRESSIONS[expression] || SERANA_EXPRESSIONS.pensive}`,
-        label: "PRINCESS SERANA"
+        expression: driveExpressionFile(expression) ? expression : "pensive",
+        src: cachedUrl || `${ASSET_ROOT}/System/${SYSTEM_EXPRESSIONS.pensive}`,
+        label: "PRINCESS SERANA",
+        driveFile: fileName,
+        privatePending: !cachedUrl
       };
     }
     return {
@@ -272,6 +318,16 @@
       rt.director.activeCharacter = asset.character;
       rt.director.activeExpression = asset.expression;
       rt.director.lastCueAt = new Date().toISOString();
+    }
+    if (asset.privatePending && asset.driveFile && window.AIDA_DRIVE?.fetchBlobUrlByName) {
+      const requestedAt = rt?.director?.lastCueAt;
+      window.AIDA_DRIVE.fetchBlobUrlByName(asset.driveFile).then((url) => {
+        if (!url || runtime()?.director?.lastCueAt !== requestedAt) return;
+        image.src = url;
+        image.alt = `${asset.label}, ${asset.expression}`;
+      }).catch(() => {
+        if (caption) caption.textContent = "Private character art is unavailable; Aida is holding the system stage.";
+      });
     }
     return asset;
   }
@@ -355,6 +411,8 @@
       });
     }
     setStage({ mode: "system", expression: "pensive" });
+    window.addEventListener("aida:drive-loaded", hydratePrivateCharacters);
+    if (runtime()?.boot?.driveLoaded) hydratePrivateCharacters();
   }
 
   window.AIDA_DIRECTOR = {
@@ -364,8 +422,9 @@
     setStage,
     runDemo,
     inspect,
+    hydratePrivateCharacters,
     assets: {
-      serana: { ...SERANA_EXPRESSIONS },
+      serana: { source: "private_drive", manifest: SERANA_MANIFEST },
       system: { ...SYSTEM_EXPRESSIONS }
     }
   };

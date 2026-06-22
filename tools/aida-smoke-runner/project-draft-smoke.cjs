@@ -286,6 +286,152 @@ vm.runInContext(fs.readFileSync(writebackPath, "utf8"), context, {
     throw new Error(`Wake return context could not be accepted: ${JSON.stringify(acceptedReturn)}`);
   }
 
+  const duplicateFile = "project_BARD_AND_THE_FROZEN_GUIDE.json";
+  const otherLlmFile = "project_briefcase_bard_frozen_guide_grok.json";
+  runtime.drive.files[duplicateFile] = {
+    project_name: "BARD AND THE FROZEN GUIDE",
+    name: "BARD AND THE FROZEN GUIDE",
+    realm: "UNFILED",
+    status: "active",
+    llm_provider: "openai",
+    llm_scope: "openai",
+    latest_summary: "The frozen ghost guides the bard through an abandoned winter chapel.",
+    open_threads: ["Why does the ghost remember the bard?"],
+    source_refs: ["older_session#turn_9"],
+    last_updated: "2026-06-20T12:00:00.000Z"
+  };
+  runtime.drive.files[otherLlmFile] = {
+    project_name: "Bard Frozen Guide Grok",
+    name: "Bard Frozen Guide Grok",
+    realm: "RPG",
+    status: "active",
+    llm_provider: "xai",
+    llm_scope: "xai",
+    latest_summary: "A Grok-only version that must remain sealed.",
+    source_refs: ["grok_session#turn_2"]
+  };
+  window.AIDA_PROJECTS.mapDriveFilesToMind(runtime.drive.files, { selectDefault: false });
+  const memoryOverview = window.AIDA_PROJECTS.memoryOverview();
+  if (memoryOverview.projects.some((project) => project.fileName === otherLlmFile)) {
+    throw new Error("Memory overview leaked another LLM's project.");
+  }
+  const projectSummary = await window.AIDA_PROJECTS.summarizeProject("Bard and the Frozen Guide");
+  if (!projectSummary.ok || !projectSummary.summary.includes("bard chose Liora")) {
+    throw new Error(`Named project summary failed: ${JSON.stringify(projectSummary)}`);
+  }
+  const comparison = await window.AIDA_PROJECTS.compareProjects("compare the two Bard and the Frozen Guide project versions");
+  if (!comparison.ok || comparison.candidates.length !== 2) {
+    throw new Error(`Duplicate comparison failed: ${JSON.stringify(comparison)}`);
+  }
+  if (comparison.candidates.some((project) => project.fileName === otherLlmFile)) {
+    throw new Error("Project comparison crossed the current LLM boundary.");
+  }
+  if (comparison.recommendedSurvivor.fileName !== created.fileName) {
+    throw new Error(`Comparison did not prefer the filed canonical briefcase: ${comparison.recommendedSurvivor.fileName}`);
+  }
+  const reconciled = window.AIDA_PROJECTS.confirmProjectReconciliation();
+  if (!reconciled.ok) throw new Error(`Project reconciliation failed: ${JSON.stringify(reconciled)}`);
+  const mergedProject = runtime.drive.files[created.fileName];
+  if (!mergedProject.open_threads.includes("Why does the ghost remember the bard?")) {
+    throw new Error("Unique duplicate memory was not merged into the survivor.");
+  }
+  if (!runtime.drive.files[duplicateFile].archived || runtime.drive.files[duplicateFile].superseded_by !== created.fileName) {
+    throw new Error("Duplicate briefcase was not safely archived.");
+  }
+  const visibleBardProjects = window.AIDA_PROJECTS.hierarchy()
+    .flatMap((realm) => realm.projects || [])
+    .filter((project) => /bard and the frozen guide/i.test(project.name));
+  if (visibleBardProjects.length !== 1) {
+    throw new Error(`Archived duplicate remained visible in hierarchy: ${JSON.stringify(visibleBardProjects)}`);
+  }
+
+  const architectureFile = "project_briefcase_aida_architecture.json";
+  const webSearchFile = "project_briefcase_external_web_search.json";
+  const offlineSearchFile = "project_briefcase_offline_only_search.json";
+  runtime.drive.files[architectureFile] = {
+    project_name: "Aida Architecture",
+    name: "Aida Architecture",
+    realm: "AIDA_ARCHITECTURE",
+    status: "active",
+    llm_provider: "openai",
+    llm_scope: "openai",
+    latest_summary: "Build source-aware memory retrieval, citations, and privacy-safe project context.",
+    goals: ["Create a source-aware crawler and citation contract."],
+    open_threads: ["Design a separate visual research notebook for long-form source comparison and annotated evidence boards."],
+    source_refs: ["architecture_session#turn_4"]
+  };
+  runtime.drive.files[webSearchFile] = {
+    project_name: "External Web Search",
+    name: "External Web Search",
+    realm: "AIDA_ARCHITECTURE",
+    status: "active",
+    llm_provider: "openai",
+    llm_scope: "openai",
+    latest_summary: "External Web Search depends on Aida Architecture for source-aware retrieval, citations, and privacy-safe context.",
+    goals: ["Use the crawler citation contract for current outside research."],
+    open_threads: ["How should web discoveries remain separate from private memory?"],
+    source_refs: ["web_search_session#turn_2"]
+  };
+  runtime.drive.files[offlineSearchFile] = {
+    project_name: "Offline Only Search",
+    name: "Offline Only Search",
+    realm: "AIDA_ARCHITECTURE",
+    status: "active",
+    llm_provider: "openai",
+    llm_scope: "openai",
+    latest_summary: "Offline Only Search conflicts with External Web Search because its privacy promise forbids all external network requests.",
+    goals: ["Keep every search local and prohibit web access."],
+    source_refs: ["offline_session#turn_1"]
+  };
+  window.AIDA_PROJECTS.mapDriveFilesToMind(runtime.drive.files, { selectDefault: false });
+  const portfolio = await window.AIDA_PROJECTS.portfolioGlance();
+  const dependency = portfolio.relationships.find((relationship) => (
+    relationship.type === "dependency" &&
+    relationship.projects.some((project) => project.fileName === architectureFile) &&
+    relationship.projects.some((project) => project.fileName === webSearchFile)
+  ));
+  if (!dependency) {
+    throw new Error(`Portfolio glance missed an explicit project dependency: ${JSON.stringify(portfolio)}`);
+  }
+  const conflict = portfolio.relationships.find((relationship) => (
+    relationship.type === "conflict" &&
+    relationship.projects.some((project) => project.fileName === offlineSearchFile) &&
+    relationship.projects.some((project) => project.fileName === webSearchFile)
+  ));
+  if (!conflict) {
+    throw new Error(`Portfolio glance missed an explicit project conflict: ${JSON.stringify(portfolio)}`);
+  }
+  if (!portfolio.spinOffs.some((suggestion) => suggestion.project.fileName === architectureFile)) {
+    throw new Error(`Portfolio glance missed a substantial spin-off candidate: ${JSON.stringify(portfolio.spinOffs)}`);
+  }
+  if (portfolio.relationships.some((relationship) => relationship.projects.some((project) => project.fileName === otherLlmFile))) {
+    throw new Error("Portfolio glance crossed the current LLM boundary.");
+  }
+  const dependencyIndex = portfolio.relationships.indexOf(dependency) + 1;
+  const linked = window.AIDA_PROJECTS.stageProjectRelationship(dependencyIndex);
+  if (!linked.ok) throw new Error(`Portfolio relationship could not be staged: ${JSON.stringify(linked)}`);
+  if (!runtime.drive.files[architectureFile].related_projects?.some((item) => item.project_file === webSearchFile)) {
+    throw new Error("Portfolio link was not written to the first project.");
+  }
+  if (!runtime.drive.files[webSearchFile].related_projects?.some((item) => item.project_file === architectureFile)) {
+    throw new Error("Portfolio link was not reciprocal.");
+  }
+  const conflictIndex = portfolio.relationships.indexOf(conflict) + 1;
+  const blockedConflict = window.AIDA_PROJECTS.stageProjectRelationship(conflictIndex);
+  if (blockedConflict.ok || blockedConflict.reason !== "conflict_requires_review") {
+    throw new Error(`Conflict relationship was linked without review: ${JSON.stringify(blockedConflict)}`);
+  }
+
+  const reconciliationPreview = window.AIDA_DRIVE_WRITEBACK.preview();
+  const reconciliationTargets = reconciliationPreview.operations.filter((operation) => operation.target.startsWith("project_reconciliation"));
+  if (reconciliationTargets.length !== 2) {
+    throw new Error(`Reconciliation was not staged for durable Commit: ${JSON.stringify(reconciliationPreview)}`);
+  }
+  const relationshipTargets = reconciliationPreview.operations.filter((operation) => operation.target === "project_relationship_link");
+  if (relationshipTargets.length !== 2) {
+    throw new Error(`Portfolio relationship was not staged for durable Commit: ${JSON.stringify(reconciliationPreview)}`);
+  }
+
   process.stdout.write(JSON.stringify({
     status: "pass",
     fileName: created.fileName,
@@ -303,6 +449,17 @@ vm.runInContext(fs.readFileSync(writebackPath, "utf8"), context, {
     proposedReturnProject: proposedReturn.projectName,
     returnGreeting: returnGreeting.thought,
     acceptedReturnProject: acceptedReturn.projectName,
+    memoryOverviewProjects: memoryOverview.projectCount,
+    summarizedProject: projectSummary.name,
+    comparedDuplicateFiles: comparison.candidates.map((project) => project.fileName),
+    reconciledSurvivor: reconciled.survivorFile,
+    archivedDuplicate: reconciled.duplicateFile,
+    reconciliationOperations: reconciliationTargets.length,
+    portfolioRelationship: dependency.type,
+    portfolioRelationshipProjects: dependency.projects.map((project) => project.name),
+    portfolioConflictBlocked: blockedConflict.reason,
+    portfolioSpinOffs: portfolio.spinOffs.length,
+    relationshipOperations: relationshipTargets.length,
     reopenedAfterRestart: Boolean(durable)
   }, null, 2));
 })().catch((error) => {

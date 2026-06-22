@@ -115,6 +115,18 @@
     );
   }
 
+  function isSupersededProject(project) {
+    return Boolean(
+      project &&
+      typeof project === "object" &&
+      (
+        project.archived === true ||
+        String(project.status || "").toLowerCase() === "superseded" ||
+        project.superseded_by
+      )
+    );
+  }
+
   function normalizeProjectIndex(files) {
     const raw = files["project_summary.json"] || files["project_briefcases.json"] || null;
     if (!raw || typeof raw !== "object") return {};
@@ -173,6 +185,7 @@
     );
 
     for (const [projectKey, projectData] of Object.entries(projectIndex)) {
+      if (isSupersededProject(projectData)) continue;
       const name = valueName(projectData, projectKey);
       const loadFileName = findLoadFileForProject(projectKey, projectData, projects, realms);
       if (loadFileName && (realms[loadFileName] || isRealmFile(loadFileName))) continue;
@@ -193,6 +206,7 @@
     }
 
     for (const [activityName, activity] of Object.entries(globalActivity)) {
+      if (isSupersededProject(activity)) continue;
       if (ledger[activityName]) continue;
       const loadFileName = findLoadFileForProject(activityName, activity, projects, realms);
       if (loadFileName && (realms[loadFileName] || isRealmFile(loadFileName))) continue;
@@ -213,6 +227,7 @@
     }
 
     for (const [fileName, project] of Object.entries(projects)) {
+      if (isSupersededProject(project)) continue;
       const name = valueName(project, fileName.replace(/\.json$/i, ""));
       const activity = globalActivity[name] || globalActivity[String(project?.realm || "").toUpperCase()] || null;
 
@@ -982,6 +997,502 @@
     return Object.values(runtime().mind.projectLedger || {});
   }
 
+  function currentProviderAllows(project) {
+    const active = String(activeLlmProvider() || "").toLowerCase();
+    const provider = String(
+      project?.llm_provider ||
+      project?.llmProvider ||
+      project?.llm_scope ||
+      project?.llmScope ||
+      ""
+    ).toLowerCase();
+    return !active || !provider || provider === "shared" || provider === active;
+  }
+
+  function uniqueValues(...lists) {
+    const output = [];
+    const seen = new Set();
+    lists.flatMap((value) => safeArray(value)).forEach((item) => {
+      let key;
+      try {
+        key = item?.project_file || item?.source_ref || item?.sourceRef || item?.id || JSON.stringify(item);
+      } catch (_) {
+        key = String(item);
+      }
+      if (seen.has(key)) return;
+      seen.add(key);
+      output.push(item);
+    });
+    return output;
+  }
+
+  function projectContentCount(project) {
+    if (!project || typeof project !== "object") return 0;
+    return [
+      project.latest_summary,
+      project.summary,
+      project.memory,
+      project.opening_material,
+      ...safeArray(project.adopted_history),
+      ...safeArray(project.recent_turns),
+      ...safeArray(project.open_threads),
+      ...safeArray(project.facts),
+      ...safeArray(project.facts_to_consider),
+      ...safeArray(project.insights_to_consider)
+    ].filter(Boolean).length;
+  }
+
+  function projectSnapshot(entry) {
+    const rt = runtime();
+    const fileName = entry?.fileName || entry?.key;
+    const project = rt.mind.projects?.[fileName] || rt.drive?.files?.[fileName] || entry?.summary || {};
+    return {
+      key: entry?.key || fileName,
+      fileName,
+      name: valueName(project, entry?.name || fileName),
+      realm: project?.realm || project?.realm_name || entry?.realmKey || "UNFILED",
+      summary: latestSummary(project) || entry?.status || "No useful summary yet.",
+      lastActive: project?.last_active || project?.last_updated || entry?.lastActive || null,
+      provider: project?.llm_provider || project?.llmProvider || entry?.llmProvider || null,
+      contentCount: projectContentCount(project),
+      sourceRefCount: new Set([
+        ...safeArray(project?.source_refs),
+        ...safeArray(project?.opening_material?.source_refs),
+        ...safeArray(project?.adopted_history).map((item) => item?.source_ref).filter(Boolean)
+      ]).size,
+      openThreadCount: safeArray(project?.open_threads).length,
+      project
+    };
+  }
+
+  const PORTFOLIO_STOP_WORDS = new Set([
+    "about", "after", "again", "also", "and", "because", "been", "before", "being",
+    "both", "could", "from", "have", "into", "more", "only", "other", "project",
+    "should", "that", "their", "there", "these", "this", "through", "under", "using",
+    "what", "when", "where", "which", "with", "would", "aida", "francisco"
+  ]);
+
+  function portfolioText(snapshot) {
+    const project = snapshot?.project || {};
+    return [
+      snapshot?.name,
+      snapshot?.summary,
+      project.latest_status,
+      project.description,
+      project.goal,
+      project.goals,
+      project.next_steps,
+      project.open_threads,
+      project.facts,
+      project.facts_to_consider,
+      project.insights_to_consider,
+      project.reconciled_summaries
+    ].flat(Infinity).filter(Boolean).map((item) => (
+      typeof item === "string"
+        ? item
+        : item?.thread || item?.text || item?.summary || item?.goal || JSON.stringify(item)
+    )).join(" ");
+  }
+
+  function portfolioCoreTokens(snapshot) {
+    const project = snapshot?.project || {};
+    return new Set(
+      [
+        snapshot?.name,
+        snapshot?.summary,
+        project.latest_status,
+        project.description,
+        project.goal,
+        project.goals,
+        project.next_steps,
+        project.facts,
+        project.facts_to_consider,
+        project.insights_to_consider
+      ].flat(Infinity).filter(Boolean).map((item) => (
+        typeof item === "string" ? item : item?.text || item?.summary || item?.goal || JSON.stringify(item)
+      )).join(" ").toLowerCase().match(/[a-z0-9]{4,}/g) || []
+    );
+  }
+
+  function portfolioTokens(snapshot) {
+    return new Set(
+      (portfolioText(snapshot).toLowerCase().match(/[a-z0-9]{4,}/g) || [])
+        .filter((token) => !PORTFOLIO_STOP_WORDS.has(token))
+    );
+  }
+
+  function sharedPortfolioTokens(left, right) {
+    const a = portfolioTokens(left);
+    const b = portfolioTokens(right);
+    return [...a].filter((token) => b.has(token));
+  }
+
+  function mentionsProject(text, snapshot) {
+    const haystack = keyName(text);
+    const nameTokens = [...similarityTokens(snapshot?.name || "")];
+    return nameTokens.length > 0 && nameTokens.every((token) => haystack.includes(token));
+  }
+
+  function explicitRelationship(left, right) {
+    const leftText = portfolioText(left);
+    const rightText = portfolioText(right);
+    const dependencyPattern = /\b(?:depends? on|requires?|needs?|blocked by|waiting (?:on|for)|after|before)\b/i;
+    const conflictPattern = /\b(?:conflicts? with|incompatible|contradicts?|cannot coexist|mutually exclusive)\b/i;
+    if (mentionsProject(leftText, right) && conflictPattern.test(leftText)) {
+      return { type: "conflict", direction: `${left.fileName}->${right.fileName}` };
+    }
+    if (mentionsProject(rightText, left) && conflictPattern.test(rightText)) {
+      return { type: "conflict", direction: `${right.fileName}->${left.fileName}` };
+    }
+    if (mentionsProject(leftText, right) && dependencyPattern.test(leftText)) {
+      return { type: "dependency", direction: `${left.fileName}->${right.fileName}` };
+    }
+    if (mentionsProject(rightText, left) && dependencyPattern.test(rightText)) {
+      return { type: "dependency", direction: `${right.fileName}->${left.fileName}` };
+    }
+    return null;
+  }
+
+  function relationshipRecommendation(type) {
+    if (type === "dependency") return "sequence_and_link";
+    if (type === "conflict") return "review_before_linking";
+    if (type === "consolidation") return "compare_for_consolidation";
+    if (type === "synergy") return "link_and_coordinate";
+    return "keep_related";
+  }
+
+  function portfolioRelationship(left, right) {
+    const shared = sharedPortfolioTokens(left, right);
+    const smaller = Math.max(1, Math.min(portfolioTokens(left).size, portfolioTokens(right).size));
+    const overlap = shared.length / smaller;
+    const explicit = explicitRelationship(left, right);
+    let type = explicit?.type || null;
+    if (!type && overlap >= 0.62) type = "consolidation";
+    if (!type && overlap >= 0.24) type = "synergy";
+    if (!type && overlap >= 0.12) type = "reference";
+    if (!type) return null;
+    return {
+      id: `relationship_${keyName(left.fileName)}_${keyName(right.fileName)}`,
+      type,
+      projects: [
+        { fileName: left.fileName, name: left.name, realm: left.realm },
+        { fileName: right.fileName, name: right.name, realm: right.realm }
+      ],
+      direction: explicit?.direction || null,
+      confidence: overlap >= 0.5 || explicit ? "strong" : overlap >= 0.24 ? "moderate" : "tentative",
+      overlap: Number(overlap.toFixed(2)),
+      evidence: shared.slice(0, 8),
+      recommendation: relationshipRecommendation(type)
+    };
+  }
+
+  function spinOffSuggestions(snapshot) {
+    const threads = safeArray(snapshot?.project?.open_threads);
+    const projectTerms = portfolioCoreTokens(snapshot);
+    return threads
+      .map((thread, index) => {
+        const text = typeof thread === "string" ? thread : thread?.thread || thread?.text || "";
+        const tokens = new Set((String(text).toLowerCase().match(/[a-z0-9]{4,}/g) || []).filter((token) => !PORTFOLIO_STOP_WORDS.has(token)));
+        const shared = [...tokens].filter((token) => projectTerms.has(token));
+        const distinct = [...tokens].filter((token) => !projectTerms.has(token));
+        if (tokens.size < 5 || distinct.length < 3 || shared.length > distinct.length) return null;
+        return {
+          id: `spinoff_${keyName(snapshot.fileName)}_${index + 1}`,
+          type: "spin_off",
+          project: { fileName: snapshot.fileName, name: snapshot.name, realm: snapshot.realm },
+          thread: text,
+          confidence: distinct.length >= 6 ? "moderate" : "tentative",
+          evidence: distinct.slice(0, 8),
+          recommendation: "consider_new_briefcase"
+        };
+      })
+      .filter(Boolean);
+  }
+
+  async function portfolioGlance(options = {}) {
+    await hydrateHierarchy();
+    const overview = memoryOverview({ limit: 50 });
+    const projects = overview.projects;
+    const relationships = [];
+    for (let i = 0; i < projects.length; i += 1) {
+      for (let j = i + 1; j < projects.length; j += 1) {
+        const relationship = portfolioRelationship(projects[i], projects[j]);
+        if (relationship) relationships.push(relationship);
+      }
+    }
+    relationships.sort((a, b) => (
+      ({ strong: 3, moderate: 2, tentative: 1 }[b.confidence] || 0) -
+      ({ strong: 3, moderate: 2, tentative: 1 }[a.confidence] || 0) ||
+      b.overlap - a.overlap
+    ));
+    const spinOffs = projects.flatMap(spinOffSuggestions);
+    const result = {
+      ready: true,
+      reviewedAt: new Date().toISOString(),
+      provider: activeLlmProvider(),
+      projectCount: projects.length,
+      relationshipCount: relationships.length,
+      relationships: relationships.slice(0, Number(options.limit || 6)),
+      spinOffs: spinOffs.slice(0, 3)
+    };
+    runtime().context.lastPortfolioGlance = result;
+    runtime().context.pendingPortfolioRelationships = result.relationships;
+    return result;
+  }
+
+  function stageProjectRelationship(index = 1) {
+    const rt = runtime();
+    const suggestions = safeArray(rt.context?.pendingPortfolioRelationships);
+    const relationship = suggestions[Math.max(0, Number(index || 1) - 1)];
+    if (!relationship) return { ok: false, reason: "suggestion_not_found" };
+    if (relationship.type === "conflict") return { ok: false, reason: "conflict_requires_review", relationship };
+    const [leftRef, rightRef] = relationship.projects || [];
+    const left = rt.drive?.files?.[leftRef?.fileName] || rt.mind?.projects?.[leftRef?.fileName];
+    const right = rt.drive?.files?.[rightRef?.fileName] || rt.mind?.projects?.[rightRef?.fileName];
+    if (!left || !right) return { ok: false, reason: "project_not_loaded" };
+    if (!currentProviderAllows(left) || !currentProviderAllows(right)) {
+      return { ok: false, reason: "llm_scope_mismatch" };
+    }
+    const linkedAt = new Date().toISOString();
+    const linkFor = (other) => ({
+      project_file: other.fileName,
+      project_name: other.name,
+      relationship: relationship.type,
+      direction: relationship.direction,
+      evidence: relationship.evidence,
+      linked_at: linkedAt,
+      source: "portfolio_glance_confirmation"
+    });
+    const nextLeft = {
+      ...left,
+      related_projects: uniqueValues(left.related_projects, [linkFor(rightRef)]),
+      last_updated: linkedAt
+    };
+    const nextRight = {
+      ...right,
+      related_projects: uniqueValues(right.related_projects, [linkFor(leftRef)]),
+      last_updated: linkedAt
+    };
+    rt.drive.files[leftRef.fileName] = nextLeft;
+    rt.drive.files[rightRef.fileName] = nextRight;
+    rt.driveWriteback = rt.driveWriteback || {};
+    rt.driveWriteback.projectRelationshipUpdates = safeArray(rt.driveWriteback.projectRelationshipUpdates);
+    rt.driveWriteback.projectRelationshipUpdates.push({
+      id: `portfolio_link_${Date.now()}`,
+      createdAt: linkedAt,
+      relationship,
+      files: [
+        { fileName: leftRef.fileName, content: nextLeft },
+        { fileName: rightRef.fileName, content: nextRight }
+      ],
+      status: "staged"
+    });
+    mapDriveFilesToMind(rt.drive.files, { selectDefault: false });
+    window.AIDA_CRASH_BUFFER?.checkpoint?.("project_relationship_staged");
+    return { ok: true, relationship, stagedForCommit: true };
+  }
+
+  function clearPortfolioSuggestions() {
+    const hadSuggestions = safeArray(runtime().context?.pendingPortfolioRelationships).length > 0;
+    runtime().context.pendingPortfolioRelationships = [];
+    return hadSuggestions;
+  }
+
+  function memoryOverview(options = {}) {
+    const rt = runtime();
+    const projects = Object.values(rt.mind.projectLedger || {})
+      .map(projectSnapshot)
+      .filter((item) => !isSupersededProject(item.project))
+      .filter((item) => currentProviderAllows(item.project))
+      .sort((a, b) => String(b.lastActive || "").localeCompare(String(a.lastActive || "")));
+    const activeFile = rt.context?.activeProjectName || null;
+    return {
+      provider: activeLlmProvider(),
+      activeProject: projects.find((item) => item.key === activeFile || item.fileName === activeFile) || null,
+      projectCount: projects.length,
+      projects: projects.slice(0, Number(options.limit || 8)),
+      realmCount: Object.keys(rt.mind.realmLedger || {}).length
+    };
+  }
+
+  function similarityTokens(value) {
+    return new Set(
+      String(value || "")
+        .toLowerCase()
+        .replace(/project_briefcase_|briefcase_|project_|\.json/g, " ")
+        .match(/[a-z0-9]{3,}/g) || []
+    );
+  }
+
+  function projectMatchScore(query, entry) {
+    const wanted = similarityTokens(query);
+    const available = similarityTokens(`${entry?.name || ""} ${entry?.fileName || ""}`);
+    if (!wanted.size) return 0;
+    let overlap = 0;
+    wanted.forEach((token) => {
+      if (available.has(token)) overlap += 1;
+    });
+    return overlap / wanted.size;
+  }
+
+  async function compareProjects(query = "") {
+    await hydrateHierarchy();
+    const entries = Object.values(runtime().mind.projectLedger || {})
+      .filter((entry) => currentProviderAllows(projectSnapshot(entry).project));
+    const ranked = entries
+      .map((entry) => ({ entry, score: projectMatchScore(query, entry) }))
+      .filter((item) => item.score > 0)
+      .sort((a, b) => b.score - a.score || String(b.entry.lastActive || "").localeCompare(String(a.entry.lastActive || "")));
+    const strongest = ranked[0]?.score || 0;
+    const candidates = ranked
+      .filter((item) => item.score >= Math.max(0.2, strongest - 0.2))
+      .slice(0, 4)
+      .map((item) => projectSnapshot(item.entry));
+    if (candidates.length < 2) {
+      return { ok: false, reason: "fewer_than_two_matches", candidates };
+    }
+
+    const recommended = candidates
+      .slice()
+      .sort((a, b) => {
+        const aFiled = keyName(a.realm) !== "unknown" && keyName(a.realm) !== "unfiled" ? 1 : 0;
+        const bFiled = keyName(b.realm) !== "unknown" && keyName(b.realm) !== "unfiled" ? 1 : 0;
+        return bFiled - aFiled || b.contentCount - a.contentCount || String(b.lastActive || "").localeCompare(String(a.lastActive || ""));
+      })[0];
+    const duplicate = candidates.find((item) => item.fileName !== recommended.fileName);
+    const comparison = {
+      ok: true,
+      query,
+      comparedAt: new Date().toISOString(),
+      candidates,
+      recommendedSurvivor: recommended,
+      recommendedDuplicate: duplicate
+    };
+    runtime().context.pendingProjectReconciliation = {
+      id: `reconcile_${Date.now()}`,
+      createdAt: comparison.comparedAt,
+      survivorFile: recommended.fileName,
+      duplicateFile: duplicate.fileName,
+      comparison
+    };
+    return comparison;
+  }
+
+  async function summarizeProject(query = "") {
+    await hydrateHierarchy();
+    const match = Object.values(runtime().mind.projectLedger || {})
+      .filter((entry) => currentProviderAllows(projectSnapshot(entry).project))
+      .map((entry) => ({ snapshot: projectSnapshot(entry), score: projectMatchScore(query, entry) }))
+      .filter((item) => item.score > 0)
+      .sort((a, b) => b.score - a.score || String(b.snapshot.lastActive || "").localeCompare(String(a.snapshot.lastActive || "")))[0];
+    if (!match) return { ok: false, reason: "project_not_found" };
+    return { ok: true, ...match.snapshot };
+  }
+
+  function mergeProjectPayloads(survivor, duplicate, survivorFile, duplicateFile) {
+    const mergedAt = new Date().toISOString();
+    return {
+      ...duplicate,
+      ...survivor,
+      project_name: valueName(survivor, valueName(duplicate, survivorFile)),
+      name: valueName(survivor, valueName(duplicate, survivorFile)),
+      realm: survivor?.realm || duplicate?.realm || "UNFILED",
+      status: "active",
+      archived: false,
+      superseded_by: null,
+      latest_summary: latestSummary(survivor) || latestSummary(duplicate) || null,
+      reconciled_summaries: uniqueValues(
+        survivor?.reconciled_summaries,
+        duplicate?.reconciled_summaries,
+        [latestSummary(survivor), latestSummary(duplicate)].filter(Boolean)
+      ),
+      adopted_history: uniqueValues(survivor?.adopted_history, duplicate?.adopted_history),
+      recent_turns: uniqueValues(survivor?.recent_turns, duplicate?.recent_turns).slice(-40),
+      open_threads: uniqueValues(survivor?.open_threads, duplicate?.open_threads),
+      facts: uniqueValues(survivor?.facts, duplicate?.facts),
+      facts_to_consider: uniqueValues(survivor?.facts_to_consider, duplicate?.facts_to_consider),
+      insights_to_consider: uniqueValues(survivor?.insights_to_consider, duplicate?.insights_to_consider),
+      sensitive_context_to_consider: uniqueValues(survivor?.sensitive_context_to_consider, duplicate?.sensitive_context_to_consider),
+      emotional_notes: uniqueValues(survivor?.emotional_notes, duplicate?.emotional_notes),
+      source_refs: uniqueValues(
+        survivor?.source_refs,
+        duplicate?.source_refs,
+        survivor?.opening_material?.source_refs,
+        duplicate?.opening_material?.source_refs
+      ),
+      reconciliation: {
+        ...(survivor?.reconciliation || {}),
+        merged_at: mergedAt,
+        merged_from: uniqueValues(survivor?.reconciliation?.merged_from, [duplicateFile]),
+        survivor_file: survivorFile,
+        policy: "merge_then_archive_duplicate"
+      },
+      last_updated: mergedAt
+    };
+  }
+
+  function confirmProjectReconciliation() {
+    const rt = runtime();
+    const pending = rt.context?.pendingProjectReconciliation;
+    if (!pending?.survivorFile || !pending?.duplicateFile) {
+      return { ok: false, reason: "no_pending_reconciliation" };
+    }
+    const survivor = rt.drive?.files?.[pending.survivorFile] || rt.mind?.projects?.[pending.survivorFile];
+    const duplicate = rt.drive?.files?.[pending.duplicateFile] || rt.mind?.projects?.[pending.duplicateFile];
+    if (!survivor || !duplicate) return { ok: false, reason: "project_not_loaded" };
+    if (!currentProviderAllows(survivor) || !currentProviderAllows(duplicate)) {
+      return { ok: false, reason: "llm_scope_mismatch" };
+    }
+
+    const merged = mergeProjectPayloads(survivor, duplicate, pending.survivorFile, pending.duplicateFile);
+    const archivedAt = new Date().toISOString();
+    const archived = {
+      ...duplicate,
+      status: "superseded",
+      archived: true,
+      superseded_by: pending.survivorFile,
+      superseded_at: archivedAt,
+      reconciliation: {
+        ...(duplicate?.reconciliation || {}),
+        archived_at: archivedAt,
+        survivor_file: pending.survivorFile,
+        recovery: "Remove archived/superseded fields to restore this briefcase."
+      },
+      last_updated: archivedAt
+    };
+    rt.drive.files[pending.survivorFile] = merged;
+    rt.drive.files[pending.duplicateFile] = archived;
+    rt.driveWriteback = rt.driveWriteback || {};
+    rt.driveWriteback.projectReconciliations = safeArray(rt.driveWriteback.projectReconciliations);
+    rt.driveWriteback.projectReconciliations.push({
+      id: pending.id,
+      createdAt: archivedAt,
+      survivorFile: pending.survivorFile,
+      duplicateFile: pending.duplicateFile,
+      survivor: merged,
+      duplicate: archived,
+      status: "staged"
+    });
+    rt.context.pendingProjectReconciliation = null;
+    mapDriveFilesToMind(rt.drive.files, { selectDefault: false });
+    select(pending.survivorFile);
+    window.AIDA_CRASH_BUFFER?.checkpoint?.("project_reconciliation_staged");
+    log(`PROJECT: Reconciled ${pending.duplicateFile} into ${pending.survivorFile}; duplicate archived.`, "log-blue");
+    return {
+      ok: true,
+      survivorFile: pending.survivorFile,
+      duplicateFile: pending.duplicateFile,
+      projectName: valueName(merged, pending.survivorFile),
+      stagedForCommit: true
+    };
+  }
+
+  function cancelProjectReconciliation() {
+    const hadPending = Boolean(runtime().context?.pendingProjectReconciliation);
+    runtime().context.pendingProjectReconciliation = null;
+    return hadPending;
+  }
+
   function findByName(name, kind = "project") {
     const wanted = keyName(name);
     const entries = kind === "realm"
@@ -1257,6 +1768,14 @@
     acceptReturnContext,
     dismissReturnContext,
     claimProject,
+    memoryOverview,
+    portfolioGlance,
+    stageProjectRelationship,
+    clearPortfolioSuggestions,
+    summarizeProject,
+    compareProjects,
+    confirmProjectReconciliation,
+    cancelProjectReconciliation,
     select,
     selectHydrated,
     createDraft,

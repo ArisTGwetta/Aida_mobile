@@ -643,15 +643,17 @@
   function freshGlance(options = {}) {
     indexNow("fresh_glance");
     const state = ensureState();
-    const activeProject = slug(
-      options.project ||
-      runtime().context?.project?.project_name ||
-      runtime().context?.project?.name ||
-      runtime().mind?.activeProject?.project_name ||
-      runtime().mind?.activeProject?.name ||
-      "",
-      ""
-    );
+    const activeProject = options.allProjects
+      ? ""
+      : slug(
+          options.project ||
+          runtime().context?.project?.project_name ||
+          runtime().context?.project?.name ||
+          runtime().mind?.activeProject?.project_name ||
+          runtime().mind?.activeProject?.name ||
+          "",
+          ""
+        );
     const scope = options.llmScope || "current";
     const visible = state.entries
       .filter((item) => window.AIDA_LLM_SCOPE?.allows?.(item, {

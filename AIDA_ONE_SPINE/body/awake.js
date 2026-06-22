@@ -350,6 +350,24 @@
     content.textContent = text;
 
     line.append(speaker, content);
+    if (Array.isArray(options.sources) && options.sources.length) {
+      const sources = document.createElement("div");
+      sources.className = "line-sources";
+      const heading = document.createElement("span");
+      heading.className = "line-sources-heading";
+      heading.textContent = "SOURCES";
+      sources.appendChild(heading);
+      options.sources.forEach((source, index) => {
+        if (!source?.url) return;
+        const link = document.createElement("a");
+        link.href = source.url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = `${index + 1}. ${source.title || source.url}`;
+        sources.appendChild(link);
+      });
+      line.appendChild(sources);
+    }
     flow.appendChild(line);
     flow.scrollTop = flow.scrollHeight;
     return line;

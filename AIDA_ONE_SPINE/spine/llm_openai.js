@@ -32,9 +32,9 @@
     if (window.AIDA_BODY?.pulse) window.AIDA_BODY.pulse(message);
   }
 
-  function appendChat(role, text) {
+  function appendChat(role, text, options = {}) {
     if (window.AIDA_BODY?.appendChat) {
-      return window.AIDA_BODY.appendChat(role, text);
+      return window.AIDA_BODY.appendChat(role, text, options);
     }
 
     const flow = $("chat-flow");
@@ -80,6 +80,133 @@
 
   function isFreshGlanceSourcesRequest(text) {
     return /\b(?:show|give|list)\s+(?:me\s+)?(?:the\s+)?sources?\s+(?:for|from)\s+(?:that|the)\s+(?:fresh\s+)?glance\b/i.test(String(text || ""));
+  }
+
+  function isMemoryOverviewRequest(text) {
+    return /\b(?:what do (?:we|you) have|review what (?:we|you) have|give me (?:a )?(?:quick )?(?:memory|project) summary|summarize (?:your|our|the) memory|show me around (?:your|the) memory|help me navigate (?:your|the) memory)\b/i.test(String(text || ""));
+  }
+
+  function projectReconciliationRequest(text) {
+    const value = String(text || "").trim();
+    if (/^(?:cancel|never mind|nevermind|stop)(?: the)? (?:merge|reconciliation)|^(?:cancel|never mind|nevermind)$/i.test(value)) {
+      return { action: "cancel" };
+    }
+    if (/^(?:yes|yes please|confirm|okay|ok)[, ]+(?:merge|combine|reconcile)(?: them| the projects?)?[.!]*$/i.test(value) ||
+        /^(?:merge|combine|reconcile) them now[.!]*$/i.test(value)) {
+      return { action: "confirm" };
+    }
+    if (/\b(?:compare|reconcile|merge|combine)\b.*\b(?:projects?|stories|versions|copies|duplicates?|instances?)\b/i.test(value) ||
+        /\b(?:two|both|duplicate)\b.*\b(?:bard|project|story)\b/i.test(value)) {
+      return { action: "compare", query: value };
+    }
+    return null;
+  }
+
+  function projectSummaryRequest(text) {
+    const value = String(text || "").trim();
+    const match = value.match(/^(?:summarize|review|catch me up on|what do (?:you|we) (?:have|remember) (?:about|for))\s+(?:the\s+)?(?:project|story)?\s*(.+?)\s*[?.!]*$/i);
+    return match?.[1] ? { query: match[1].trim() } : null;
+  }
+
+  function portfolioRequest(text) {
+    const value = String(text || "").trim();
+    const link = value.match(/^(?:yes[, ]+)?(?:link|connect)\s+(?:portfolio\s+)?suggestion\s+(\d+)[.!]*$/i);
+    if (link) return { action: "link", index: Number(link[1]) };
+    if (/^(?:yes|yes please|okay|ok)[, ]+(?:link|connect) (?:them|those projects)[.!]*$/i.test(value)) {
+      return { action: "link", index: 1 };
+    }
+    if (/^(?:dismiss|clear|cancel)\s+(?:the\s+)?(?:portfolio\s+)?suggestions?[.!]*$/i.test(value)) {
+      return { action: "clear" };
+    }
+    if (/\b(?:portfolio glance|project constellation|project relationships?|how (?:do )?(?:my|our|the) projects? (?:relate|connect)|synerg(?:y|ies)|dependencies between projects|consolidation opportunities|spin[- ]?off opportunities)\b/i.test(value)) {
+      return { action: "glance" };
+    }
+    return null;
+  }
+
+  function isCommandGuideRequest(text) {
+    return /^(?:help|commands?|command list|show (?:me )?(?:the )?(?:commands?|guide|glossary)|what can (?:you|aida) do|how do i use (?:you|aida)|what can i ask(?: you)?)[?.!]*$/i.test(String(text || "").trim());
+  }
+
+  function webSearchRequest(text) {
+    const value = String(text || "").trim();
+    if (/\b(?:our|my|the)\s+(?:logs?|memory|memories|diary|journal|drive)\b/i.test(value)) return null;
+    const match = value.match(/^(?:please\s+)?(?:search (?:the )?web(?: for)?|look (?:this )?up online|research online|find (?:the )?(?:latest|current) (?:information )?(?:about|on)|web search:?)\s+(.+?)\s*$/i);
+    return match?.[1] ? { query: match[1].trim() } : null;
+  }
+
+  async function runWebSearch(command, userText) {
+    appendChat("USER", userText);
+    const pending = appendChat("AIDA", "I’m checking the current web and gathering sources...");
+    try {
+      const result = await window.AIDA_LLM_PROVIDER?.callWebSearch?.(command.query);
+      if (!result?.text) throw new Error("No sourced result returned.");
+      if (pending?.remove) pending.remove();
+      else setPendingText(pending, result.text);
+      appendChat("AIDA", result.text, { sources: result.sources || [] });
+      const rt = runtime();
+      const priorTags = Array.isArray(rt.context.customTags) ? rt.context.customTags.slice() : [];
+      rt.context.customTags = [...new Set([...priorTags, "external_research", "web_sourced"])];
+      const sourceText = (result.sources || []).map((source) => source.url).join("\n");
+      window.AIDA_SESSION_CAPTURE?.captureExchange?.(
+        userText,
+        `${result.text}${sourceText ? `\n\nWEB SOURCES:\n${sourceText}` : ""}`
+      );
+      rt.context.customTags = priorTags;
+      rt.context.lastWebResearch = result;
+      pulse(`Web retrieval complete with ${result.sources?.length || 0} source(s).`);
+      log(`WEB RETRIEVER: provider=${result.provider}, model=${result.model}, sources=${result.sources?.length || 0}.`, "log-blue");
+      return true;
+    } catch (error) {
+      const reply = `I could not complete that web search: ${error.message}`;
+      setPendingText(pending, reply);
+      if (!pending) appendChat("AIDA", reply);
+      pulse("Web retrieval did not complete.");
+      return false;
+    }
+  }
+
+  function runCommandGuide(userText) {
+    const reply = [
+      "Here is my current conversation guide. Natural wording is fine; these are examples, not passwords.",
+      "",
+      "Memory and review",
+      "- “Give me a fresh glance.” — surface a few recent memory threads.",
+      "- “Show me the sources for that glance.” — show supporting references.",
+      "- “Review what we have.” — map visible projects and recent memory.",
+      "- “Summarize Bard and the Frozen Guide.” — review one project.",
+      "- “Search our logs for Liora.” — search indexed memory.",
+      "",
+      "Projects",
+      "- “List my projects.” / “Open project …” / “Open realm RPG.”",
+      "- “Move project … into realm RPG.”",
+      "- “Compare the two … project versions.”",
+      "- “Yes, merge them.” / “Cancel merge.”",
+      "",
+      "Portfolio",
+      "- “Give me a portfolio glance.” — find synergies, dependencies, overlaps, conflicts, and spin-off candidates.",
+      "- “Link suggestion 1.” — stage reciprocal project links for Commit.",
+      "- “Clear portfolio suggestions.”",
+      "",
+      "Privacy lanes",
+      "- Memory stays inside the current LLM lane plus shared core memory.",
+      "- “Meditate across all LLMs …” grants one-use cross-lane retrieval, then reseals.",
+      "",
+      "Persistence",
+      "- Sleep prepares memory updates.",
+      "- Commit writes staged updates to Drive.",
+      "",
+      "Current web research",
+      "- “Search the web for …” / “Look this up online …” — explicit current research with clickable sources.",
+      "- Web research is on-demand; I do not pretend to browse while you are away.",
+      "",
+      "You can always ask “What can you do?” to see this guide again."
+    ].join("\n");
+    appendChat("USER", userText);
+    appendChat("AIDA", reply);
+    window.AIDA_SESSION_CAPTURE?.captureExchange?.(userText, reply);
+    pulse("Aida showed the conversation guide.");
+    return true;
   }
 
   function navigationCommand(text) {
@@ -243,6 +370,119 @@
     return true;
   }
 
+  async function runMemoryOverview(userText) {
+    await window.AIDA_PROJECTS?.hydrateHierarchy?.();
+    await window.AIDA_LIBRARIAN?.prepareArchive?.("memory_overview");
+    const overview = window.AIDA_PROJECTS?.memoryOverview?.({ limit: 8 });
+    const glance = window.AIDA_CRAWLER?.freshGlance?.({ limit: 3, allProjects: true });
+    const projects = overview?.projects || [];
+    const projectLines = projects.length
+      ? projects.map((item) => `- ${item.name} [${item.realm}]: ${item.summary}`).join("\n")
+      : "- No visible projects are loaded for this LLM yet.";
+    const glanceLines = glance?.threads?.length
+      ? `\n\nRecent threads:\n${glance.threads.map((item) => `- ${item.text}`).join("\n")}`
+      : "";
+    const reply = `Here is the quick map of the memory available to this LLM: ${overview?.projectCount || 0} project(s) across ${overview?.realmCount || 0} realm(s).\n${projectLines}${glanceLines}\n\nYou can ask me to open a project, summarize one, search for a memory, or compare duplicate projects.`;
+    appendChat("USER", userText);
+    appendChat("AIDA", reply);
+    window.AIDA_SESSION_CAPTURE?.captureExchange?.(userText, reply);
+    pulse(`Memory map reviewed ${overview?.projectCount || 0} project(s).`);
+    return true;
+  }
+
+  async function runProjectReconciliation(command, userText) {
+    let reply;
+    if (command.action === "cancel") {
+      const cancelled = window.AIDA_PROJECTS?.cancelProjectReconciliation?.();
+      if (!cancelled) return null;
+      reply = "All right—I cancelled the pending project merge. Nothing was changed.";
+    } else if (command.action === "confirm") {
+      const result = window.AIDA_PROJECTS?.confirmProjectReconciliation?.();
+      if (!result?.ok) {
+        if (result?.reason === "no_pending_reconciliation") return null;
+        reply = result?.reason === "llm_scope_mismatch"
+          ? "I cannot merge those briefcases from the current LLM lane."
+          : "I could not safely stage that merge because one of the briefcases is not loaded.";
+      } else {
+        reply = `Done. I combined the recoverable memories into ${result.projectName}, kept ${result.survivorFile} as the canonical briefcase, and archived ${result.duplicateFile} as superseded. Commit will make both changes durable in Drive.`;
+      }
+    } else {
+      const comparison = await window.AIDA_PROJECTS?.compareProjects?.(command.query);
+      if (!comparison?.ok) {
+        reply = comparison?.candidates?.length === 1
+          ? `I found only one matching project: ${comparison.candidates[0].name}. I need two loaded briefcases before I can compare or reconcile them.`
+          : "I could not find two matching project briefcases in the current LLM lane. Try “list my projects” so we can use their visible names.";
+      } else {
+        const details = comparison.candidates.map((item) => (
+          `- ${item.fileName}: realm=${item.realm}, memory items=${item.contentCount}, sources=${item.sourceRefCount}, summary=${item.summary}`
+        )).join("\n");
+        reply = `I found ${comparison.candidates.length} likely matching briefcases:\n${details}\n\nMy safest recommendation is to keep ${comparison.recommendedSurvivor.fileName}, merge unique memories from ${comparison.recommendedDuplicate.fileName}, and archive the duplicate rather than deleting it. Say “yes, merge them” to stage that reconciliation, or “cancel merge” to leave both untouched.`;
+      }
+    }
+    appendChat("USER", userText);
+    appendChat("AIDA", reply);
+    window.AIDA_SESSION_CAPTURE?.captureExchange?.(userText, reply);
+    window.AIDA_BODY_PROJECTS?.render?.();
+    pulse("Project memory reconciliation reviewed.");
+    return true;
+  }
+
+  async function runProjectSummary(command, userText) {
+    const result = await window.AIDA_PROJECTS?.summarizeProject?.(command.query);
+    const reply = !result?.ok
+      ? `I could not find a visible project matching “${command.query}” in the current LLM lane. Try “list my projects” to see the loaded names.`
+      : `${result.name} is filed under ${result.realm}. ${result.summary} It currently has ${result.openThreadCount} open thread(s) and ${result.sourceRefCount} direct source reference(s). Say “open project ${result.name}” to continue there.`;
+    appendChat("USER", userText);
+    appendChat("AIDA", reply);
+    window.AIDA_SESSION_CAPTURE?.captureExchange?.(userText, reply);
+    pulse(result?.ok ? `Reviewed ${result.name}.` : "Project summary not found.");
+    return true;
+  }
+
+  async function runPortfolio(command, userText) {
+    let reply;
+    if (command.action === "clear") {
+      const cleared = window.AIDA_PROJECTS?.clearPortfolioSuggestions?.();
+      if (!cleared) return null;
+      reply = "I cleared the portfolio suggestions. No project links were changed.";
+    } else if (command.action === "link") {
+      const result = window.AIDA_PROJECTS?.stageProjectRelationship?.(command.index);
+      if (!result?.ok) {
+        if (result?.reason === "suggestion_not_found") return null;
+        reply = result?.reason === "conflict_requires_review"
+          ? "That suggestion is a possible conflict, so I will not link it automatically. We should review the incompatible assumptions first."
+          : result?.reason === "llm_scope_mismatch"
+            ? "I cannot link those projects from the current LLM lane."
+            : "I could not safely stage that relationship because one of the briefcases is not loaded.";
+      } else {
+        const [left, right] = result.relationship.projects;
+        reply = `Linked ${left.name} and ${right.name} as ${result.relationship.type}. I added reciprocal evidence-backed references to both briefcases; Commit will make the relationship durable.`;
+      }
+    } else {
+      const glance = await window.AIDA_PROJECTS?.portfolioGlance?.({ limit: 6 });
+      if (!glance?.relationshipCount && !glance?.spinOffs?.length) {
+        reply = `I reviewed ${glance?.projectCount || 0} visible project(s), but I do not yet have enough shared evidence to claim a useful relationship. I would rather leave the map sparse than invent connections.`;
+      } else {
+        const relationshipLines = (glance.relationships || []).map((item, index) => {
+          const names = item.projects.map((project) => project.name).join(" ↔ ");
+          const evidence = item.evidence.length ? ` Shared signals: ${item.evidence.join(", ")}.` : "";
+          return `${index + 1}. ${item.type}: ${names} (${item.confidence}).${evidence} Recommendation: ${item.recommendation}.`;
+        });
+        const spinOffLines = (glance.spinOffs || []).map((item) => (
+          `- spin-off candidate from ${item.project.name}: ${item.thread}`
+        ));
+        reply = `I took a portfolio glance across ${glance.projectCount} project(s) in this LLM lane.\n${relationshipLines.join("\n")}${spinOffLines.length ? `\n\nPossible spin-offs:\n${spinOffLines.join("\n")}` : ""}\n\nThis is a proposal map, not a restructuring. Say “link suggestion 1” to stage a reciprocal project link, or ask me to compare a consolidation candidate before merging anything.`;
+      }
+      runtime().context.lastPortfolioGlance = glance || null;
+    }
+    appendChat("USER", userText);
+    appendChat("AIDA", reply);
+    window.AIDA_SESSION_CAPTURE?.captureExchange?.(userText, reply);
+    window.AIDA_BODY_PROJECTS?.render?.();
+    pulse("Portfolio relationships reviewed.");
+    return true;
+  }
+
   function runFreshGlanceSources(userText) {
     const glance = runtime().context?.lastFreshGlance;
     const refs = [...new Set((glance?.threads || []).flatMap((thread) => thread.sourceRefs || []))];
@@ -340,6 +580,22 @@
     }
     const returnChoice = await runReturnContextChoice(text);
     if (returnChoice) return returnChoice;
+    if (isCommandGuideRequest(text)) return runCommandGuide(text);
+    const webSearch = webSearchRequest(text);
+    if (webSearch) return runWebSearch(webSearch, text);
+    const reconciliation = projectReconciliationRequest(text);
+    if (reconciliation) {
+      const handled = await runProjectReconciliation(reconciliation, text);
+      if (handled) return handled;
+    }
+    const portfolio = portfolioRequest(text);
+    if (portfolio) {
+      const handled = await runPortfolio(portfolio, text);
+      if (handled) return handled;
+    }
+    if (isMemoryOverviewRequest(text)) return runMemoryOverview(text);
+    const projectSummary = projectSummaryRequest(text);
+    if (projectSummary) return runProjectSummary(projectSummary, text);
     if (isFreshGlanceSourcesRequest(text)) return runFreshGlanceSources(text);
     if (isFreshGlanceRequest(text)) return runFreshGlance(text);
     const navigation = navigationCommand(text);

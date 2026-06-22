@@ -74,6 +74,74 @@ async function runRoute(provider, route, expected) {
   };
 }
 
+async function runWebSearchTest() {
+  const requests = [];
+  global.document = { addEventListener() {} };
+  global.window = {
+    location: { protocol: "https:", hostname: "aristgwetta.github.io" },
+    AIDA_CONFIG: {
+      llm: {
+        webSearchModel: "gpt-5.5",
+        providers: { openai: { model: "gpt-4.1-mini" } }
+      }
+    },
+    AIDA_RUNTIME: {
+      tokens: { llm: { provider: "openai", profile: "normal", key: "test-openai-key" } },
+      context: {},
+      research: {}
+    },
+    AIDA_MODULES: { register() {} }
+  };
+  global.fetch = async (url, options) => {
+    requests.push({ url, options, body: JSON.parse(options.body) });
+    return {
+      ok: true,
+      json: async () => ({
+        id: "response_web_smoke",
+        output: [
+          {
+            type: "web_search_call",
+            action: {
+              sources: [
+                { url: "https://example.com/current", title: "Current source" }
+              ]
+            }
+          },
+          {
+            type: "message",
+            content: [
+              {
+                type: "output_text",
+                text: "A current sourced answer.",
+                annotations: [
+                  { type: "url_citation", url: "https://example.com/current", title: "Current source" },
+                  { type: "url_citation", url: "https://example.org/second", title: "Second source" }
+                ]
+              }
+            ]
+          }
+        ]
+      })
+    };
+  };
+  Function(fs.readFileSync(providerPath, "utf8"))();
+  const result = await global.window.AIDA_LLM_PROVIDER.callWebSearch("What changed today?");
+  const request = requests[0];
+  assert(request.url === "https://api.openai.com/v1/responses", "Web search used the wrong endpoint.", request);
+  assert(request.body.model === "gpt-5.5", "Web search used the wrong configured model.", request.body);
+  assert(request.body.tools?.[0]?.type === "web_search", "Web search tool was not enabled.", request.body);
+  assert(request.body.include?.includes("web_search_call.action.sources"), "Web source metadata was not requested.", request.body);
+  assert(result.text === "A current sourced answer.", "Web answer text was not extracted.", result);
+  assert(result.sources.length === 2, "Web citations were not deduplicated and preserved.", result.sources);
+  assert(global.window.AIDA_RUNTIME.research.lastWebSearch.responseId === "response_web_smoke", "Web result was not retained in ephemeral research state.");
+  return {
+    model: result.model,
+    sourceCount: result.sources.length,
+    tool: request.body.tools[0].type,
+    includeSources: true
+  };
+}
+
 function runHostedOllamaGuardTest() {
   global.document = { addEventListener() {} };
   global.window = {
@@ -374,6 +442,7 @@ async function main() {
         hasAuth: false,
         normalizedProvider: "ollama"
       }),
+      webSearch: await runWebSearchTest(),
       hostedOllamaGuard: await runHostedOllamaGuardTest(),
       credentialClear: runCredentialClearTest(),
       grokAirlockSelection: runAirlockSelectionTest("456", "xai"),

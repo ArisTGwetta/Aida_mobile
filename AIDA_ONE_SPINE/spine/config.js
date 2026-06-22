@@ -12,6 +12,7 @@
     },
     llm: {
       model: "gpt-4.1-mini",
+      webSearchModel: "gpt-5.5",
       maxOutputTokens: 700,
       sleepMaxOutputTokens: 3200,
       providers: {

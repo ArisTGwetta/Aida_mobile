@@ -1,0 +1,18 @@
+{
+  "schema": "aida_private_character_pack_v1",
+  "id": "serana",
+  "display_name": "Princess Serana",
+  "visibility": "private_drive",
+  "default_expression": "pensive",
+  "expressions": {
+    "coy": "aida_character_serana_coy.png",
+    "determined": "aida_character_serana_determined.png",
+    "exhausted": "aida_character_serana_exhausted.png",
+    "joyful": "aida_character_serana_joyful.png",
+    "pensive": "aida_character_serana_pensive.png",
+    "picaresque": "aida_character_serana_picaresque.png",
+    "postbattle": "aida_character_serana_postbattle.png",
+    "satisfied": "aida_character_serana_satisfied.png",
+    "wary": "aida_character_serana_wary.png"
+  }
+}

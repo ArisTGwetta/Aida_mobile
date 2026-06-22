@@ -179,10 +179,8 @@
 
   function buildOperations(reviewed = window.AIDA_CURATOR?.getReviewed?.()) {
     const generatedAt = nowIso();
-    if (!reviewed?.lastReviewedPacketId) return [];
-
     const ops = [];
-    if (safeArray(reviewed.diaryWriteDrafts).length) {
+    if (reviewed?.lastReviewedPacketId && safeArray(reviewed.diaryWriteDrafts).length) {
       ops.push({
         target: "diary",
         fileName: "diary_log.json",
@@ -192,7 +190,7 @@
       });
     }
 
-    if (safeArray(reviewed.projectListingDrafts).length) {
+    if (reviewed?.lastReviewedPacketId && safeArray(reviewed.projectListingDrafts).length) {
       ops.push({
         target: "project_summary",
         fileName: "project_summary.json",
@@ -202,7 +200,7 @@
       });
     }
 
-    safeArray(reviewed.projectBriefcaseWriteDrafts).forEach((draft) => {
+    safeArray(reviewed?.projectBriefcaseWriteDrafts).forEach((draft) => {
       ops.push({
         target: "project_briefcase",
         fileName: targetBriefcaseFile(draft),
@@ -213,7 +211,7 @@
       });
     });
 
-    const factCandidates = safeArray(reviewed.factWriteDrafts).filter((item) => item.writeStatus === "staged_candidate");
+    const factCandidates = safeArray(reviewed?.factWriteDrafts).filter((item) => item.writeStatus === "staged_candidate");
     if (factCandidates.length) {
       ops.push({
         target: "facts_candidates",
@@ -224,7 +222,7 @@
       });
     }
 
-    const insightCandidates = safeArray(reviewed.insightWriteDrafts).filter((item) => item.writeStatus === "staged_candidate");
+    const insightCandidates = safeArray(reviewed?.insightWriteDrafts).filter((item) => item.writeStatus === "staged_candidate");
     if (insightCandidates.length) {
       ops.push({
         target: "insights_candidates",
@@ -235,7 +233,7 @@
       });
     }
 
-    if (safeArray(reviewed.sensitiveContextWriteDrafts).length) {
+    if (safeArray(reviewed?.sensitiveContextWriteDrafts).length) {
       ops.push({
         target: "sensitive_context_candidates",
         fileName: "sensitive_context_candidates.json",
@@ -245,7 +243,7 @@
       });
     }
 
-    if (safeArray(reviewed.salutationSignalWriteDrafts).length) {
+    if (safeArray(reviewed?.salutationSignalWriteDrafts).length) {
       ops.push({
         target: "salutation_tone_signals",
         fileName: "salutation_tone_signals.json",
@@ -255,7 +253,7 @@
       });
     }
 
-    if (safeArray(reviewed.rawLogWriteDrafts).length) {
+    if (safeArray(reviewed?.rawLogWriteDrafts).length) {
       ops.push({
         target: "raw_session_log",
         fileName: "raw_session_log.json",
@@ -265,7 +263,7 @@
       });
     }
 
-    if (safeArray(reviewed.processingBacklogWriteDrafts).length) {
+    if (safeArray(reviewed?.processingBacklogWriteDrafts).length) {
       ops.push({
         target: "memory_processing_backlog",
         fileName: "memory_processing_backlog.json",
@@ -274,6 +272,42 @@
         count: reviewed.processingBacklogWriteDrafts.length
       });
     }
+
+    safeArray(runtime()?.driveWriteback?.projectReconciliations)
+      .filter((item) => item?.status === "staged")
+      .forEach((item) => {
+        ops.push({
+          target: "project_reconciliation_survivor",
+          fileName: item.survivorFile,
+          mode: "replace",
+          merge: () => copyJson(item.survivor, {}),
+          count: 1,
+          reconciliationId: item.id
+        });
+        ops.push({
+          target: "project_reconciliation_archive",
+          fileName: item.duplicateFile,
+          mode: "replace",
+          merge: () => copyJson(item.duplicate, {}),
+          count: 1,
+          reconciliationId: item.id
+        });
+      });
+
+    safeArray(runtime()?.driveWriteback?.projectRelationshipUpdates)
+      .filter((item) => item?.status === "staged")
+      .forEach((item) => {
+        safeArray(item.files).forEach((file) => {
+          ops.push({
+            target: "project_relationship_link",
+            fileName: file.fileName,
+            mode: "replace",
+            merge: () => copyJson(file.content, {}),
+            count: 1,
+            relationshipUpdateId: item.id
+          });
+        });
+      });
 
     return ops;
   }
@@ -419,7 +453,9 @@
           action,
           count: op.count,
           dryRun,
-          ok: true
+          ok: true,
+          reconciliationId: op.reconciliationId || null,
+          relationshipUpdateId: op.relationshipUpdateId || null
         });
       } catch (error) {
         results.push({
@@ -429,6 +465,8 @@
           count: op.count,
           dryRun,
           ok: false,
+          reconciliationId: op.reconciliationId || null,
+          relationshipUpdateId: op.relationshipUpdateId || null,
           error: error.message
         });
         state.lastAppliedAt = null;
@@ -450,6 +488,22 @@
     state.history = state.history.slice(-20);
     if (!dryRun) {
       runtime().drive.lastSync = appliedAt;
+      const completedIds = new Set(
+        results
+          .filter((item) => item.ok && item.reconciliationId)
+          .map((item) => item.reconciliationId)
+      );
+      safeArray(runtime().driveWriteback?.projectReconciliations).forEach((item) => {
+        if (completedIds.has(item.id)) item.status = "committed";
+      });
+      const completedRelationshipIds = new Set(
+        results
+          .filter((item) => item.ok && item.relationshipUpdateId)
+          .map((item) => item.relationshipUpdateId)
+      );
+      safeArray(runtime().driveWriteback?.projectRelationshipUpdates).forEach((item) => {
+        if (completedRelationshipIds.has(item.id)) item.status = "committed";
+      });
       window.AIDA_DRIVE?.mapDriveFilesToMind?.({ selectDefault: false });
     }
     log(`DRIVE WRITEBACK: ${dryRun ? "dry-run" : "applied"} ${results.length} operation(s).`, "log-blue");

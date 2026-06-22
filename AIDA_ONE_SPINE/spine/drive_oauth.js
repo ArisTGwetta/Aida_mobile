@@ -134,7 +134,7 @@
     }
   }
 
-  async function listJsonFiles() {
+  async function listDriveFiles() {
     const rt = runtime();
     const token = rt.tokens.drive.accessToken;
     const folderId = rt.drive.folderId;
@@ -153,7 +153,11 @@
     }
 
     const data = await response.json();
-    return (data.files || []).filter((file) => file.name.endsWith(".json"));
+    return data.files || [];
+  }
+
+  async function listJsonFiles() {
+    return (await listDriveFiles()).filter((file) => file.name.endsWith(".json"));
   }
 
   async function fetchJsonFile(file) {
@@ -217,6 +221,91 @@
     const entry = runtime().drive?.fileIndex?.[name] || null;
     if (!entry?.id) return null;
     return entry;
+  }
+
+  function ensureAssetCache() {
+    const rt = runtime();
+    rt.drive.assetUrls = rt.drive.assetUrls || {};
+    return rt.drive.assetUrls;
+  }
+
+  function cachedBlobUrl(name) {
+    return ensureAssetCache()[name] || null;
+  }
+
+  async function ensureAllFilesIndexed() {
+    const files = await listDriveFiles();
+    indexDriveFiles(files);
+    return files;
+  }
+
+  async function fetchBlobUrlByName(name) {
+    const cached = cachedBlobUrl(name);
+    if (cached) return cached;
+    let file = driveFileFromIndex(name);
+    if (!file) {
+      await ensureAllFilesIndexed();
+      file = driveFileFromIndex(name);
+    }
+    if (!file) throw new Error(`Drive asset ${name} is not indexed.`);
+    const response = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
+      headers: { Authorization: `Bearer ${runtime().tokens.drive.accessToken}` }
+    });
+    if (!response.ok) throw new Error(`Asset fetch failed for ${name}: HTTP ${response.status}.`);
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    ensureAssetCache()[name] = url;
+    return url;
+  }
+
+  async function putFile(name, content, mimeType = "application/octet-stream") {
+    const rt = runtime();
+    if (!rt.tokens?.drive?.accessToken) throw new Error("Drive access token is missing.");
+    if (!rt.drive?.folderId) throw new Error("Drive folder ID is missing.");
+    if (!Object.keys(rt.drive?.fileIndex || {}).length) await ensureAllFilesIndexed();
+    const existing = driveFileFromIndex(name);
+    const body = content instanceof Blob ? content : new Blob([content], { type: mimeType });
+    let response;
+    if (existing?.id) {
+      response = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existing.id}?uploadType=media&fields=id,name,mimeType,modifiedTime`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${rt.tokens.drive.accessToken}`,
+          "Content-Type": mimeType
+        },
+        body
+      });
+    } else {
+      const boundary = `aida_asset_${Date.now()}`;
+      const metadata = JSON.stringify({
+        name,
+        mimeType,
+        parents: [rt.drive.folderId]
+      });
+      const multipart = new Blob([
+        `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n`,
+        `--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`,
+        body,
+        `\r\n--${boundary}--\r\n`
+      ], { type: `multipart/related; boundary=${boundary}` });
+      response = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,modifiedTime", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${rt.tokens.drive.accessToken}`,
+          "Content-Type": `multipart/related; boundary=${boundary}`
+        },
+        body: multipart
+      });
+    }
+    if (!response.ok) throw new Error(`Drive upload failed for ${name}: HTTP ${response.status}.`);
+    const saved = await response.json();
+    rt.drive.fileIndex[name] = {
+      id: saved.id || existing?.id,
+      name: saved.name || name,
+      mimeType: saved.mimeType || mimeType,
+      modifiedTime: saved.modifiedTime || new Date().toISOString()
+    };
+    return rt.drive.fileIndex[name];
   }
 
   async function fetchJsonByName(name, reason = "lazy_fetch") {
@@ -607,11 +696,12 @@
 
   async function fetchBootDriveJson() {
     try {
-      const files = await listJsonFiles();
+      const allFiles = await listDriveFiles();
+      const files = allFiles.filter((file) => file.name.endsWith(".json"));
       const rt = runtime();
       rt.boot.phase = "drive_boot_fetching";
       rt.drive.files = {};
-      indexDriveFiles(files);
+      indexDriveFiles(allFiles);
       rt.drive.loadMode = "boot_lazy";
       rt.drive.loadedNames = [];
       rt.drive.deferredNames = files
@@ -635,6 +725,9 @@
       }
       rt.boot.driveLoaded = true;
       rt.boot.phase = "drive_loaded";
+      window.dispatchEvent(new CustomEvent("aida:drive-loaded", {
+        detail: { mode: rt.drive.loadMode, fileCount: allFiles.length, jsonCount: files.length }
+      }));
 
       log(
         `DRIVE: Mind mapped. mode=${rt.drive.loadMode}, loaded=${rt.drive.loadedNames.length}, deferred=${rt.drive.deferredNames.length}, identity=${mapped.identity}, facts=${mapped.facts}, memory=${mapped.memory}, realms=${mapped.realms}, roles=${mapped.roles}, projects=${mapped.projects}, ledger=${mapped.projectLedger}, activeProject=${mapped.activeProject}, whileAway=${mapped.whileAway}, llmFragments=${mapped.llmFragments}.`,
@@ -654,11 +747,12 @@
 
   async function fetchEveryDriveJson() {
     try {
-      const files = await listJsonFiles();
+      const allFiles = await listDriveFiles();
+      const files = allFiles.filter((file) => file.name.endsWith(".json"));
       const rt = runtime();
       rt.boot.phase = "drive_full_fetching";
       rt.drive.files = {};
-      indexDriveFiles(files);
+      indexDriveFiles(allFiles);
       rt.drive.loadMode = "all_json";
       rt.drive.loadedNames = [];
       rt.drive.deferredNames = [];
@@ -679,6 +773,9 @@
       }
       rt.boot.driveLoaded = true;
       rt.boot.phase = "drive_loaded";
+      window.dispatchEvent(new CustomEvent("aida:drive-loaded", {
+        detail: { mode: rt.drive.loadMode, fileCount: allFiles.length, jsonCount: files.length }
+      }));
       log(`DRIVE: Full mind mapped. loaded=${rt.drive.loadedNames.length}, ledger=${mapped.projectLedger}.`, "log-blue");
       return rt.drive.files;
     } catch (error) {
@@ -724,12 +821,17 @@
   window.AIDA_DRIVE = {
     initTokenClient,
     requestDriveToken,
+    listDriveFiles,
     listJsonFiles,
     smokeListDriveJson,
     fetchAllDriveJson,
     fetchBootDriveJson,
     fetchEveryDriveJson,
     fetchJsonByName,
+    fetchBlobUrlByName,
+    cachedBlobUrl,
+    putFile,
+    ensureAllFilesIndexed,
     fetchContextJson,
     mapDriveFilesToMind,
     listProjects,

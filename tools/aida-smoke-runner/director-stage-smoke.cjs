@@ -51,7 +51,26 @@ const runtime = {
     }
   },
   director: {
-    lastBeats: []
+    lastBeats: [],
+    privateCharacters: {
+      serana: {
+        id: "serana",
+        display_name: "Princess Serana",
+        visibility: "private_drive",
+        default_expression: "pensive",
+        expressions: {
+          coy: "aida_character_serana_coy.png",
+          determined: "aida_character_serana_determined.png",
+          exhausted: "aida_character_serana_exhausted.png",
+          joyful: "aida_character_serana_joyful.png",
+          pensive: "aida_character_serana_pensive.png",
+          picaresque: "aida_character_serana_picaresque.png",
+          postbattle: "aida_character_serana_postbattle.png",
+          satisfied: "aida_character_serana_satisfied.png",
+          wary: "aida_character_serana_wary.png"
+        }
+      }
+    }
   }
 };
 
@@ -68,6 +87,12 @@ const window = {
       chat.push({ role, text, options });
     }
   },
+  AIDA_DRIVE: {
+    cachedBlobUrl(name) {
+      return `blob:private-drive/${name}`;
+    }
+  },
+  addEventListener() {},
   setTimeout(callback) {
     callback();
   }
@@ -143,8 +168,8 @@ if (!pending.removed) {
 if (chat.map((item) => item.options.displayRole).join("|") !== "NARRATOR|PRINCESS SERANA|AIDA") {
   throw new Error("Speaker labels were not preserved.");
 }
-if (!elements.get("director-stage-image").src.endsWith("/Wary.png")) {
-  throw new Error("Serana's wary portrait was not selected.");
+if (elements.get("director-stage-image").src !== "blob:private-drive/aida_character_serana_wary.png") {
+  throw new Error("Serana's authenticated Drive portrait was not selected.");
 }
 if (runtime.director.activeCharacter !== "serana" || runtime.director.activeExpression !== "wary") {
   throw new Error("Director runtime state was not updated.");
@@ -171,13 +196,32 @@ window.AIDA_DIRECTOR.present(JSON.stringify({
 if (elements.get("director-stage-image").src !== heldImage) {
   throw new Error("Narration or Aida commentary incorrectly replaced the held character image.");
 }
+const heldThroughNarration = elements.get("director-stage-image").src === heldImage;
+
+delete runtime.director.privateCharacters.serana;
+const privateUnavailableContract = window.AIDA_DIRECTOR.promptContract({
+  rt: runtime,
+  projectName: "serana"
+});
+if (privateUnavailableContract.includes("Available private-stage character: Princess Serana")) {
+  throw new Error("Director advertised Serana without an authenticated private manifest.");
+}
+const fallback = window.AIDA_DIRECTOR.setStage({
+  mode: "character",
+  character: "serana",
+  expression: "wary"
+});
+if (!fallback.privateUnavailable || fallback.mode !== "system") {
+  throw new Error("Missing private character pack did not fall back to the system stage.");
+}
 
 process.stdout.write(JSON.stringify({
   status: "pass",
   beats: result.beats.length,
   speakers: chat.map((item) => item.options.displayRole),
   stageImage: elements.get("director-stage-image").src,
-  heldThroughNarration: elements.get("director-stage-image").src === heldImage,
+  heldThroughNarration,
+  privateUnavailableFallback: fallback.mode,
   stageCaption: elements.get("director-stage-caption").textContent,
   transcript: result.transcript
 }, null, 2));

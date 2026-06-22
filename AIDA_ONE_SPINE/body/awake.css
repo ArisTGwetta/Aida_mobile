@@ -281,6 +281,32 @@ input:disabled {
   white-space: pre-wrap;
 }
 
+.line-sources {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(125, 255, 222, 0.18);
+  font-size: 0.72rem;
+}
+
+.line-sources-heading {
+  color: rgba(144, 255, 223, 0.72);
+  letter-spacing: 0.12em;
+}
+
+.line-sources a {
+  color: #9cebd7;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+.line-sources a:hover,
+.line-sources a:focus-visible {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
 .line.AIDA {
   align-self: flex-start;
   border: 1px solid var(--aida-gold);
