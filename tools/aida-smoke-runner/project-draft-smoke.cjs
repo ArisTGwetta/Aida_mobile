@@ -422,6 +422,17 @@ vm.runInContext(fs.readFileSync(writebackPath, "utf8"), context, {
     throw new Error(`Conflict relationship was linked without review: ${JSON.stringify(blockedConflict)}`);
   }
 
+  const briefcaseEdit = window.AIDA_PROJECTS.stageBriefcaseEdit(created.fileName, {
+    name: "Bard and the Frozen Guide",
+    realm: "RPG",
+    status: "active",
+    latest_summary: "The bard and Liora are now tracked through the editable briefcase header.",
+    open_threads: ["What awakens Liora from stasis?", "Who left the chapel frozen?"]
+  });
+  if (!briefcaseEdit.ok) {
+    throw new Error(`Briefcase header edit was not staged: ${JSON.stringify(briefcaseEdit)}`);
+  }
+
   const reconciliationPreview = window.AIDA_DRIVE_WRITEBACK.preview();
   const reconciliationTargets = reconciliationPreview.operations.filter((operation) => operation.target.startsWith("project_reconciliation"));
   if (reconciliationTargets.length !== 2) {
@@ -430,6 +441,10 @@ vm.runInContext(fs.readFileSync(writebackPath, "utf8"), context, {
   const relationshipTargets = reconciliationPreview.operations.filter((operation) => operation.target === "project_relationship_link");
   if (relationshipTargets.length !== 2) {
     throw new Error(`Portfolio relationship was not staged for durable Commit: ${JSON.stringify(reconciliationPreview)}`);
+  }
+  const briefcaseEditTargets = reconciliationPreview.operations.filter((operation) => operation.target === "briefcase_header_edit");
+  if (briefcaseEditTargets.length !== 1) {
+    throw new Error(`Briefcase header edit was not staged for durable Commit: ${JSON.stringify(reconciliationPreview)}`);
   }
 
   process.stdout.write(JSON.stringify({
@@ -460,6 +475,7 @@ vm.runInContext(fs.readFileSync(writebackPath, "utf8"), context, {
     portfolioConflictBlocked: blockedConflict.reason,
     portfolioSpinOffs: portfolio.spinOffs.length,
     relationshipOperations: relationshipTargets.length,
+    briefcaseEditOperations: briefcaseEditTargets.length,
     reopenedAfterRestart: Boolean(durable)
   }, null, 2));
 })().catch((error) => {

@@ -386,6 +386,162 @@
     return project?.name || project?.fileName || project?.key || "Unnamed project";
   }
 
+  function projectPayload(fileName, fallback) {
+    const rt = runtime();
+    return rt?.mind?.projects?.[fileName] || rt?.drive?.files?.[fileName] || fallback?.summary || {};
+  }
+
+  function briefcaseEditStatus(fileName) {
+    const edits = runtime()?.driveWriteback?.briefcaseEdits || [];
+    const latest = edits.filter((item) => item.fileName === fileName).slice(-1)[0];
+    return latest?.status || "runtime";
+  }
+
+  function openThreadsText(project) {
+    return (Array.isArray(project?.open_threads) ? project.open_threads : [])
+      .map((item) => typeof item === "string" ? item : item?.text || item?.thread || "")
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  function renderMeditationResults(box, result) {
+    const results = result?.results || [];
+    if (!results.length) {
+      box.textContent = "No indexed matches yet. Try a different phrase or run Sleep/Commit after more story turns.";
+      return;
+    }
+
+    box.innerHTML = "";
+    results.forEach((item) => {
+      const row = document.createElement("div");
+      row.className = "briefcase-search-result";
+      const title = document.createElement("div");
+      title.className = "briefcase-search-title";
+      title.textContent = `${item.title || item.type} (${item.project || "unfiled"}, score ${item.score})`;
+      const text = document.createElement("div");
+      text.className = "briefcase-search-text";
+      text.textContent = item.text || "";
+      const refs = document.createElement("div");
+      refs.className = "briefcase-search-refs";
+      refs.textContent = (item.sourceRefs || []).length ? `refs: ${item.sourceRefs.join(", ")}` : item.humanSource || "";
+      row.append(title, text, refs);
+      box.appendChild(row);
+    });
+  }
+
+  function runBriefcaseMeditation(query, resultBox) {
+    const text = String(query || "").trim();
+    if (!text) {
+      resultBox.textContent = "Type what you want to find first.";
+      return;
+    }
+    if (!window.AIDA_CRAWLER?.search) {
+      resultBox.textContent = "Crawler is not loaded yet.";
+      return;
+    }
+
+    window.AIDA_CRAWLER.indexNow?.("briefcase_inspector_meditate");
+    const result = window.AIDA_CRAWLER.search(text, {
+      limit: 6,
+      minScore: 1,
+      llmScope: "current"
+    });
+    renderMeditationResults(resultBox, result);
+    pulse(`Meditation search: ${result.results?.length || 0} match(es).`);
+  }
+
+  function renderBriefcaseInspector(pane, activeProject) {
+    if (!activeProject?.fileName) return;
+    const fileName = activeProject.fileName;
+    const project = projectPayload(fileName, activeProject);
+
+    const panel = document.createElement("section");
+    panel.className = "briefcase-inspector";
+
+    const title = document.createElement("div");
+    title.className = "briefcase-inspector-title";
+    title.textContent = "BRIEFCASE";
+
+    const meta = document.createElement("div");
+    meta.className = "briefcase-inspector-meta";
+    meta.textContent = `${fileName} | ${briefcaseEditStatus(fileName)}`;
+
+    const name = document.createElement("input");
+    name.className = "briefcase-field";
+    name.value = project.project_name || project.name || activeProject.name || "";
+    name.placeholder = "story name";
+
+    const realm = document.createElement("input");
+    realm.className = "briefcase-field";
+    realm.value = project.realm || project.realm_name || activeProject.realmKey || "";
+    realm.placeholder = "realm";
+
+    const status = document.createElement("input");
+    status.className = "briefcase-field";
+    status.value = project.status || "active";
+    status.placeholder = "status";
+
+    const role = document.createElement("input");
+    role.className = "briefcase-field";
+    role.value = typeof project.role === "string" ? project.role : project.role?.file || project.role?.name || "";
+    role.placeholder = "role";
+
+    const summary = document.createElement("textarea");
+    summary.className = "briefcase-area";
+    summary.value = project.latest_summary || project.summary || activeProject.status || "";
+    summary.placeholder = "summary";
+
+    const threads = document.createElement("textarea");
+    threads.className = "briefcase-area";
+    threads.value = openThreadsText(project);
+    threads.placeholder = "open threads, one per line";
+
+    const actions = document.createElement("div");
+    actions.className = "briefcase-actions";
+    const save = document.createElement("button");
+    save.type = "button";
+    save.textContent = "STAGE EDIT";
+    const meditate = document.createElement("button");
+    meditate.type = "button";
+    meditate.textContent = "MEDITATE";
+    actions.append(save, meditate);
+
+    const search = document.createElement("input");
+    search.className = "briefcase-field briefcase-search";
+    search.placeholder = "which project did we do this or that?";
+
+    const resultBox = document.createElement("div");
+    resultBox.className = "briefcase-search-results";
+
+    save.addEventListener("click", () => {
+      const result = window.AIDA_PROJECTS?.stageBriefcaseEdit?.(fileName, {
+        name: name.value,
+        realm: realm.value,
+        status: status.value,
+        role: role.value,
+        latest_summary: summary.value,
+        open_threads: threads.value
+      });
+      const ok = Boolean(result?.ok);
+      resultBox.textContent = ok
+        ? `Staged edit for ${result.projectName}. Commit writes it to Drive.`
+        : `Could not stage edit: ${result?.reason || "unknown error"}.`;
+      if (ok) meta.textContent = `${fileName} | staged`;
+      pulse(ok ? `Briefcase edit staged: ${fileName}` : `Briefcase edit failed: ${fileName}`);
+    });
+
+    meditate.addEventListener("click", () => {
+      runBriefcaseMeditation(search.value || $("user-in")?.value, resultBox);
+    });
+
+    search.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") runBriefcaseMeditation(search.value, resultBox);
+    });
+
+    panel.append(title, meta, name, realm, status, role, summary, threads, actions, search, resultBox);
+    pane.appendChild(panel);
+  }
+
   function renderProjectSelector() {
     const tag = $("realm-tag");
     const pane = $("pres-content");
@@ -404,7 +560,7 @@
       return;
     }
     const activeRealm = hierarchy.find((realm) => realm.active);
-    const activeProject = activeRealm?.projects?.find((project) => project.active);
+    const activeProject = hierarchy.flatMap((realm) => realm.projects || []).find((project) => project.active) || null;
     if (tag) {
       tag.textContent = activeProject
         ? `${projectLabel(activeRealm)} / ${projectLabel(activeProject)}`
@@ -488,6 +644,8 @@
 
       pane.appendChild(group);
     });
+
+    renderBriefcaseInspector(pane, activeProject);
   }
 
   function buildPixelGrid() {

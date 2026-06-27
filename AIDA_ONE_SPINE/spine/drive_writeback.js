@@ -200,6 +200,19 @@
       });
     }
 
+    safeArray(runtime()?.driveWriteback?.briefcaseEdits)
+      .filter((item) => item?.status === "staged")
+      .forEach((item) => {
+        ops.push({
+          target: "briefcase_header_edit",
+          fileName: item.fileName,
+          mode: "replace",
+          merge: () => copyJson(item.content, {}),
+          count: 1,
+          briefcaseEditId: item.id
+        });
+      });
+
     safeArray(reviewed?.projectBriefcaseWriteDrafts).forEach((draft) => {
       ops.push({
         target: "project_briefcase",
@@ -455,7 +468,8 @@
           dryRun,
           ok: true,
           reconciliationId: op.reconciliationId || null,
-          relationshipUpdateId: op.relationshipUpdateId || null
+          relationshipUpdateId: op.relationshipUpdateId || null,
+          briefcaseEditId: op.briefcaseEditId || null
         });
       } catch (error) {
         results.push({
@@ -467,6 +481,7 @@
           ok: false,
           reconciliationId: op.reconciliationId || null,
           relationshipUpdateId: op.relationshipUpdateId || null,
+          briefcaseEditId: op.briefcaseEditId || null,
           error: error.message
         });
         state.lastAppliedAt = null;
@@ -503,6 +518,14 @@
       );
       safeArray(runtime().driveWriteback?.projectRelationshipUpdates).forEach((item) => {
         if (completedRelationshipIds.has(item.id)) item.status = "committed";
+      });
+      const completedBriefcaseEditIds = new Set(
+        results
+          .filter((item) => item.ok && item.briefcaseEditId)
+          .map((item) => item.briefcaseEditId)
+      );
+      safeArray(runtime().driveWriteback?.briefcaseEdits).forEach((item) => {
+        if (completedBriefcaseEditIds.has(item.id)) item.status = "committed";
       });
       window.AIDA_DRIVE?.mapDriveFilesToMind?.({ selectDefault: false });
     }

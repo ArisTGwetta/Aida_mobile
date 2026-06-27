@@ -1592,6 +1592,73 @@
     };
   }
 
+  function editableBriefcase(fileName) {
+    const rt = runtime();
+    if (!fileName) return null;
+    const project = rt.mind?.projects?.[fileName] || rt.drive?.files?.[fileName] || null;
+    if (!project || typeof project !== "object") return null;
+    if (!currentProviderAllows(project)) return null;
+    return project;
+  }
+
+  function stageBriefcaseEdit(fileName, patch = {}) {
+    const rt = runtime();
+    const project = editableBriefcase(fileName);
+    if (!project) return { ok: false, reason: "briefcase_not_editable" };
+
+    const editedAt = new Date().toISOString();
+    const cleanName = String(patch.name || "").replace(/\s+/g, " ").trim();
+    const cleanRealm = String(patch.realm || "").replace(/\s+/g, " ").trim();
+    const cleanStatus = String(patch.status || "").replace(/\s+/g, " ").trim();
+    const cleanSummary = String(patch.latest_summary || patch.summary || "").replace(/\s+/g, " ").trim();
+    const cleanRole = String(patch.role || "").replace(/\s+/g, " ").trim();
+    const hasOpenThreads = Object.prototype.hasOwnProperty.call(patch, "open_threads");
+    const openThreads = Array.isArray(patch.open_threads)
+      ? patch.open_threads.map((item) => String(item || "").trim()).filter(Boolean)
+      : String(patch.open_threads || "")
+        .split(/\r?\n/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+    const next = {
+      ...project,
+      ...(cleanName ? { project_name: cleanName, name: cleanName } : {}),
+      ...(cleanRealm ? { realm: cleanRealm } : {}),
+      ...(cleanStatus ? { status: cleanStatus } : {}),
+      ...(cleanSummary ? { latest_summary: cleanSummary } : {}),
+      ...(cleanRole ? { role: cleanRole } : {}),
+      ...(hasOpenThreads ? { open_threads: openThreads } : {}),
+      last_updated: editedAt,
+      manual_edit: {
+        ...(project.manual_edit || {}),
+        edited_at: editedAt,
+        source: "briefcase_inspector"
+      }
+    };
+
+    rt.drive.files[fileName] = next;
+    rt.mind.projects[fileName] = next;
+    rt.driveWriteback = rt.driveWriteback || {};
+    rt.driveWriteback.briefcaseEdits = safeArray(rt.driveWriteback.briefcaseEdits);
+    rt.driveWriteback.briefcaseEdits.push({
+      id: `briefcase_edit_${Date.now()}`,
+      createdAt: editedAt,
+      fileName,
+      content: next,
+      status: "staged"
+    });
+    mapDriveFilesToMind(rt.drive.files, { selectDefault: false });
+    select(fileName);
+    window.AIDA_CRASH_BUFFER?.checkpoint?.("briefcase_edit_staged");
+    log(`PROJECT: Staged briefcase header edit for ${valueName(next, fileName)}.`, "log-blue");
+    return {
+      ok: true,
+      fileName,
+      projectName: valueName(next, fileName),
+      stagedForCommit: true
+    };
+  }
+
   function hierarchy() {
     const rt = runtime();
     const realms = Object.values(rt.mind.realmLedger || {});
@@ -1707,6 +1774,7 @@
     acceptReturnContext,
     dismissReturnContext,
     claimProject,
+    stageBriefcaseEdit,
     memoryOverview,
     portfolioGlance,
     stageProjectRelationship,
