@@ -464,9 +464,11 @@
   }
 
   function renderBriefcaseInspector(pane, activeProject) {
-    if (!activeProject?.fileName) return;
-    const fileName = activeProject.fileName;
+    const rt = runtime();
+    const fileName = activeProject?.fileName || rt?.context?.projectName || rt?.mind?.activeProjectName || activeProject?.key || null;
+    if (!fileName) return;
     const project = projectPayload(fileName, activeProject);
+    const editable = Boolean(rt?.mind?.projects?.[fileName] || rt?.drive?.files?.[fileName]);
 
     const panel = document.createElement("section");
     panel.className = "briefcase-inspector";
@@ -527,6 +529,10 @@
     resultBox.className = "briefcase-search-results";
 
     save.addEventListener("click", () => {
+      if (!editable) {
+        resultBox.textContent = "This briefcase is visible from the index, but its full payload is not loaded yet. Select it again or fetch Drive JSON before editing.";
+        return;
+      }
       const result = window.AIDA_PROJECTS?.stageBriefcaseEdit?.(fileName, {
         name: name.value,
         realm: realm.value,
@@ -550,6 +556,11 @@
     search.addEventListener("keydown", (event) => {
       if (event.key === "Enter") runBriefcaseMeditation(search.value, resultBox);
     });
+
+    if (!editable) {
+      resultBox.textContent = "Index-only briefcase. Full editable payload is not loaded yet.";
+      save.disabled = true;
+    }
 
     panel.append(
       title,
