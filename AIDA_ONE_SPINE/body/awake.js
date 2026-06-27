@@ -397,6 +397,18 @@
     return latest?.status || "runtime";
   }
 
+  function briefcaseHydrationState(fileName) {
+    const rt = runtime();
+    rt.body = rt.body || {};
+    rt.body.briefcaseHydration = rt.body.briefcaseHydration || {};
+    rt.body.briefcaseHydration[fileName] = rt.body.briefcaseHydration[fileName] || {
+      status: "idle",
+      attempts: 0,
+      error: null
+    };
+    return rt.body.briefcaseHydration[fileName];
+  }
+
   function openThreadsText(project) {
     return (Array.isArray(project?.open_threads) ? project.open_threads : [])
       .map((item) => typeof item === "string" ? item : item?.text || item?.thread || "")
@@ -529,20 +541,34 @@
     resultBox.className = "briefcase-search-results";
 
     if (!editable && window.AIDA_PROJECTS?.selectHydrated) {
-      resultBox.textContent = "Loading full briefcase payload from Drive...";
-      window.AIDA_PROJECTS.selectHydrated(fileName)
-        .then((selected) => {
-          if (selected) {
-            pulse(`Briefcase hydrated: ${fileName}`);
-            renderProjectSelector();
-            return;
-          }
-          resultBox.textContent = "Could not load the full briefcase payload. Try Fetch Drive JSON, then select it again.";
-        })
-        .catch((error) => {
-          resultBox.textContent = `Could not load the full briefcase payload: ${error.message}`;
-          pulse(`Briefcase hydration failed: ${fileName}`);
-        });
+      const hydration = briefcaseHydrationState(fileName);
+      if (hydration.status === "idle" && hydration.attempts < 1) {
+        hydration.status = "loading";
+        hydration.attempts += 1;
+        resultBox.textContent = "Loading full briefcase payload from Drive...";
+        window.AIDA_PROJECTS.selectHydrated(fileName)
+          .then((selected) => {
+            hydration.status = selected ? "loaded" : "missing";
+            if (selected && (runtime()?.mind?.projects?.[fileName] || runtime()?.drive?.files?.[fileName])) {
+              pulse(`Briefcase hydrated: ${fileName}`);
+              renderProjectSelector();
+              return;
+            }
+            resultBox.textContent = "Full briefcase payload is not loaded yet. Use Fetch Drive JSON, then select it again.";
+          })
+          .catch((error) => {
+            hydration.status = "failed";
+            hydration.error = error.message;
+            resultBox.textContent = `Could not load the full briefcase payload: ${error.message}`;
+            pulse(`Briefcase hydration failed: ${fileName}`);
+          });
+      } else if (hydration.status === "loading") {
+        resultBox.textContent = "Loading full briefcase payload from Drive...";
+      } else if (hydration.status === "failed") {
+        resultBox.textContent = `Could not load the full briefcase payload: ${hydration.error || "unknown error"}`;
+      } else {
+        resultBox.textContent = "Full briefcase payload is not loaded yet. Use Fetch Drive JSON, then select it again.";
+      }
     }
 
     save.addEventListener("click", () => {
