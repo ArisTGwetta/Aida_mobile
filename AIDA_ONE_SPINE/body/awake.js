@@ -404,6 +404,19 @@
       .join("\n");
   }
 
+  function labeledBriefcaseField(labelText, helpText, field) {
+    const wrap = document.createElement("label");
+    wrap.className = "briefcase-field-wrap";
+    const label = document.createElement("span");
+    label.className = "briefcase-label";
+    label.textContent = labelText;
+    const help = document.createElement("span");
+    help.className = "briefcase-help";
+    help.textContent = helpText;
+    wrap.append(label, help, field);
+    return wrap;
+  }
+
   function renderMeditationResults(box, result) {
     const results = result?.results || [];
     if (!results.length) {
@@ -460,11 +473,11 @@
 
     const title = document.createElement("div");
     title.className = "briefcase-inspector-title";
-    title.textContent = "BRIEFCASE";
+    title.textContent = `BRIEFCASE: ${project.project_name || project.name || activeProject.name || fileName}`;
 
     const meta = document.createElement("div");
     meta.className = "briefcase-inspector-meta";
-    meta.textContent = `${fileName} | ${briefcaseEditStatus(fileName)}`;
+    meta.textContent = `${fileName} | ${briefcaseEditStatus(fileName)} | Stage edits here, then use BIOS > DRIVE WRITE APPLY to save to Drive.`;
 
     const name = document.createElement("input");
     name.className = "briefcase-field";
@@ -524,9 +537,9 @@
       });
       const ok = Boolean(result?.ok);
       resultBox.textContent = ok
-        ? `Staged edit for ${result.projectName}. Commit writes it to Drive.`
+        ? `Staged edit for ${result.projectName}. This changed runtime state; use BIOS > DRIVE WRITE APPLY to save it to Drive.`
         : `Could not stage edit: ${result?.reason || "unknown error"}.`;
-      if (ok) meta.textContent = `${fileName} | staged`;
+      if (ok) meta.textContent = `${fileName} | staged | Use BIOS > DRIVE WRITE APPLY to save to Drive.`;
       pulse(ok ? `Briefcase edit staged: ${fileName}` : `Briefcase edit failed: ${fileName}`);
     });
 
@@ -538,7 +551,19 @@
       if (event.key === "Enter") runBriefcaseMeditation(search.value, resultBox);
     });
 
-    panel.append(title, meta, name, realm, status, role, summary, threads, actions, search, resultBox);
+    panel.append(
+      title,
+      meta,
+      labeledBriefcaseField("Name", "Story/project display name.", name),
+      labeledBriefcaseField("Realm", "Shelf/category this briefcase belongs under.", realm),
+      labeledBriefcaseField("Status", "Usually active, draft, or superseded.", status),
+      labeledBriefcaseField("Role", "Default role file, such as role_co_narrator.json.", role),
+      labeledBriefcaseField("Summary", "Short continuity note Aida sees when this project is active.", summary),
+      labeledBriefcaseField("Open Threads", "Questions or loose ends, one per line.", threads),
+      actions,
+      labeledBriefcaseField("Meditate Query", "Search indexed memory without changing the briefcase.", search),
+      resultBox
+    );
     pane.appendChild(panel);
   }
 
@@ -559,8 +584,10 @@
         });
       return;
     }
-    const activeRealm = hierarchy.find((realm) => realm.active);
     const activeProject = hierarchy.flatMap((realm) => realm.projects || []).find((project) => project.active) || null;
+    const activeRealm = hierarchy.find((realm) => realm.active) ||
+      hierarchy.find((realm) => (realm.projects || []).some((project) => project.active)) ||
+      null;
     if (tag) {
       tag.textContent = activeProject
         ? `${projectLabel(activeRealm)} / ${projectLabel(activeProject)}`

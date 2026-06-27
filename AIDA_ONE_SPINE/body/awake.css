@@ -754,6 +754,28 @@ html[data-llm-provider="ollama"] #debug-pane {
   overflow-wrap: anywhere;
 }
 
+.briefcase-field-wrap {
+  display: block;
+  margin: 0 0 7px;
+}
+
+.briefcase-label {
+  display: block;
+  color: var(--aida-green);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.briefcase-help {
+  display: block;
+  margin: 1px 0 3px;
+  color: rgba(216, 255, 255, 0.62);
+  font-size: 7px;
+  line-height: 1.25;
+}
+
 .briefcase-field,
 .briefcase-area {
   width: 100%;

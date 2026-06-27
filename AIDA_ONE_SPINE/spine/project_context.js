@@ -1663,6 +1663,10 @@
     const rt = runtime();
     const realms = Object.values(rt.mind.realmLedger || {});
     const projects = Object.values(rt.mind.projectLedger || {});
+    const isActiveProject = (project) => (
+      rt.context?.activeProjectName === project.key ||
+      rt.context?.activeProjectName === project.fileName
+    );
     const groups = realms.map((realm) => ({
       ...realm,
       active: keyName(rt.context?.activeRealmName) === keyName(realm.key),
@@ -1670,7 +1674,7 @@
         .filter((project) => project.realmKey === realm.realmKey)
         .map((project) => ({
           ...project,
-          active: rt.context?.activeProjectName === project.key
+          active: isActiveProject(project)
         }))
     }));
     const assigned = new Set(groups.flatMap((realm) => realm.projects.map((project) => project.key)));
@@ -1689,7 +1693,7 @@
         active: false,
         projects: unassigned.map((project) => ({
           ...project,
-          active: rt.context?.activeProjectName === project.key
+          active: isActiveProject(project)
         }))
       });
     }
