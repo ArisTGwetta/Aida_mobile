@@ -585,9 +585,12 @@
       return;
     }
     const activeProject = hierarchy.flatMap((realm) => realm.projects || []).find((project) => project.active) || null;
-    const activeRealm = hierarchy.find((realm) => realm.active) ||
-      hierarchy.find((realm) => (realm.projects || []).some((project) => project.active)) ||
-      null;
+    const activeRealm = activeProject
+      ? hierarchy.find((realm) => (realm.projects || []).some((project) => (
+          project.key === activeProject.key ||
+          project.fileName === activeProject.fileName
+        ))) || null
+      : hierarchy.find((realm) => realm.active) || null;
     if (tag) {
       tag.textContent = activeProject
         ? `${projectLabel(activeRealm)} / ${projectLabel(activeProject)}`
@@ -608,21 +611,32 @@
       row.disabled = true;
       let selected = null;
       try {
+        const targetKey = entry.kind === "project"
+          ? entry.fileName || entry.key
+          : entry.key || entry.fileName;
         selected = await (
-          window.AIDA_PROJECTS?.selectHydrated?.(entry.key || entry.fileName) ||
-          window.AIDA_PROJECTS?.select?.(entry.key || entry.fileName) ||
-          window.AIDA_DRIVE?.selectActiveProject?.(entry.key || entry.fileName)
+          window.AIDA_PROJECTS?.selectHydrated?.(targetKey) ||
+          window.AIDA_PROJECTS?.select?.(targetKey) ||
+          window.AIDA_DRIVE?.selectActiveProject?.(targetKey)
         );
       } finally {
         row.disabled = false;
       }
       if (!selected) return;
       const isRealm = entry.kind === "realm";
+      const refreshedHierarchy = window.AIDA_PROJECTS?.hierarchy?.() || [];
+      const refreshedProject = refreshedHierarchy.flatMap((realm) => realm.projects || []).find((project) => project.active) || null;
+      const refreshedRealm = refreshedProject
+        ? refreshedHierarchy.find((realm) => (realm.projects || []).some((project) => (
+            project.key === refreshedProject.key ||
+            project.fileName === refreshedProject.fileName
+          )))
+        : refreshedHierarchy.find((realm) => realm.active) || null;
       appendChat(
         "AIDA",
         isRealm
           ? `Realm context switched to ${projectLabel(entry)}. Its projects are available, but no single story is active.`
-          : `Project context switched to ${projectLabel(entry)} inside ${projectLabel(activeRealm || {})}.`
+          : `Project context switched to ${projectLabel(refreshedProject || entry)} inside ${projectLabel(refreshedRealm || {})}.`
       );
       pulse(`${isRealm ? "Realm" : "Project"} switched: ${entry.fileName || entry.key}`);
       renderProjectSelector();

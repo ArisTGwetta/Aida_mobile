@@ -270,6 +270,18 @@ vm.runInContext(fs.readFileSync(writebackPath, "utf8"), context, {
   window.AIDA_PROJECTS.mapDriveFilesToMind(runtime.drive.files, { selectDefault: false });
   const durable = runtime.mind.projects[created.fileName];
   if (!durable) throw new Error("Persisted project did not reopen after simulated restart.");
+  durable.realm = "UNFILED";
+  runtime.drive.files[created.fileName] = durable;
+  window.AIDA_PROJECTS.mapDriveFilesToMind(runtime.drive.files, { selectDefault: false });
+  window.AIDA_PROJECTS.select(created.fileName);
+  const unfiledGroup = window.AIDA_PROJECTS.hierarchy().find((realm) => realm.key === "unknown_realm");
+  if (!unfiledGroup?.projects?.some((project) => project.fileName === created.fileName && project.active)) {
+    throw new Error(`Unfiled project did not activate beneath the synthetic UNFILED group: ${JSON.stringify(window.AIDA_PROJECTS.hierarchy())}`);
+  }
+  durable.realm = "RPG";
+  runtime.drive.files[created.fileName] = durable;
+  window.AIDA_PROJECTS.mapDriveFilesToMind(runtime.drive.files, { selectDefault: false });
+  window.AIDA_PROJECTS.select(created.fileName);
   const proposedReturn = window.AIDA_PROJECTS.returnContext("openai");
   if (proposedReturn?.projectName !== "Bard and the Frozen Guide") {
     throw new Error(`Wake did not propose the latest OpenAI project: ${JSON.stringify(proposedReturn)}`);

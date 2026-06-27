@@ -555,18 +555,20 @@
       const realmEntry = resolveRealmEntry(selected?.realm || selected?.realm_name);
       const realmFile = realmEntry?.fileName;
       const projectRealm = realmFile ? realms[realmFile] || realmEntry?.summary : null;
+      const projectRealmKey = keyName(selected?.realm || selected?.realm_name || "unknown");
       if (projectRealm) rt.mind.realm = projectRealm;
-      rt.mind.activeRealmName = realmEntry?.key || rt.mind.activeRealmName || null;
+      rt.mind.activeRealmName = realmEntry?.key ||
+        (["unknown", "unfiled"].includes(projectRealmKey) ? "unknown_realm" : projectRealmKey || null);
       rt.context.activeRealmName = rt.mind.activeRealmName;
-      rt.context.activeProjectName = selectedKey;
+      rt.context.activeProjectName = loadName;
       rt.context.pendingUnnamedStory = null;
     }
     rt.mind.activeProject = isDedicatedProject ? selected : null;
-    rt.mind.activeProjectName = isDedicatedProject ? selectedKey : null;
+    rt.mind.activeProjectName = isDedicatedProject ? loadName : null;
 
     rt.context.realm = rt.mind.realm;
     rt.context.project = selected;
-    rt.context.projectName = selectedKey;
+    rt.context.projectName = loadName || selectedKey;
     rt.context.projectMode = isDedicatedProject ? "project_payload" : isRealmContext ? "realm_context" : "project_index";
 
     const parts = contextParts(selected);
