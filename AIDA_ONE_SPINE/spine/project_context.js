@@ -537,10 +537,25 @@
     const ledger = rt.mind.projectLedger || {};
     const selectedKey = projectKey || null;
     checkpointBeforeContextSwitch(selectedKey);
-    const ledgerEntry = selectedKey ? ledger[selectedKey] || null : null;
+    const selectedKeyName = keyName(selectedKey);
+    const ledgerEntry = selectedKey
+      ? ledger[selectedKey] ||
+        Object.values(ledger).find((entry) => (
+          entry.fileName === selectedKey ||
+          entry.key === selectedKey ||
+          keyName(entry.fileName) === selectedKeyName ||
+          keyName(entry.key) === selectedKeyName ||
+          keyName(entry.name) === selectedKeyName
+        )) ||
+        null
+      : null;
     const loadName = ledgerEntry?.fileName || selectedKey;
-    const selected = loadName ? projects[loadName] || realms[loadName] || ledgerEntry?.summary || null : null;
-    const isDedicatedProject = Boolean(loadName && projects[loadName]);
+    const selected = loadName
+      ? projects[loadName] || projects[selectedKey] || realms[loadName] || realms[selectedKey] || ledgerEntry?.summary || null
+      : null;
+    const hasProjectPayload = Boolean((loadName && projects[loadName]) || (selectedKey && projects[selectedKey]));
+    const isProjectLedgerEntry = Boolean(ledgerEntry && ledgerEntry.kind === "project");
+    const isDedicatedProject = hasProjectPayload || (isProjectLedgerEntry && selected && !realms[loadName]);
     const isRealmContext = Boolean(loadName && realms[loadName] && !isDedicatedProject);
 
     if (isRealmContext) {
@@ -555,7 +570,7 @@
       const realmEntry = resolveRealmEntry(selected?.realm || selected?.realm_name);
       const realmFile = realmEntry?.fileName;
       const projectRealm = realmFile ? realms[realmFile] || realmEntry?.summary : null;
-      const projectRealmKey = keyName(selected?.realm || selected?.realm_name || "unknown");
+      const projectRealmKey = keyName(selected?.realm || selected?.realm_name || ledgerEntry?.realmKey || "unknown");
       if (projectRealm) rt.mind.realm = projectRealm;
       rt.mind.activeRealmName = realmEntry?.key ||
         (["unknown", "unfiled"].includes(projectRealmKey) ? "unknown_realm" : projectRealmKey || null);
