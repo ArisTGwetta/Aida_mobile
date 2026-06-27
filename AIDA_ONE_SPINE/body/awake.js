@@ -528,9 +528,26 @@
     const resultBox = document.createElement("div");
     resultBox.className = "briefcase-search-results";
 
+    if (!editable && window.AIDA_PROJECTS?.selectHydrated) {
+      resultBox.textContent = "Loading full briefcase payload from Drive...";
+      window.AIDA_PROJECTS.selectHydrated(fileName)
+        .then((selected) => {
+          if (selected) {
+            pulse(`Briefcase hydrated: ${fileName}`);
+            renderProjectSelector();
+            return;
+          }
+          resultBox.textContent = "Could not load the full briefcase payload. Try Fetch Drive JSON, then select it again.";
+        })
+        .catch((error) => {
+          resultBox.textContent = `Could not load the full briefcase payload: ${error.message}`;
+          pulse(`Briefcase hydration failed: ${fileName}`);
+        });
+    }
+
     save.addEventListener("click", () => {
       if (!editable) {
-        resultBox.textContent = "This briefcase is visible from the index, but its full payload is not loaded yet. Select it again or fetch Drive JSON before editing.";
+        resultBox.textContent = "The full briefcase is still loading. If it does not appear, use Fetch Drive JSON and select it again.";
         return;
       }
       const result = window.AIDA_PROJECTS?.stageBriefcaseEdit?.(fileName, {
@@ -558,7 +575,6 @@
     });
 
     if (!editable) {
-      resultBox.textContent = "Index-only briefcase. Full editable payload is not loaded yet.";
       save.disabled = true;
     }
 
