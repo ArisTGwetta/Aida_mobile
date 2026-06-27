@@ -571,9 +571,21 @@
       }
     }
 
-    save.addEventListener("click", () => {
-      if (!editable) {
-        resultBox.textContent = "The full briefcase is still loading. If it does not appear, use Fetch Drive JSON and select it again.";
+    save.addEventListener("click", async () => {
+      let canEdit = Boolean(runtime()?.mind?.projects?.[fileName] || runtime()?.drive?.files?.[fileName]);
+      if (!canEdit && window.AIDA_PROJECTS?.selectHydrated) {
+        resultBox.textContent = "Loading full briefcase payload from Drive before staging...";
+        try {
+          const selected = await window.AIDA_PROJECTS.selectHydrated(fileName);
+          canEdit = Boolean(selected && (runtime()?.mind?.projects?.[fileName] || runtime()?.drive?.files?.[fileName]));
+        } catch (error) {
+          resultBox.textContent = `Could not load full briefcase payload: ${error.message}`;
+          pulse(`Briefcase hydration failed: ${fileName}`);
+          return;
+        }
+      }
+      if (!canEdit) {
+        resultBox.textContent = "Full briefcase payload is not loaded yet. Use Fetch Drive JSON, then select it again.";
         return;
       }
       const result = window.AIDA_PROJECTS?.stageBriefcaseEdit?.(fileName, {

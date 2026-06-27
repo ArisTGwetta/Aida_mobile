@@ -902,7 +902,15 @@
     const realmEntry = projectKey
       ? Object.values(rt.mind.realmLedger || {}).find((entry) => entry.key === projectKey || entry.realmKey === keyName(projectKey))
       : null;
-    const ledgerEntry = projectKey ? ledger[projectKey] || realmEntry || null : null;
+    const ledgerEntry = projectKey
+      ? ledger[projectKey] || Object.values(ledger).find((entry) => (
+          entry?.key === projectKey ||
+          entry?.fileName === projectKey ||
+          keyName(entry?.key) === keyName(projectKey) ||
+          keyName(entry?.fileName) === keyName(projectKey) ||
+          keyName(entry?.name) === keyName(projectKey)
+        )) || realmEntry || null
+      : null;
     const loadName = ledgerEntry?.fileName || projectKey;
     return Boolean(
       loadName &&
@@ -915,6 +923,7 @@
     if (needsHydration(projectKey)) {
       log(`PROJECT: Hydrating ${projectKey} from Drive before selection.`, "log-amber");
       await window.AIDA_DRIVE?.fetchContextJson?.(projectKey);
+      mapDriveFilesToMind(runtime().drive.files, { selectDefault: false });
     }
 
     return select(projectKey);

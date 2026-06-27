@@ -350,8 +350,27 @@
   function findIndexedContextFile(projectName) {
     const rt = runtime();
     const ledger = rt.mind?.projectLedger || {};
-    const ledgerEntry = ledger[projectName] || null;
+    const wanted = String(projectName || "");
+    const normalizedWanted = wanted
+      .replace(/\.json$/i, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_");
+    const ledgerEntry = ledger[projectName] || Object.values(ledger).find((entry) => {
+      const names = [
+        entry?.key,
+        entry?.fileName,
+        entry?.name,
+        entry?.summary?.fileName,
+        entry?.summary?.filename,
+        entry?.summary?.briefcase_filename
+      ].filter(Boolean).map(String);
+      return names.some((name) => (
+        name === wanted ||
+        name.replace(/\.json$/i, "").toLowerCase().replace(/[^a-z0-9]+/g, "_") === normalizedWanted
+      ));
+    }) || null;
     const candidates = [
+      projectName,
       ledgerEntry?.fileName,
       ledgerEntry?.summary?.fileName,
       ledgerEntry?.summary?.filename,
