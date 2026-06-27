@@ -600,10 +600,6 @@
       if (event.key === "Enter") runBriefcaseMeditation(search.value, resultBox);
     });
 
-    if (!editable) {
-      save.disabled = true;
-    }
-
     panel.append(
       title,
       meta,
