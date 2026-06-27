@@ -152,13 +152,13 @@ vm.runInContext(fs.readFileSync(sourcePath, "utf8"), context, {
 });
 
 const suggestion = window.AIDA_PROJECTS.suggestUnnamedStory();
-if (!suggestion?.text || suggestion.count !== 3) {
-  throw new Error("Unnamed story suggestion did not detect sustained generic RPG discussion.");
+if (suggestion !== null) {
+  throw new Error("Unnamed story suggestion should stay disabled until in-place briefcase renaming exists.");
 }
 
 const named = window.AIDA_PROJECTS.consumeUnnamedStoryTitle("Bard and the Frozen Guide");
-if (!named?.handled) throw new Error("Natural title reply did not create the pending unnamed story.");
-const created = named.created;
+if (named !== null) throw new Error("Natural title reply should not create or claim a project after the fact.");
+const created = window.AIDA_PROJECTS.createDraft("Bard and the Frozen Guide", { realm: "RPG" });
 if (!created.created) throw new Error("Project draft was not created.");
 if (created.fileName !== "project_briefcase_bard_and_the_frozen_guide.json") {
   throw new Error(`Unexpected filename: ${created.fileName}`);
@@ -175,7 +175,7 @@ if (runtime.context.role?.role_name !== "co_narrator") {
 if (runtime.context.newProjectDraft?.privacy !== "private_candidate") {
   throw new Error("Project was not flagged as a private candidate.");
 }
-const adopted = named.adopted;
+const adopted = window.AIDA_PROJECTS.adoptHistory();
 if (!adopted.ok || adopted.count !== 3) {
   throw new Error(`Project did not adopt the prior RPG history: ${JSON.stringify(adopted)}`);
 }
@@ -440,7 +440,7 @@ vm.runInContext(fs.readFileSync(writebackPath, "utf8"), context, {
     mode: runtime.context.projectMode,
     privacy: durable.privacy,
     duplicateReopened: !reopened.created,
-    unnamedSuggestion: suggestion.text,
+    unnamedSuggestion: suggestion,
     adoptedTurns: adopted.count,
     claimedRealm: claimed.realmName,
     driveStatus: applied.status,

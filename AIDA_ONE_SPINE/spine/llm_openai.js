@@ -54,7 +54,11 @@
   }
 
   function projectCommand(text) {
-    const match = String(text || "").match(/^\s*#(?:newproject|new-project|project)\s+(.+?)\s*$/i);
+    const value = String(text || "").trim();
+    const match = value.match(/^\s*#(?:newproject|new-project|project)\s+(.+?)\s*$/i);
+    const natural = value.match(/^(?:(?:let'?s|let us)\s+)?(?:start|begin|create|open)\s+(?:a\s+)?(?:new\s+)?(?:story|project)\s+(?:called|named|titled)\s+["“”']?(.+?)["“”']?[.!]*$/i) ||
+      value.match(/^(?:new\s+)?(?:story|project)\s*:\s*["“”']?(.+?)["“”']?\s*$/i);
+    if (natural) return { realm: null, name: natural[1].trim() };
     if (!match) return null;
     const payload = match[1].trim();
     const realmMatch = payload.match(/^#([a-z0-9_-]+)\s+(.+)$/i);
@@ -404,7 +408,7 @@
           ? "I cannot merge those briefcases from the current LLM lane."
           : "I could not safely stage that merge because one of the briefcases is not loaded.";
       } else {
-        reply = `Done. I combined the recoverable memories into ${result.projectName}, kept ${result.survivorFile} as the canonical briefcase, and archived ${result.duplicateFile} as superseded. Commit will make both changes durable in Drive.`;
+        reply = `I staged the merge locally: ${result.projectName} keeps ${result.survivorFile} as canonical, and ${result.duplicateFile} is marked superseded. Nothing is durable in Drive until Commit applies those staged writes.`;
       }
     } else {
       const comparison = await window.AIDA_PROJECTS?.compareProjects?.(command.query);
@@ -600,8 +604,6 @@
     if (isFreshGlanceRequest(text)) return runFreshGlance(text);
     const navigation = navigationCommand(text);
     if (navigation) return runNavigationCommand(navigation, text);
-    const namedStory = runPendingStoryTitle(text);
-    if (namedStory) return namedStory;
     if (isAdoptHistoryCommand(text)) {
       return runAdoptHistoryCommand(text);
     }

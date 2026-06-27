@@ -870,74 +870,13 @@
   }
 
   function suggestUnnamedStory() {
-    const rt = runtime();
-    const projectName = rt.context?.projectName;
-    const projectMode = rt.context?.projectMode;
-    if (
-      projectMode !== "realm_context" ||
-      rt.context?.activeProjectName ||
-      !isGenericRpg(projectName)
-    ) return null;
-
-    const boundary = Number(rt.context?.unnamedStoryBoundaryTurn || 0);
-    const provider = activeLlmProvider();
-    const records = safeArray(rt.session?.currentTurns)
-      .slice(boundary)
-      .filter((record) => isAdoptableRecord(record, provider))
-      .map(historyRecord)
-      .slice(-6);
-    if (records.length < 3) return null;
-    const signature = records.map((item) => item.source_ref).join("|");
-    if (rt.context?.lastUnnamedStorySuggestion === signature) return null;
-    const storyText = records.map((item) => `${item.user} ${item.aida}`).join(" ");
-    if (!/\b(story|bard|angel|guide|character|king|queen|love|door|quest|dragon|magic|frozen|scene)\b/i.test(storyText)) {
-      return null;
-    }
-
-    rt.context.lastUnnamedStorySuggestion = signature;
-    const hint = openingHint(records) || "the story we have been shaping";
-    rt.context.pendingUnnamedStory = {
-      signature,
-      provider: activeLlmProvider(),
-      count: records.length,
-      hint,
-      offeredAt: new Date().toISOString()
-    };
-    return {
-      text: `This feels like the beginning of a story we have not named yet—something around ${hint}. Do you have a title for it?`,
-      count: records.length,
-      provider: activeLlmProvider(),
-      hint
-    };
+    runtime().context.pendingUnnamedStory = null;
+    return null;
   }
 
   function consumeUnnamedStoryTitle(text) {
-    const rt = runtime();
-    const pending = rt.context?.pendingUnnamedStory;
-    if (!pending || pending.provider !== activeLlmProvider()) return null;
-    const raw = String(text || "").trim();
-    if (!raw) return null;
-    if (/^(?:no|not yet|maybe later|let me think|skip|cancel)\b/i.test(raw)) {
-      rt.context.pendingUnnamedStory = null;
-      return { handled: false, declined: true };
-    }
-    if (raw.length > 90 || raw.split(/\s+/).length > 14 || /\?$/.test(raw)) return null;
-
-    const title = raw
-      .replace(/^["“”']|["“”']$/g, "")
-      .replace(/^(?:call it|let'?s call it|the title is|title:)\s*/i, "")
-      .trim();
-    if (title.length < 2) return null;
-
-    const created = createDraft(title, { realm: "RPG" });
-    const adopted = adoptHistory();
-    rt.context.pendingUnnamedStory = null;
-    return {
-      handled: true,
-      created,
-      adopted,
-      title: valueName(created.project, title)
-    };
+    runtime().context.pendingUnnamedStory = null;
+    return null;
   }
 
   function needsHydration(projectKey) {
