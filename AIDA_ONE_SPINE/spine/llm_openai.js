@@ -135,7 +135,7 @@
   function webSearchRequest(text) {
     const value = String(text || "").trim();
     if (/\b(?:our|my|the)\s+(?:logs?|memory|memories|diary|journal|drive)\b/i.test(value)) return null;
-    const match = value.match(/^(?:please\s+)?(?:search (?:the )?web(?: for)?|look (?:this )?up online|research online|find (?:the )?(?:latest|current) (?:information )?(?:about|on)|web search:?)\s+(.+?)\s*$/i);
+    const match = value.match(/(?:please\s+)?(?:(?:run|do|perform)\s+(?:a\s+)?web\s*search(?:\s+for)?|web\s*search:?\s*|search (?:the )?web(?: for)?|search online(?: for)?|browse (?:the )?web(?: for)?|look (?:this )?up online|research online(?: for)?|find (?:the )?(?:latest|current) (?:information )?(?:about|on))\s+(.+?)\s*$/i);
     return match?.[1] ? { query: match[1].trim() } : null;
   }
 
@@ -145,16 +145,31 @@
     try {
       const result = await window.AIDA_LLM_PROVIDER?.callWebSearch?.(command.query);
       if (!result?.text) throw new Error("No sourced result returned.");
+      const composed = await window.AIDA_INTENT_ROUTER?.composeToolReply?.({
+        originalUserText: userText,
+        intent: command.intentRoute?.intent || "web_search",
+        query: command.query,
+        toolName: "web_search",
+        toolStatus: "ok",
+        toolResult: {
+          text: result.text,
+          searchedAt: result.searchedAt || null,
+          provider: result.provider || null,
+          model: result.model || null
+        },
+        sources: result.sources || []
+      });
+      const replyText = composed || result.text;
       if (pending?.remove) pending.remove();
-      else setPendingText(pending, result.text);
-      appendChat("AIDA", result.text, { sources: result.sources || [] });
+      else setPendingText(pending, replyText);
+      appendChat("AIDA", replyText, { sources: result.sources || [] });
       const rt = runtime();
       const priorTags = Array.isArray(rt.context.customTags) ? rt.context.customTags.slice() : [];
       rt.context.customTags = [...new Set([...priorTags, "external_research", "web_sourced"])];
       const sourceText = (result.sources || []).map((source) => source.url).join("\n");
       window.AIDA_SESSION_CAPTURE?.captureExchange?.(
         userText,
-        `${result.text}${sourceText ? `\n\nWEB SOURCES:\n${sourceText}` : ""}`
+        `${replyText}${sourceText ? `\n\nWEB SOURCES:\n${sourceText}` : ""}`
       );
       rt.context.customTags = priorTags;
       rt.context.lastWebResearch = result;
@@ -168,6 +183,57 @@
       pulse("Web retrieval did not complete.");
       return false;
     }
+  }
+
+  async function runIntentRoute(userText) {
+    if (!window.AIDA_INTENT_ROUTER?.infer) return null;
+    const route = await window.AIDA_INTENT_ROUTER.infer(userText);
+    if (!route?.autoRun) return null;
+
+    if (route.intent === "web_search") {
+      return runWebSearch({ query: route.query, intentRoute: route }, userText);
+    }
+
+    if (route.intent === "memory_search") {
+      if (!window.AIDA_CRAWLER?.search) return null;
+      window.AIDA_CRAWLER.indexNow?.("intent_memory_search");
+      const result = window.AIDA_CRAWLER.search(route.query, {
+        limit: 6,
+        minScore: 1,
+        llmScope: "current"
+      });
+      const hits = result.results || [];
+      const fallbackReply = hits.length
+        ? `I searched indexed memory for “${route.query}”.\n${hits.map((item) => `- ${item.title} [${item.project || "unfiled"}]: ${item.text}${item.sourceRefs?.length ? ` (refs: ${item.sourceRefs.join(", ")})` : ""}`).join("\n")}`
+        : `I searched indexed memory for “${route.query}”, but I did not find a strong match yet.`;
+      const composed = await window.AIDA_INTENT_ROUTER?.composeToolReply?.({
+        originalUserText: userText,
+        intent: route.intent,
+        query: route.query,
+        toolName: "memory_search",
+        toolStatus: hits.length ? "ok" : "empty",
+        toolResult: {
+          searchedAt: result.searchedAt,
+          resultCount: hits.length,
+          results: hits.map((item) => ({
+            title: item.title,
+            text: item.text,
+            project: item.project || null,
+            sourceRefs: item.sourceRefs || [],
+            score: item.score
+          }))
+        },
+        sources: []
+      });
+      const reply = composed || fallbackReply;
+      appendChat("USER", userText);
+      appendChat("AIDA", reply);
+      window.AIDA_SESSION_CAPTURE?.captureExchange?.(userText, reply);
+      pulse(`Intent memory search: ${hits.length} match(es).`);
+      return true;
+    }
+
+    return null;
   }
 
   function runCommandGuide(userText) {
@@ -585,6 +651,8 @@
     const returnChoice = await runReturnContextChoice(text);
     if (returnChoice) return returnChoice;
     if (isCommandGuideRequest(text)) return runCommandGuide(text);
+    const intentRoute = await runIntentRoute(text);
+    if (intentRoute) return intentRoute;
     const webSearch = webSearchRequest(text);
     if (webSearch) return runWebSearch(webSearch, text);
     const reconciliation = projectReconciliationRequest(text);
