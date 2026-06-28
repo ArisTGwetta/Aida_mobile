@@ -152,9 +152,10 @@
     if (!value) return null;
     const nearby = recentMemoryContext(2);
     const explicit = /\b(?:find|search|look up|meditate on|check|scan)\b.*\b(?:memory|memories|logs?|diary|journal|mentioned|said|talked about|discussed|names?)\b/i.test(value);
+    const sourceTrace = /\b(?:source|sources|trace|traces|refs?|references?|where did|show me where)\b.*\b(?:memory|names?|liora|mentioned|said|talked about|discussed|that)\b/i.test(value);
     const recall = /\b(?:remind me|what were they|what did we call|what names?|which names?|favorite name|candidate names?)\b/i.test(value) &&
       /\b(?:before|earlier|previously|mentioned|said|discussed|were|was|had|onto something|names?)\b/i.test(`${value} ${nearby}`);
-    if (!explicit && !recall) return null;
+    if (!explicit && !recall && !sourceTrace) return null;
 
     const rt = runtime();
     const activeProject = rt?.context?.projectName ||
@@ -170,7 +171,25 @@
       .replace(/\s+/g, " ")
       .trim()
       .slice(0, 900);
-    return { query, original: value };
+    return { query, original: value, wantsTrace: sourceTrace };
+  }
+
+  function memorySearchFromRoute(route) {
+    return {
+      query: route.query || route.value || route.target || "",
+      original: route.query || route.value || route.target || "",
+      wantsTrace: route.intent === "show_sources" || route.action === "show_memory_refs"
+    };
+  }
+
+  function memoryNoteRequest(text) {
+    const value = String(text || "").trim();
+    const match = value.match(/^(?:let'?s\s+)?(?:remember|note|make a note|save a note|mark)\s+(?:that\s+)?(.+?)\s*[.!]*$/i);
+    if (!match?.[1]) return null;
+    return {
+      note: match[1].trim(),
+      original: value
+    };
   }
 
   async function runWebSearch(command, userText) {
@@ -233,7 +252,7 @@
     const fallbackReply = hits.length
       ? `I found these memory traces:\n${hits.map((item) => `- ${item.title} [${item.project || "unfiled"}]: ${item.text}${item.sourceRefs?.length ? ` (refs: ${item.sourceRefs.join(", ")})` : ""}`).join("\n")}`
       : "I searched the indexed memory I can see from this handler, but I did not find the earlier names. That probably means the raw/session memory did not save to Drive, or it was saved under a different LLM scope.";
-    const composed = hits.length ? await window.AIDA_INTENT_ROUTER?.composeToolReply?.({
+    const composed = hits.length && !command.wantsTrace ? await window.AIDA_INTENT_ROUTER?.composeToolReply?.({
       originalUserText: userText,
       intent: route?.intent || "memory_search",
       query: command.original || command.query,
@@ -262,6 +281,25 @@
     return true;
   }
 
+  function runMemoryNote(command, userText) {
+    const rt = runtime();
+    appendChat("USER", userText);
+    const projectName = rt?.context?.project?.project_name ||
+      rt?.context?.project?.name ||
+      rt?.mind?.activeProject?.project_name ||
+      rt?.mind?.activeProject?.name ||
+      "this thread";
+    const reply = `I’m making a note of that for ${projectName}: ${command.note}`;
+    const priorTags = Array.isArray(rt.context.customTags) ? rt.context.customTags.slice() : [];
+    rt.context.customTags = [...new Set([...priorTags, "MEMORY", "NOTE"])];
+    appendChat("AIDA", reply);
+    window.AIDA_SESSION_CAPTURE?.captureExchange?.(userText, reply);
+    rt.context.customTags = priorTags;
+    pulse("Memory note captured for sleep.");
+    log(`MEMORY NOTE: captured "${command.note.slice(0, 120)}".`, "log-blue");
+    return true;
+  }
+
   async function runIntentRoute(userText) {
     if (!window.AIDA_INTENT_ROUTER?.infer) return null;
     const route = await window.AIDA_INTENT_ROUTER.infer(userText);
@@ -272,7 +310,18 @@
     }
 
     if (route.intent === "memory_search") {
-      return runMemorySearch({ query: route.query, original: route.query }, userText, route);
+      return runMemorySearch(memorySearchFromRoute(route), userText, route);
+    }
+
+    if (route.intent === "show_sources") {
+      return runMemorySearch(memorySearchFromRoute(route), userText, route);
+    }
+
+    if (route.intent === "memory_note") {
+      return runMemoryNote({
+        note: route.value || route.query,
+        original: route.value || route.query
+      }, userText);
     }
 
     return null;
@@ -695,10 +744,12 @@
     if (isCommandGuideRequest(text)) return runCommandGuide(text);
     const intentRoute = await runIntentRoute(text);
     if (intentRoute) return intentRoute;
+    const memoryNote = memoryNoteRequest(text);
+    if (memoryNote) return runMemoryNote(memoryNote, text);
+    const directMemorySearch = memorySearchRequest(text);
+    if (directMemorySearch) return runMemorySearch(directMemorySearch, text);
     const webSearch = webSearchRequest(text);
     if (webSearch) return runWebSearch(webSearch, text);
-    const memorySearch = memorySearchRequest(text);
-    if (memorySearch) return runMemorySearch(memorySearch, text);
     const reconciliation = projectReconciliationRequest(text);
     if (reconciliation) {
       const handled = await runProjectReconciliation(reconciliation, text);

@@ -1350,8 +1350,10 @@
     const preview = $("boot-preview-btn");
     if (preview) {
       preview.addEventListener("click", () => {
-        appendBios("Previewing Awake body ceremony.", "log-amber");
-        window.aida_arrive();
+        showBody();
+        const rt = runtime();
+        if (rt) rt.boot.phase = "body_ready";
+        appendBios("Switched to Awake body. Runtime state preserved.", "log-blue");
       });
     }
 

@@ -62,6 +62,11 @@
       },
       capabilities: [
         {
+          intent: "conversation",
+          description: "Use for ordinary conversation, creative play, emotional presence, or when no tool/action is needed.",
+          autoRun: false
+        },
+        {
           intent: "web_search",
           description: "Use for explicit current web lookup requests, including underspecified follow-ups like dates, prices, latest picture, or where to buy when recent turns identify the subject.",
           autoRun: true
@@ -72,8 +77,33 @@
           autoRun: true
         },
         {
+          intent: "show_sources",
+          description: "Use when the user asks for source traces, refs, citations, or where a previous memory answer came from.",
+          autoRun: true
+        },
+        {
+          intent: "memory_note",
+          description: "Use when the user asks Aida to remember, note, mark, or save a statement for later sleep processing.",
+          autoRun: true
+        },
+        {
+          intent: "project_update",
+          description: "Use for rename/move/reclassify/change project or realm requests. Requires confirmation before durable writes.",
+          autoRun: false
+        },
+        {
+          intent: "external_action",
+          description: "Use for future reminders, email, calendar, or other outside-world actions. Requires confirmation and an installed tool.",
+          autoRun: false
+        },
+        {
+          intent: "clarify",
+          description: "Use when the desired tool/action is unclear or missing required details.",
+          autoRun: false
+        },
+        {
           intent: "none",
-          description: "Use for normal conversation or when a tool request is ambiguous."
+          description: "Use only as a fallback when no listed intent applies."
         }
       ]
     };
@@ -83,14 +113,22 @@
     return [
       "You are Aida's small intent router. Return only strict JSON.",
       "Your job is to translate natural user wording into a safe deterministic tool intent.",
+      "Choose intent only from the supplied capabilities menu. Do not invent intent names.",
       "Use recentExchanges only to resolve underspecified follow-ups. Do not invent missing subjects.",
-      "Supported intents: web_search, memory_search, none.",
+      "Supported intents: conversation, web_search, memory_search, show_sources, memory_note, project_update, external_action, clarify, none.",
+      "Use action for the subtype when helpful, such as rename_project, move_project, create_reminder, draft_email, or show_memory_refs.",
       "For web_search, rewrite query into a complete search query using the last one or two exchanges when needed.",
+      "For show_sources, set query to the thing whose sources are requested; if it refers to the previous answer, use recentExchanges to infer the subject.",
+      "For memory_note, put the note to save in value.",
+      "For project_update and external_action, set requiresConfirmation true.",
       "Examples:",
       "If recent context says Taylor Swift is coming to town and user says 'please run a websearch for dates and prices', return web_search with query 'Taylor Swift tour dates and ticket prices near me'.",
       "If user says 'which project did we talk about Liora in', return memory_search.",
-      "If the user is only chatting, return none.",
-      "Schema: {\"intent\":\"web_search|memory_search|none\",\"query\":\"string\",\"confidence\":0.0,\"reason\":\"short\",\"requiresTool\":boolean}"
+      "If user says 'show me the source for those names', return show_sources.",
+      "If user says 'remember that Liora was promising but not final', return memory_note with value 'Liora was promising but not final'.",
+      "If user says 'rename this project to X', return project_update with action 'rename_project', target 'current_project', value 'X', requiresConfirmation true.",
+      "If the user is only chatting, return conversation.",
+      "Schema: {\"intent\":\"conversation|web_search|memory_search|show_sources|memory_note|project_update|external_action|clarify|none\",\"action\":\"string\",\"query\":\"string\",\"target\":\"string\",\"value\":\"string\",\"confidence\":0.0,\"reason\":\"short\",\"requiresTool\":boolean,\"requiresConfirmation\":boolean}"
     ].join("\n");
   }
 
@@ -106,18 +144,40 @@
   }
 
   function normalizeIntent(value) {
-    const intent = ["web_search", "memory_search", "none"].includes(value?.intent)
+    const supported = [
+      "conversation",
+      "web_search",
+      "memory_search",
+      "show_sources",
+      "memory_note",
+      "project_update",
+      "external_action",
+      "clarify",
+      "none"
+    ];
+    const intent = supported.includes(value?.intent)
       ? value.intent
       : "none";
     const confidence = Math.max(0, Math.min(1, Number(value?.confidence || 0)));
     const query = cleanText(value?.query, 400);
+    const valueText = cleanText(value?.value, 500);
+    const needsText = ["web_search", "memory_search", "show_sources"].includes(intent)
+      ? query.length > 0
+      : intent === "memory_note"
+        ? valueText.length > 0 || query.length > 0
+        : true;
+    const canAutoRun = ["web_search", "memory_search", "show_sources", "memory_note"].includes(intent);
     return {
       intent,
+      action: cleanText(value?.action, 120),
       query,
+      target: cleanText(value?.target, 160),
+      value: valueText,
       confidence,
       reason: cleanText(value?.reason, 220),
-      requiresTool: Boolean(value?.requiresTool && intent !== "none"),
-      autoRun: intent !== "none" && confidence >= CONFIDENCE_AUTO_RUN && query.length > 0
+      requiresTool: Boolean(value?.requiresTool && !["conversation", "none"].includes(intent)),
+      requiresConfirmation: Boolean(value?.requiresConfirmation),
+      autoRun: canAutoRun && !value?.requiresConfirmation && confidence >= CONFIDENCE_AUTO_RUN && needsText
     };
   }
 
