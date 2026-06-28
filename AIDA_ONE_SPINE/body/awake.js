@@ -213,7 +213,11 @@
       try {
         const result = await api.apply({ dryRun: false });
         if (!result?.ready || result.status !== "applied") {
-          throw new Error(result?.status || "Drive write did not complete.");
+          const failed = (result?.operations || []).find((op) => op && op.ok === false);
+          const detail = failed
+            ? `${result?.status || "apply_failed"} on ${failed.fileName || failed.target || "Drive write"}: ${failed.error || "unknown error"}`
+            : (result?.status || "Drive write did not complete.");
+          throw new Error(detail);
         }
         window.AIDA_SLEEP?.markLastPacketSaved?.();
         setSleepCardStatus(`Saved ${result.operations.length} memory update(s) to Drive.`, "success");
@@ -820,10 +824,20 @@
     const rt = runtime();
     if (!rt?.context) return [];
 
-    const selected = document.querySelector(".tag-btn.selected");
-    const label = selected?.textContent?.trim() || "FRANCISCO";
-    const mode = selected?.dataset?.mode || "francisco";
-    const tags = [label].filter(Boolean);
+    const selected = Array.from(document.querySelectorAll(".tag-btn.selected"));
+    const primary = selected.find((btn) => [
+      "francisco",
+      "narrator",
+      "director",
+      "action",
+      "character",
+      "character_2"
+    ].includes(btn.dataset.mode || "")) || document.querySelector('.tag-btn[data-mode="francisco"]');
+    const label = primary?.textContent?.trim() || "FRANCISCO";
+    const mode = primary?.dataset?.mode || "francisco";
+    const tags = [...new Set(selected
+      .map((btn) => btn.textContent?.trim())
+      .filter(Boolean))];
 
     rt.context.customTags = tags;
     rt.context.storyInputMode = {
@@ -840,9 +854,31 @@
     if (!tagEdit || !tagButtons.length) return;
 
     tagButtons.forEach((btn) => {
-      btn.addEventListener("click", () => {
-        tagButtons.forEach((item) => item.classList.remove("selected"));
-        btn.classList.add("selected");
+      btn.addEventListener("click", (event) => {
+        const mode = btn.dataset.mode || "";
+        const isPrimary = [
+          "francisco",
+          "narrator",
+          "director",
+          "action",
+          "character",
+          "character_2"
+        ].includes(mode);
+        if (isPrimary) {
+          tagButtons.forEach((item) => {
+            if ([
+              "francisco",
+              "narrator",
+              "director",
+              "action",
+              "character",
+              "character_2"
+            ].includes(item.dataset.mode || "")) item.classList.remove("selected");
+          });
+          btn.classList.add("selected");
+        } else {
+          btn.classList.toggle("selected", event.detail !== 0);
+        }
         syncCustomTagsFromButtons();
       });
 

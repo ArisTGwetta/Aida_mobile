@@ -139,6 +139,40 @@
     return match?.[1] ? { query: match[1].trim() } : null;
   }
 
+  function recentMemoryContext(limit = 3) {
+    const turns = runtime()?.session?.currentTurns || [];
+    return turns.slice(-limit).map((turn) => [
+      turn?.user?.text || "",
+      turn?.aida?.text || ""
+    ].join(" ")).join(" ");
+  }
+
+  function memorySearchRequest(text) {
+    const value = String(text || "").trim();
+    if (!value) return null;
+    const nearby = recentMemoryContext(2);
+    const explicit = /\b(?:find|search|look up|meditate on|check|scan)\b.*\b(?:memory|memories|logs?|diary|journal|mentioned|said|talked about|discussed|names?)\b/i.test(value);
+    const recall = /\b(?:remind me|what were they|what did we call|what names?|which names?|favorite name|candidate names?)\b/i.test(value) &&
+      /\b(?:before|earlier|previously|mentioned|said|discussed|were|was|had|onto something|names?)\b/i.test(`${value} ${nearby}`);
+    if (!explicit && !recall) return null;
+
+    const rt = runtime();
+    const activeProject = rt?.context?.projectName ||
+      rt?.mind?.activeProjectName ||
+      rt?.context?.project?.project_name ||
+      rt?.context?.project?.name ||
+      rt?.mind?.activeProject?.project_name ||
+      rt?.mind?.activeProject?.name ||
+      "";
+    const query = [value, activeProject, nearby]
+      .filter(Boolean)
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 900);
+    return { query, original: value };
+  }
+
   async function runWebSearch(command, userText) {
     appendChat("USER", userText);
     const pending = appendChat("AIDA", "I’m checking the current web and gathering sources...");
@@ -185,6 +219,49 @@
     }
   }
 
+  async function runMemorySearch(command, userText, route = null) {
+    if (!window.AIDA_CRAWLER?.search) return false;
+    appendChat("USER", userText);
+    const pending = appendChat("AIDA", "I’m searching the indexed memory for the earlier thread...");
+    window.AIDA_CRAWLER.indexNow?.("explicit_memory_search");
+    const result = window.AIDA_CRAWLER.search(command.query, {
+      limit: 8,
+      minScore: 1,
+      llmScope: "current"
+    });
+    const hits = result.results || [];
+    const fallbackReply = hits.length
+      ? `I found these memory traces:\n${hits.map((item) => `- ${item.title} [${item.project || "unfiled"}]: ${item.text}${item.sourceRefs?.length ? ` (refs: ${item.sourceRefs.join(", ")})` : ""}`).join("\n")}`
+      : "I searched the indexed memory I can see from this handler, but I did not find the earlier names. That probably means the raw/session memory did not save to Drive, or it was saved under a different LLM scope.";
+    const composed = hits.length ? await window.AIDA_INTENT_ROUTER?.composeToolReply?.({
+      originalUserText: userText,
+      intent: route?.intent || "memory_search",
+      query: command.original || command.query,
+      toolName: "memory_search",
+      toolStatus: "ok",
+      toolResult: {
+        searchedAt: result.searchedAt,
+        resultCount: hits.length,
+        results: hits.map((item) => ({
+          title: item.title,
+          text: item.text,
+          project: item.project || null,
+          sourceRefs: item.sourceRefs || [],
+          score: item.score
+        }))
+      },
+      sources: []
+    }) : null;
+    const reply = composed || fallbackReply;
+    if (pending?.remove) pending.remove();
+    else setPendingText(pending, reply);
+    appendChat("AIDA", reply);
+    window.AIDA_SESSION_CAPTURE?.captureExchange?.(userText, reply);
+    pulse(`Memory search complete with ${hits.length} match(es).`);
+    log(`MEMORY SEARCH: query="${command.original || command.query}", hits=${hits.length}.`, hits.length ? "log-blue" : "log-amber");
+    return true;
+  }
+
   async function runIntentRoute(userText) {
     if (!window.AIDA_INTENT_ROUTER?.infer) return null;
     const route = await window.AIDA_INTENT_ROUTER.infer(userText);
@@ -195,42 +272,7 @@
     }
 
     if (route.intent === "memory_search") {
-      if (!window.AIDA_CRAWLER?.search) return null;
-      window.AIDA_CRAWLER.indexNow?.("intent_memory_search");
-      const result = window.AIDA_CRAWLER.search(route.query, {
-        limit: 6,
-        minScore: 1,
-        llmScope: "current"
-      });
-      const hits = result.results || [];
-      const fallbackReply = hits.length
-        ? `I searched indexed memory for “${route.query}”.\n${hits.map((item) => `- ${item.title} [${item.project || "unfiled"}]: ${item.text}${item.sourceRefs?.length ? ` (refs: ${item.sourceRefs.join(", ")})` : ""}`).join("\n")}`
-        : `I searched indexed memory for “${route.query}”, but I did not find a strong match yet.`;
-      const composed = await window.AIDA_INTENT_ROUTER?.composeToolReply?.({
-        originalUserText: userText,
-        intent: route.intent,
-        query: route.query,
-        toolName: "memory_search",
-        toolStatus: hits.length ? "ok" : "empty",
-        toolResult: {
-          searchedAt: result.searchedAt,
-          resultCount: hits.length,
-          results: hits.map((item) => ({
-            title: item.title,
-            text: item.text,
-            project: item.project || null,
-            sourceRefs: item.sourceRefs || [],
-            score: item.score
-          }))
-        },
-        sources: []
-      });
-      const reply = composed || fallbackReply;
-      appendChat("USER", userText);
-      appendChat("AIDA", reply);
-      window.AIDA_SESSION_CAPTURE?.captureExchange?.(userText, reply);
-      pulse(`Intent memory search: ${hits.length} match(es).`);
-      return true;
+      return runMemorySearch({ query: route.query, original: route.query }, userText, route);
     }
 
     return null;
@@ -655,6 +697,8 @@
     if (intentRoute) return intentRoute;
     const webSearch = webSearchRequest(text);
     if (webSearch) return runWebSearch(webSearch, text);
+    const memorySearch = memorySearchRequest(text);
+    if (memorySearch) return runMemorySearch(memorySearch, text);
     const reconciliation = projectReconciliationRequest(text);
     if (reconciliation) {
       const handled = await runProjectReconciliation(reconciliation, text);

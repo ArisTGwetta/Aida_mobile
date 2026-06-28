@@ -182,6 +182,7 @@
       project: turn.tags?.project || "unknown_project",
       realm: turn.tags?.realm || "unknown_realm",
       role: turn.tags?.role || "unknown_role",
+      custom_tags: copyJson(turn.tags?.custom || [], []),
       user: cleanText(turn.user?.text, 1200),
       aida: cleanText(turn.aida?.text, 1200),
       source_refs: [sourceRef(turn.tags?.session_id || sessionId, turn.turnIndex)]
@@ -731,6 +732,7 @@
       turnIndex: item.turnIndex,
       capturedAt: item.capturedAt,
       project: item.project,
+      custom_tags: item.custom_tags || [],
       source_refs: item.source_refs,
       user: cleanText(item.user, 900),
       aida: cleanText(item.aida, 700)
@@ -774,6 +776,9 @@
       "Read the raw log and produce a compact memory review for a human to inspect before Drive writeback.",
       "Return strict JSON only. No prose. No markdown. No trailing comments.",
       "Do not invent facts outside the packet.",
+      "Treat custom_tags as user-applied sleep hints, not as conversation instructions.",
+      "Useful hints include NEW/new for likely new project material, MEMORY for recall-worthy continuity, FACT for durable fact candidates, INSIGHT for behavior/taste guidance, and QUESTION for open threads.",
+      "When custom_tags mention a project name, prefer that as a routing hint for project-scoped summaries, but do not create or rename projects unless the raw log supports it.",
       `This pass is ${pass.id}: ${pass.label}. Fill only these shelves: ${pass.shelves}.`,
       ...safeArray(pass.instructions),
       "Keep output small enough to finish: at most 1 diaryEntry string, 1 sessionSummary, 1 longSummary, and short arrays only.",
