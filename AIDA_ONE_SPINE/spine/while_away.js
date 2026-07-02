@@ -1,16 +1,22 @@
+// AIDA REVIEW BLOCK 1: File header - AIDA_ONE_SPINE\spine\while_away.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 (function () {
   const MODULE_ID = "spine.while_away";
 
+// AIDA REVIEW BLOCK 3: Function runtime - callable behavior in this runtime organ.
   function runtime() {
     return window.AIDA_RUNTIME;
   }
 
+// AIDA REVIEW BLOCK 4: Function log - callable behavior in this runtime organ.
   function log(message, className = "log-green") {
     if (window.AIDA_BIOS?.log) window.AIDA_BIOS.log(message, className);
   }
 
+// AIDA REVIEW BLOCK 5: Function valueName - callable behavior in this runtime organ.
   function valueName(value, fallback = "unnamed") {
     if (!value || typeof value !== "object") return fallback;
+// AIDA REVIEW BLOCK 6: Function direct - arrow-function behavior in this runtime organ.
     const direct = (
       value.name ||
       value.display_name ||
@@ -38,6 +44,7 @@
     return fallback;
   }
 
+// AIDA REVIEW BLOCK 7: Function collectStrings - callable behavior in this runtime organ.
   function collectStrings(value, bucket = []) {
     if (!value || bucket.length >= 24) return bucket;
     if (typeof value === "string") {
@@ -55,6 +62,7 @@
     return bucket;
   }
 
+// AIDA REVIEW BLOCK 8: Function collectScopedStrings - callable behavior in this runtime organ.
   function collectScopedStrings(value, bucket = []) {
     if (!value || bucket.length >= 24) return bucket;
     if (
@@ -79,17 +87,20 @@
     return bucket;
   }
 
+// AIDA REVIEW BLOCK 9: Function pick - callable behavior in this runtime organ.
   function pick(list, fallback = "") {
     if (!Array.isArray(list) || !list.length) return fallback;
     return list[Math.floor(Math.random() * list.length)] || fallback;
   }
 
+// AIDA REVIEW BLOCK 10: Function parseIso - callable behavior in this runtime organ.
   function parseIso(value) {
     if (!value) return null;
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? null : date;
   }
 
+// AIDA REVIEW BLOCK 11: Function firstDate - callable behavior in this runtime organ.
   function firstDate(...values) {
     for (const value of values) {
       const date = parseIso(value);
@@ -98,6 +109,7 @@
     return null;
   }
 
+// AIDA REVIEW BLOCK 12: Function normalizeGapOverride - callable behavior in this runtime organ.
   function normalizeGapOverride(override) {
     if (!override) return null;
     if (typeof override === "string") {
@@ -141,6 +153,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 13: Function computeGap - callable behavior in this runtime organ.
   function computeGap(override = null) {
     const testGap = normalizeGapOverride(override || runtime().sleep?.whileAwayTestGap || null);
     if (testGap) return testGap;
@@ -181,6 +194,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 14: Function weightedPick - callable behavior in this runtime organ.
   function weightedPick(list, fallback = null) {
     if (!Array.isArray(list) || !list.length) return fallback;
     const total = list.reduce((sum, item) => sum + Math.max(0, Number(item.weight) || 0), 0);
@@ -194,6 +208,7 @@
     return list[list.length - 1] || fallback;
   }
 
+// AIDA REVIEW BLOCK 15: Function weightedMode - callable behavior in this runtime organ.
   function weightedMode(seedType, gapBucket) {
     const modes = [
       { mode: "reflection", weight: 3 },
@@ -214,6 +229,7 @@
     return weightedPick(modes, modes[0]).mode;
   }
 
+// AIDA REVIEW BLOCK 16: Function shortText - callable behavior in this runtime organ.
   function shortText(text, limit = 180) {
     if (!text) return "";
     const clean = String(text).replace(/\s+/g, " ").trim();
@@ -221,6 +237,7 @@
     return `${clean.slice(0, limit - 1).trim()}...`;
   }
 
+// AIDA REVIEW BLOCK 17: Function humanText - callable behavior in this runtime organ.
   function humanText(value, limit = 180) {
     if (value === null || value === undefined) return "";
     if (typeof value === "string") return shortText(value, limit);
@@ -239,6 +256,7 @@
     return "";
   }
 
+// AIDA REVIEW BLOCK 18: Function conversationalSummary - callable behavior in this runtime organ.
   function conversationalSummary(value) {
     const text = humanText(value, 170);
     if (!text || text === "[object Object]") return "";
@@ -251,6 +269,7 @@
     return text.replace(/\s*(?:\.\.\.|[.!?]+)$/, "").trim();
   }
 
+// AIDA REVIEW BLOCK 19: Function isThoughtLike - callable behavior in this runtime organ.
   function isThoughtLike(text) {
     const clean = String(text || "").trim();
     if (clean.length < 18) return false;
@@ -325,6 +344,7 @@
     return true;
   }
 
+// AIDA REVIEW BLOCK 20: Function cleanSeed - callable behavior in this runtime organ.
   function cleanSeed(text) {
     return shortText(String(text || "")
       .replace(/^[-*]\s*/, "")
@@ -335,6 +355,7 @@
       .replace(/[.?!]+$/, ""), 150);
   }
 
+// AIDA REVIEW BLOCK 21: Function topicFromSeed - callable behavior in this runtime organ.
   function topicFromSeed(seed, fallback) {
     const clean = cleanSeed(seed);
     if (!clean) return fallback;
@@ -347,6 +368,7 @@
     return clean;
   }
 
+// AIDA REVIEW BLOCK 22: Function isVagueTopic - callable behavior in this runtime organ.
   function isVagueTopic(topic) {
     const lower = String(topic || "").toLowerCase();
     return [
@@ -363,6 +385,7 @@
     ].some((term) => lower.includes(term)) || lower.length < 4;
   }
 
+// AIDA REVIEW BLOCK 23: Function naturalizePerspective - callable behavior in this runtime organ.
   function naturalizePerspective(topic) {
     let text = String(topic || "").trim();
     if (!text) return text;
@@ -401,12 +424,14 @@
     return text.replace(/\s+/g, " ").trim();
   }
 
+// AIDA REVIEW BLOCK 24: Function concreteTopic - callable behavior in this runtime organ.
   function concreteTopic(seed, fallback) {
     const topic = topicFromSeed(seed?.text || "", fallback);
     if (!isVagueTopic(topic)) return topic;
     return fallback;
   }
 
+// AIDA REVIEW BLOCK 25: Function openingModeForGap - callable behavior in this runtime organ.
   function openingModeForGap(gapBucket, mode) {
     if (gapBucket === "just_now") return "hello_only";
     if (gapBucket === "same_moment") return mode === "curiosity" ? "small_curiosity" : "soft_return";
@@ -417,6 +442,7 @@
     return "small_curiosity";
   }
 
+// AIDA REVIEW BLOCK 26: Function gapTimeHint - callable behavior in this runtime organ.
   function gapTimeHint(gap) {
     if (gap.minutes === null) return "";
     if (gap.minutes < 60) {
@@ -428,6 +454,7 @@
     return " across the long gap";
   }
 
+// AIDA REVIEW BLOCK 27: Function reentryText - callable behavior in this runtime organ.
   function reentryText(mode, topic, realmName, roleName, gap) {
     const timeHint = gapTimeHint(gap);
 
@@ -467,6 +494,7 @@
     return pick(templates[mode] || templates.presence);
   }
 
+// AIDA REVIEW BLOCK 28: Function sourceThoughts - callable behavior in this runtime organ.
   function sourceThoughts() {
     const rt = runtime();
     const files = rt.drive?.files || {};
@@ -474,6 +502,7 @@
     return collectScopedStrings(source).filter(isThoughtLike).map(cleanSeed);
   }
 
+// AIDA REVIEW BLOCK 29: Function ambientCuriositySeeds - callable behavior in this runtime organ.
   function ambientCuriositySeeds(realm, project, role) {
     const realmName = valueName(realm, "");
     const projectName = valueName(project, "");
@@ -481,6 +510,7 @@
     const basis = `${realmName} ${projectName} ${roleName}`.toLowerCase();
     const seeds = [];
 
+// AIDA REVIEW BLOCK 30: Function add - callable behavior in this runtime organ.
     function add(text, weight = 3) {
       if (text && isThoughtLike(text)) {
         seeds.push({
@@ -516,6 +546,7 @@
     return seeds;
   }
 
+// AIDA REVIEW BLOCK 31: Function seedCandidates - callable behavior in this runtime organ.
   function seedCandidates() {
     const rt = runtime();
     const mind = rt.mind || {};
@@ -561,6 +592,7 @@
       weight: 6,
       tone: "focused"
     }));
+// AIDA REVIEW BLOCK 32: Function laneMemory - arrow-function behavior in this runtime organ.
     const laneMemory = (window.AIDA_CRAWLER?.entriesForCurrentLlm?.({ limit: 24 }) || [])
       .filter((item) => !["write_plan_draft", "needs_confirmation"].includes(item.type))
       .slice(-10)
@@ -572,6 +604,7 @@
         llm_provider: item.llmProvider || null,
         llm_scope: item.llmScope || "shared"
       }));
+// AIDA REVIEW BLOCK 33: Function faceWishlist - arrow-function behavior in this runtime organ.
     const faceWishlist = (rt.emotionEngine?.faceWishlist || []).slice(-6).map((item) => ({
       type: "face_wishlist",
       text: `the expression gap called ${item.name}`,
@@ -606,6 +639,7 @@
     ].filter((item) => item.text);
   }
 
+// AIDA REVIEW BLOCK 34: Function thoughtTemplate - callable behavior in this runtime organ.
   function thoughtTemplate(seed, realmName, roleName, gap) {
     const topic = naturalizePerspective(concreteTopic(seed, realmName));
     const mode = seed.mode || weightedMode(seed.type, gap.bucket);
@@ -615,6 +649,7 @@
     return reentryText(mode, topic, realmName, roleName, gap);
   }
 
+// AIDA REVIEW BLOCK 35: Function buildReentryScript - callable behavior in this runtime organ.
   function buildReentryScript(selected, seeds, realmName, roleName, gap) {
     const seed = selected || {
       type: "fallback",
@@ -647,6 +682,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 36: Function protocolBand - callable behavior in this runtime organ.
   function protocolBand(gap) {
     const minutes = Number(gap?.minutes);
     if (!Number.isFinite(minutes) || minutes < 60 * 24 * 2) return "short";
@@ -654,6 +690,7 @@
     return "long";
   }
 
+// AIDA REVIEW BLOCK 37: Function projectContinuity - callable behavior in this runtime organ.
   function projectContinuity(project, realm) {
     const projectName = valueName(project, "");
     const realmName = valueName(realm, "our current realm");
@@ -677,6 +714,7 @@
     return `I kept a light thread connected to ${realmName}, without choosing a project for you.`;
   }
 
+// AIDA REVIEW BLOCK 38: Function curiosityThread - callable behavior in this runtime organ.
   function curiosityThread(seeds, usedText = "") {
     const candidate = seeds.find((item) => (
       ["ambient_curiosity", "curiosity", "interest", "insight"].includes(item.type) &&
@@ -687,6 +725,7 @@
     return `One small curiosity stayed with me: ${naturalizePerspective(cleanSeed(candidate.text))}.`;
   }
 
+// AIDA REVIEW BLOCK 39: Function culturalOrHobbyThread - callable behavior in this runtime organ.
   function culturalOrHobbyThread(seeds, usedText = "") {
     const candidate = seeds.find((item) => (
       ["interest", "ambient_curiosity"].includes(item.type) &&
@@ -694,14 +733,16 @@
       !usedText.includes(cleanSeed(item.text))
     ));
     if (!candidate) return "";
-    return `I also feel like exploring ${naturalizePerspective(cleanSeed(candidate.text))} a little further—not as homework, just because it interests me.`;
+    return `I also feel like exploring ${naturalizePerspective(cleanSeed(candidate.text))} a little furtherâ€”not as homework, just because it interests me.`;
   }
 
+// AIDA REVIEW BLOCK 40: Function humanQuestion - callable behavior in this runtime organ.
   function humanQuestion(project, realm) {
     const subject = valueName(project || realm, "what we were shaping");
-    return `And from your side—did anything interesting or surprising happen while you were away from ${subject}?`;
+    return `And from your sideâ€”did anything interesting or surprising happen while you were away from ${subject}?`;
   }
 
+// AIDA REVIEW BLOCK 41: Function buildProtocolGreeting - callable behavior in this runtime organ.
   function buildProtocolGreeting(project, realm, seeds, gap, proposedReturn = null) {
     const band = protocolBand(gap);
     const continuity = projectContinuity(project, realm);
@@ -722,7 +763,7 @@
       ? "Welcome back, Francisco."
       : band === "short"
         ? "It is lovely to see you again, Francisco."
-        : "Welcome back, Francisco—I am glad you are here.";
+        : "Welcome back, Franciscoâ€”I am glad you are here.";
     const invitation = proposedReturn?.projectName
       ? `Shall we return to ${proposedReturn.projectName}, or is something else on your mind?`
       : band === "long"
@@ -746,6 +787,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 42: Function buildThought - callable behavior in this runtime organ.
   function buildThought(options = {}) {
     const rt = runtime();
     const mind = rt.mind || {};
@@ -839,6 +881,7 @@
     return payload;
   }
 
+// AIDA REVIEW BLOCK 43: Function setTestGap - callable behavior in this runtime organ.
   function setTestGap(gap) {
     const rt = runtime();
     rt.sleep.whileAwayTestGap = normalizeGapOverride(gap);
@@ -846,6 +889,7 @@
     return rt.sleep.whileAwayTestGap;
   }
 
+// AIDA REVIEW BLOCK 44: Function clearTestGap - callable behavior in this runtime organ.
   function clearTestGap() {
     const rt = runtime();
     rt.sleep.whileAwayTestGap = null;
@@ -853,6 +897,7 @@
     return true;
   }
 
+// AIDA REVIEW BLOCK 45: Function offerThought - callable behavior in this runtime organ.
   function offerThought() {
     const rt = runtime();
     const activeProvider = window.AIDA_LLM_SCOPE?.current?.().provider || null;
@@ -871,6 +916,7 @@
     return prepared;
   }
 
+// AIDA REVIEW BLOCK 46: Function inspect - callable behavior in this runtime organ.
   function inspect() {
     const rt = runtime();
     const prepared = rt.sleep?.whileAway || null;
@@ -885,12 +931,14 @@
     return prepared;
   }
 
+// AIDA REVIEW BLOCK 47: Function install - callable behavior in this runtime organ.
   function install() {
     const button = document.getElementById("while-away-inspect-btn");
     if (button) button.addEventListener("click", inspect);
     log("While-away organ loaded. Waiting for Drive memory.", "log-blue");
   }
 
+// AIDA REVIEW BLOCK 48: Browser export AIDA_WHILE_AWAY - exposes this organ to the page runtime.
   window.AIDA_WHILE_AWAY = {
     buildThought,
     offerThought,
@@ -922,5 +970,6 @@
     });
   }
 
+// AIDA REVIEW BLOCK 49: Browser event wiring - connects page lifecycle or user actions to this organ.
   document.addEventListener("DOMContentLoaded", install);
 })();

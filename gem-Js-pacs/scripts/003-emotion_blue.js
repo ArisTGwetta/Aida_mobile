@@ -1,3 +1,5 @@
+// AIDA REVIEW BLOCK 1: File header - gem-Js-pacs\scripts\003-emotion_blue.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 // --- MODULE: EMOTION_SELECTOR.PY (AIDA BLUE PHASE) ---
 const EMOTION_SELECTOR_PY = `
 import math
@@ -49,6 +51,7 @@ EMBEDDED_FACE_MAP = {
     }
 }
 
+// AIDA REVIEW BLOCK 3: Class EmotionSelector - owns a grouped runtime organ or service surface.
 class EmotionSelector:
     def __init__(self, coords=None, face_map=None):
         self.coords = coords or EMBEDDED_COORDS

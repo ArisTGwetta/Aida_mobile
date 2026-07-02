@@ -1,3 +1,5 @@
+// AIDA REVIEW BLOCK 1: File header - gem-Js-pacs\002-librarian_green.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 // --- MODULE: LIBRARIAN.PY (GREEN PHASE) ---
 const LIBRARIAN_PY = `
 import json
@@ -20,6 +22,7 @@ def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
 # --- Core Librarian Logic ---
+// AIDA REVIEW BLOCK 3: Class Librarian - owns a grouped runtime organ or service surface.
 class Librarian:
     """
     Long-term, slow-thinking pattern engine.

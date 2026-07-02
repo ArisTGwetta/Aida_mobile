@@ -1,10 +1,14 @@
+// AIDA REVIEW BLOCK 1: File header - AIDA_ONE_SPINE\spine\drive_writeback.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 (function () {
   const MODULE_ID = "spine.drive.writeback";
 
+// AIDA REVIEW BLOCK 3: Function runtime - callable behavior in this runtime organ.
   function runtime() {
     return window.AIDA_RUNTIME;
   }
 
+// AIDA REVIEW BLOCK 4: Function log - callable behavior in this runtime organ.
   function log(message, className = "log-blue") {
     if (window.AIDA_BIOS?.log) {
       window.AIDA_BIOS.log(message, className);
@@ -13,14 +17,17 @@
     if (window.AIDA_BODY?.pulse) window.AIDA_BODY.pulse(message);
   }
 
+// AIDA REVIEW BLOCK 5: Function nowIso - callable behavior in this runtime organ.
   function nowIso() {
     return new Date().toISOString();
   }
 
+// AIDA REVIEW BLOCK 6: Function safeArray - callable behavior in this runtime organ.
   function safeArray(value) {
     return Array.isArray(value) ? value : [];
   }
 
+// AIDA REVIEW BLOCK 7: Function copyJson - callable behavior in this runtime organ.
   function copyJson(value, fallback) {
     if (value === undefined) return fallback;
     try {
@@ -30,6 +37,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 8: Function slug - callable behavior in this runtime organ.
   function slug(value, fallback = "project") {
     return String(value || fallback)
       .toLowerCase()
@@ -38,6 +46,7 @@
       .slice(0, 80) || fallback;
   }
 
+// AIDA REVIEW BLOCK 9: Function consoleReport - callable behavior in this runtime organ.
   function consoleReport(label, value) {
     if (typeof console === "undefined" || !console.log) return;
     try {
@@ -47,6 +56,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 10: Function ensureState - callable behavior in this runtime organ.
   function ensureState() {
     const rt = runtime();
     rt.driveWriteback = rt.driveWriteback || {};
@@ -55,18 +65,22 @@
     return rt.driveWriteback;
   }
 
+// AIDA REVIEW BLOCK 11: Function token - callable behavior in this runtime organ.
   function token() {
     return runtime()?.tokens?.drive?.accessToken || null;
   }
 
+// AIDA REVIEW BLOCK 12: Function folderId - callable behavior in this runtime organ.
   function folderId() {
     return runtime()?.drive?.folderId || window.AIDA_CONFIG?.drive?.jsonFolderId || null;
   }
 
+// AIDA REVIEW BLOCK 13: Function fileIndex - callable behavior in this runtime organ.
   function fileIndex(name) {
     return runtime()?.drive?.fileIndex?.[name] || null;
   }
 
+// AIDA REVIEW BLOCK 14: Function targetBriefcaseFile - callable behavior in this runtime organ.
   function targetBriefcaseFile(draft) {
     const candidates = [
       draft?.project?.briefcaseFile,
@@ -90,6 +104,7 @@
     return `project_briefcase_${slug(draft?.project?.name || draft?.project || "unknown_project")}.json`;
   }
 
+// AIDA REVIEW BLOCK 15: Function appendUnique - callable behavior in this runtime organ.
   function appendUnique(list, items) {
     const out = safeArray(list).slice();
     safeArray(items).forEach((item) => {
@@ -101,6 +116,7 @@
     return out;
   }
 
+// AIDA REVIEW BLOCK 16: Function mergeAppendStore - callable behavior in this runtime organ.
   function mergeAppendStore(existing, key, items, generatedAt) {
     const base = Array.isArray(existing) ? { [key]: existing } : { ...(existing || {}) };
     base[key] = appendUnique(base[key], items);
@@ -108,6 +124,7 @@
     return base;
   }
 
+// AIDA REVIEW BLOCK 17: Function mergeProjectSummary - callable behavior in this runtime organ.
   function mergeProjectSummary(existing, listings, generatedAt) {
     const base = { ...(existing || {}) };
     const containerKey = base.projects ? "projects" : base.project_briefcases ? "project_briefcases" : "projects";
@@ -134,6 +151,7 @@
     return base;
   }
 
+// AIDA REVIEW BLOCK 18: Function mergeBriefcase - callable behavior in this runtime organ.
   function mergeBriefcase(existing, draft, generatedAt) {
     const base = {
       ...(draft?.initialProject || {}),
@@ -177,6 +195,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 19: Function buildOperations - callable behavior in this runtime organ.
   function buildOperations(reviewed = window.AIDA_CURATOR?.getReviewed?.()) {
     const generatedAt = nowIso();
     const ops = [];
@@ -325,6 +344,7 @@
     return ops;
   }
 
+// AIDA REVIEW BLOCK 20: Function preview - callable behavior in this runtime organ.
   function preview() {
     const state = ensureState();
     const ops = buildOperations();
@@ -343,6 +363,7 @@
     return { ready: Boolean(ops.length), operations: summary };
   }
 
+// AIDA REVIEW BLOCK 21: Function ensureIndexed - callable behavior in this runtime organ.
   async function ensureIndexed() {
     const rt = runtime();
     if (Object.keys(rt.drive?.fileIndex || {}).length) return;
@@ -354,6 +375,7 @@
     });
   }
 
+// AIDA REVIEW BLOCK 22: Function loadExisting - callable behavior in this runtime organ.
   async function loadExisting(fileName) {
     const rt = runtime();
     if (rt.drive.files?.[fileName]) return rt.drive.files[fileName];
@@ -377,6 +399,7 @@
     return data;
   }
 
+// AIDA REVIEW BLOCK 23: Function updateFile - callable behavior in this runtime organ.
   async function updateFile(fileName, content) {
     const file = fileIndex(fileName);
     if (!file?.id) throw new Error(`Cannot update unindexed Drive file ${fileName}.`);
@@ -392,6 +415,7 @@
     return response.json();
   }
 
+// AIDA REVIEW BLOCK 24: Function createFile - callable behavior in this runtime organ.
   async function createFile(fileName, content) {
     if (!folderId()) throw new Error("Drive JSON folder ID is missing.");
     const boundary = `aida_${Date.now()}`;
@@ -425,6 +449,7 @@
     return response.json();
   }
 
+// AIDA REVIEW BLOCK 25: Function apply - callable behavior in this runtime organ.
   async function apply(options = {}) {
     const dryRun = options.dryRun !== false;
     const state = ensureState();
@@ -534,6 +559,7 @@
     return { ready: true, status: state.lastStatus, dryRun, operations: results };
   }
 
+// AIDA REVIEW BLOCK 26: Function inspect - callable behavior in this runtime organ.
   function inspect() {
     const state = ensureState();
     const summary = {
@@ -547,11 +573,13 @@
     return summary;
   }
 
+// AIDA REVIEW BLOCK 27: Function install - callable behavior in this runtime organ.
   function install() {
     ensureState();
     log("Drive writeback organ loaded. Use AIDA_DRIVE_WRITEBACK.preview() before apply().", "log-blue");
   }
 
+// AIDA REVIEW BLOCK 28: Browser export AIDA_DRIVE_WRITEBACK - exposes this organ to the page runtime.
   window.AIDA_DRIVE_WRITEBACK = {
     preview,
     apply,
@@ -569,5 +597,6 @@
     });
   }
 
+// AIDA REVIEW BLOCK 29: Browser event wiring - connects page lifecycle or user actions to this organ.
   document.addEventListener("DOMContentLoaded", install);
 })();

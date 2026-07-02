@@ -1,17 +1,22 @@
+// AIDA REVIEW BLOCK 1: File header - AIDA_ONE_SPINE\spine\airlock.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 (function () {
   const MODULE_ID = "spine.airlock";
   const MAX_REAL_DIGITS = 3;
   const STORAGE_KEY = "aida_active_key";
   const STORAGE_ROUTE = "aida_active_route";
 
+// AIDA REVIEW BLOCK 3: Function $ - callable behavior in this runtime organ.
   function $(id) {
     return document.getElementById(id);
   }
 
+// AIDA REVIEW BLOCK 4: Function runtime - callable behavior in this runtime organ.
   function runtime() {
     return window.AIDA_RUNTIME;
   }
 
+// AIDA REVIEW BLOCK 5: Function log - callable behavior in this runtime organ.
   function log(message, className = "log-green") {
     if (window.AIDA_BIOS?.log) {
       window.AIDA_BIOS.log(message, className);
@@ -38,6 +43,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 6: Function showAirlock - callable behavior in this runtime organ.
   async function showAirlock() {
     const bios = $("bios-screen");
     const airlock = $("airlock");
@@ -85,11 +91,13 @@
     );
   }
 
+// AIDA REVIEW BLOCK 7: Function hideAirlock - callable behavior in this runtime organ.
   function hideAirlock() {
     const airlock = $("airlock");
     if (airlock) airlock.style.display = "none";
   }
 
+// AIDA REVIEW BLOCK 8: Function showBios - callable behavior in this runtime organ.
   function showBios() {
     if (window.AIDA_BIOS?.show) {
       window.AIDA_BIOS.show();
@@ -102,6 +110,7 @@
     if (logs) logs.scrollTop = logs.scrollHeight;
   }
 
+// AIDA REVIEW BLOCK 9: Function returnToBios - callable behavior in this runtime organ.
   function returnToBios() {
     hideAirlock();
     showBios();
@@ -110,15 +119,18 @@
     log("AIRLOCK: Returned to BIOS.", "log-blue");
   }
 
+// AIDA REVIEW BLOCK 10: Function getProvider - callable behavior in this runtime organ.
   function getProvider() {
     const rt = runtime();
     return rt.tokens?.llm?.fragments || rt.tokens?.openai?.fragments || window.AIDA_TOKEN_FRAGMENTS || null;
   }
 
+// AIDA REVIEW BLOCK 11: Function meaningfulDigits - callable behavior in this runtime organ.
   function meaningfulDigits(rawPin) {
     return (rawPin || "").replace(/0/g, "");
   }
 
+// AIDA REVIEW BLOCK 12: Function pressKey - callable behavior in this runtime organ.
   function pressKey(value) {
     const input = $("scramble-pin");
     if (!input) return;
@@ -153,6 +165,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 13: Function assembleRouteKey - callable behavior in this runtime organ.
   function assembleRouteKey(route, cleanPin) {
     if (route.auth === "none" || route.requiresKey === false || route.provider === "ollama") {
       return null;
@@ -168,6 +181,7 @@
     return `${prefix}${parts.join("")}`;
   }
 
+// AIDA REVIEW BLOCK 14: Function resolveRoute - callable behavior in this runtime organ.
   function resolveRoute(provider, cleanPin) {
     if (provider.routes && provider.routes[cleanPin]) {
       return provider.routes[cleanPin];
@@ -186,6 +200,7 @@
     return null;
   }
 
+// AIDA REVIEW BLOCK 15: Function assembleLlmKey - callable behavior in this runtime organ.
   function assembleLlmKey(cleanPin) {
     const provider = getProvider();
     if (!provider) {
@@ -203,6 +218,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 16: Function safeRoutes - callable behavior in this runtime organ.
   function safeRoutes() {
     const provider = getProvider();
     if (!provider?.routes) return [];
@@ -218,6 +234,7 @@
     }));
   }
 
+// AIDA REVIEW BLOCK 17: Function safeRouteMetadata - callable behavior in this runtime organ.
   function safeRouteMetadata(route, cleanPin) {
     return {
       provider: route.provider || "openai",
@@ -228,6 +245,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 18: Function applyRouteToRuntime - callable behavior in this runtime organ.
   function applyRouteToRuntime(routeMetadata, key, source) {
     const rt = runtime();
     rt.tokens.llm.key = key || null;
@@ -247,6 +265,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 19: Function inspectRoutes - callable behavior in this runtime organ.
   function inspectRoutes() {
     const routes = safeRoutes();
     if (!routes.length) {
@@ -261,6 +280,7 @@
     return routes;
   }
 
+// AIDA REVIEW BLOCK 20: Function inspectFromAirlock - callable behavior in this runtime organ.
   function inspectFromAirlock() {
     if (window.AIDA_CONTEXT_INSPECTOR?.inspect) {
       window.AIDA_CONTEXT_INSPECTOR.inspect();
@@ -268,6 +288,7 @@
     return inspectRoutes();
   }
 
+// AIDA REVIEW BLOCK 21: Function requestToken - callable behavior in this runtime organ.
   function requestToken() {
     const input = $("scramble-pin");
     const rawPin = input?.dataset.realPin || "";
@@ -323,6 +344,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 22: Function restoreTokenFromSession - callable behavior in this runtime organ.
   function restoreTokenFromSession() {
     const key = sessionStorage.getItem(STORAGE_KEY);
     const rawRoute = sessionStorage.getItem(STORAGE_ROUTE);
@@ -350,6 +372,7 @@
     return true;
   }
 
+// AIDA REVIEW BLOCK 23: Function clearSessionCredentials - callable behavior in this runtime organ.
   function clearSessionCredentials(reason = "session_complete") {
     sessionStorage.removeItem(STORAGE_KEY);
     sessionStorage.removeItem(STORAGE_ROUTE);
@@ -385,6 +408,7 @@
     return true;
   }
 
+// AIDA REVIEW BLOCK 24: Function install - callable behavior in this runtime organ.
   function install() {
     const begin = $("airlock-start-btn");
     const inspect = $("airlock-inspect-btn");
@@ -419,6 +443,7 @@
     log("Airlock module loaded. Waiting for private fragments or session token.", "log-blue");
   }
 
+// AIDA REVIEW BLOCK 25: Browser export AIDA_AIRLOCK - exposes this organ to the page runtime.
   window.AIDA_AIRLOCK = {
     show: showAirlock,
     returnToBios,
@@ -443,6 +468,7 @@
   }
 
   if (document.readyState === "loading") {
+// AIDA REVIEW BLOCK 26: Browser event wiring - connects page lifecycle or user actions to this organ.
     document.addEventListener("DOMContentLoaded", install, { once: true });
   } else {
     install();

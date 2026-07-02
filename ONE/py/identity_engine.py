@@ -1,9 +1,12 @@
+# AIDA REVIEW BLOCK 1: File header - ONE\py\identity_engine.py
+# AIDA REVIEW BLOCK 2: Module setup - imports, constants, and shared state used below.
 # identity_engine.py
 
 import json
 from typing import Any, Dict, List, Optional
 
 
+# AIDA REVIEW BLOCK 3: Class IdentityEngine - grouped organ/service behavior.
 class IdentityEngine:
     """
     Pure logic engine for Aida's identity.
@@ -16,6 +19,7 @@ class IdentityEngine:
     - Enforces safety, tone, and continuity
     """
 
+# AIDA REVIEW BLOCK 4: Function __init__ - callable organ behavior.
     def __init__(
         self,
         core_identity: Dict[str, Any],
@@ -33,12 +37,14 @@ class IdentityEngine:
     # Convenience constructor for local/dev use
     # -------------------------------------------------------------------------
     @classmethod
+# AIDA REVIEW BLOCK 5: Function from_files - callable organ behavior.
     def from_files(
         cls,
         core_identity_path: str,
         realm_config_path: Optional[str] = None,
         role_config_path: Optional[str] = None,
     ) -> "IdentityEngine":
+# AIDA REVIEW BLOCK 6: Function load_json - callable organ behavior.
         def load_json(path: Optional[str]) -> Dict[str, Any]:
             if not path:
                 return {}
@@ -54,6 +60,7 @@ class IdentityEngine:
     # -------------------------------------------------------------------------
     # Internal validation
     # -------------------------------------------------------------------------
+# AIDA REVIEW BLOCK 7: Function _validate_core - callable organ behavior.
     def _validate_core(self) -> None:
         """
         Basic structural validation.
@@ -65,6 +72,7 @@ class IdentityEngine:
     # -------------------------------------------------------------------------
     # Identity resolution
     # -------------------------------------------------------------------------
+# AIDA REVIEW BLOCK 8: Function _resolve_identity - callable organ behavior.
     def _resolve_identity(self) -> Dict[str, Any]:
         """
         Merge core identity with realm and role modifiers into a single
@@ -134,6 +142,7 @@ class IdentityEngine:
     # -------------------------------------------------------------------------
     # Helpers
     # -------------------------------------------------------------------------
+# AIDA REVIEW BLOCK 9: Function _merge_tone - callable organ behavior.
     def _merge_tone(
         self,
         base_tone: str,
@@ -145,6 +154,7 @@ class IdentityEngine:
         """
         parts: List[str] = []
 
+# AIDA REVIEW BLOCK 10: Function normalize - callable organ behavior.
         def normalize(mods: Any) -> List[str]:
             if isinstance(mods, str):
                 return [mods]
@@ -162,12 +172,14 @@ class IdentityEngine:
 
         return ", ".join(parts)
 
+# AIDA REVIEW BLOCK 11: Function _merge_unique_lists - callable organ behavior.
     def _merge_unique_lists(self, *groups: Any) -> List[str]:
         """
         Merge multiple lists/strings into a single unique list.
         """
         merged: List[str] = []
 
+# AIDA REVIEW BLOCK 12: Function normalize - callable organ behavior.
         def normalize(items: Any) -> List[str]:
             if isinstance(items, str):
                 return [items]
@@ -184,27 +196,34 @@ class IdentityEngine:
     # -------------------------------------------------------------------------
     # Public API for the runtime
     # -------------------------------------------------------------------------
+# AIDA REVIEW BLOCK 13: Function get_resolved_identity - callable organ behavior.
     def get_resolved_identity(self) -> Dict[str, Any]:
         """
         The main object the runtime needs to build prompts and behavior.
         """
         return self.resolved_identity
 
+# AIDA REVIEW BLOCK 14: Function get_tone - callable organ behavior.
     def get_tone(self) -> str:
         return self.resolved_identity.get("tone", "")
 
+# AIDA REVIEW BLOCK 15: Function get_safety_rules - callable organ behavior.
     def get_safety_rules(self) -> List[str]:
         return self.resolved_identity.get("safety_rules", [])
 
+# AIDA REVIEW BLOCK 16: Function get_behavior_principles - callable organ behavior.
     def get_behavior_principles(self) -> List[str]:
         return self.resolved_identity.get("behavior_principles", [])
 
+# AIDA REVIEW BLOCK 17: Function get_communication_style - callable organ behavior.
     def get_communication_style(self) -> List[str]:
         return self.resolved_identity.get("communication_style", [])
 
+# AIDA REVIEW BLOCK 18: Function get_realm_name - callable organ behavior.
     def get_realm_name(self) -> Optional[str]:
         return self.resolved_identity.get("realm")
 
+# AIDA REVIEW BLOCK 19: Function get_active_role - callable organ behavior.
     def get_active_role(self) -> str:
         """
         The current 'hat' Aida is wearing (e.g., architect-companion, RPG co-narrator),
@@ -212,6 +231,7 @@ class IdentityEngine:
         """
         return self.resolved_identity.get("active_role", self.resolved_identity.get("core_role", "Companion"))
 
+# AIDA REVIEW BLOCK 20: Function is_element_allowed - callable organ behavior.
     def is_element_allowed(self, element: str) -> bool:
         """
         Check if a narrative/behavioral element is allowed in the current realm.

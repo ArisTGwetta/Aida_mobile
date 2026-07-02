@@ -1,18 +1,24 @@
+// AIDA REVIEW BLOCK 1: File header - AIDA_ONE_SPINE\spine\session_capture.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 (function () {
   const MODULE_ID = "spine.session.capture";
 
+// AIDA REVIEW BLOCK 3: Function runtime - callable behavior in this runtime organ.
   function runtime() {
     return window.AIDA_RUNTIME;
   }
 
+// AIDA REVIEW BLOCK 4: Function log - callable behavior in this runtime organ.
   function log(message, className = "log-green") {
     if (window.AIDA_BIOS?.log) {
       window.AIDA_BIOS.log(message, className);
     }
   }
 
+// AIDA REVIEW BLOCK 5: Function valueName - callable behavior in this runtime organ.
   function valueName(value, fallback = "unnamed") {
     if (!value || typeof value !== "object") return fallback;
+// AIDA REVIEW BLOCK 6: Function direct - arrow-function behavior in this runtime organ.
     const direct = (
       value.name ||
       value.display_name ||
@@ -43,6 +49,7 @@
     return fallback;
   }
 
+// AIDA REVIEW BLOCK 7: Function emotionSnapshot - callable behavior in this runtime organ.
   function emotionSnapshot(emotion) {
     if (!emotion || typeof emotion !== "object") {
       return {
@@ -59,6 +66,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 8: Function cleanTag - callable behavior in this runtime organ.
   function cleanTag(value, fallback = "unknown") {
     return String(value || fallback)
       .trim()
@@ -66,11 +74,13 @@
       .toLowerCase();
   }
 
+// AIDA REVIEW BLOCK 9: Function cleanCustomTags - callable behavior in this runtime organ.
   function cleanCustomTags(tags) {
     if (!Array.isArray(tags)) return [];
     return [...new Set(tags.map((tag) => cleanTag(tag, "")).filter(Boolean))];
   }
 
+// AIDA REVIEW BLOCK 10: Function ensureSession - callable behavior in this runtime organ.
   function ensureSession() {
     const rt = runtime();
     if (!rt.session) {
@@ -99,6 +109,7 @@
     return rt.session;
   }
 
+// AIDA REVIEW BLOCK 11: Function contextSnapshot - callable behavior in this runtime organ.
   function contextSnapshot() {
     const rt = runtime();
     const context = rt.context || {};
@@ -161,6 +172,7 @@
     return snapshot;
   }
 
+// AIDA REVIEW BLOCK 12: Function captureExchange - callable behavior in this runtime organ.
   function captureExchange(userText, aidaText) {
     const rt = runtime();
     const session = ensureSession();
@@ -211,9 +223,11 @@
     return exchange;
   }
 
+// AIDA REVIEW BLOCK 13: Function safeSummary - callable behavior in this runtime organ.
   function safeSummary() {
     const session = ensureSession();
     const lastExchange = session.currentTurns?.[session.currentTurns.length - 1] || null;
+// AIDA REVIEW BLOCK 14: Function tagTrail - arrow-function behavior in this runtime organ.
     const tagTrail = (session.currentTurns || []).map((exchange) => ({
       turnIndex: exchange.turnIndex,
       realm: exchange.tags?.realm || "none",
@@ -252,6 +266,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 15: Function inspectSession - callable behavior in this runtime organ.
   function inspectSession() {
     const summary = safeSummary();
     log("SESSION: Safe capture summary follows.", "log-blue");
@@ -285,6 +300,7 @@
     return summary;
   }
 
+// AIDA REVIEW BLOCK 16: Function install - callable behavior in this runtime organ.
   function install() {
     const button = document.getElementById("session-inspect-btn");
     if (button) button.addEventListener("click", inspectSession);
@@ -292,6 +308,7 @@
     log("Session capture organ loaded. Memory writes are still disabled.", "log-blue");
   }
 
+// AIDA REVIEW BLOCK 17: Browser export AIDA_SESSION_CAPTURE - exposes this organ to the page runtime.
   window.AIDA_SESSION_CAPTURE = {
     ensureSession,
     captureExchange,
@@ -310,5 +327,6 @@
     });
   }
 
+// AIDA REVIEW BLOCK 18: Browser event wiring - connects page lifecycle or user actions to this organ.
   document.addEventListener("DOMContentLoaded", install);
 })();

@@ -1,3 +1,5 @@
+# AIDA REVIEW BLOCK 1: File header - ONE\py\crawler.py
+# AIDA REVIEW BLOCK 2: Module setup - imports, constants, and shared state used below.
 import json
 import copy
 from pathlib import Path
@@ -10,6 +12,7 @@ BASE_DIR = Path(__file__).parent
 
 # ---- Helpers ---------------------------------------------------------------
 
+# AIDA REVIEW BLOCK 3: Function load_json - callable organ behavior.
 def load_json(path: Path, default):
     if not path.exists():
         return copy.deepcopy(default)
@@ -17,15 +20,18 @@ def load_json(path: Path, default):
         return json.load(f)
 
 
+# AIDA REVIEW BLOCK 4: Function save_json - callable organ behavior.
 def save_json(path: Path, data):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
+# AIDA REVIEW BLOCK 5: Function now_iso - callable organ behavior.
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
 
+# AIDA REVIEW BLOCK 6: Function tokenize - callable organ behavior.
 def tokenize(text: str):
     text = text.lower()
     return re.findall(r"[a-z0-9_]+", text)
@@ -71,17 +77,20 @@ DEFAULT_PAYLOAD = {
 
 # ---- Crawler ---------------------------------------------------------------
 
+# AIDA REVIEW BLOCK 7: Class Crawler - grouped organ/service behavior.
 class Crawler:
     """
     Deep Memory Crawler.
     Reads logs, normalizes entries, builds indexes, and extracts basic patterns.
     """
 
+# AIDA REVIEW BLOCK 8: Function __init__ - callable organ behavior.
     def __init__(self, base_dir: Path = BASE_DIR):
         self.base_dir = base_dir
 
     # -- High-level entry point --
 
+# AIDA REVIEW BLOCK 9: Function run - callable organ behavior.
     def run(self,
             payload_path: Path = None,
             output_path: Path = None) -> dict:
@@ -146,7 +155,7 @@ class Crawler:
             "crawler_summary": crawler_summary,
             "indexes": {
                 "keyword_index": {
-                    "__description": "Map of keyword → list of log references.",
+                    "__description": "Map of keyword â†’ list of log references.",
                     "data": keyword_index
                 },
                 "semantic_index": {
@@ -155,22 +164,22 @@ class Crawler:
                     "metadata": semantic_index["metadata"]
                 },
                 "tag_index": {
-                    "__description": "Map of tag → list of log references.",
+                    "__description": "Map of tag â†’ list of log references.",
                     "realm_tags": tag_index["realm_tags"],
                     "project_tags": tag_index["project_tags"],
                     "topic_tags": tag_index["topic_tags"],
                     "emotion_tags": tag_index["emotion_tags"]
                 },
                 "realm_index": {
-                    "__description": "Map of realm → list of log references.",
+                    "__description": "Map of realm â†’ list of log references.",
                     "data": realm_index
                 },
                 "project_index": {
-                    "__description": "Map of project → list of log references.",
+                    "__description": "Map of project â†’ list of log references.",
                     "data": project_index
                 },
                 "emotion_index": {
-                    "__description": "Map of emotion label → list of log references.",
+                    "__description": "Map of emotion label â†’ list of log references.",
                     "data": emotion_index
                 }
             },
@@ -200,6 +209,7 @@ class Crawler:
 
     # ---- Log loading & normalization ---------------------------------------
 
+# AIDA REVIEW BLOCK 10: Function _load_all_logs - callable organ behavior.
     def _load_all_logs(self, log_archives, settings):
         """
         Collect entries from:
@@ -236,6 +246,7 @@ class Crawler:
 
         return entries
 
+# AIDA REVIEW BLOCK 11: Function _normalize_entry - callable organ behavior.
     def _normalize_entry(self, entry, date):
         """
         Normalize a log entry into a standard structure:
@@ -265,6 +276,7 @@ class Crawler:
 
     # ---- Indexing helpers ---------------------------------------------------
 
+# AIDA REVIEW BLOCK 12: Function _index_entry_keywords - callable organ behavior.
     def _index_entry_keywords(self, entry, keyword_index, settings):
         if not settings.get("keyword_indexing", True):
             return
@@ -274,6 +286,7 @@ class Crawler:
             bucket = keyword_index.setdefault(tok, [])
             bucket.append(ref)
 
+# AIDA REVIEW BLOCK 13: Function _index_entry_tags - callable organ behavior.
     def _index_entry_tags(self, entry, tag_index, settings):
         if not settings.get("tag_indexing", True):
             return
@@ -294,6 +307,7 @@ class Crawler:
                 bucket = tag_index["topic_tags"].setdefault(tag, [])
                 bucket.append(entry["id"])
 
+# AIDA REVIEW BLOCK 14: Function _index_entry_realm - callable organ behavior.
     def _index_entry_realm(self, entry, realm_index, settings):
         if not settings.get("realm_indexing", True):
             return
@@ -303,6 +317,7 @@ class Crawler:
         bucket = realm_index.setdefault(realm, [])
         bucket.append(entry["id"])
 
+# AIDA REVIEW BLOCK 15: Function _index_entry_project - callable organ behavior.
     def _index_entry_project(self, entry, project_index, settings):
         if not settings.get("project_indexing", True):
             return
@@ -312,6 +327,7 @@ class Crawler:
         bucket = project_index.setdefault(project, [])
         bucket.append(entry["id"])
 
+# AIDA REVIEW BLOCK 16: Function _index_entry_emotion - callable organ behavior.
     def _index_entry_emotion(self, entry, emotion_index, settings):
         if not settings.get("emotion_indexing", True):
             return
@@ -321,6 +337,7 @@ class Crawler:
         bucket = emotion_index.setdefault(emo, [])
         bucket.append(entry["id"])
 
+# AIDA REVIEW BLOCK 17: Function _index_entry_semantic - callable organ behavior.
     def _index_entry_semantic(self, entry, semantic_index, settings):
         """
         Placeholder: in the future, attach embeddings here.
@@ -339,6 +356,7 @@ class Crawler:
 
     # ---- Topic clustering & motifs (placeholders) ---------------------------
 
+# AIDA REVIEW BLOCK 18: Function _cluster_topics - callable organ behavior.
     def _cluster_topics(self, entries, settings):
         """
         Placeholder: return empty list for now.
@@ -346,6 +364,7 @@ class Crawler:
         """
         return []
 
+# AIDA REVIEW BLOCK 19: Function _extract_motifs - callable organ behavior.
     def _extract_motifs(self, entries, settings):
         """
         Placeholder: return empty list for now.
@@ -353,6 +372,7 @@ class Crawler:
         """
         return []
 
+# AIDA REVIEW BLOCK 20: Function _extract_patterns - callable organ behavior.
     def _extract_patterns(self, entries, settings):
         """
         Placeholder: very simple pattern extraction.
@@ -385,6 +405,7 @@ class Crawler:
 
     # ---- Snippet builder ----------------------------------------------------
 
+# AIDA REVIEW BLOCK 21: Function _build_snippets - callable organ behavior.
     def _build_snippets(self, entries, patterns_detected):
         """
         Simple snippet builder: return a small subset of entries as examples.
@@ -405,6 +426,7 @@ class Crawler:
 
 # ---- CLI-ish entry ---------------------------------------------------------
 
+# AIDA REVIEW BLOCK 22: Command-line entrypoint - runs this organ when launched directly.
 if __name__ == "__main__":
     crawler = Crawler()
     out = crawler.run()

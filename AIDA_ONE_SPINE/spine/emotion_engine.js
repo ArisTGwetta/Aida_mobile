@@ -1,3 +1,5 @@
+// AIDA REVIEW BLOCK 1: File header - AIDA_ONE_SPINE\spine\emotion_engine.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 (function () {
   const MODULE_ID = "spine.emotion.engine";
   const ASSET_BASE = "body/assets/";
@@ -28,14 +30,17 @@
     ghost_in_the_house: "concerned"
   };
 
+// AIDA REVIEW BLOCK 3: Function $ - callable behavior in this runtime organ.
   function $(id) {
     return document.getElementById(id);
   }
 
+// AIDA REVIEW BLOCK 4: Function runtime - callable behavior in this runtime organ.
   function runtime() {
     return window.AIDA_RUNTIME;
   }
 
+// AIDA REVIEW BLOCK 5: Function log - callable behavior in this runtime organ.
   function log(message, className = "log-blue") {
     if (window.AIDA_BIOS?.log) {
       window.AIDA_BIOS.log(message, className);
@@ -44,6 +49,7 @@
     if (window.AIDA_BODY?.pulse) window.AIDA_BODY.pulse(message);
   }
 
+// AIDA REVIEW BLOCK 6: Function cleanKey - callable behavior in this runtime organ.
   function cleanKey(value) {
     return String(value || "")
       .toLowerCase()
@@ -54,23 +60,27 @@
       .replace(/^_+|_+$/g, "");
   }
 
+// AIDA REVIEW BLOCK 7: Function clamp - callable behavior in this runtime organ.
   function clamp(value, min = -1, max = 1) {
     const number = Number(value);
     if (!Number.isFinite(number)) return 0;
     return Math.max(min, Math.min(max, number));
   }
 
+// AIDA REVIEW BLOCK 8: Function round - callable behavior in this runtime organ.
   function round(value) {
     const number = Number(value);
     return Number.isFinite(number) ? Math.round(number * 1000) / 1000 : null;
   }
 
+// AIDA REVIEW BLOCK 9: Function valueName - callable behavior in this runtime organ.
   function valueName(value, fallback = "") {
     if (window.AIDA_PROJECTS?.valueName) return window.AIDA_PROJECTS.valueName(value, fallback);
     if (!value || typeof value !== "object") return fallback;
     return String(value.role_name || value.name || value.title || value.realm || value.id || fallback);
   }
 
+// AIDA REVIEW BLOCK 10: Function fileExists - callable behavior in this runtime organ.
   function fileExists(fileName) {
     if (!fileName) return false;
     const known = runtime()?.emotionEngine?.assetNames || null;
@@ -78,21 +88,25 @@
     return known.has(fileName.toLowerCase());
   }
 
+// AIDA REVIEW BLOCK 11: Function faceMap - callable behavior in this runtime organ.
   function faceMap() {
     const raw = runtime()?.drive?.files?.["face_map.json"] || {};
     return raw.faces || raw;
   }
 
+// AIDA REVIEW BLOCK 12: Function coordinates - callable behavior in this runtime organ.
   function coordinates() {
     const raw = runtime()?.drive?.files?.["emotion_coordinates.json"] || {};
     return raw.coordinates || raw.emotions || raw;
   }
 
+// AIDA REVIEW BLOCK 13: Function emotionState - callable behavior in this runtime organ.
   function emotionState() {
     const rt = runtime();
     return rt?.context?.emotion || rt?.mind?.emotion || {};
   }
 
+// AIDA REVIEW BLOCK 14: Function coordinatePoint - callable behavior in this runtime organ.
   function coordinatePoint(label) {
     const key = cleanKey(label);
     const coords = coordinates();
@@ -104,6 +118,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 15: Function statePoint - callable behavior in this runtime organ.
   function statePoint(fallbackLabel = "neutral") {
     const state = emotionState();
     const explicitPoint = coordinatePoint(state.label || state.emotion || state.state);
@@ -117,6 +132,7 @@
     return explicitPoint || coordinatePoint(fallbackLabel) || { valence: 0.1, arousal: -0.1 };
   }
 
+// AIDA REVIEW BLOCK 16: Function flattenFaceEntry - callable behavior in this runtime organ.
   function flattenFaceEntry(entry) {
     if (!entry) return [];
     if (typeof entry === "string") return [entry];
@@ -135,6 +151,7 @@
     ].filter(Boolean).flatMap(flattenFaceEntry);
   }
 
+// AIDA REVIEW BLOCK 17: Function faceCandidates - callable behavior in this runtime organ.
   function faceCandidates(label) {
     const map = faceMap();
     const key = cleanKey(label || "neutral");
@@ -147,6 +164,7 @@
     ];
   }
 
+// AIDA REVIEW BLOCK 18: Function resolveFace - callable behavior in this runtime organ.
   function resolveFace(label) {
     for (const candidate of faceCandidates(label)) {
       const file = String(candidate || "").replace(/^body\/assets\//, "");
@@ -160,6 +178,7 @@
     return { file: DEFAULT_FACE, fallback: true, missing: true };
   }
 
+// AIDA REVIEW BLOCK 19: Function rankedCoordinates - callable behavior in this runtime organ.
   function rankedCoordinates(valence, arousal) {
     const coords = coordinates();
     if (!coords || typeof coords !== "object") return [];
@@ -181,6 +200,7 @@
       .sort((a, b) => a.distance - b.distance);
   }
 
+// AIDA REVIEW BLOCK 20: Function resolveEmotionTarget - callable behavior in this runtime organ.
   function resolveEmotionTarget(target, source = "explicit") {
     const rt = runtime();
     const thresholds = rt?.emotionEngine?.thresholds || {};
@@ -237,6 +257,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 21: Function currentLabel - callable behavior in this runtime organ.
   function currentLabel() {
     const state = emotionState();
     const explicit = state.label || state.emotion || state.state;
@@ -245,6 +266,7 @@
     return resolveEmotionTarget(point, "current_state").label;
   }
 
+// AIDA REVIEW BLOCK 22: Function defaultForContext - callable behavior in this runtime organ.
   function defaultForContext() {
     const rt = runtime();
     const role = cleanKey(valueName(rt?.context?.role, ""));
@@ -252,6 +274,7 @@
     return REALM_DEFAULTS[realm] || ROLE_DEFAULTS[role] || null;
   }
 
+// AIDA REVIEW BLOCK 23: Function wishlistName - callable behavior in this runtime organ.
   function wishlistName(snap) {
     if (snap.desired) return cleanKey(snap.desired);
     if (snap.ambiguous && snap.runnerUp) return `${snap.label}_${snap.runnerUp.label}_blend`;
@@ -259,6 +282,7 @@
     return null;
   }
 
+// AIDA REVIEW BLOCK 24: Function recordSnap - callable behavior in this runtime organ.
   function recordSnap(snap, face) {
     const rt = runtime();
     if (!rt?.emotionEngine) return;
@@ -310,6 +334,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 25: Function writeState - callable behavior in this runtime organ.
   function writeState(snap, source) {
     const rt = runtime();
     if (!rt) return null;
@@ -335,6 +360,7 @@
     return next;
   }
 
+// AIDA REVIEW BLOCK 26: Function apply - callable behavior in this runtime organ.
   function apply(target, source = "explicit") {
     const rt = runtime();
     if (!rt) return null;
@@ -377,6 +403,7 @@
     return state;
   }
 
+// AIDA REVIEW BLOCK 27: Function applyCurrent - callable behavior in this runtime organ.
   function applyCurrent(source = "drive_state") {
     const state = emotionState();
     return apply({
@@ -386,10 +413,12 @@
     }, source);
   }
 
+// AIDA REVIEW BLOCK 28: Function applyContextDefault - callable behavior in this runtime organ.
   function applyContextDefault(source = "context_default") {
     return apply(defaultForContext() || currentLabel(), source);
   }
 
+// AIDA REVIEW BLOCK 29: Function conversationTarget - callable behavior in this runtime organ.
   function conversationTarget(userText, replyText) {
     const text = `${userText || ""}\n${replyText || ""}`.toLowerCase();
     let baseLabel = defaultForContext() || currentLabel();
@@ -436,22 +465,27 @@
     };
   }
 
+// AIDA REVIEW BLOCK 30: Function afterExchange - callable behavior in this runtime organ.
   function afterExchange(userText, replyText) {
     return apply(conversationTarget(userText, replyText), "conversation_hint");
   }
 
+// AIDA REVIEW BLOCK 31: Function inspect - callable behavior in this runtime organ.
   function inspect() {
     const rt = runtime();
     const engine = rt?.emotionEngine || {};
     const state = rt?.context?.emotion || rt?.mind?.emotion || {};
+// AIDA REVIEW BLOCK 32: Function history - arrow-function behavior in this runtime organ.
     const history = (engine.history || [])
       .slice(-5)
       .map((item) => `${item.label}/${item.face}/${item.source}/${item.snapStrength || "n/a"}`)
       .join(" | ") || "none";
+// AIDA REVIEW BLOCK 33: Function snaps - arrow-function behavior in this runtime organ.
     const snaps = (engine.snapLog || [])
       .slice(-3)
       .map((item) => `${item.resolved.label}:d=${item.distance},${item.snapStrength}`)
       .join(" | ") || "none";
+// AIDA REVIEW BLOCK 34: Function wishlist - arrow-function behavior in this runtime organ.
     const wishlist = (engine.faceWishlist || [])
       .slice(-5)
       .map((item) => `${item.name}(${item.count})`)
@@ -466,6 +500,7 @@
     return { state, engine };
   }
 
+// AIDA REVIEW BLOCK 35: Function installAssetIndex - callable behavior in this runtime organ.
   function installAssetIndex() {
     const assets = [
       "angry.png", "calm1.png", "calm2.png", "concerned1.png", "concerned2.png",
@@ -491,6 +526,7 @@
     if (rt?.emotionEngine) rt.emotionEngine.assetNames = new Set(assets.map((name) => name.toLowerCase()));
   }
 
+// AIDA REVIEW BLOCK 36: Function install - callable behavior in this runtime organ.
   function install() {
     installAssetIndex();
     const inspectButton = $("emotion-inspect-btn");
@@ -500,6 +536,7 @@
       applyContextDefault("project_context");
     });
 
+// AIDA REVIEW BLOCK 37: Browser export AIDA_EMOTIONS - exposes this organ to the page runtime.
     window.AIDA_EMOTIONS = {
       apply,
       applyCurrent,
@@ -524,5 +561,6 @@
     });
   }
 
+// AIDA REVIEW BLOCK 38: Browser event wiring - connects page lifecycle or user actions to this organ.
   document.addEventListener("DOMContentLoaded", install);
 })();

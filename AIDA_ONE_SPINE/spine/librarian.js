@@ -1,10 +1,14 @@
+// AIDA REVIEW BLOCK 1: File header - AIDA_ONE_SPINE\spine\librarian.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 (function () {
   const MODULE_ID = "spine.librarian";
 
+// AIDA REVIEW BLOCK 3: Function runtime - callable behavior in this runtime organ.
   function runtime() {
     return window.AIDA_RUNTIME;
   }
 
+// AIDA REVIEW BLOCK 4: Function log - callable behavior in this runtime organ.
   function log(message, className = "log-blue") {
     if (window.AIDA_BIOS?.log) {
       window.AIDA_BIOS.log(message, className);
@@ -13,10 +17,12 @@
     if (window.AIDA_BODY?.pulse) window.AIDA_BODY.pulse(message);
   }
 
+// AIDA REVIEW BLOCK 5: Function nowIso - callable behavior in this runtime organ.
   function nowIso() {
     return new Date().toISOString();
   }
 
+// AIDA REVIEW BLOCK 6: Function copyJson - callable behavior in this runtime organ.
   function copyJson(value, fallback) {
     if (value === undefined) return fallback;
     try {
@@ -26,16 +32,19 @@
     }
   }
 
+// AIDA REVIEW BLOCK 7: Function safeArray - callable behavior in this runtime organ.
   function safeArray(value) {
     return Array.isArray(value) ? value : [];
   }
 
+// AIDA REVIEW BLOCK 8: Function cleanBriefcaseText - callable behavior in this runtime organ.
   function cleanBriefcaseText(value, maxLength = 1200) {
     const text = String(value || "").replace(/\s+/g, " ").trim();
     if (!text) return "";
     return text.length > maxLength ? `${text.slice(0, maxLength - 1).trim()}...` : text;
   }
 
+// AIDA REVIEW BLOCK 9: Function slug - callable behavior in this runtime organ.
   function slug(value, fallback = "project") {
     return String(value || fallback)
       .toLowerCase()
@@ -44,6 +53,7 @@
       .slice(0, 80) || fallback;
   }
 
+// AIDA REVIEW BLOCK 10: Function consoleReport - callable behavior in this runtime organ.
   function consoleReport(label, value) {
     if (typeof console === "undefined" || !console.log) return;
     try {
@@ -53,6 +63,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 11: Function ensureState - callable behavior in this runtime organ.
   function ensureState() {
     const rt = runtime();
     rt.librarian = rt.librarian || {};
@@ -70,6 +81,7 @@
     return rt.librarian;
   }
 
+// AIDA REVIEW BLOCK 12: Function upsertById - callable behavior in this runtime organ.
   function upsertById(list, item) {
     if (!item || typeof item !== "object") return;
     const id = item.id || `${item.type || "item"}_${list.length + 1}`;
@@ -79,15 +91,18 @@
     else list.push(stamped);
   }
 
+// AIDA REVIEW BLOCK 13: Function isLegacyFallbackCandidate - callable behavior in this runtime organ.
   function isLegacyFallbackCandidate(item) {
     return item?.source === "fallback" || item?.method === "deterministic_runtime_draft";
   }
 
+// AIDA REVIEW BLOCK 14: Function pruneLegacyFallbackCandidates - callable behavior in this runtime organ.
   function pruneLegacyFallbackCandidates(state) {
     state.factCandidates = safeArray(state.factCandidates).filter((item) => !isLegacyFallbackCandidate(item));
     state.insightCandidates = safeArray(state.insightCandidates).filter((item) => !isLegacyFallbackCandidate(item));
   }
 
+// AIDA REVIEW BLOCK 15: Function projectFromPreferred - callable behavior in this runtime organ.
   function projectFromPreferred(preferred) {
     const firstDiary = preferred.output?.diaryDrafts?.[0] || null;
     const firstSummary = preferred.output?.rollingSummaries?.[0] || preferred.output?.longSummaryCandidates?.[0] || null;
@@ -96,16 +111,19 @@
     return firstDiary?.project || scopedProject || "unknown_project";
   }
 
+// AIDA REVIEW BLOCK 16: Function realmFromPreferred - callable behavior in this runtime organ.
   function realmFromPreferred(preferred) {
     return preferred.output?.diaryDrafts?.[0]?.realm || projectFromPreferred(preferred);
   }
 
+// AIDA REVIEW BLOCK 17: Function packetProjectFile - callable behavior in this runtime organ.
   function packetProjectFile(packet) {
     const exchanges = safeArray(packet?.session?.exchanges);
     const tagged = exchanges.find((item) => item?.tags?.project_file && item.tags.project_file !== "none");
     return tagged?.tags?.project_file || runtime()?.context?.newProjectDraft?.fileName || null;
   }
 
+// AIDA REVIEW BLOCK 18: Function runtimeProject - callable behavior in this runtime organ.
   function runtimeProject(fileName, projectName) {
     const rt = runtime();
     if (fileName && rt?.drive?.files?.[fileName]) return copyJson(rt.drive.files[fileName], null);
@@ -117,6 +135,7 @@
     );
   }
 
+// AIDA REVIEW BLOCK 19: Function buildProjectBriefcaseDraft - callable behavior in this runtime organ.
   function buildProjectBriefcaseDraft(preferred, ingestedAt, packet = runtime()?.sleep?.lastPacket) {
     const project = projectFromPreferred(preferred);
     const realm = realmFromPreferred(preferred);
@@ -190,6 +209,7 @@
     ];
   }
 
+// AIDA REVIEW BLOCK 20: Function removePacketEntries - callable behavior in this runtime organ.
   function removePacketEntries(state, packetId) {
     if (!packetId) return;
     state.diaryDrafts = state.diaryDrafts.filter((item) => item.packetId !== packetId);
@@ -204,6 +224,7 @@
     state.projectBriefcaseDrafts = state.projectBriefcaseDrafts.filter((item) => item.packetId !== packetId);
   }
 
+// AIDA REVIEW BLOCK 21: Function sourceTurnRange - callable behavior in this runtime organ.
   function sourceTurnRange(sourceTurns = []) {
     const turns = safeArray(sourceTurns)
       .map((turn) => Number(turn))
@@ -215,6 +236,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 22: Function normalizeDiaryDraft - callable behavior in this runtime organ.
   function normalizeDiaryDraft(item, preferred, packet, ingestedAt) {
     const packetSession = packet?.session || {};
     const range = sourceTurnRange(item.source_turns);
@@ -235,6 +257,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 23: Function getStaged - callable behavior in this runtime organ.
   function getStaged() {
     const state = ensureState();
     pruneLegacyFallbackCandidates(state);
@@ -255,6 +278,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 24: Function safeSummary - callable behavior in this runtime organ.
   function safeSummary() {
     const state = ensureState();
     pruneLegacyFallbackCandidates(state);
@@ -276,6 +300,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 25: Function evidenceKind - callable behavior in this runtime organ.
   function evidenceKind(type) {
     const value = String(type || "");
     if (value.includes("diary")) return "diary";
@@ -288,6 +313,7 @@
     return "other";
   }
 
+// AIDA REVIEW BLOCK 26: Function review - callable behavior in this runtime organ.
   function review(query, options = {}) {
     const text = String(query || "").trim();
     if (!text) {
@@ -355,6 +381,7 @@
     return response;
   }
 
+// AIDA REVIEW BLOCK 27: Function prepareArchive - callable behavior in this runtime organ.
   async function prepareArchive(reason = "librarian_request") {
     const fetchByName = window.AIDA_DRIVE?.fetchJsonByName;
     if (!fetchByName) {
@@ -399,6 +426,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 28: Function ingestSleep - callable behavior in this runtime organ.
   function ingestSleep(packet = runtime()?.sleep?.lastPacket) {
     const state = ensureState();
     pruneLegacyFallbackCandidates(state);
@@ -458,6 +486,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 29: Function inspect - callable behavior in this runtime organ.
   function inspect() {
     const summary = safeSummary();
     log("LIBRARIAN: staged memory summary follows.", "log-blue");
@@ -478,11 +507,13 @@
     return summary;
   }
 
+// AIDA REVIEW BLOCK 30: Function install - callable behavior in this runtime organ.
   function install() {
     ensureState();
     log("Librarian organ loaded. Memory staging is runtime-only.", "log-blue");
   }
 
+// AIDA REVIEW BLOCK 31: Browser export AIDA_LIBRARIAN - exposes this organ to the page runtime.
   window.AIDA_LIBRARIAN = {
     ingestSleep,
     prepareArchive,
@@ -514,5 +545,6 @@
     });
   }
 
+// AIDA REVIEW BLOCK 32: Browser event wiring - connects page lifecycle or user actions to this organ.
   document.addEventListener("DOMContentLoaded", install);
 })();

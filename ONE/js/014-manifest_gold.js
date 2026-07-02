@@ -1,3 +1,5 @@
+// AIDA REVIEW BLOCK 1: File header - ONE\js\014-manifest_gold.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 /* AIDA MANIFEST GOLD v6.0
    Cockpit: Active State, Tetrad Assembly, LLM Prompt, UI Themes
 */
@@ -6,14 +8,22 @@
 // ACTIVE STATE VARIABLES (GLOBAL COCKPIT)
 // =========================================================
 
+// AIDA REVIEW BLOCK 3: Browser export AIDA_ACTIVE_PROJECT - exposes this organ to the page runtime.
 window.AIDA_ACTIVE_PROJECT = null;
+// AIDA REVIEW BLOCK 4: Browser export AIDA_ACTIVE_REALM - exposes this organ to the page runtime.
 window.AIDA_ACTIVE_REALM = null;
+// AIDA REVIEW BLOCK 5: Browser export AIDA_ACTIVE_ROLE - exposes this organ to the page runtime.
 window.AIDA_ACTIVE_ROLE = null;
+// AIDA REVIEW BLOCK 6: Browser export AIDA_ROLE_OVERRIDE - exposes this organ to the page runtime.
 window.AIDA_ROLE_OVERRIDE = false;
+// AIDA REVIEW BLOCK 7: Browser export AIDA_ACTIVE_EMOTION - exposes this organ to the page runtime.
 window.AIDA_ACTIVE_EMOTION = null;
+// AIDA REVIEW BLOCK 8: Browser export AIDA_ACTIVE_IDENTITY - exposes this organ to the page runtime.
 window.AIDA_ACTIVE_IDENTITY = null;
+// AIDA REVIEW BLOCK 9: Browser export AIDA_ACTIVE_SAFETY - exposes this organ to the page runtime.
 window.AIDA_ACTIVE_SAFETY = null;
 
+// AIDA REVIEW BLOCK 10: Browser export AIDA_TETRAD - exposes this organ to the page runtime.
 window.AIDA_TETRAD = {
     identity: null,
     realm: null,
@@ -22,6 +32,7 @@ window.AIDA_TETRAD = {
     safety: null
 };
 
+// AIDA REVIEW BLOCK 11: Browser export AIDA_LLM_PROMPT - exposes this organ to the page runtime.
 window.AIDA_LLM_PROMPT = "";
 
 
@@ -29,6 +40,7 @@ window.AIDA_LLM_PROMPT = "";
 // ACTIVE STATE SETTERS
 // =========================================================
 
+// AIDA REVIEW BLOCK 12: Browser export setActiveProject - exposes this organ to the page runtime.
 window.setActiveProject = function (projectName) {
     const proj = window.DRIVE_MINDS.briefcases[projectName];
     if (!proj) {
@@ -36,6 +48,7 @@ window.setActiveProject = function (projectName) {
         return;
     }
 
+// AIDA REVIEW BLOCK 13: Browser export AIDA_ACTIVE_PROJECT - exposes this organ to the page runtime.
     window.AIDA_ACTIVE_PROJECT = proj;
     console.log(">>> PROJECT: Active project set to:", projectName);
 
@@ -50,6 +63,7 @@ window.setActiveProject = function (projectName) {
     window.rebuildTetrad();
 };
 
+// AIDA REVIEW BLOCK 14: Browser export setActiveRealm - exposes this organ to the page runtime.
 window.setActiveRealm = function (realmName) {
     const realm = window.DRIVE_MINDS.mind[realmName];
     if (!realm) {
@@ -57,12 +71,14 @@ window.setActiveRealm = function (realmName) {
         return;
     }
 
+// AIDA REVIEW BLOCK 15: Browser export AIDA_ACTIVE_REALM - exposes this organ to the page runtime.
     window.AIDA_ACTIVE_REALM = realm;
     console.log(">>> REALM: Active realm set to:", realmName);
 
     window.rebuildTetrad();
 };
 
+// AIDA REVIEW BLOCK 16: Browser export setActiveRole - exposes this organ to the page runtime.
 window.setActiveRole = function (roleName) {
     const role = window.DRIVE_MINDS.mind[roleName];
     if (!role) {
@@ -70,24 +86,29 @@ window.setActiveRole = function (roleName) {
         return;
     }
 
+// AIDA REVIEW BLOCK 17: Browser export AIDA_ACTIVE_ROLE - exposes this organ to the page runtime.
     window.AIDA_ACTIVE_ROLE = role;
     console.log(">>> ROLE: Active role set to:", roleName);
 
     window.rebuildTetrad();
 };
 
+// AIDA REVIEW BLOCK 18: Browser export AIDA_PREVIOUS_EMOTION - exposes this organ to the page runtime.
 window.AIDA_PREVIOUS_EMOTION = null;
 
+// AIDA REVIEW BLOCK 19: Browser export setActiveEmotion - exposes this organ to the page runtime.
 window.setActiveEmotion = function (label) {
+// AIDA REVIEW BLOCK 20: Browser export AIDA_PREVIOUS_EMOTION - exposes this organ to the page runtime.
     window.AIDA_PREVIOUS_EMOTION = window.AIDA_ACTIVE_EMOTION;
 
+// AIDA REVIEW BLOCK 21: Browser export AIDA_ACTIVE_EMOTION - exposes this organ to the page runtime.
     window.AIDA_ACTIVE_EMOTION = {
         label: label,
         valence: 0,
         arousal: 0
     };
 
-    console.log(">>> EMOTION:", window.AIDA_PREVIOUS_EMOTION?.label, "→", label);
+    console.log(">>> EMOTION:", window.AIDA_PREVIOUS_EMOTION?.label, "â†’", label);
 
     window.rebuildTetrad();
 };
@@ -97,6 +118,7 @@ window.setActiveEmotion = function (label) {
 // DIRECT TETRAD ASSEMBLY (NEW PIPELINE)
 // =========================================================
 
+// AIDA REVIEW BLOCK 22: Browser export runTetradAssembly - exposes this organ to the page runtime.
 window.runTetradAssembly = async function () {
     try {
         const core_identity = window.AIDA_ACTIVE_IDENTITY;
@@ -123,6 +145,7 @@ window.runTetradAssembly = async function () {
 
         const parsed = JSON.parse(result);
 
+// AIDA REVIEW BLOCK 23: Browser export AIDA_TETRAD - exposes this organ to the page runtime.
         window.AIDA_TETRAD = parsed;
 
         if (window.updateTetradInspector) {
@@ -145,7 +168,9 @@ window.runTetradAssembly = async function () {
 // TETRAD REBUILDER (JS snapshot only)
 // =========================================================
 
+// AIDA REVIEW BLOCK 24: Browser export rebuildTetrad - exposes this organ to the page runtime.
 window.rebuildTetrad = function () {
+// AIDA REVIEW BLOCK 25: Browser export AIDA_TETRAD - exposes this organ to the page runtime.
     window.AIDA_TETRAD = {
         identity: window.AIDA_ACTIVE_IDENTITY,
         realm: window.AIDA_ACTIVE_REALM,
@@ -164,6 +189,7 @@ window.rebuildTetrad = function () {
 // RESET TO PROJECT DEFAULTS
 // =========================================================
 
+// AIDA REVIEW BLOCK 26: Browser export resetToProjectDefaults - exposes this organ to the page runtime.
 window.resetToProjectDefaults = function () {
     const proj = window.AIDA_ACTIVE_PROJECT;
     if (!proj) {
@@ -173,16 +199,20 @@ window.resetToProjectDefaults = function () {
 
     // Reset realm
     if (proj.realm_pointer) {
+// AIDA REVIEW BLOCK 27: Browser export AIDA_ACTIVE_REALM - exposes this organ to the page runtime.
         window.AIDA_ACTIVE_REALM = window.DRIVE_MINDS.realms[proj.realm_pointer] || null;
     }
 
     // Reset role
     if (proj.role_pointer) {
+// AIDA REVIEW BLOCK 28: Browser export AIDA_ACTIVE_ROLE - exposes this organ to the page runtime.
         window.AIDA_ACTIVE_ROLE = window.DRIVE_MINDS.roles[proj.role_pointer] || null;
+// AIDA REVIEW BLOCK 29: Browser export AIDA_ROLE_OVERRIDE - exposes this organ to the page runtime.
         window.AIDA_ROLE_OVERRIDE = false;
     }
 
     // Reset emotion to neutral
+// AIDA REVIEW BLOCK 30: Browser export AIDA_ACTIVE_EMOTION - exposes this organ to the page runtime.
     window.AIDA_ACTIVE_EMOTION = { label: "neutral", valence: 0, arousal: 0 };
 
     // Rebuild Tetrad
@@ -195,6 +225,7 @@ window.resetToProjectDefaults = function () {
 // INSPECTOR AUTO-REFRESH FIX
 // =========================================================
 
+// AIDA REVIEW BLOCK 31: Browser export updateTetradInspector - exposes this organ to the page runtime.
 window.updateTetradInspector = function (tetrad) {
     const div = document.getElementById("tetrad-inspector-content");
     if (!div) return;
@@ -208,9 +239,11 @@ window.updateTetradInspector = function (tetrad) {
 // LLM PROMPT BUILDER
 // =========================================================
 
+// AIDA REVIEW BLOCK 32: Browser export buildLLMPrompt - exposes this organ to the page runtime.
 window.buildLLMPrompt = function () {
     const t = window.AIDA_TETRAD;
 
+// AIDA REVIEW BLOCK 33: Browser export AIDA_LLM_PROMPT - exposes this organ to the page runtime.
     window.AIDA_LLM_PROMPT = `
 IDENTITY:
 ${JSON.stringify(t.identity || {}, null, 2)}
@@ -276,6 +309,7 @@ const RealmThemes = {
 //  2. SELECTORS & LOGIC
 // ---------------------------------------------------------
 
+// AIDA REVIEW BLOCK 34: Function getTetrad - callable behavior in this runtime organ.
 async function getTetrad() {
     try {
         if (window.py_get_tetrad_snapshot) {
@@ -286,10 +320,13 @@ async function getTetrad() {
     return null;
 }
 
+// AIDA REVIEW BLOCK 35: Function selectColorProfile - callable behavior in this runtime organ.
 function selectColorProfile(snap) {
     if (!snap) return ColorProfiles.neutral;
     const emotion = snap.emotion?.label || "neutral";
+// AIDA REVIEW BLOCK 36: Function realm - arrow-function behavior in this runtime organ.
     const realm = (snap.realm?.briefcase_name || "").toLowerCase();
+// AIDA REVIEW BLOCK 37: Function role - arrow-function behavior in this runtime organ.
     const role = (snap.role?.name || "").toLowerCase();
 
     if (ColorProfiles[emotion]) return ColorProfiles[emotion];
@@ -304,8 +341,10 @@ function selectColorProfile(snap) {
 //  3. THE RENDERER HOOKS
 // ---------------------------------------------------------
 
+// AIDA REVIEW BLOCK 38: Function applyUITheme - callable behavior in this runtime organ.
 function applyUITheme(snap) {
     const root = document.documentElement;
+// AIDA REVIEW BLOCK 39: Function realmKey - arrow-function behavior in this runtime organ.
     const realmKey = (snap?.realm?.briefcase_name || "default").toLowerCase();
     const theme = RealmThemes[realmKey] || RealmThemes.default;
     const p = theme.palette;
@@ -317,6 +356,7 @@ function applyUITheme(snap) {
     root.style.setProperty("--ui-accent", p.accent);
 }
 
+// AIDA REVIEW BLOCK 40: Function applyAura - callable behavior in this runtime organ.
 function applyAura(profile) {
     const root = document.documentElement;
     root.style.setProperty("--aida-beam-color", profile.beam);
@@ -330,6 +370,7 @@ function applyAura(profile) {
 //  4. PUBLIC API
 // ---------------------------------------------------------
 
+// AIDA REVIEW BLOCK 41: Browser export presentation_arrive - exposes this organ to the page runtime.
 window.presentation_arrive = async function() {
     const snap = await getTetrad();
     const colorProfile = selectColorProfile(snap);
@@ -346,6 +387,7 @@ window.presentation_arrive = async function() {
     }
 };
 
+// AIDA REVIEW BLOCK 42: Browser export presentation_depart - exposes this organ to the page runtime.
 window.presentation_depart = async function() {
     const snap = await getTetrad();
     const emotion = snap?.emotion?.label || "neutral";
@@ -358,6 +400,7 @@ window.presentation_depart = async function() {
     }
 };
 
+// AIDA REVIEW BLOCK 43: Browser export run_realm_transition - exposes this organ to the page runtime.
 window.run_realm_transition = async function() {
     const snap = await getTetrad();
     applyUITheme(snap);

@@ -1,12 +1,16 @@
+// AIDA REVIEW BLOCK 1: File header - gem-Js-pacs\scripts\020-vitality_gold.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 /* 020-vitality_gold.js
    Consolidated Expression, Sync, UI Accent, and Spark Engines.
 */
 
+// AIDA REVIEW BLOCK 3: Browser export vitality_stack - exposes this organ to the page runtime.
 window.vitality_stack = (function() {
     let prevV = 0.1, prevA = -0.1;
     let driftTimer = 0;
 
     // 1. EXPRESSION ENGINE (Micro-movements)
+// AIDA REVIEW BLOCK 4: Function runExpressions - callable behavior in this runtime organ.
     function runExpressions(ctx) {
         const holo = document.getElementById("aida-hologram");
         const aura = document.getElementById("aida-aura");
@@ -23,6 +27,7 @@ window.vitality_stack = (function() {
     }
 
     // 2. HOLOGRAM SYNC (Reactive Blooms)
+// AIDA REVIEW BLOCK 5: Function runSync - callable behavior in this runtime organ.
     function runSync(ctx) {
         const dv = ctx.valence - prevV;
         const da = ctx.arousal - prevA;
@@ -45,6 +50,7 @@ window.vitality_stack = (function() {
     }
 
     // 3. UI ACCENT ENGINE
+// AIDA REVIEW BLOCK 6: Function runUIAccents - callable behavior in this runtime organ.
     function runUIAccents(ctx) {
         const overlay = document.getElementById("ui-emotion-overlay");
         if (!overlay) return;
@@ -72,6 +78,7 @@ window.vitality_stack = (function() {
 })();
 
 // Global bridge for the Python Engine
+// AIDA REVIEW BLOCK 7: Browser export hologram_sync - exposes this organ to the page runtime.
 window.hologram_sync = {
     update: (ctx) => window.vitality_stack.update(ctx)
 };

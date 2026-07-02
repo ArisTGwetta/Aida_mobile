@@ -1,3 +1,5 @@
+// AIDA REVIEW BLOCK 1: File header - gem-Js-pacs\014-manifest_gold.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 /* AIDA MANIFEST GOLD v5.1 
     Combines Blocks 10, 11, 12, 14, and 15.
     Controls: Hologram Arrival, Aura Colors, and Realm Themes.
@@ -47,6 +49,7 @@ const RealmThemes = {
 //  2. SELECTORS & LOGIC
 // ---------------------------------------------------------
 
+// AIDA REVIEW BLOCK 3: Function getTetrad - callable behavior in this runtime organ.
 async function getTetrad() {
     try {
         if (window.py_get_tetrad_snapshot) {
@@ -57,10 +60,13 @@ async function getTetrad() {
     return null;
 }
 
+// AIDA REVIEW BLOCK 4: Function selectColorProfile - callable behavior in this runtime organ.
 function selectColorProfile(snap) {
     if (!snap) return ColorProfiles.neutral;
     const emotion = snap.emotion?.label || "neutral";
+// AIDA REVIEW BLOCK 5: Function realm - arrow-function behavior in this runtime organ.
     const realm = (snap.realm?.briefcase_name || "").toLowerCase();
+// AIDA REVIEW BLOCK 6: Function role - arrow-function behavior in this runtime organ.
     const role = (snap.role?.name || "").toLowerCase();
 
     if (ColorProfiles[emotion]) return ColorProfiles[emotion];
@@ -74,8 +80,10 @@ function selectColorProfile(snap) {
 //  3. THE RENDERER HOOKS
 // ---------------------------------------------------------
 
+// AIDA REVIEW BLOCK 7: Function applyUITheme - callable behavior in this runtime organ.
 function applyUITheme(snap) {
     const root = document.documentElement;
+// AIDA REVIEW BLOCK 8: Function realmKey - arrow-function behavior in this runtime organ.
     const realmKey = (snap?.realm?.briefcase_name || "default").toLowerCase();
     const theme = RealmThemes[realmKey] || RealmThemes.default;
     const p = theme.palette;
@@ -87,6 +95,7 @@ function applyUITheme(snap) {
     root.style.setProperty("--ui-accent", p.accent);
 }
 
+// AIDA REVIEW BLOCK 9: Function applyAura - callable behavior in this runtime organ.
 function applyAura(profile) {
     const root = document.documentElement;
     root.style.setProperty("--aida-beam-color", profile.beam);
@@ -99,6 +108,7 @@ function applyAura(profile) {
 //  4. PUBLIC API
 // ---------------------------------------------------------
 
+// AIDA REVIEW BLOCK 10: Browser export presentation_arrive - exposes this organ to the page runtime.
 window.presentation_arrive = async function() {
     const snap = await getTetrad();
     const colorProfile = selectColorProfile(snap);
@@ -116,6 +126,7 @@ window.presentation_arrive = async function() {
     }
 };
 
+// AIDA REVIEW BLOCK 11: Browser export presentation_depart - exposes this organ to the page runtime.
 window.presentation_depart = async function() {
     const snap = await getTetrad();
     const emotion = snap?.emotion?.label || "neutral";
@@ -129,6 +140,7 @@ window.presentation_depart = async function() {
 };
 
 // Global trigger for realm changes
+// AIDA REVIEW BLOCK 12: Browser export run_realm_transition - exposes this organ to the page runtime.
 window.run_realm_transition = async function() {
     const snap = await getTetrad();
     applyUITheme(snap);

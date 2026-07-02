@@ -1,12 +1,16 @@
+// AIDA REVIEW BLOCK 1: File header - gem-Js-pacs\042-research_gold.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 /* 042-research_gold.js
    THE RESEARCH HUB: SEMANTIC SEARCH & MIND PALACE
 */
 
+// AIDA REVIEW BLOCK 3: Browser export research_hub - exposes this organ to the page runtime.
 window.research_hub = (function() {
     let index = null;
     let snippets = [];
 
     // --- 1. THE LIBRARIAN'S TOOLS (Internal) ---
+// AIDA REVIEW BLOCK 4: Function loadIndex - callable behavior in this runtime organ.
     async function loadIndex() {
         if (index) return index;
         index = await logistics_hub.drive.downloadJSON_By_Name("crawler_output.json");

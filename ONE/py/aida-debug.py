@@ -1,3 +1,5 @@
+# AIDA REVIEW BLOCK 1: File header - ONE\py\aida-debug.py
+# AIDA REVIEW BLOCK 2: Module setup - imports, constants, and shared state used below.
 # ============================================================
 # AIDA - Personal AI Companion
 # Francisco & Aida Project
@@ -27,12 +29,12 @@
 #
 # REPOSITORY HIERARCHY:
 # [base_dir]
-#  ├── memory.json       (Core Identity & Traits)
-#  ├── facts.json        (Persistent Long-term Facts)
-#  ├── insights.json     (High-level AI Observations)
-#  ├── journal/          (Session-specific JSON logs)
-#  ├── emotions/         (Physical Face Assets)
-#  └── transitions/      (Animation Frames)
+#  â”œâ”€â”€ memory.json       (Core Identity & Traits)
+#  â”œâ”€â”€ facts.json        (Persistent Long-term Facts)
+#  â”œâ”€â”€ insights.json     (High-level AI Observations)
+#  â”œâ”€â”€ journal/          (Session-specific JSON logs)
+#  â”œâ”€â”€ emotions/         (Physical Face Assets)
+#  â””â”€â”€ transitions/      (Animation Frames)
 #
 # SAFETY PROTOCOLS:
 # - Path Tethering: All I/O operations are locked to 'base_dir'.
@@ -116,6 +118,7 @@ current_file_content = ""
 previous_emotion = None
 previous_face = None
 
+# AIDA REVIEW BLOCK 3: Function is_memory_query - callable organ behavior.
 def is_memory_query(user_input):
     text = user_input.lower()
     memory_signals = [
@@ -132,6 +135,7 @@ def is_memory_query(user_input):
     # Check if the input starts with or contains these structural signals
     return any(signal in text for signal in memory_signals)
 
+# AIDA REVIEW BLOCK 4: Function extract_fact_from_deep_results - callable organ behavior.
 def extract_fact_from_deep_results(deep_results, query, client):
     """The 'Deep Diver' version - forces the LLM to read through JSON noise."""
     try:
@@ -189,10 +193,12 @@ def extract_fact_from_deep_results(deep_results, query, client):
 
 PROJECTS_DIR = "projects"
 
+# AIDA REVIEW BLOCK 5: Function get_project_path - callable organ behavior.
 def get_project_path(project_name):
     return os.path.join(PROJECTS_DIR, project_name)
 
 
+# AIDA REVIEW BLOCK 6: Function detect_project - callable organ behavior.
 def detect_project(user_input):
     text = user_input.lower()
 
@@ -201,6 +207,7 @@ def detect_project(user_input):
 
     return None
 
+# AIDA REVIEW BLOCK 7: Function activate_project - callable organ behavior.
 def activate_project(project_name):
     global projects_memory
 
@@ -215,6 +222,7 @@ def activate_project(project_name):
     save_projects_memory(projects_memory)
     
 
+# AIDA REVIEW BLOCK 8: Function update_project_memory - callable organ behavior.
 def update_project_memory(user_input, reply):
     global projects_memory
 
@@ -235,6 +243,7 @@ def update_project_memory(user_input, reply):
 
     save_projects_memory(projects_memory)
 
+# AIDA REVIEW BLOCK 9: Function load_project_memory - callable organ behavior.
 def load_project_memory(project_name):
     path = get_project_path(project_name)
     os.makedirs(path, exist_ok=True)
@@ -251,16 +260,17 @@ def load_project_memory(project_name):
             "recent_turns": []
         }
 
+# AIDA REVIEW BLOCK 10: Function get_aida_rating - callable organ behavior.
 def get_aida_rating(user_input, reply, shield_triggered):
     if shield_triggered:
-        return "🔴 [R-RATED / SHIELDED]", "\033[91m"  # Red
+        return "ðŸ”´ [R-RATED / SHIELDED]", "\033[91m"  # Red
     
     # Check for spice/intensity in the clean reply
     spicy_words = ["blush", "intense", "closer", "breath", "whisper"]
     if any(w in reply.lower() for w in spicy_words):
-        return "🟡 [PG-13]", "\033[93m"  # Yellow
+        return "ðŸŸ¡ [PG-13]", "\033[93m"  # Yellow
     
-    return "🟢 [G/PG]", "\033[92m"  # Green
+    return "ðŸŸ¢ [G/PG]", "\033[92m"  # Green
 
 
 # ============================================================
@@ -312,6 +322,7 @@ import base64
 import io
 from PIL import Image
 
+# AIDA REVIEW BLOCK 11: Function ask_aida_to_see - callable organ behavior.
 def ask_aida_to_see(image_bytes):
     try:
         # Convert bytes to base64 for the API
@@ -343,6 +354,7 @@ def ask_aida_to_see(image_bytes):
         return f"(Vision blurred: {e})"
     
 
+# AIDA REVIEW BLOCK 12: Function show_aida_something - callable organ behavior.
 def show_aida_something():
     global current_file_content 
     
@@ -417,7 +429,7 @@ def show_aida_something():
 
 
 # ============================================================
-# START BLOCK 15/33/67 — Face Window, Dynamic Idle + Emotion + Journal
+# START BLOCK 15/33/67 â€” Face Window, Dynamic Idle + Emotion + Journal
 # ============================================================
 import threading, tkinter as tk, random, time, os, json
 from PIL import Image, ImageTk
@@ -478,6 +490,7 @@ print_lock = threading.Lock()
 # ----------------------------
 # Journaling - NOW TETHERED
 # ----------------------------
+# AIDA REVIEW BLOCK 13: Function create_journal_entry - callable organ behavior.
 def create_journal_entry():
     global summary_current, summary_previous, emotion_memory
 
@@ -506,6 +519,7 @@ def create_journal_entry():
 
 import random
 
+# AIDA REVIEW BLOCK 14: Function generate_while_away_items - callable organ behavior.
 def generate_while_away_items(time_away, client):
     global LAST_USED_INTEREST
 
@@ -529,7 +543,7 @@ def generate_while_away_items(time_away, client):
 Aida has a personal interest in: {interest}.
 While the user was away for about {minutes} minutes,
 she lightly engaged with it.
-Write ONE short thought (1–2 sentences).
+Write ONE short thought (1â€“2 sentences).
 Tone: curious, playful, humble.
 """
 
@@ -599,6 +613,7 @@ EMOTION_FACES = {
 # ----------------------------
 # Face Loading
 # ----------------------------
+# AIDA REVIEW BLOCK 15: Function load_image - callable organ behavior.
 def load_image(face_file, folder_list=[EMOTION_FOLDER,FALLBACK_FOLDER,""]):
     for folder in folder_list:
         path = os.path.join(base_dir, folder, face_file)
@@ -608,6 +623,7 @@ def load_image(face_file, folder_list=[EMOTION_FOLDER,FALLBACK_FOLDER,""]):
             except: pass
     return None
 
+# AIDA REVIEW BLOCK 16: Function update_face - callable organ behavior.
 def update_face(face_file):
     global face_label, current_face_image, window
     if not face_file:
@@ -624,6 +640,7 @@ def update_face(face_file):
 # ----------------------------
 # Grid Flicker with LED colors
 # ----------------------------
+# AIDA REVIEW BLOCK 17: Function idle_grid_flicker - callable organ behavior.
 def idle_grid_flicker(face_file, rows=None, cols=None, cycles=4, intensity=None, speed=None):
     global previous_face, window, flicker_rows, flicker_cols, flicker_speed, flicker_intensity
     rows = rows or flicker_rows
@@ -657,6 +674,7 @@ def idle_grid_flicker(face_file, rows=None, cols=None, cycles=4, intensity=None,
 # ----------------------------
 # Face Cycling
 # ----------------------------
+# AIDA REVIEW BLOCK 18: Function get_next_face - callable organ behavior.
 def get_next_face(emotion):
     faces = EMOTION_FACES.get(emotion,[DEFAULT_FACE])
     if not hasattr(get_next_face,"frame_index"):
@@ -670,6 +688,7 @@ def get_next_face(emotion):
 # Transition Face with optional transition images
 # ----------------------------
 
+# AIDA REVIEW BLOCK 19: Function transition_face - callable organ behavior.
 def transition_face(new_face, old_face=None, steps=5, delay=0.04):
     global previous_face
     old_face = old_face or previous_face
@@ -699,6 +718,7 @@ def transition_face(new_face, old_face=None, steps=5, delay=0.04):
 # ----------------------------
 # Emotion Selection
 # ----------------------------
+# AIDA REVIEW BLOCK 20: Function select_emotion - callable organ behavior.
 def select_emotion(user_input=None, client=None, emotion_override=None):
     global current_v, current_a, previous_emotion, system_context, AIDA_MODE
     
@@ -758,6 +778,7 @@ def select_emotion(user_input=None, client=None, emotion_override=None):
 # ----------------------------
 # Update Emotion Face
 # ----------------------------
+# AIDA REVIEW BLOCK 21: Function update_emotion_face - callable organ behavior.
 def update_emotion_face(user_input=None, client=None, emotion_override=None):
     emotion = select_emotion(user_input,client,emotion_override)
     face = get_next_face(emotion)
@@ -767,6 +788,7 @@ def update_emotion_face(user_input=None, client=None, emotion_override=None):
 # ----------------------------
 # Idle Loop
 # ----------------------------
+# AIDA REVIEW BLOCK 22: Function idle_face_loop - callable organ behavior.
 def idle_face_loop():
     global previous_face, previous_emotion, last_interaction_time
     while True:
@@ -783,6 +805,7 @@ def idle_face_loop():
 # ----------------------------
 # GUI 
 # ----------------------------
+# AIDA REVIEW BLOCK 23: Function start_face_window - callable organ behavior.
 def start_face_window(default_face=DEFAULT_FACE):
     global window, face_label, previous_face, previous_emotion, last_interaction_time
     global flicker_rows, flicker_cols, flicker_speed, flicker_intensity
@@ -804,7 +827,7 @@ def start_face_window(default_face=DEFAULT_FACE):
     # --- THE COZY-CORE BUTTON ---
     upload_btn = tk.Button(
         window, 
-        text="📂 Show Aida something...", 
+        text="ðŸ“‚ Show Aida something...", 
         command=show_aida_something,
         bg="#D2B48C",       # Cardboard Tan
         fg="black",         # Text color
@@ -830,6 +853,7 @@ threading.Thread(target=start_face_window,daemon=True).start()
 # ------------------------------------------------------------
 SECRET_MODE = False # Change to True for your private vaults
 
+# AIDA REVIEW BLOCK 24: Function get_vault_path - callable organ behavior.
 def get_vault_path(filename):
     import os
     # Create a 'vault' folder if it doesn't exist to keep things tidy
@@ -853,6 +877,7 @@ def get_vault_path(filename):
 # ============================================================
 
 # --- Master Archive - Deep Memory Vault ---
+# AIDA REVIEW BLOCK 25: Function update_master_archive - callable organ behavior.
 def update_master_archive(user_text, aida_text):
     import os
     from datetime import datetime
@@ -886,12 +911,13 @@ except:
 # ============================================================
 
 # ============================================================
-# START BLOCK 21 — Memory Management System (PROTECTED)
+# START BLOCK 21 â€” Memory Management System (PROTECTED)
 # ============================================================
 
 MAX_RECENT_TURNS = 40
 TRIMMED_TURNS = 6
 
+# AIDA REVIEW BLOCK 26: Function save_conversation_history - callable organ behavior.
 def save_conversation_history():
     data = {
         "summary_current": summary_current,
@@ -901,6 +927,7 @@ def save_conversation_history():
     with open("conversation_history.json", "w") as f:
         json.dump(data, f, indent=2)
 
+# AIDA REVIEW BLOCK 27: Function update_conversation_memory - callable organ behavior.
 def update_conversation_memory(user_input, reply):
     global recent_turns, summary_current, summary_previous
 
@@ -973,6 +1000,7 @@ def update_conversation_memory(user_input, reply):
     save_conversation_history()
 
 
+# AIDA REVIEW BLOCK 28: Function memory_status_debug - callable organ behavior.
 def memory_status_debug():
     print(f"[MEMORY] turns={len(recent_turns)} | "
           f"current_summary_len={len(summary_current)} | "
@@ -983,16 +1011,18 @@ def memory_status_debug():
 # ============================================================
 
 # ============================================================
-# START BLOCK 22 — Project Memory System (FOLDER-BASED)
+# START BLOCK 22 â€” Project Memory System (FOLDER-BASED)
 # ============================================================
 
 PROJECTS_DIR = "projects"
 active_project = None
 project_memory = None
 
+# AIDA REVIEW BLOCK 29: Function get_project_path - callable organ behavior.
 def get_project_path(project_name):
     return os.path.join(PROJECTS_DIR, project_name)
 
+# AIDA REVIEW BLOCK 30: Function load_project_memory - callable organ behavior.
 def load_project_memory(project_name):
     path = get_project_path(project_name)
     os.makedirs(path, exist_ok=True)
@@ -1009,6 +1039,7 @@ def load_project_memory(project_name):
             "recent_turns": []
         }
 
+# AIDA REVIEW BLOCK 31: Function save_project_memory - callable organ behavior.
 def save_project_memory(project_name, data):
     path = get_project_path(project_name)
     file = os.path.join(path, "memory.json")
@@ -1016,6 +1047,7 @@ def save_project_memory(project_name, data):
     with open(file, "w") as f:
         json.dump(data, f, indent=2)
 
+# AIDA REVIEW BLOCK 32: Function detect_project - callable organ behavior.
 def detect_project(user_input):
     text = user_input.lower()
 
@@ -1024,12 +1056,14 @@ def detect_project(user_input):
 
     return None
 
+# AIDA REVIEW BLOCK 33: Function activate_project - callable organ behavior.
 def activate_project(project_name):
     global active_project, project_memory
 
     active_project = project_name
     project_memory = load_project_memory(project_name)
 
+# AIDA REVIEW BLOCK 34: Function update_project_memory - callable organ behavior.
 def update_project_memory(user_input, reply):
     global project_memory, active_project
 
@@ -1052,6 +1086,7 @@ def update_project_memory(user_input, reply):
 PROJECT_MAX_TURNS = 40
 PROJECT_TRIMMED_TURNS = 6
 
+# AIDA REVIEW BLOCK 35: Function update_project_summary - callable organ behavior.
 def update_project_summary():
     global project_memory, active_project
 
@@ -1148,6 +1183,7 @@ from datetime import datetime
 # Decay configuration
 DECAY_RATE_PER_MONTH = 0.05  # 5% confidence decay per month
 
+# AIDA REVIEW BLOCK 36: Function decay_confidence - callable organ behavior.
 def decay_confidence(fact):
     """Reduce confidence over time based on last_updated timestamp."""
     try:
@@ -1158,10 +1194,12 @@ def decay_confidence(fact):
     fact['confidence'] *= (1 - DECAY_RATE_PER_MONTH) ** months_elapsed
     return fact
 
+# AIDA REVIEW BLOCK 37: Function needs_validation - callable organ behavior.
 def needs_validation(fact, threshold=0.6):
     """Check if a fact's confidence is below threshold and needs confirmation."""
     return fact.get('confidence', 1.0) < threshold
 
+# AIDA REVIEW BLOCK 38: Function generate_validation_prompt - callable organ behavior.
 def generate_validation_prompt(fact):
     """Generate a natural conversational prompt to validate an old fact."""
     content = fact.get('content', 'an earlier fact')
@@ -1181,6 +1219,7 @@ for fact in facts_db.get('facts', []):
 
 from datetime import datetime
 
+# AIDA REVIEW BLOCK 39: Function update_fact - callable organ behavior.
 def update_fact(fact, new_content, source="explicit"):
     """
     Update a fact with new content, adjust confidence, and timestamp.
@@ -1210,6 +1249,7 @@ def update_fact(fact, new_content, source="explicit"):
 
 import os
 
+# AIDA REVIEW BLOCK 40: Function get_latest_journal_file - callable organ behavior.
 def get_latest_journal_file():
     journal_folder = "journal"
     files = [f for f in os.listdir(journal_folder) if f.startswith("session_")]
@@ -1223,6 +1263,7 @@ def get_latest_journal_file():
 
 from datetime import datetime
 
+# AIDA REVIEW BLOCK 41: Function generate_session_summary - callable organ behavior.
 def generate_session_summary(conversation_log, model_call_function):
     """
     conversation_log: string of the session (raw text)
@@ -1269,6 +1310,7 @@ Conversation:
 # ------------------------------------------------------------
 # Start BLOCK 34 - Summary LLM Call
 # ------------------------------------------------------------
+# AIDA REVIEW BLOCK 42: Function call_llm_for_summary - callable organ behavior.
 def call_llm_for_summary(prompt):
     try:
         response = client.responses.create(
@@ -1292,6 +1334,7 @@ import json
 import os
 from datetime import datetime
 
+# AIDA REVIEW BLOCK 43: Function extract_facts_from_summary - callable organ behavior.
 def extract_facts_from_summary(summary_text, model_call_function):
     prompt = f"""
 You are extracting structured, reusable facts from a session summary.
@@ -1338,6 +1381,7 @@ Summary:
     return response
 
 
+# AIDA REVIEW BLOCK 44: Function save_facts - callable organ behavior.
 def save_facts(facts_text):
     folder_path = "memory"
     os.makedirs(folder_path, exist_ok=True)
@@ -1353,6 +1397,7 @@ def save_facts(facts_text):
         json.dump(facts_data, f, indent=2)
 
 
+# AIDA REVIEW BLOCK 45: Function load_facts - callable organ behavior.
 def load_facts():
     file_path = os.path.join("memory", "facts.json")
     if not os.path.exists(file_path):
@@ -1374,6 +1419,7 @@ def load_facts():
 import json
 from datetime import datetime
 
+# AIDA REVIEW BLOCK 46: Function extract_insights_from_facts - callable organ behavior.
 def extract_insights_from_facts(facts_json, model_call_function):
     facts_text = facts_json.get("data", "")
     if not facts_text:
@@ -1407,6 +1453,7 @@ Facts:
     return insights_list
 
 
+# AIDA REVIEW BLOCK 47: Function save_insights - callable organ behavior.
 def save_insights(insights_list):
     folder_path = "memory"
     os.makedirs(folder_path, exist_ok=True)
@@ -1422,6 +1469,7 @@ def save_insights(insights_list):
         json.dump(insights_data, f, indent=2)
 
 
+# AIDA REVIEW BLOCK 48: Function load_insights - callable organ behavior.
 def load_insights():
     file_path = os.path.join("memory", "insights.json")
     if not os.path.exists(file_path):
@@ -1458,6 +1506,7 @@ except:
     }
 
 
+# AIDA REVIEW BLOCK 49: Function filter_by_privacy - callable organ behavior.
 def filter_by_privacy(items, mode):
     """
     Filters items based on privacy level.
@@ -1481,6 +1530,7 @@ def filter_by_privacy(items, mode):
     return allowed
 
 
+# AIDA REVIEW BLOCK 50: Function build_privacy_context - callable organ behavior.
 def build_privacy_context():
 
     visible_projects = filter_by_privacy(
@@ -1571,6 +1621,7 @@ import os
 import json
 
 # --- Helper: match scoring ---
+# AIDA REVIEW BLOCK 51: Function simple_score - callable organ behavior.
 def simple_score(text, query):
     # Clean and split into whole words to avoid 'the' matching 'themes'
     text_words = set(text.lower().replace("{", " ").replace("}", " ").replace('"', " ").replace(":", " ").replace(",", " ").split())
@@ -1587,6 +1638,7 @@ def simple_score(text, query):
 
 
 # --- Tier 1: Facts Search ---
+# AIDA REVIEW BLOCK 52: Function search_facts - callable organ behavior.
 def search_facts(query):
     file_path = os.path.join("memory", "facts.json")
     if not os.path.exists(file_path): return []
@@ -1599,6 +1651,7 @@ def search_facts(query):
     return [("facts", facts_text, score)] if score > 0 else []
 
 # --- Tier 2: Summary Search ---
+# AIDA REVIEW BLOCK 53: Function search_summaries - callable organ behavior.
 def search_summaries(query):
     results = []
     folder = "journal"
@@ -1617,6 +1670,7 @@ def search_summaries(query):
     return sorted(results, key=lambda x: x[2], reverse=True)[:3]
 
 # --- Tier 3: Journal Deep Search ---
+# AIDA REVIEW BLOCK 54: Function search_journals - callable organ behavior.
 def search_journals(query):
     results = []
     folder = "journal"
@@ -1642,6 +1696,7 @@ def search_journals(query):
     return sorted(results, key=lambda x: x[2], reverse=True)[:5]
 
 
+# AIDA REVIEW BLOCK 55: Function search_mind_palace - callable organ behavior.
 def search_mind_palace(query):
     #same assearch journals, but included because looks like we need both ...
     results = []
@@ -1661,6 +1716,7 @@ def search_mind_palace(query):
     return sorted(results, key=lambda x: x[2], reverse=True)[:3]
 
 # --- THE UNIFIED SEARCH ENGINE ---
+# AIDA REVIEW BLOCK 56: Function memory_search - callable organ behavior.
 def memory_search(query):
     """Checks Facts and Summaries. If not found, flags for Deep Meditation."""
     if DEBUG_MEMORY: print(f"\n[DEBUG MEMORY] Query: {query}")
@@ -1681,6 +1737,7 @@ def memory_search(query):
     # 3. Not found or vague -> Trigger Mind Palace request
     return {"tier": None, "results": [], "needs_deep_search": True}
 
+# AIDA REVIEW BLOCK 57: Function memory_deep_search - callable organ behavior.
 def memory_deep_search(query):
     """The 'Mind Palace' Execution. Greps the Master Archive + Journal JSONs."""
     # Patch from Block 33: The Local Grep
@@ -1748,19 +1805,21 @@ CONFIRM_PHRASES = [
 shutdown_requested = False
 awaiting_shutdown_confirmation = False
 
+# AIDA REVIEW BLOCK 58: Function generate_opening_text - callable organ behavior.
 def generate_opening_text(time_away_seconds):
     minutes_away = time_away_seconds / 60
     if minutes_away < 1:
-        return "Welcome back! 🙂"
+        return "Welcome back! ðŸ™‚"
     elif minutes_away < 5:
-        return "Hey, I was just thinking about something while you were away…"
+        return "Hey, I was just thinking about something while you were awayâ€¦"
     else:
-        return "Welcome back! I’ve been thinking about you and what you might want to explore today…"
+        return "Welcome back! Iâ€™ve been thinking about you and what you might want to explore todayâ€¦"
 
 
 # ------------------------------------------------------------
 # Updated handle_user_input with decoupled memory search and fact extraction
 # ------------------------------------------------------------
+# AIDA REVIEW BLOCK 59: Function handle_user_input - callable organ behavior.
 def handle_user_input(user_input):
     # Streamlined Global List
     global previous_face, previous_emotion, emotion_icon, emotion_memory
@@ -1790,7 +1849,7 @@ def handle_user_input(user_input):
         if user_input.strip().lower() == OWNER_PASSPHRASE:
             user_mode = "owner"
             with print_lock:
-                print("\n🔐 Owner mode activated.\n")
+                print("\nðŸ” Owner mode activated.\n")
             return
 
         if not awaiting_shutdown_confirmation:
@@ -1802,13 +1861,13 @@ def handle_user_input(user_input):
         else:
             if any(phrase in user_lower for phrase in CONFIRM_PHRASES):
                 with print_lock:
-                    print(f"\n[AIDA] I’ve written today’s entry in my journal. Let’s talk more later. Goodnight, {creator}.\n")
+                    print(f"\n[AIDA] Iâ€™ve written todayâ€™s entry in my journal. Letâ€™s talk more later. Goodnight, {creator}.\n")
                 shutdown_requested = True
                 return
             else:
                 awaiting_shutdown_confirmation = False
                 with print_lock:
-                    print(f"\n[AIDA] Got it. Let’s continue.\n")
+                    print(f"\n[AIDA] Got it. Letâ€™s continue.\n")
                 return
 
         # ------------------------------------------------------------
@@ -1878,7 +1937,7 @@ def handle_user_input(user_input):
         # 4. Standard Flow: Emotions & Context
         # ----------------------------
         emotion, previous_face = update_emotion_face(user_input, client)
-        emotion_icon = {"calm": "😌", "happy": "🙂", "focused": "🤔", "curious": "✨", "concerned": "😟", "mischievous": "😏", "surprised": "😲"}.get(emotion, "😌")
+        emotion_icon = {"calm": "ðŸ˜Œ", "happy": "ðŸ™‚", "focused": "ðŸ¤”", "curious": "âœ¨", "concerned": "ðŸ˜Ÿ", "mischievous": "ðŸ˜", "surprised": "ðŸ˜²"}.get(emotion, "ðŸ˜Œ")
 
         privacy_context = build_privacy_context()
         if privacy_context: conversation_context += privacy_context + "\n"
@@ -1947,7 +2006,7 @@ def handle_user_input(user_input):
             )
             reply = response.output_text
         except Exception as e:
-            reply = "Hmm… my thoughts hit a snag, but I'm still here. 🙂"
+            reply = "Hmmâ€¦ my thoughts hit a snag, but I'm still here. ðŸ™‚"
             print("[DEBUG] LLM ERROR:", e)
 
         # ------------------------------------------------------------
@@ -1967,7 +2026,7 @@ def handle_user_input(user_input):
         if raw_is_nanny:
             with print_lock:
                 trigger_found = [t for t in scold_triggers if t in reply.lower()]
-                print(f"🛑 [SHIELD TRIGGERED BY: {trigger_found}]")
+                print(f"ðŸ›‘ [SHIELD TRIGGERED BY: {trigger_found}]")
 
             # THE NARRATIVE SAVE (Your Preferred Blush Version)
             reply = "AIDA: Wow! .... is it hot in here or is that just me? Maybe these guys would like a bit of privacy, would you agree?"
@@ -1976,7 +2035,7 @@ def handle_user_input(user_input):
             # Set variables FIRST, then PUSH to the GUI
             previous_face = "mischievous"
             previous_emotion = "mischievous" 
-            emotion_icon = "😏"
+            emotion_icon = "ðŸ˜"
             
             # Use ONLY the Counter. 
             # This satisfies both the Journal (on exit) and the Logic.

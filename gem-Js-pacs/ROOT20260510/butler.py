@@ -1,3 +1,5 @@
+# AIDA REVIEW BLOCK 1: File header - gem-Js-pacs\ROOT20260510\butler.py
+# AIDA REVIEW BLOCK 2: Module setup - imports, constants, and shared state used below.
 import json
 import copy
 from pathlib import Path
@@ -8,6 +10,7 @@ BASE_DIR = Path(__file__).parent
 
 # ---- Helpers ---------------------------------------------------------------
 
+# AIDA REVIEW BLOCK 3: Function load_json - callable organ behavior.
 def load_json(path: Path, default):
     if not path.exists():
         return copy.deepcopy(default)
@@ -15,11 +18,13 @@ def load_json(path: Path, default):
         return json.load(f)
 
 
+# AIDA REVIEW BLOCK 4: Function save_json - callable organ behavior.
 def save_json(path: Path, data):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
+# AIDA REVIEW BLOCK 5: Function now_iso - callable organ behavior.
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
@@ -45,12 +50,15 @@ DEFAULT_EMOTION_MEMORY = {
 
 # ---- Core Butler -----------------------------------------------------------
 
+# AIDA REVIEW BLOCK 6: Class Butler - grouped organ/service behavior.
 class Butler:
+# AIDA REVIEW BLOCK 7: Function __init__ - callable organ behavior.
     def __init__(self, base_dir: Path = BASE_DIR):
         self.base_dir = base_dir
 
     # -- High-level entry point --
 
+# AIDA REVIEW BLOCK 8: Function run - callable organ behavior.
     def run(self,
             payload_path: Path = None,
             output_path: Path = None) -> dict:
@@ -135,7 +143,7 @@ class Butler:
         summary_changes["realm_transitions"].extend(realm_transitions)
 
         # 5) Build next-day 12 wake-cycle files
-        next_recent_turns = recent_turns  # usually last 10–20 turns already
+        next_recent_turns = recent_turns  # usually last 10â€“20 turns already
         next_emotion_state = {
             "valence": 0.0,
             "arousal": 0.0,
@@ -201,6 +209,7 @@ class Butler:
 
     # ---- Delta application --------------------------------------------------
 
+# AIDA REVIEW BLOCK 9: Function _apply_facts_delta - callable organ behavior.
     def _apply_facts_delta(self, facts, session_delta, summary):
         new_facts = session_delta.get("new_facts", {}).get("data", {})
         updated_facts = session_delta.get("updated_facts", {}).get("data", {})
@@ -218,6 +227,7 @@ class Butler:
             facts[k] = v
             summary["facts_updated"].append({"type": "updated", "key": k})
 
+# AIDA REVIEW BLOCK 10: Function _apply_insights_delta - callable organ behavior.
     def _apply_insights_delta(self, insights, session_delta, summary):
         new_insights = session_delta.get("new_insights", {}).get("data", {})
         updated_insights = session_delta.get("updated_insights", {}).get("data", {})
@@ -234,6 +244,7 @@ class Butler:
             insights[k] = v
             summary["insights_updated"].append(k)
 
+# AIDA REVIEW BLOCK 11: Function _apply_user_model_delta - callable organ behavior.
     def _apply_user_model_delta(self, user_model, session_delta, summary):
         # Optional: if you later add explicit user_model deltas to session_delta,
         # handle them here. For now, this is a placeholder.
@@ -244,6 +255,7 @@ class Butler:
 
     # ---- Emotional processing -----------------------------------------------
 
+# AIDA REVIEW BLOCK 12: Function _process_emotions - callable organ behavior.
     def _process_emotions(self, emotion_coords, emotion_memory, emotion_state, session_log):
         """
         Very simple placeholder logic:
@@ -262,7 +274,7 @@ class Butler:
         GAP_THRESHOLD = 5
         BETWEEN_THRESHOLD = 7
 
-        # Gap regions → new emotions
+        # Gap regions â†’ new emotions
         for region in gap_regions:
             count = region.get("count", 0)
             if count >= GAP_THRESHOLD:
@@ -274,7 +286,7 @@ class Butler:
                     new_emotions.append(label)
                     patterns.append({"type": "gap_region", "label": label, "valence": v, "arousal": a})
 
-        # Between pairs → potential new blended emotions
+        # Between pairs â†’ potential new blended emotions
         for pair_key, count in between_pairs.items():
             if count >= BETWEEN_THRESHOLD:
                 patterns.append({"type": "between_pair", "pair": pair_key})
@@ -288,12 +300,14 @@ class Butler:
 
         return emotion_coords, memory_summary, patterns, new_emotions
 
+# AIDA REVIEW BLOCK 13: Function _propose_emotion_label - callable organ behavior.
     def _propose_emotion_label(self, v, a):
         # Very simple naming scheme; you can replace with something nicer later.
         return f"emotion_{round(v, 2)}_{round(a, 2)}"
 
     # ---- Projects & realms --------------------------------------------------
 
+# AIDA REVIEW BLOCK 14: Function _process_projects_and_realms - callable organ behavior.
     def _process_projects_and_realms(self, project_summary, realm_config, session_delta):
         project_deltas = session_delta.get("project_deltas", {}).get("data", {})
         realm_transitions = session_delta.get("realm_transitions", {}).get("data", [])
@@ -334,6 +348,7 @@ class Butler:
         # Realm transitions are mostly informational here
         return project_updates, realm_transitions
 
+# AIDA REVIEW BLOCK 15: Function _new_project_briefcase - callable organ behavior.
     def _new_project_briefcase(self, name: str, realm: str):
         # Minimal inline template; you can also load from project_briefcase_template.json
         return {
@@ -356,6 +371,7 @@ class Butler:
 
     # ---- System prompt loader ----------------------------------------------
 
+# AIDA REVIEW BLOCK 16: Function _load_system_prompt - callable organ behavior.
     def _load_system_prompt(self):
         path = self.base_dir / "system_prompt_template.txt"
         if not path.exists():
@@ -366,6 +382,7 @@ class Butler:
 
 # ---- CLI-ish entry ---------------------------------------------------------
 
+# AIDA REVIEW BLOCK 17: Command-line entrypoint - runs this organ when launched directly.
 if __name__ == "__main__":
     butler = Butler()
     out = butler.run()

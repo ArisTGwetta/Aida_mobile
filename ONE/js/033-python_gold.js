@@ -1,3 +1,5 @@
+// AIDA REVIEW BLOCK 1: File header - ONE\js\033-python_gold.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 /* 033-python_gold.js
    THE ENGINE ROOM: GIANT ORGAN PACK (NO .PY FETCHES)
    - Mounts all Python organs from JS trucks into Pyodide FS
@@ -8,10 +10,13 @@
     console.log("[PYTHON] 033: Giant organ pack initializing...");
 
     // Global flags
+// AIDA REVIEW BLOCK 3: Browser export AIDA_PYODIDE - exposes this organ to the page runtime.
     window.AIDA_PYODIDE = null;
+// AIDA REVIEW BLOCK 4: Browser export AIDA_PY_READY - exposes this organ to the page runtime.
     window.AIDA_PY_READY = false;
 
     // --- BIOS-style logger hook (optional, safe if missing) ---
+// AIDA REVIEW BLOCK 5: Function biosLog - callable behavior in this runtime organ.
     function biosLog(msg, colorClass = "log-white") {
         const logs = document.getElementById("bios-logs");
         if (!logs) return;
@@ -22,12 +27,14 @@
     }
 
     // --- Core boot promise: load Pyodide + mount all organs ---
+// AIDA REVIEW BLOCK 6: Browser export AIDA_PY_BOOT_PROMISE - exposes this organ to the page runtime.
     window.AIDA_PY_BOOT_PROMISE = (async function () {
         try {
             biosLog("Beginning Python Boot Sequence...", "log-white");
             console.log("[PYTHON] 033: Loading Pyodide runtime...");
 
             const pyodide = await loadPyodide();
+// AIDA REVIEW BLOCK 7: Browser export AIDA_PYODIDE - exposes this organ to the page runtime.
             window.AIDA_PYODIDE = pyodide;
             biosLog("Engine Warmed.", "log-amber");
             console.log("[PYTHON] 033: Pyodide ready.");
@@ -151,8 +158,9 @@ def select_emotion(*args, **kwargs):
             biosLog("Cognitive Organs Synchronized.", "log-blue");
 
             // ---------------------------------------------------------
-            // ⭐ OVERRIDE logistics_hub WITH REAL JS MIND STATE ⭐
+            // â­ OVERRIDE logistics_hub WITH REAL JS MIND STATE â­
             // ---------------------------------------------------------
+// AIDA REVIEW BLOCK 8: Browser export logistics_hub - exposes this organ to the page runtime.
             window.logistics_hub = {
                 getCurrentState() {
                     const state = {
@@ -166,7 +174,7 @@ def select_emotion(*args, **kwargs):
                         project: {
                             ...(window.AIDA_ROLE || {})
                         },
-                        // ⭐ NEW: Session gap for While‑Away organ
+                        // â­ NEW: Session gap for Whileâ€‘Away organ
                         session: window.AIDA_SESSION_GAP || {
                             last_active: null,
                             now: new Date().toISOString()
@@ -177,6 +185,7 @@ def select_emotion(*args, **kwargs):
                 }
             };
 
+// AIDA REVIEW BLOCK 9: Browser export logistics_hub.get_snapshot - exposes this organ to the page runtime.
             window.logistics_hub.get_snapshot = function () {
                 const snap = {
                     identity: window.AIDA_IDENTITY,
@@ -191,8 +200,9 @@ def select_emotion(*args, **kwargs):
             };
 
             // ---------------------------------------------------------
-            // TETRAD SNAPSHOT BRIDGE (JS → Python → JS)
+            // TETRAD SNAPSHOT BRIDGE (JS â†’ Python â†’ JS)
             // ---------------------------------------------------------
+// AIDA REVIEW BLOCK 10: Browser export py_get_tetrad_snapshot - exposes this organ to the page runtime.
             window.py_get_tetrad_snapshot = async function () {
                 console.log(">>> TETRAD BRIDGE: py_get_tetrad_snapshot LOADED (033)");
 
@@ -244,6 +254,7 @@ snapshot
                 return result;
             };
 
+// AIDA REVIEW BLOCK 11: Browser export AIDA_PY_READY - exposes this organ to the page runtime.
             window.AIDA_PY_READY = true;
             console.log("[PYTHON] 033: All organs mounted. AIDA_PY_READY = true.");
             biosLog("Python Mind Online. Awaiting Handshake.", "log-blue");
@@ -260,6 +271,7 @@ snapshot
     // ---------------------------------------------------------
     // TOOLS ENGINE
     // ---------------------------------------------------------
+// AIDA REVIEW BLOCK 12: Browser export py_engine - exposes this organ to the page runtime.
     window.py_engine = {
         runTool: async function (toolName, className) {
             const pyodide = await window.AIDA_PY_BOOT_PROMISE;

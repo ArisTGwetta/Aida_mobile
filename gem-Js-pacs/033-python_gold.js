@@ -1,12 +1,16 @@
+// AIDA REVIEW BLOCK 1: File header - gem-Js-pacs\033-python_gold.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 /* 033-python_gold.js
    THE ENGINE ROOM: PYODIDE & PYTHON TOOLS
 */
 
+// AIDA REVIEW BLOCK 3: Browser export py_engine - exposes this organ to the page runtime.
 window.py_engine = (function() {
     let pyodide = null;
     let isReady = false;
 
     // 1. Ignition: Load the runtime and the "Organs" (.py files)
+// AIDA REVIEW BLOCK 4: Function boot - callable behavior in this runtime organ.
     async function boot() {
         if (isReady) return;
         

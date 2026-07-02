@@ -1,12 +1,16 @@
+// AIDA REVIEW BLOCK 1: File header - AIDA_ONE_SPINE\spine\crawler.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 (function () {
   const MODULE_ID = "spine.crawler";
   const DEFAULT_KEY = "AIDA_CRAWLER_INDEX_V1";
   const DEFAULT_RECALL_MIN_SCORE = 6;
 
+// AIDA REVIEW BLOCK 3: Function runtime - callable behavior in this runtime organ.
   function runtime() {
     return window.AIDA_RUNTIME;
   }
 
+// AIDA REVIEW BLOCK 4: Function log - callable behavior in this runtime organ.
   function log(message, className = "log-blue") {
     if (window.AIDA_BIOS?.log) {
       window.AIDA_BIOS.log(message, className);
@@ -15,10 +19,12 @@
     if (window.AIDA_BODY?.pulse) window.AIDA_BODY.pulse(message);
   }
 
+// AIDA REVIEW BLOCK 5: Function nowIso - callable behavior in this runtime organ.
   function nowIso() {
     return new Date().toISOString();
   }
 
+// AIDA REVIEW BLOCK 6: Function copyJson - callable behavior in this runtime organ.
   function copyJson(value, fallback) {
     if (value === undefined) return fallback;
     try {
@@ -28,10 +34,12 @@
     }
   }
 
+// AIDA REVIEW BLOCK 7: Function safeArray - callable behavior in this runtime organ.
   function safeArray(value) {
     return Array.isArray(value) ? value : [];
   }
 
+// AIDA REVIEW BLOCK 8: Function storage - callable behavior in this runtime organ.
   function storage() {
     try {
       if (!window.localStorage) return null;
@@ -44,6 +52,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 9: Function ensureState - callable behavior in this runtime organ.
   function ensureState() {
     const rt = runtime();
     rt.crawler = rt.crawler || {};
@@ -53,6 +62,7 @@
     return rt.crawler;
   }
 
+// AIDA REVIEW BLOCK 10: Function cleanText - callable behavior in this runtime organ.
   function cleanText(text, limit = 1600) {
     return String(text || "")
       .replace(/\s+/g, " ")
@@ -60,6 +70,7 @@
       .slice(0, limit);
   }
 
+// AIDA REVIEW BLOCK 11: Function slug - callable behavior in this runtime organ.
   function slug(value, fallback = "entry") {
     return String(value || fallback)
       .toLowerCase()
@@ -68,6 +79,7 @@
       .slice(0, 90) || fallback;
   }
 
+// AIDA REVIEW BLOCK 12: Function tokenSet - callable behavior in this runtime organ.
   function tokenSet(text) {
     const stop = new Set(["the", "and", "for", "that", "this", "with", "you", "aida", "are", "was", "were", "have", "from", "into", "will", "should"]);
     return [...new Set(String(text || "")
@@ -76,6 +88,7 @@
       .filter((token) => !stop.has(token));
   }
 
+// AIDA REVIEW BLOCK 13: Function consoleReport - callable behavior in this runtime organ.
   function consoleReport(label, value) {
     if (typeof console === "undefined" || !console.log) return;
     try {
@@ -85,6 +98,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 14: Function entry - callable behavior in this runtime organ.
   function entry(id, type, title, text, meta = {}) {
     const cleaned = cleanText(text);
     if (!cleaned) return null;
@@ -114,6 +128,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 15: Function sessionEntries - callable behavior in this runtime organ.
   function sessionEntries(rt, indexedAt) {
     return safeArray(rt.session?.currentTurns).flatMap((turn) => {
       const tags = turn.tags || {};
@@ -159,6 +174,7 @@
     });
   }
 
+// AIDA REVIEW BLOCK 16: Function driveRecordText - callable behavior in this runtime organ.
   function driveRecordText(record) {
     if (record === null || record === undefined) return "";
     if (typeof record === "string") return cleanText(record);
@@ -185,6 +201,7 @@
     return cleanText(parts.join(" "), 2200);
   }
 
+// AIDA REVIEW BLOCK 17: Function driveRecordList - callable behavior in this runtime organ.
   function driveRecordList(name, data) {
     if (!data || typeof data !== "object") return [];
     if (Array.isArray(data)) return data;
@@ -202,6 +219,7 @@
     }
 
     const results = [];
+// AIDA REVIEW BLOCK 18: Function visit - callable behavior in this runtime organ.
     function visit(value, path, depth = 0) {
       if (value === null || value === undefined || depth > 6) return;
       if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
@@ -230,6 +248,7 @@
     return results;
   }
 
+// AIDA REVIEW BLOCK 19: Function driveType - callable behavior in this runtime organ.
   function driveType(name) {
     if (name === "raw_session_log.json" || name === "session_log.json" || name === "recent_turns.json") return "drive_raw_log";
     if (name === "diary_log.json") return "drive_diary";
@@ -244,15 +263,18 @@
     return "drive_memory";
   }
 
+// AIDA REVIEW BLOCK 20: Function skipDriveCandidate - callable behavior in this runtime organ.
   function skipDriveCandidate(name, record) {
     if (!/_candidates\.json$/i.test(name)) return false;
     return record?.source === "fallback" || record?.method === "deterministic_runtime_draft";
   }
 
+// AIDA REVIEW BLOCK 21: Function driveFallbackScope - callable behavior in this runtime organ.
   function driveFallbackScope(name) {
     return /^(facts|insights|memory_summary)\.json$/i.test(name) ? "shared" : "legacy";
   }
 
+// AIDA REVIEW BLOCK 22: Function driveEntries - callable behavior in this runtime organ.
   function driveEntries(rt, indexedAt) {
     const files = rt.drive?.files || {};
     const allowed = /^(raw_session_log|session_log|recent_turns|diary_log|project_summary|project_briefcase_.+|facts|facts_candidates|insights|insights_candidates|memory_summary|sensitive_context_candidates|salutation_tone_signals)\.json$/i;
@@ -294,6 +316,7 @@
     return results.filter(Boolean);
   }
 
+// AIDA REVIEW BLOCK 23: Function librarianEntries - callable behavior in this runtime organ.
   function librarianEntries(staged, indexedAt) {
     const entries = [];
     safeArray(staged.diaryDrafts).forEach((item) => {
@@ -427,6 +450,7 @@
     return entries.filter(Boolean);
   }
 
+// AIDA REVIEW BLOCK 24: Function curatorEntries - callable behavior in this runtime organ.
   function curatorEntries(reviewed, indexedAt) {
     const entries = [];
     safeArray(reviewed.projectListingDrafts).forEach((item) => entries.push(entry(
@@ -474,6 +498,7 @@
     return entries.filter(Boolean);
   }
 
+// AIDA REVIEW BLOCK 25: Function upsertEntries - callable behavior in this runtime organ.
   function upsertEntries(state, entries) {
     entries.forEach((item) => {
       const index = state.entries.findIndex((existing) => existing.id === item.id);
@@ -483,6 +508,7 @@
     state.entries = state.entries.slice(-1200);
   }
 
+// AIDA REVIEW BLOCK 26: Function persist - callable behavior in this runtime organ.
   function persist(state) {
     const store = storage();
     if (!store) return false;
@@ -494,6 +520,7 @@
     return true;
   }
 
+// AIDA REVIEW BLOCK 27: Function loadPersisted - callable behavior in this runtime organ.
   function loadPersisted() {
     const state = ensureState();
     const store = storage();
@@ -510,6 +537,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 28: Function indexNow - callable behavior in this runtime organ.
   function indexNow(reason = "manual_index") {
     const rt = runtime();
     const state = ensureState();
@@ -533,6 +561,7 @@
     return { ready: true, entriesAdded: entries.length, persisted, summary };
   }
 
+// AIDA REVIEW BLOCK 29: Function scoreEntry - callable behavior in this runtime organ.
   function scoreEntry(queryTokens, item) {
     if (!queryTokens.length) return 0;
     const itemTokens = new Set(item.tokens || tokenSet(`${item.title} ${item.text}`));
@@ -564,6 +593,7 @@
     return score + (typeBoosts[item.type] || 0);
   }
 
+// AIDA REVIEW BLOCK 30: Function search - callable behavior in this runtime organ.
   function search(query, options = {}) {
     const state = ensureState();
     if (!state.entries.length) loadPersisted();
@@ -616,6 +646,7 @@
     return { query, searchedAt, minScore, results };
   }
 
+// AIDA REVIEW BLOCK 31: Function entriesForCurrentLlm - callable behavior in this runtime organ.
   function entriesForCurrentLlm(options = {}) {
     const state = ensureState();
     if (!state.entries.length) loadPersisted();
@@ -628,6 +659,7 @@
       .slice(-limit);
   }
 
+// AIDA REVIEW BLOCK 32: Function glanceText - callable behavior in this runtime organ.
   function glanceText(item, limit = 190) {
     const text = cleanText(item?.text, limit);
     if (!text || text === "[object Object]") return "";
@@ -640,6 +672,7 @@
     return text.replace(/\s*(?:\.\.\.|[.!?]+)$/, "").trim();
   }
 
+// AIDA REVIEW BLOCK 33: Function freshGlance - callable behavior in this runtime organ.
   function freshGlance(options = {}) {
     indexNow("fresh_glance");
     const state = ensureState();
@@ -710,6 +743,7 @@
     return response;
   }
 
+// AIDA REVIEW BLOCK 34: Function remember - callable behavior in this runtime organ.
   function remember(query, options = {}) {
     const minScore = Number(options.minScore || DEFAULT_RECALL_MIN_SCORE);
     const result = search(query, { ...options, minScore });
@@ -733,6 +767,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 35: Function safeSummary - callable behavior in this runtime organ.
   function safeSummary() {
     const state = ensureState();
     return {
@@ -748,6 +783,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 36: Function inspect - callable behavior in this runtime organ.
   function inspect() {
     const summary = safeSummary();
     log("CRAWLER: index summary follows.", "log-blue");
@@ -756,12 +792,14 @@
     return summary;
   }
 
+// AIDA REVIEW BLOCK 37: Function install - callable behavior in this runtime organ.
   function install() {
     ensureState();
     const loaded = loadPersisted();
     log(`Crawler organ loaded. Search is on demand. ${loaded.ok ? `Loaded ${loaded.entryCount} indexed item(s).` : "No persisted index loaded."}`, "log-blue");
   }
 
+// AIDA REVIEW BLOCK 38: Browser export AIDA_CRAWLER - exposes this organ to the page runtime.
   window.AIDA_CRAWLER = {
     indexNow,
     search,
@@ -784,5 +822,6 @@
     });
   }
 
+// AIDA REVIEW BLOCK 39: Browser event wiring - connects page lifecycle or user actions to this organ.
   document.addEventListener("DOMContentLoaded", install);
 })();

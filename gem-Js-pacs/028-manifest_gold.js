@@ -1,7 +1,10 @@
+// AIDA REVIEW BLOCK 1: File header - gem-Js-pacs\028-manifest_gold.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 /* 028-aura_gold.js 
    THE AURA HUB: WAKE, FACE, COLOR, & TRANSITION
 */
 
+// AIDA REVIEW BLOCK 3: Browser export aura_engine - exposes this organ to the page runtime.
 window.aura_engine = (function() {
     let lastFace = null;
 

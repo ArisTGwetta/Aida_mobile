@@ -1,10 +1,14 @@
+// AIDA REVIEW BLOCK 1: File header - AIDA_ONE_SPINE\spine\sleep_cycle.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 (function () {
   const MODULE_ID = "spine.sleep.cycle";
 
+// AIDA REVIEW BLOCK 3: Function runtime - callable behavior in this runtime organ.
   function runtime() {
     return window.AIDA_RUNTIME;
   }
 
+// AIDA REVIEW BLOCK 4: Function log - callable behavior in this runtime organ.
   function log(message, className = "log-blue") {
     if (window.AIDA_BIOS?.log) {
       window.AIDA_BIOS.log(message, className);
@@ -13,6 +17,7 @@
     if (window.AIDA_BODY?.pulse) window.AIDA_BODY.pulse(message);
   }
 
+// AIDA REVIEW BLOCK 5: Function consoleReport - callable behavior in this runtime organ.
   function consoleReport(label, value) {
     if (typeof console === "undefined" || !console.log) return;
     try {
@@ -22,6 +27,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 6: Function stageWithLibrarian - callable behavior in this runtime organ.
   function stageWithLibrarian(packet) {
     if (!window.AIDA_LIBRARIAN?.ingestSleep) return null;
     try {
@@ -32,10 +38,12 @@
     }
   }
 
+// AIDA REVIEW BLOCK 7: Function nowIso - callable behavior in this runtime organ.
   function nowIso() {
     return new Date().toISOString();
   }
 
+// AIDA REVIEW BLOCK 8: Function copyJson - callable behavior in this runtime organ.
   function copyJson(value, fallback) {
     if (value === undefined) return fallback;
     try {
@@ -45,10 +53,12 @@
     }
   }
 
+// AIDA REVIEW BLOCK 9: Function latest - callable behavior in this runtime organ.
   function latest(list, count) {
     return Array.isArray(list) ? list.slice(Math.max(0, list.length - count)) : [];
   }
 
+// AIDA REVIEW BLOCK 10: Function exchangeSummary - callable behavior in this runtime organ.
   function exchangeSummary(exchange) {
     return {
       turnIndex: exchange.turnIndex,
@@ -59,6 +69,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 11: Function cleanText - callable behavior in this runtime organ.
   function cleanText(text, limit = 420) {
     return String(text || "")
       .replace(/\s+/g, " ")
@@ -66,6 +77,7 @@
       .slice(0, limit);
   }
 
+// AIDA REVIEW BLOCK 12: Function slug - callable behavior in this runtime organ.
   function slug(value, fallback = "memory") {
     return String(value || fallback)
       .toLowerCase()
@@ -74,10 +86,12 @@
       .slice(0, 80) || fallback;
   }
 
+// AIDA REVIEW BLOCK 13: Function sourceRef - callable behavior in this runtime organ.
   function sourceRef(sessionId, turnIndex) {
     return `${sessionId || "session_unknown"}#turn_${turnIndex}`;
   }
 
+// AIDA REVIEW BLOCK 14: Function turnsForRange - callable behavior in this runtime organ.
   function turnsForRange(turns, turnStart, turnEnd) {
     return (turns || []).filter((turn) => {
       const index = Number(turn.turnIndex || 0);
@@ -85,17 +99,20 @@
     });
   }
 
+// AIDA REVIEW BLOCK 15: Function timeMs - callable behavior in this runtime organ.
   function timeMs(value) {
     const parsed = Date.parse(value || "");
     return Number.isFinite(parsed) ? parsed : null;
   }
 
+// AIDA REVIEW BLOCK 16: Function collectionBoundary - callable behavior in this runtime organ.
   function collectionBoundary(rt) {
     const sleep = rt?.sleep || {};
     const lastPacketAt = sleep.lastPacket?.capturedAt || null;
     return sleep.lastCollectedAt || sleep.lastActive || lastPacketAt || null;
   }
 
+// AIDA REVIEW BLOCK 17: Function turnsForCollection - callable behavior in this runtime organ.
   function turnsForCollection(turns, window) {
     const allTurns = turns || [];
     const sinceMs = timeMs(window?.since);
@@ -108,11 +125,13 @@
     });
   }
 
+// AIDA REVIEW BLOCK 18: Function draftOverlapsCollection - callable behavior in this runtime organ.
   function draftOverlapsCollection(draft, turns, window) {
     const rangedTurns = turnsForRange(turns, draft?.turnStart, draft?.turnEnd);
     return turnsForCollection(rangedTurns, window).length > 0;
   }
 
+// AIDA REVIEW BLOCK 19: Function dominantValue - callable behavior in this runtime organ.
   function dominantValue(turns, reader, fallback = "unknown") {
     const counts = new Map();
     (turns || []).forEach((turn) => {
@@ -132,7 +151,9 @@
     return best;
   }
 
+// AIDA REVIEW BLOCK 20: Function emotionalShape - callable behavior in this runtime organ.
   function emotionalShape(turns, fallback = "present") {
+// AIDA REVIEW BLOCK 21: Function emotions - arrow-function behavior in this runtime organ.
     const emotions = (turns || [])
       .map((turn) => turn.context?.emotion?.label || turn.tags?.emotion)
       .filter(Boolean);
@@ -140,6 +161,7 @@
     return unique.length ? unique.join(", ") : fallback;
   }
 
+// AIDA REVIEW BLOCK 22: Function buildOpenThreads - callable behavior in this runtime organ.
   function buildOpenThreads(turns) {
     const threads = [];
     latest(turns, 4).forEach((turn) => {
@@ -164,14 +186,17 @@
     return threads.slice(-6);
   }
 
+// AIDA REVIEW BLOCK 23: Function extractFactCandidates - callable behavior in this runtime organ.
   function extractFactCandidates(turns, createdAt) {
     return [];
   }
 
+// AIDA REVIEW BLOCK 24: Function buildInsightCandidates - callable behavior in this runtime organ.
   function buildInsightCandidates(facts, turns, createdAt) {
     return [];
   }
 
+// AIDA REVIEW BLOCK 25: Function buildRawLogEntries - callable behavior in this runtime organ.
   function buildRawLogEntries({ packetId, sessionId, turns, createdAt }) {
     return (turns || []).map((turn) => ({
       id: `raw_log_${slug(packetId)}_${turn.turnIndex}`,
@@ -189,6 +214,7 @@
     }));
   }
 
+// AIDA REVIEW BLOCK 26: Function extractSalutationSignals - callable behavior in this runtime organ.
   function extractSalutationSignals(turns, createdAt) {
     const signals = [];
     const greetingPattern = /^\s*(hello|hi|hey|good\s+(?:morning|afternoon|evening|night)|goodnight|ok|okay)\b[,\s-]*/i;
@@ -218,6 +244,7 @@
     return signals.slice(0, 6);
   }
 
+// AIDA REVIEW BLOCK 27: Function buildProcessingBacklog - callable behavior in this runtime organ.
   function buildProcessingBacklog({ packetId, turns, createdAt, reason }) {
     if (!turns?.length) return [];
     return [
@@ -235,6 +262,7 @@
     ];
   }
 
+// AIDA REVIEW BLOCK 28: Function summarizeTurns - callable behavior in this runtime organ.
   function summarizeTurns(turns, labels = {}) {
     const count = turns.length;
     const first = turns[0] || {};
@@ -252,6 +280,7 @@
     return `Across ${count} exchange(s) in ${project}, the thread moved from "${firstUser}" to "${lastUser}". Aida's latest response was: "${lastAida}".`;
   }
 
+// AIDA REVIEW BLOCK 29: Function buildDistillationForTurns - callable behavior in this runtime organ.
   function buildDistillationForTurns({ id, sessionId, turns, tags, createdAt }) {
     const project = tags?.project || dominantValue(turns, (turn) => turn.tags?.project, "unknown_project");
     const realm = tags?.realm || dominantValue(turns, (turn) => turn.tags?.realm, "unknown_realm");
@@ -315,6 +344,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 30: Function extractJsonObject - callable behavior in this runtime organ.
   function extractJsonObject(text) {
     const raw = String(text || "").trim();
     if (!raw) throw new Error("LLM distillation response was empty.");
@@ -330,10 +360,12 @@
     }
   }
 
+// AIDA REVIEW BLOCK 31: Function safeArray - callable behavior in this runtime organ.
   function safeArray(value) {
     return Array.isArray(value) ? value : [];
   }
 
+// AIDA REVIEW BLOCK 32: Function currentLlmScope - callable behavior in this runtime organ.
   function currentLlmScope(rt = runtime()) {
     return window.AIDA_LLM_SCOPE?.current?.() || {
       provider: rt?.tokens?.llm?.provider || null,
@@ -343,6 +375,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 33: Function stampLlmScope - callable behavior in this runtime organ.
   function stampLlmScope(value, scope) {
     if (!value || typeof value !== "object") return value;
     if (Array.isArray(value)) {
@@ -359,6 +392,7 @@
     return value;
   }
 
+// AIDA REVIEW BLOCK 34: Function stampPacketLlmScope - callable behavior in this runtime organ.
   function stampPacketLlmScope(packet, rt = runtime()) {
     if (!packet) return packet;
     const scope = packet.llm || currentLlmScope(rt);
@@ -376,12 +410,14 @@
     return packet;
   }
 
+// AIDA REVIEW BLOCK 35: Function confidence - callable behavior in this runtime organ.
   function confidence(value, fallback) {
     const number = Number(value);
     if (!Number.isFinite(number)) return fallback;
     return Math.max(0.05, Math.min(0.95, number));
   }
 
+// AIDA REVIEW BLOCK 36: Function temporaryFactReason - callable behavior in this runtime organ.
   function temporaryFactReason(claim) {
     const lower = String(claim || "").toLowerCase();
     if (!lower) return "";
@@ -393,6 +429,7 @@
     return "";
   }
 
+// AIDA REVIEW BLOCK 37: Function openThreadFromTemporaryFact - callable behavior in this runtime organ.
   function openThreadFromTemporaryFact(item, packetId, capturedAt, index) {
     const reason = temporaryFactReason(item.claim);
     if (!reason) return null;
@@ -406,6 +443,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 38: Function isSensitiveOverreach - callable behavior in this runtime organ.
   function isSensitiveOverreach(item) {
     const text = `${item.note || ""} ${item.handling || ""}`.toLowerCase();
     if (!text) return false;
@@ -451,6 +489,7 @@
       overreachLabels.some((term) => text.includes(term));
   }
 
+// AIDA REVIEW BLOCK 39: Function normalizeLlmReviewDistillation - callable behavior in this runtime organ.
   function normalizeLlmReviewDistillation(candidate) {
     const review = candidate.memoryReview || candidate.review || null;
     if (!review || typeof review !== "object") return null;
@@ -586,6 +625,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 40: Function validateLlmDistillation - callable behavior in this runtime organ.
   function validateLlmDistillation(candidate) {
     if (!candidate || typeof candidate !== "object") {
       throw new Error("LLM distillation JSON was not an object.");
@@ -609,6 +649,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 41: Function makeEmptyLlmDraft - callable behavior in this runtime organ.
   function makeEmptyLlmDraft() {
     return {
       diaryDrafts: [],
@@ -625,6 +666,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 42: Function appendUniqueById - callable behavior in this runtime organ.
   function appendUniqueById(target, items) {
     safeArray(items).forEach((item) => {
       if (!item) return;
@@ -635,6 +677,7 @@
     });
   }
 
+// AIDA REVIEW BLOCK 43: Function selectDraftShelvesForPass - callable behavior in this runtime organ.
   function selectDraftShelvesForPass(draft, passId) {
     const selected = makeEmptyLlmDraft();
     if (passId === "continuity") {
@@ -661,6 +704,7 @@
     return draft;
   }
 
+// AIDA REVIEW BLOCK 44: Function mergeLlmDrafts - callable behavior in this runtime organ.
   function mergeLlmDrafts(drafts) {
     const merged = makeEmptyLlmDraft();
     safeArray(drafts).forEach((draft) => {
@@ -725,6 +769,7 @@
     }
   ];
 
+// AIDA REVIEW BLOCK 45: Function buildLlmDistillationMessages - callable behavior in this runtime organ.
   function buildLlmDistillationMessages(packet, pass = LLM_SLEEP_PASSES[0]) {
     const fallback = packet.distillation || {};
     const rawLogEntries = safeArray(fallback.rawLogEntries).map((item) => ({
@@ -814,6 +859,7 @@
     ];
   }
 
+// AIDA REVIEW BLOCK 46: Function buildLlmJsonRepairMessages - callable behavior in this runtime organ.
   function buildLlmJsonRepairMessages(rawText, parseError) {
     const system = [
       "You repair malformed JSON for Aida's sleep memory distiller.",
@@ -827,6 +873,7 @@
     ];
   }
 
+// AIDA REVIEW BLOCK 47: Function collectSession - callable behavior in this runtime organ.
   function collectSession(session, window) {
     const allTurns = session?.currentTurns || [];
     const turns = turnsForCollection(allTurns, window);
@@ -847,6 +894,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 48: Function collectEvolution - callable behavior in this runtime organ.
   function collectEvolution(evolution, session, window) {
     const turns = session?.currentTurns || [];
     const summaryDrafts = copyJson(evolution?.summaryDrafts || [], [])
@@ -865,6 +913,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 49: Function collectEmotion - callable behavior in this runtime organ.
   function collectEmotion(engine, emotion) {
     return {
       current: copyJson(emotion || {}, {}),
@@ -876,6 +925,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 50: Function collectWhileAway - callable behavior in this runtime organ.
   function collectWhileAway(rt) {
     const prepared = rt.sleep?.whileAway?.ready ? rt.sleep.whileAway : window.AIDA_WHILE_AWAY?.buildThought?.();
     return {
@@ -885,6 +935,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 51: Function upsertById - callable behavior in this runtime organ.
   function upsertById(list, item) {
     if (!item?.id) return;
     const index = list.findIndex((existing) => existing?.id === item.id);
@@ -892,6 +943,7 @@
     else list.push(item);
   }
 
+// AIDA REVIEW BLOCK 52: Function fillProjectLedgerDraft - callable behavior in this runtime organ.
   function fillProjectLedgerDraft(ledgerDraft, outputs, whileAwaySeed, createdAt) {
     if (!ledgerDraft || !outputs) return;
     ledgerDraft.status = "draft_filled";
@@ -911,6 +963,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 53: Function distillPacket - callable behavior in this runtime organ.
   function distillPacket(packet, rt) {
     const turns = turnsForCollection(rt.session?.currentTurns || [], packet.collectionWindow);
     const createdAt = packet.capturedAt || nowIso();
@@ -956,6 +1009,7 @@
       processingBacklog.push(...outputs.processing_backlog);
       openThreads.push(...outputs.open_threads);
 
+// AIDA REVIEW BLOCK 54: Function ledgerDraft - arrow-function behavior in this runtime organ.
       const ledgerDraft = (state.projectLedgerDrafts || []).find((item) => item.sourceSummaryDraftId === draft.id);
       if (ledgerDraft) {
         fillProjectLedgerDraft(ledgerDraft, outputs, packet.whileAway?.seed, createdAt);
@@ -1023,10 +1077,12 @@
     return packet.distillation;
   }
 
+// AIDA REVIEW BLOCK 55: Function llmReady - callable behavior in this runtime organ.
   function llmReady(rt) {
     return Boolean(rt && window.AIDA_LLM_PROVIDER?.readiness?.().pass && window.AIDA_LLM_PROVIDER?.callMessages);
   }
 
+// AIDA REVIEW BLOCK 56: Function applyLlmDistillation - callable behavior in this runtime organ.
   function applyLlmDistillation(packet, llmDraft, createdAt) {
     const fallback = packet.distillation || {};
     const merged = {
@@ -1108,6 +1164,7 @@
     return packet.distillation;
   }
 
+// AIDA REVIEW BLOCK 57: Function getPreferredDistillation - callable behavior in this runtime organ.
   function getPreferredDistillation(packet = runtime()?.sleep?.lastPacket) {
     const distillation = packet?.distillation || null;
     if (!packet || !distillation) {
@@ -1184,6 +1241,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 58: Function runLlmDistillationPass - callable behavior in this runtime organ.
   async function runLlmDistillationPass(packet, pass, maxOutputTokens) {
     const startedAt = nowIso();
     const result = {
@@ -1222,6 +1280,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 59: Function refinePacketWithLlm - callable behavior in this runtime organ.
   async function refinePacketWithLlm(packet = runtime()?.sleep?.lastPacket) {
     const rt = runtime();
     if (!packet) return null;
@@ -1299,6 +1358,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 60: Function buildPacket - callable behavior in this runtime organ.
   function buildPacket(reason = "manual_sleep") {
     const rt = runtime();
     if (!rt) return null;
@@ -1363,6 +1423,7 @@
     return packet;
   }
 
+// AIDA REVIEW BLOCK 61: Function safeSummary - callable behavior in this runtime organ.
   function safeSummary() {
     const rt = runtime();
     const packet = rt?.sleep?.lastPacket || null;
@@ -1401,6 +1462,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 62: Function inspect - callable behavior in this runtime organ.
   function inspect() {
     const summary = safeSummary();
     log("SLEEP: Safe summary follows.", "log-blue");
@@ -1418,6 +1480,7 @@
     return summary;
   }
 
+// AIDA REVIEW BLOCK 63: Function itemBelongsToPacket - callable behavior in this runtime organ.
   function itemBelongsToPacket(item, packetId) {
     if (!item || !packetId) return false;
     return (
@@ -1428,6 +1491,7 @@
     );
   }
 
+// AIDA REVIEW BLOCK 64: Function clearPacketStaging - callable behavior in this runtime organ.
   function clearPacketStaging(packetId) {
     const rt = runtime();
     const librarianKeys = [
@@ -1483,6 +1547,7 @@
     return removed;
   }
 
+// AIDA REVIEW BLOCK 65: Function markLastPacketSaved - callable behavior in this runtime organ.
   function markLastPacketSaved() {
     const rt = runtime();
     const packet = rt?.sleep?.lastPacket;
@@ -1502,6 +1567,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 66: Function discardLastDrafts - callable behavior in this runtime organ.
   function discardLastDrafts() {
     const rt = runtime();
     const packet = rt?.sleep?.lastPacket;
@@ -1525,6 +1591,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 67: Function sleepNow - callable behavior in this runtime organ.
   function sleepNow(reason = "manual_sleep") {
     const packet = buildPacket(reason);
     const summary = safeSummary();
@@ -1550,10 +1617,12 @@
     return packet;
   }
 
+// AIDA REVIEW BLOCK 68: Function install - callable behavior in this runtime organ.
   function install() {
     log("Sleep cycle organ loaded. Drive sync is draft-only.", "log-blue");
   }
 
+// AIDA REVIEW BLOCK 69: Browser export AIDA_SLEEP - exposes this organ to the page runtime.
   window.AIDA_SLEEP = {
     buildPacket,
     refinePacketWithLlm,
@@ -1591,5 +1660,6 @@
     });
   }
 
+// AIDA REVIEW BLOCK 70: Browser event wiring - connects page lifecycle or user actions to this organ.
   document.addEventListener("DOMContentLoaded", install);
 })();

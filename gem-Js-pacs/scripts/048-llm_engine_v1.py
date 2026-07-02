@@ -1,8 +1,11 @@
+# AIDA REVIEW BLOCK 1: File header - gem-Js-pacs\scripts\048-llm_engine_v1.py
+# AIDA REVIEW BLOCK 2: Module setup - imports, constants, and shared state used below.
 import json
 import asyncio
 from pyodide.http import pyfetch
 from pyscript import window, document
 
+# AIDA REVIEW BLOCK 3: Async function call_llm - async callable organ behavior.
 async def call_llm(user_text):
     # 1. Grab the API Key from your JS Token Keeper
     api_key = window.token_keeper.getOpenAIKey()

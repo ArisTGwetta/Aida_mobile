@@ -1,27 +1,34 @@
+// AIDA REVIEW BLOCK 1: File header - AIDA_ONE_SPINE\spine\boot_flow.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 (function () {
   const MODULE_ID = "spine.boot.flow";
   const OAUTH_WAIT_MS = 30000;
   let pendingWakeAfterAirlock = false;
   let waking = false;
 
+// AIDA REVIEW BLOCK 3: Function $ - callable behavior in this runtime organ.
   function $(id) {
     return document.getElementById(id);
   }
 
+// AIDA REVIEW BLOCK 4: Function runtime - callable behavior in this runtime organ.
   function runtime() {
     return window.AIDA_RUNTIME;
   }
 
+// AIDA REVIEW BLOCK 5: Function log - callable behavior in this runtime organ.
   function log(message, className = "log-green") {
     if (window.AIDA_BIOS?.log) {
       window.AIDA_BIOS.log(message, className);
     }
   }
 
+// AIDA REVIEW BLOCK 6: Function delay - callable behavior in this runtime organ.
   function delay(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
+// AIDA REVIEW BLOCK 7: Function waitFor - callable behavior in this runtime organ.
   async function waitFor(predicate, timeoutMs, label) {
     const started = Date.now();
     while (Date.now() - started < timeoutMs) {
@@ -32,6 +39,7 @@
     throw new Error(`${label} did not complete in time.`);
   }
 
+// AIDA REVIEW BLOCK 8: Function ensureDriveConnected - callable behavior in this runtime organ.
   async function ensureDriveConnected() {
     const rt = runtime();
     if (rt.tokens?.drive?.accessToken) return true;
@@ -46,6 +54,7 @@
     return true;
   }
 
+// AIDA REVIEW BLOCK 9: Function ensureDriveLoaded - callable behavior in this runtime organ.
   async function ensureDriveLoaded() {
     const rt = runtime();
     if (rt.boot?.driveLoaded && Object.keys(rt.drive?.files || {}).length) return true;
@@ -61,6 +70,7 @@
     return true;
   }
 
+// AIDA REVIEW BLOCK 10: Function ensureAirlock - callable behavior in this runtime organ.
   function ensureAirlock() {
     const rt = runtime();
     if (rt.boot?.airlockCleared && window.AIDA_LLM_PROVIDER?.readiness?.().pass) return true;
@@ -72,6 +82,7 @@
     return false;
   }
 
+// AIDA REVIEW BLOCK 11: Function buildMessages - callable behavior in this runtime organ.
   function buildMessages() {
     const result = window.AIDA_LLM_MESSAGES?.build?.("");
     if (!result || result.blocked) {
@@ -83,6 +94,7 @@
     return true;
   }
 
+// AIDA REVIEW BLOCK 12: Function arrive - callable behavior in this runtime organ.
   function arrive() {
     if (typeof window.aida_arrive === "function") {
       log("WAKE: Arriving into Aida body.", "log-blue");
@@ -96,6 +108,7 @@
     throw new Error("Awake body arrival routine is missing.");
   }
 
+// AIDA REVIEW BLOCK 13: Function continueWake - callable behavior in this runtime organ.
   async function continueWake() {
     buildMessages();
     arrive();
@@ -105,6 +118,7 @@
     return true;
   }
 
+// AIDA REVIEW BLOCK 14: Function wakeAida - callable behavior in this runtime organ.
   async function wakeAida() {
     if (waking) {
       log("WAKE: Wake flow already in progress.", "log-amber");
@@ -132,6 +146,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 15: Function resumeAfterAirlock - callable behavior in this runtime organ.
   async function resumeAfterAirlock() {
     if (!pendingWakeAfterAirlock) return;
     pendingWakeAfterAirlock = false;
@@ -143,6 +158,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 16: Function install - callable behavior in this runtime organ.
   function install() {
     const button = $("wake-aida-btn");
     if (button) button.addEventListener("click", wakeAida);
@@ -150,6 +166,7 @@
     log("Wake flow organ loaded.", "log-blue");
   }
 
+// AIDA REVIEW BLOCK 17: Browser export AIDA_BOOT_FLOW - exposes this organ to the page runtime.
   window.AIDA_BOOT_FLOW = {
     wakeAida,
     continueWake
@@ -166,5 +183,6 @@
     });
   }
 
+// AIDA REVIEW BLOCK 18: Browser event wiring - connects page lifecycle or user actions to this organ.
   document.addEventListener("DOMContentLoaded", install);
 })();

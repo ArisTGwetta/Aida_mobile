@@ -1,3 +1,5 @@
+// AIDA REVIEW BLOCK 1: File header - AIDA_ONE_SPINE\body\awake.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 (function () {
   const ASSET_BASE = "body/assets/";
   const DEFAULT_FACE = `${ASSET_BASE}neutral1.png`;
@@ -12,19 +14,23 @@
     sparkDurationRange: 18000
   };
 
+// AIDA REVIEW BLOCK 3: Function $ - callable behavior in this runtime organ.
   function $(id) {
     return document.getElementById(id);
   }
 
+// AIDA REVIEW BLOCK 4: Function runtime - callable behavior in this runtime organ.
   function runtime() {
     return window.AIDA_RUNTIME || null;
   }
 
+// AIDA REVIEW BLOCK 5: Function setBootPhase - callable behavior in this runtime organ.
   function setBootPhase(phase) {
     const rt = runtime();
     if (rt) rt.boot.phase = phase;
   }
 
+// AIDA REVIEW BLOCK 6: Function appendBios - callable behavior in this runtime organ.
   function appendBios(message, className = "log-green") {
     const logs = $("bios-logs");
     if (!logs) return;
@@ -35,6 +41,7 @@
     logs.scrollTop = logs.scrollHeight;
   }
 
+// AIDA REVIEW BLOCK 7: Function summarizeDriveWriteback - callable behavior in this runtime organ.
   function summarizeDriveWriteback(result) {
     const ops = Array.isArray(result?.operations) ? result.operations : [];
     if (!ops.length) return result?.status || "no operations";
@@ -43,6 +50,7 @@
       .join("; ");
   }
 
+// AIDA REVIEW BLOCK 8: Function runDriveWriteback - callable behavior in this runtime organ.
   async function runDriveWriteback(action) {
     const api = window.AIDA_DRIVE_WRITEBACK;
     if (!api) {
@@ -87,6 +95,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 9: Function ensureSleepCollectedCard - callable behavior in this runtime organ.
   function ensureSleepCollectedCard() {
     const veil = $("veil");
     if (!veil) return null;
@@ -135,6 +144,7 @@
     return card;
   }
 
+// AIDA REVIEW BLOCK 10: Function setSleepCardStatus - callable behavior in this runtime organ.
   function setSleepCardStatus(message, tone = "normal") {
     const status = $("sleep-collected-card")?.querySelector(".sleep-collected-status");
     if (!status) return;
@@ -142,12 +152,14 @@
     status.dataset.tone = tone;
   }
 
+// AIDA REVIEW BLOCK 11: Function setSleepActionsBusy - callable behavior in this runtime organ.
   function setSleepActionsBusy(busy) {
     document.querySelectorAll("#sleep-collected-card .sleep-action").forEach((button) => {
       button.disabled = Boolean(busy);
     });
   }
 
+// AIDA REVIEW BLOCK 12: Function finishSleepScreen - callable behavior in this runtime organ.
   function finishSleepScreen() {
     const card = $("sleep-collected-card");
     const veil = $("veil");
@@ -171,6 +183,7 @@
     window.AIDA_AIRLOCK?.clearSessionCredentials?.("sleep_complete");
   }
 
+// AIDA REVIEW BLOCK 13: Function prepareWakeScreen - callable behavior in this runtime organ.
   function prepareWakeScreen() {
     const card = $("sleep-collected-card");
     const veil = $("veil");
@@ -187,6 +200,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 14: Function installSleepActions - callable behavior in this runtime organ.
   function installSleepActions(card) {
     if (!card || card.dataset.actionsInstalled === "true") return;
     card.dataset.actionsInstalled = "true";
@@ -213,6 +227,7 @@
       try {
         const result = await api.apply({ dryRun: false });
         if (!result?.ready || result.status !== "applied") {
+// AIDA REVIEW BLOCK 15: Function failed - arrow-function behavior in this runtime organ.
           const failed = (result?.operations || []).find((op) => op && op.ok === false);
           const detail = failed
             ? `${result?.status || "apply_failed"} on ${failed.fileName || failed.target || "Drive write"}: ${failed.error || "unknown error"}`
@@ -266,6 +281,7 @@
     });
   }
 
+// AIDA REVIEW BLOCK 16: Function showSleepCollected - callable behavior in this runtime organ.
   function showSleepCollected(summary = {}, options = {}) {
     const card = ensureSleepCollectedCard();
     const veil = $("veil");
@@ -326,6 +342,7 @@
     card.classList.add("visible");
   }
 
+// AIDA REVIEW BLOCK 17: Function hideSleepCollected - callable behavior in this runtime organ.
   function hideSleepCollected() {
     const card = $("sleep-collected-card");
     if (card) card.classList.remove("visible");
@@ -336,6 +353,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 18: Function appendChat - callable behavior in this runtime organ.
   function appendChat(role, text, options = {}) {
     const flow = $("chat-flow");
     if (!flow) return null;
@@ -377,6 +395,7 @@
     return line;
   }
 
+// AIDA REVIEW BLOCK 19: Function pulse - callable behavior in this runtime organ.
   function pulse(message) {
     const log = $("log-content");
     if (!log) return;
@@ -386,21 +405,25 @@
     log.scrollTop = log.scrollHeight;
   }
 
+// AIDA REVIEW BLOCK 20: Function projectLabel - callable behavior in this runtime organ.
   function projectLabel(project) {
     return project?.name || project?.fileName || project?.key || "Unnamed project";
   }
 
+// AIDA REVIEW BLOCK 21: Function projectPayload - callable behavior in this runtime organ.
   function projectPayload(fileName, fallback) {
     const rt = runtime();
     return rt?.mind?.projects?.[fileName] || rt?.drive?.files?.[fileName] || fallback?.summary || {};
   }
 
+// AIDA REVIEW BLOCK 22: Function briefcaseEditStatus - callable behavior in this runtime organ.
   function briefcaseEditStatus(fileName) {
     const edits = runtime()?.driveWriteback?.briefcaseEdits || [];
     const latest = edits.filter((item) => item.fileName === fileName).slice(-1)[0];
     return latest?.status || "runtime";
   }
 
+// AIDA REVIEW BLOCK 23: Function briefcaseHydrationState - callable behavior in this runtime organ.
   function briefcaseHydrationState(fileName) {
     const rt = runtime();
     rt.body = rt.body || {};
@@ -413,6 +436,7 @@
     return rt.body.briefcaseHydration[fileName];
   }
 
+// AIDA REVIEW BLOCK 24: Function openThreadsText - callable behavior in this runtime organ.
   function openThreadsText(project) {
     return (Array.isArray(project?.open_threads) ? project.open_threads : [])
       .map((item) => typeof item === "string" ? item : item?.text || item?.thread || "")
@@ -420,6 +444,7 @@
       .join("\n");
   }
 
+// AIDA REVIEW BLOCK 25: Function labeledBriefcaseField - callable behavior in this runtime organ.
   function labeledBriefcaseField(labelText, helpText, field) {
     const wrap = document.createElement("label");
     wrap.className = "briefcase-field-wrap";
@@ -433,6 +458,7 @@
     return wrap;
   }
 
+// AIDA REVIEW BLOCK 26: Function renderMeditationResults - callable behavior in this runtime organ.
   function renderMeditationResults(box, result) {
     const results = result?.results || [];
     if (!results.length) {
@@ -458,6 +484,7 @@
     });
   }
 
+// AIDA REVIEW BLOCK 27: Function runBriefcaseMeditation - callable behavior in this runtime organ.
   function runBriefcaseMeditation(query, resultBox) {
     const text = String(query || "").trim();
     if (!text) {
@@ -479,6 +506,7 @@
     pulse(`Meditation search: ${result.results?.length || 0} match(es).`);
   }
 
+// AIDA REVIEW BLOCK 28: Function renderBriefcaseInspector - callable behavior in this runtime organ.
   function renderBriefcaseInspector(pane, activeProject) {
     const rt = runtime();
     const fileName = activeProject?.fileName || rt?.context?.projectName || rt?.mind?.activeProjectName || activeProject?.key || null;
@@ -632,6 +660,7 @@
     pane.appendChild(panel);
   }
 
+// AIDA REVIEW BLOCK 29: Function renderProjectSelector - callable behavior in this runtime organ.
   function renderProjectSelector() {
     const tag = $("realm-tag");
     const pane = $("pres-content");
@@ -672,6 +701,7 @@
       return;
     }
 
+// AIDA REVIEW BLOCK 30: Function selectEntry - arrow-function behavior in this runtime organ.
     const selectEntry = async (entry, row) => {
       row.disabled = true;
       let selected = null;
@@ -722,7 +752,7 @@
       realmName.textContent = projectLabel(realm);
       const realmMeta = document.createElement("span");
       realmMeta.className = "project-row-meta";
-      realmMeta.textContent = `${realm.projects.length} project${realm.projects.length === 1 ? "" : "s"} · select realm-wide context`;
+      realmMeta.textContent = `${realm.projects.length} project${realm.projects.length === 1 ? "" : "s"} Â· select realm-wide context`;
       realmRow.append(realmName, realmMeta);
       realmRow.addEventListener("click", () => selectEntry(realm, realmRow));
       group.appendChild(realmRow);
@@ -754,6 +784,7 @@
     renderBriefcaseInspector(pane, activeProject);
   }
 
+// AIDA REVIEW BLOCK 31: Function buildPixelGrid - callable behavior in this runtime organ.
   function buildPixelGrid() {
     const grid = $("pixelGrid");
     if (!grid) return;
@@ -766,6 +797,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 32: Function buildSparks - callable behavior in this runtime organ.
   function buildSparks() {
     const layer = $("sparkLayer");
     if (!layer) return;
@@ -792,6 +824,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 33: Function buildFaceDataGrid - callable behavior in this runtime organ.
   function buildFaceDataGrid(id, count, durationRange, opacityRange) {
     const grid = $(id);
     if (!grid) return;
@@ -815,11 +848,13 @@
     }
   }
 
+// AIDA REVIEW BLOCK 34: Function buildFaceDataGrids - callable behavior in this runtime organ.
   function buildFaceDataGrids() {
     buildFaceDataGrid("face-data-slow", 120, [45000, 110000], [0.72, 1.0]);
     buildFaceDataGrid("face-data-fast", 396, [12000, 36000], [0.38, 0.78]);
   }
 
+// AIDA REVIEW BLOCK 35: Function syncCustomTagsFromButtons - callable behavior in this runtime organ.
   function syncCustomTagsFromButtons() {
     const rt = runtime();
     if (!rt?.context) return [];
@@ -847,6 +882,7 @@
     return tags;
   }
 
+// AIDA REVIEW BLOCK 36: Function installTagEditor - callable behavior in this runtime organ.
   function installTagEditor() {
     const tagButtons = document.querySelectorAll(".tag-btn");
     const tagEdit = $("tag-edit");
@@ -918,6 +954,7 @@
     syncCustomTagsFromButtons();
   }
 
+// AIDA REVIEW BLOCK 37: Function installInputPlaceholders - callable behavior in this runtime organ.
   function installInputPlaceholders() {
     const input = $("user-in");
     const send = $("send-btn");
@@ -1000,6 +1037,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 38: Function showBody - callable behavior in this runtime organ.
   function showBody() {
     const bios = $("bios-screen");
     const airlock = $("airlock");
@@ -1011,6 +1049,7 @@
     if (engine) engine.classList.remove("hidden");
   }
 
+// AIDA REVIEW BLOCK 39: Function createHologramLayer - callable behavior in this runtime organ.
   function createHologramLayer() {
     const veil = $("veil");
     const portrait = $("aida-portrait");
@@ -1085,6 +1124,7 @@
     veil.append(scanline, beam, cone, face);
   }
 
+// AIDA REVIEW BLOCK 40: Function resetRitualElements - callable behavior in this runtime organ.
   function resetRitualElements() {
     const scanline = $("holoScanline");
     const beam = $("holoBeam");
@@ -1126,6 +1166,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 41: Browser export aida_arrive - exposes this organ to the page runtime.
   window.aida_arrive = function () {
     showBody();
     prepareWakeScreen();
@@ -1257,6 +1298,7 @@
     }, 3800);
   };
 
+// AIDA REVIEW BLOCK 42: Browser export aida_depart - exposes this organ to the page runtime.
   window.aida_depart = function () {
     createHologramLayer();
     const veil = $("veil");
@@ -1315,6 +1357,7 @@
     }, 2500);
   };
 
+// AIDA REVIEW BLOCK 43: Browser export AIDA_BODY - exposes this organ to the page runtime.
   window.AIDA_BODY = {
     arrive: window.aida_arrive,
     depart: window.aida_depart,
@@ -1331,6 +1374,7 @@
     }
   };
 
+// AIDA REVIEW BLOCK 44: Browser event wiring - connects page lifecycle or user actions to this organ.
   document.addEventListener("DOMContentLoaded", () => {
     const portrait = $("aida-portrait");
     if (portrait) {
@@ -1373,10 +1417,12 @@
     }
   });
 
+// AIDA REVIEW BLOCK 45: Browser export AIDA_BODY_PROJECTS - exposes this organ to the page runtime.
   window.AIDA_BODY_PROJECTS = {
     render: renderProjectSelector
   };
 
+// AIDA REVIEW BLOCK 46: Browser export AIDA_BODY_TAGS - exposes this organ to the page runtime.
   window.AIDA_BODY_TAGS = {
     sync: syncCustomTagsFromButtons
   };

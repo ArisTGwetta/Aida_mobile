@@ -1,8 +1,10 @@
+# AIDA REVIEW BLOCK 1: File header - gem-Js-pacs\ROOT20260510\emotion_selector.py
+# AIDA REVIEW BLOCK 2: Module setup - imports, constants, and shared state used below.
 # ==========================================================
-#  emotion_selector.py — Embedded, Self‑Contained Version
+#  emotion_selector.py â€” Embedded, Selfâ€‘Contained Version
 # ==========================================================
 # This version removes all filesystem access and embeds the
-# JSON data directly into the module. Fully Pyodide‑safe.
+# JSON data directly into the module. Fully Pyodideâ€‘safe.
 # ==========================================================
 
 import math
@@ -108,7 +110,9 @@ EMBEDDED_FACE_MAP = {
 # ==========================================================
 #  EmotionSelector (unchanged logic, no FS access)
 # ==========================================================
+# AIDA REVIEW BLOCK 3: Class EmotionSelector - grouped organ/service behavior.
 class EmotionSelector:
+# AIDA REVIEW BLOCK 4: Function __init__ - callable organ behavior.
     def __init__(
         self,
         coords=None,
@@ -133,9 +137,11 @@ class EmotionSelector:
         self.transitions = self.face_map.get("transitions", {})
 
     @staticmethod
+# AIDA REVIEW BLOCK 5: Function _distance - callable organ behavior.
     def _distance(v1, a1, v2, a2) -> float:
         return math.sqrt((v1 - v2) ** 2 + (a1 - a2) ** 2)
 
+# AIDA REVIEW BLOCK 6: Function find_closest_emotions - callable organ behavior.
     def find_closest_emotions(self, valence: float, arousal: float):
         distances = []
         for label, coords in self.emotions.items():
@@ -148,6 +154,7 @@ class EmotionSelector:
         distances.sort(key=lambda x: x[1])
         return distances
 
+# AIDA REVIEW BLOCK 7: Function select_emotion - callable organ behavior.
     def select_emotion(self, valence: float, arousal: float):
         ranked = self.find_closest_emotions(valence, arousal)
         if not ranked:
@@ -180,6 +187,7 @@ class EmotionSelector:
             "distance": dist1
         }
 
+# AIDA REVIEW BLOCK 8: Function _pick_face - callable organ behavior.
     def _pick_face(self, label: str) -> str:
         variants = self.faces.get(label)
         if not variants:

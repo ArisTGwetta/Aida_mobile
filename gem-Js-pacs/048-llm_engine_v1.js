@@ -1,3 +1,5 @@
+// AIDA REVIEW BLOCK 1: File header - gem-Js-pacs\048-llm_engine_v1.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 // --- MODULE: LLM_ENGINE_V1.PY (THE VOICE BOX) ---
 const LLM_ENGINE_PY = `
 import json
@@ -52,4 +54,5 @@ async def call_llm(user_text, api_key):
         return f"Connection lost: {str(e)}"
 `;
 
+// AIDA REVIEW BLOCK 3: Browser export LLM_ENGINE_PY - exposes this organ to the page runtime.
 window.LLM_ENGINE_PY = LLM_ENGINE_PY;

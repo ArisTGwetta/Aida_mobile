@@ -1,16 +1,21 @@
+// AIDA REVIEW BLOCK 1: File header - AIDA_ONE_SPINE\spine\context_evolution.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 (function () {
   const MODULE_ID = "spine.context.evolution";
 
+// AIDA REVIEW BLOCK 3: Function runtime - callable behavior in this runtime organ.
   function runtime() {
     return window.AIDA_RUNTIME;
   }
 
+// AIDA REVIEW BLOCK 4: Function log - callable behavior in this runtime organ.
   function log(message, className = "log-green") {
     if (window.AIDA_BIOS?.log) {
       window.AIDA_BIOS.log(message, className);
     }
   }
 
+// AIDA REVIEW BLOCK 5: Function ensureState - callable behavior in this runtime organ.
   function ensureState() {
     const rt = runtime();
     if (!rt.contextEvolution) {
@@ -34,6 +39,7 @@
     return rt.contextEvolution;
   }
 
+// AIDA REVIEW BLOCK 6: Function primarySignature - callable behavior in this runtime organ.
   function primarySignature(exchange) {
     const tags = exchange?.tags || {};
     return [
@@ -45,10 +51,12 @@
     ].join("|");
   }
 
+// AIDA REVIEW BLOCK 7: Function countChars - callable behavior in this runtime organ.
   function countChars(exchange) {
     return (exchange?.user?.text?.length || 0) + (exchange?.aida?.text?.length || 0);
   }
 
+// AIDA REVIEW BLOCK 8: Function summarizeTags - callable behavior in this runtime organ.
   function summarizeTags(turns) {
     const first = turns[0] || {};
     const tags = first.tags || {};
@@ -76,6 +84,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 9: Function textSnippet - callable behavior in this runtime organ.
   function textSnippet(text, limit = 280) {
     return String(text || "")
       .replace(/\s+/g, " ")
@@ -83,6 +92,7 @@
       .slice(0, limit);
   }
 
+// AIDA REVIEW BLOCK 10: Function buildChunk - callable behavior in this runtime organ.
   function buildChunk(turns) {
     const rt = runtime();
     const chars = turns.reduce((total, turn) => total + countChars(turn), 0);
@@ -114,6 +124,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 11: Function unqueuedGroups - callable behavior in this runtime organ.
   function unqueuedGroups(turns, lastQueuedTurn) {
     const candidates = turns.filter((turn) => turn.turnIndex > lastQueuedTurn);
     const groups = [];
@@ -134,6 +145,7 @@
     return groups;
   }
 
+// AIDA REVIEW BLOCK 12: Function maybeQueueReadyChunks - callable behavior in this runtime organ.
   function maybeQueueReadyChunks() {
     const rt = runtime();
     const state = ensureState();
@@ -172,18 +184,22 @@
     return queued;
   }
 
+// AIDA REVIEW BLOCK 13: Function ingest - callable behavior in this runtime organ.
   function ingest() {
     return maybeQueueReadyChunks();
   }
 
+// AIDA REVIEW BLOCK 14: Function draftExists - callable behavior in this runtime organ.
   function draftExists(state, chunkId) {
     return (state.summaryDrafts || []).some((draft) => draft.chunkId === chunkId);
   }
 
+// AIDA REVIEW BLOCK 15: Function ledgerDraftExists - callable behavior in this runtime organ.
   function ledgerDraftExists(state, summaryDraftId) {
     return (state.projectLedgerDrafts || []).some((draft) => draft.sourceSummaryDraftId === summaryDraftId);
   }
 
+// AIDA REVIEW BLOCK 16: Function buildSummaryDraft - callable behavior in this runtime organ.
   function buildSummaryDraft(chunk) {
     return {
       id: `${chunk.id}_summary_draft`,
@@ -213,6 +229,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 17: Function prepareSummaryDrafts - callable behavior in this runtime organ.
   function prepareSummaryDrafts() {
     const rt = runtime();
     const state = ensureState();
@@ -247,6 +264,7 @@
     return prepared;
   }
 
+// AIDA REVIEW BLOCK 18: Function buildProjectLedgerDraft - callable behavior in this runtime organ.
   function buildProjectLedgerDraft(summaryDraft) {
     const tags = summaryDraft.tags || {};
     return {
@@ -277,6 +295,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 19: Function prepareProjectLedgerDrafts - callable behavior in this runtime organ.
   function prepareProjectLedgerDrafts() {
     const rt = runtime();
     const state = ensureState();
@@ -309,6 +328,7 @@
     return prepared;
   }
 
+// AIDA REVIEW BLOCK 20: Function safeSummary - callable behavior in this runtime organ.
   function safeSummary() {
     const state = ensureState();
     const chunks = state.queuedChunks || [];
@@ -365,6 +385,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 21: Function inspect - callable behavior in this runtime organ.
   function inspect() {
     const summary = safeSummary();
     log("EVOLUTION: Safe summary follows.", "log-blue");
@@ -387,6 +408,7 @@
     return summary;
   }
 
+// AIDA REVIEW BLOCK 22: Browser export AIDA_CONTEXT_EVOLUTION - exposes this organ to the page runtime.
   window.AIDA_CONTEXT_EVOLUTION = {
     ingest,
     prepareSummaryDrafts,
@@ -406,6 +428,7 @@
     });
   }
 
+// AIDA REVIEW BLOCK 23: Browser event wiring - connects page lifecycle or user actions to this organ.
   document.addEventListener("DOMContentLoaded", () => {
     ensureState();
     log("Context evolution organ loaded. Summary writes are still disabled.", "log-blue");

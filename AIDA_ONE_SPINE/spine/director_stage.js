@@ -1,3 +1,5 @@
+// AIDA REVIEW BLOCK 1: File header - AIDA_ONE_SPINE\spine\director_stage.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 (function () {
   const MODULE_ID = "spine.director.stage";
   const ASSET_ROOT = "body/assets/stage";
@@ -117,7 +119,7 @@
         {
           speaker: "AIDA",
           display_name: "AIDA",
-          text: "And there we are: character, narrator, co-author, and camera—each in the proper seat."
+          text: "And there we are: character, narrator, co-author, and cameraâ€”each in the proper seat."
         }
       ]
     }
@@ -125,14 +127,17 @@
 
   let demoIndex = 0;
 
+// AIDA REVIEW BLOCK 3: Function $ - callable behavior in this runtime organ.
   function $(id) {
     return document.getElementById(id);
   }
 
+// AIDA REVIEW BLOCK 4: Function runtime - callable behavior in this runtime organ.
   function runtime() {
     return window.AIDA_RUNTIME;
   }
 
+// AIDA REVIEW BLOCK 5: Function privateCharacters - callable behavior in this runtime organ.
   function privateCharacters() {
     const rt = runtime();
     rt.director = rt.director || {};
@@ -140,10 +145,12 @@
     return rt.director.privateCharacters;
   }
 
+// AIDA REVIEW BLOCK 6: Function seranaManifest - callable behavior in this runtime organ.
   function seranaManifest() {
     return privateCharacters().serana || null;
   }
 
+// AIDA REVIEW BLOCK 7: Function hydratePrivateCharacters - callable behavior in this runtime organ.
   async function hydratePrivateCharacters() {
     if (!runtime()?.tokens?.drive?.accessToken || !window.AIDA_DRIVE?.fetchJsonByName) return null;
     try {
@@ -157,11 +164,13 @@
     }
   }
 
+// AIDA REVIEW BLOCK 8: Function driveExpressionFile - callable behavior in this runtime organ.
   function driveExpressionFile(expression) {
     const manifest = seranaManifest();
     return manifest?.expressions?.[expression] || manifest?.expressions?.pensive || null;
   }
 
+// AIDA REVIEW BLOCK 9: Function cleanKey - callable behavior in this runtime organ.
   function cleanKey(value, fallback = "pensive") {
     return String(value || fallback)
       .trim()
@@ -169,6 +178,7 @@
       .replace(/[^a-z0-9]+/g, "");
   }
 
+// AIDA REVIEW BLOCK 10: Function contextText - callable behavior in this runtime organ.
   function contextText(context = {}) {
     const rt = context.rt || runtime() || {};
     return [
@@ -184,10 +194,12 @@
     ].filter(Boolean).join(" ").toLowerCase();
   }
 
+// AIDA REVIEW BLOCK 11: Function isNarrativeContext - callable behavior in this runtime organ.
   function isNarrativeContext(context = {}) {
     return /\b(rpg|roleplay|role play|story|fiction|narrative|co.?narrator|serana)\b/.test(contextText(context));
   }
 
+// AIDA REVIEW BLOCK 12: Function promptContract - callable behavior in this runtime organ.
   function promptContract(context = {}) {
     if (!isNarrativeContext(context)) return "";
     const inputMode = context.rt?.context?.storyInputMode || runtime()?.context?.storyInputMode || {
@@ -218,6 +230,7 @@
     ].join("\n");
   }
 
+// AIDA REVIEW BLOCK 13: Function extractJson - callable behavior in this runtime organ.
   function extractJson(text) {
     const raw = String(text || "").trim();
     if (!raw) return null;
@@ -235,6 +248,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 14: Function normalizedBeat - callable behavior in this runtime organ.
   function normalizedBeat(beat) {
     if (!beat || typeof beat !== "object") return null;
     const text = String(beat.text || "").trim();
@@ -252,6 +266,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 15: Function assetFor - callable behavior in this runtime organ.
   function assetFor(cue = {}) {
     const mode = String(cue.mode || (cue.character ? "character" : "system")).toLowerCase();
     const expression = cleanKey(cue.expression);
@@ -287,6 +302,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 16: Function setStage - callable behavior in this runtime organ.
   function setStage(cue = {}) {
     const rt = runtime();
     const frame = $("director-stage-frame");
@@ -332,10 +348,12 @@
     return asset;
   }
 
+// AIDA REVIEW BLOCK 17: Function transcriptFor - callable behavior in this runtime organ.
   function transcriptFor(beats) {
     return beats.map((beat) => `${beat.displayRole}: ${beat.text}`).join("\n\n");
   }
 
+// AIDA REVIEW BLOCK 18: Function present - callable behavior in this runtime organ.
   function present(rawReply, pendingLine = null) {
     const packet = extractJson(rawReply);
     const beats = Array.isArray(packet?.beats)
@@ -373,6 +391,7 @@
     return { packet, beats, transcript: transcriptFor(beats) };
   }
 
+// AIDA REVIEW BLOCK 19: Function runDemo - callable behavior in this runtime organ.
   function runDemo() {
     const preview = $("boot-preview-btn");
     const iface = $("aida-interface");
@@ -386,6 +405,7 @@
     return result;
   }
 
+// AIDA REVIEW BLOCK 20: Function inspect - callable behavior in this runtime organ.
   function inspect() {
     const summary = {
       narrative: isNarrativeContext(),
@@ -397,6 +417,7 @@
     return summary;
   }
 
+// AIDA REVIEW BLOCK 21: Function install - callable behavior in this runtime organ.
   function install() {
     const demoButton = $("director-demo-btn");
     if (demoButton) demoButton.addEventListener("click", runDemo);
@@ -415,6 +436,7 @@
     if (runtime()?.boot?.driveLoaded) hydratePrivateCharacters();
   }
 
+// AIDA REVIEW BLOCK 22: Browser export AIDA_DIRECTOR - exposes this organ to the page runtime.
   window.AIDA_DIRECTOR = {
     promptContract,
     isNarrativeContext,
@@ -441,6 +463,7 @@
   }
 
   if (document.readyState === "loading") {
+// AIDA REVIEW BLOCK 23: Browser event wiring - connects page lifecycle or user actions to this organ.
     document.addEventListener("DOMContentLoaded", install, { once: true });
   } else {
     install();

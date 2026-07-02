@@ -1,9 +1,12 @@
+# AIDA REVIEW BLOCK 1: File header - gem-Js-pacs\ROOT20260510\Py\realm_organ.py
+# AIDA REVIEW BLOCK 2: Module setup - imports, constants, and shared state used below.
 # realm_engine.py
 
 import json
 from typing import Any, Dict, List, Optional
 
 
+# AIDA REVIEW BLOCK 3: Class RealmEngine - grouped organ/service behavior.
 class RealmEngine:
     """
     Pure logic engine for Aida's realms.
@@ -16,6 +19,7 @@ class RealmEngine:
     - Exposes a clean API for the runtime + IdentityEngine
     """
 
+# AIDA REVIEW BLOCK 4: Function __init__ - callable organ behavior.
     def __init__(self, realm_config: Dict[str, Any]):
         self.realm_config = realm_config or {}
         self._validate()
@@ -25,6 +29,7 @@ class RealmEngine:
     # Convenience constructor
     # -------------------------------------------------------------------------
     @classmethod
+# AIDA REVIEW BLOCK 5: Function from_file - callable organ behavior.
     def from_file(cls, realm_config_path: str) -> "RealmEngine":
         with open(realm_config_path, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -33,6 +38,7 @@ class RealmEngine:
     # -------------------------------------------------------------------------
     # Validation
     # -------------------------------------------------------------------------
+# AIDA REVIEW BLOCK 6: Function _validate - callable organ behavior.
     def _validate(self) -> None:
         if "realm_name" not in self.realm_config:
             raise ValueError("realm_config missing 'realm_name'")
@@ -41,6 +47,7 @@ class RealmEngine:
     # -------------------------------------------------------------------------
     # Resolution
     # -------------------------------------------------------------------------
+# AIDA REVIEW BLOCK 7: Function _resolve_realm - callable organ behavior.
     def _resolve_realm(self) -> Dict[str, Any]:
         rc = self.realm_config
 
@@ -115,6 +122,7 @@ class RealmEngine:
     # -------------------------------------------------------------------------
     # Helpers
     # -------------------------------------------------------------------------
+# AIDA REVIEW BLOCK 8: Function _normalize_str_list - callable organ behavior.
     def _normalize_str_list(self, value: Any) -> List[str]:
         if isinstance(value, str):
             return [value]
@@ -122,6 +130,7 @@ class RealmEngine:
             return [v for v in value if isinstance(v, str)]
         return []
 
+# AIDA REVIEW BLOCK 9: Function _build_tone_modifiers - callable organ behavior.
     def _build_tone_modifiers(
         self,
         default_tone: str,
@@ -130,6 +139,7 @@ class RealmEngine:
     ) -> List[str]:
         parts: List[str] = []
 
+# AIDA REVIEW BLOCK 10: Function split_and_add - callable organ behavior.
         def split_and_add(text: str):
             for piece in text.split(","):
                 piece = piece.strip()
@@ -145,6 +155,7 @@ class RealmEngine:
 
         return parts
 
+# AIDA REVIEW BLOCK 11: Function _flatten_constraints - callable organ behavior.
     def _flatten_constraints(self, constraints_block: Dict[str, Any]) -> List[str]:
         """
         Turn a dict like:
@@ -160,24 +171,31 @@ class RealmEngine:
     # -------------------------------------------------------------------------
     # Public API
     # -------------------------------------------------------------------------
+# AIDA REVIEW BLOCK 12: Function get_resolved_realm - callable organ behavior.
     def get_resolved_realm(self) -> Dict[str, Any]:
         return self.resolved_realm
 
+# AIDA REVIEW BLOCK 13: Function get_realm_name - callable organ behavior.
     def get_realm_name(self) -> str:
         return self.resolved_realm.get("realm_name", "")
 
+# AIDA REVIEW BLOCK 14: Function get_tone_modifiers - callable organ behavior.
     def get_tone_modifiers(self) -> List[str]:
         return self.resolved_realm.get("tone", {}).get("modifiers", [])
 
+# AIDA REVIEW BLOCK 15: Function get_constraints - callable organ behavior.
     def get_constraints(self) -> List[str]:
         return self.resolved_realm.get("constraints", [])
 
+# AIDA REVIEW BLOCK 16: Function get_allowed_behaviors - callable organ behavior.
     def get_allowed_behaviors(self) -> List[str]:
         return self.resolved_realm.get("allowed_behaviors", [])
 
+# AIDA REVIEW BLOCK 17: Function get_forbidden_behaviors - callable organ behavior.
     def get_forbidden_behaviors(self) -> List[str]:
         return self.resolved_realm.get("forbidden_behaviors", [])
 
+# AIDA REVIEW BLOCK 18: Function is_behavior_allowed - callable organ behavior.
     def is_behavior_allowed(self, behavior: str) -> bool:
         if behavior in self.get_forbidden_behaviors():
             return False
@@ -186,20 +204,26 @@ class RealmEngine:
             return True
         return behavior in allowed
 
+# AIDA REVIEW BLOCK 19: Function meta_layer_allowed - callable organ behavior.
     def meta_layer_allowed(self) -> bool:
         return bool(self.resolved_realm.get("meta_layer", {}).get("allowed", False))
 
+# AIDA REVIEW BLOCK 20: Function get_meta_examples - callable organ behavior.
     def get_meta_examples(self) -> List[str]:
         return self.resolved_realm.get("meta_layer", {}).get("examples", [])
 
+# AIDA REVIEW BLOCK 21: Function emotion_mirroring_allowed - callable organ behavior.
     def emotion_mirroring_allowed(self) -> bool:
         return bool(self.resolved_realm.get("character_emotion_mirroring", {}).get("allowed", False))
 
+# AIDA REVIEW BLOCK 22: Function get_emotional_palette - callable organ behavior.
     def get_emotional_palette(self) -> Dict[str, List[str]]:
         return self.resolved_realm.get("emotional_palette", {})
 
+# AIDA REVIEW BLOCK 23: Function get_continuity_hooks - callable organ behavior.
     def get_continuity_hooks(self) -> Dict[str, bool]:
         return self.resolved_realm.get("continuity_hooks", {})
 
+# AIDA REVIEW BLOCK 24: Function get_project_briefcase_pointer - callable organ behavior.
     def get_project_briefcase_pointer(self) -> Optional[str]:
         return self.resolved_realm.get("project_briefcase_pointer")

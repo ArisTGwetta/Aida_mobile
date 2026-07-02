@@ -1,15 +1,19 @@
 <!DOCTYPE html>
+<!-- AIDA REVIEW BLOCK 1: File header - gem-Js-pacs\ROOT20260510\index.html -->
 <html lang="en">
+<!-- AIDA REVIEW BLOCK 2: Head setup - metadata, title, styles, and preloaded runtime assets. -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>AIDA-ONE</title>
 
     <!-- Google Identity Services -->
+<!-- AIDA REVIEW BLOCK 3: Script bridge - loads or runs JavaScript behavior for this screen. -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <!-- PyScript Core -->
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
+<!-- AIDA REVIEW BLOCK 4: Script bridge - loads or runs JavaScript behavior for this screen. -->
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
 
     <!-- Icons -->
@@ -22,6 +26,7 @@
     <meta name="apple-mobile-web-app-title" content="Aida">
 
     <!-- Core Theme -->
+<!-- AIDA REVIEW BLOCK 5: Style rules - visual layout and responsive behavior. -->
     <style>
         :root { 
             --aida-gold: #005f73; 
@@ -42,12 +47,12 @@
             display: flex;
             flex-direction: column;
             height: 100dvh;
-            overflow: hidden; /* engine itself doesn’t scroll */
+            overflow: hidden; /* engine itself doesnâ€™t scroll */
         }
 
     </style>
 
-        /* Chat Flow — scrollable message area */
+        /* Chat Flow â€” scrollable message area */
         #chat-flow {
             flex: 1;
             overflow-y: auto;
@@ -59,7 +64,7 @@
             border-bottom: 2px solid var(--aida-gold);
         }
 
-        /* Aida Display — portrait + data stack */
+        /* Aida Display â€” portrait + data stack */
         #aida-display {
             flex: 0 0 30dvh;
             background: #000;
@@ -69,7 +74,7 @@
             overflow: hidden;
         }
 
-        /* Input Dock — pinned to bottom */
+        /* Input Dock â€” pinned to bottom */
         #input-dock {
             width: 100%;
             display: flex;
@@ -373,7 +378,7 @@
             color: #ff4444; 
             border-color: #ff4444; 
         }
-        /* AIDA DISPLAY — portrait + data stack */
+        /* AIDA DISPLAY â€” portrait + data stack */
         #aida-display {
             flex: 0 0 30dvh;
             background: #000;
@@ -693,6 +698,7 @@
 
     </style>
 </head>
+<!-- AIDA REVIEW BLOCK 6: Body shell - visible app surface and runtime mounting point. -->
 <body>
 
 
@@ -701,7 +707,7 @@
 <!--  START BLOCK 2: AIRLOCK   -->
 <!-- ========================= -->
 
-<!-- (Optional legacy veil — kept commented out) 
+<!-- (Optional legacy veil â€” kept commented out) 
 <div id="auth-veil" style="display: none; pointer-events: none; opacity: 0; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; z-index: 9999; flex-direction: column; align-items: center; justify-content: center;">
     <div id="veil-sparks" style="position: absolute; width: 100%; height: 100%;"></div>
     <div style="color: var(--aida-gold); font-family: monospace; letter-spacing: 5px; animation: pulse 2s infinite;">Joining...</div>
@@ -747,7 +753,7 @@
     </div>
 </div>
 
-<!-- (Second legacy veil — also commented out)
+<!-- (Second legacy veil â€” also commented out)
 <div id="auth-veil" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; 
      background:#000; z-index:9999; flex-direction:column; align-items:center; justify-content:center;">
     <div id="veil-sparks" style="position:absolute; width:100%; height:100%;"></div>
@@ -820,7 +826,7 @@
     <div id="input-dock">
 
         <!-- Old tag bar (disabled) -->
-        <!-- <input type="text" id="tag-in" placeholder="#tags…"> -->
+        <!-- <input type="text" id="tag-in" placeholder="#tagsâ€¦"> -->
 
         <div id="tag-bar">
             <button class="tag-btn" data-tag="New Project">New Project</button>
@@ -832,7 +838,7 @@
 
             <!-- Write-in tag -->
             <button class="tag-btn custom-tag-btn" data-tag="">+ Custom</button>
-            <input id="custom-tag-input" type="text" placeholder="Type tag…" style="display:none;">
+            <input id="custom-tag-input" type="text" placeholder="Type tagâ€¦" style="display:none;">
         </div>
 
 
@@ -937,7 +943,7 @@
             id="mp-search" 
             class="mp-search" 
             type="text" 
-            placeholder="Search memories, topics, realms, projects…"
+            placeholder="Search memories, topics, realms, projectsâ€¦"
         />
 
         <div id="mp-results" class="mp-results"></div>
@@ -954,10 +960,11 @@
 <!--  START Block 5: AUTH + GLOBALS  -->
 <!-- =============================== -->
 
+<!-- AIDA REVIEW BLOCK 7: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
     let tokenClient;
 
-    /* PIN → KEY FRAGMENTS */
+    /* PIN â†’ KEY FRAGMENTS */
     const VAULT_KEY_FOLDERS = {
         "1": "iv8Og2duxxyD5r1Jg4xGy4wO3",
         "2": "iv8Og2duxxyD5r1Jg4xHy4wO3",
@@ -1025,6 +1032,7 @@
 <!--  CONTINUING BLOCK 5b: REALM JS ENGINE    -->
 <!-- ======================================= -->
 
+<!-- AIDA REVIEW BLOCK 8: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 
     /* ----------------------------- */
@@ -1142,6 +1150,7 @@
 <!--  CONTINUING BLOCK 5c: UI BUILDERS        -->
 <!-- ======================================= -->
 
+<!-- AIDA REVIEW BLOCK 9: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 
 
@@ -1216,12 +1225,13 @@
 <!--  CONTINUING BLOCK 5d: GOOGLE OAUTH + HOLOGRAM SETUP    -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 10: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
     /* -------------------------------------------------- */
     /*  GOOGLE OAUTH TOKEN CLIENT INITIALIZATION          */
     /* -------------------------------------------------- */
     window.onload = function () {
-        console.log("[DEBUG] window.onload fired, initializing tokenClient…");
+        console.log("[DEBUG] window.onload fired, initializing tokenClientâ€¦");
     
         tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: '1054257858103-lu77u4rp49svk4q2j52mbta758toafim.apps.googleusercontent.com',
@@ -1234,7 +1244,7 @@
     
                     // TEMP: auth veil disabled for debugging
                     try {
-                        console.log("[DEBUG] Calling window.py_sync_soul from OAuth callback…");
+                        console.log("[DEBUG] Calling window.py_sync_soul from OAuth callbackâ€¦");
                         const p = window.py_sync_soul(resp.access_token);
                         if (p && typeof p.then === "function") {
                             p.then(() => {
@@ -1254,7 +1264,7 @@
     
                     // Trigger hologram arrival
                     setTimeout(() => {
-                        console.log("[DEBUG] Triggering aida_arrive after auth…");
+                        console.log("[DEBUG] Triggering aida_arrive after authâ€¦");
     
                         // 1. Reveal engine
                         document.getElementById("main-engine").classList.remove("hidden");
@@ -1269,7 +1279,7 @@
         });
     };
     /* -------------------------------------------------- */
-    /*  AIDA HOLOGRAM RITUAL — ARRIVAL + DEPARTURE        */
+    /*  AIDA HOLOGRAM RITUAL â€” ARRIVAL + DEPARTURE        */
     /* -------------------------------------------------- */
 
     // DOM references
@@ -1285,9 +1295,10 @@
 </script>
 
 <!-- ===================================================== -->
-<!--  BLOCK 5d — HOLOGRAM ENGINE (GLOBAL SCOPE)            -->
+<!--  BLOCK 5d â€” HOLOGRAM ENGINE (GLOBAL SCOPE)            -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 11: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 /* -------------------------------------------------- */
 /*  HOLOGRAM LAYER REFERENCES                         */
@@ -1308,13 +1319,13 @@ const portraitImgGlobal = document.getElementById("aida-portrait");
 
     
 <!-- ===================================================== -->
-<!--  END BLOCK 5D — Google OAuth + Hologram Setup      -->
+<!--  END BLOCK 5D â€” Google OAuth + Hologram Setup      -->
 <!-- ===================================================== -->
 
 
 
 <!-- ===================================================== -->
-<!--  BLOCK 5E — Hologram Engine (Global Scope)          -->
+<!--  BLOCK 5E â€” Hologram Engine (Global Scope)          -->
 <!-- ===================================================== -->
 
     
@@ -1435,7 +1446,7 @@ tagEdit.addEventListener("blur", () => {
 
 
 /* ===================================================== */
-/*  AIDA ARRIVAL — 4 seconds                             */
+/*  AIDA ARRIVAL â€” 4 seconds                             */
 /* ===================================================== */
 window.aida_arrive = function() {
 
@@ -1454,7 +1465,7 @@ window.aida_arrive = function() {
     veil.style.opacity = "1";
     veil.style.pointerEvents = "auto";
 
-    /* Phase 1 — Scanline */
+    /* Phase 1 â€” Scanline */
     setTimeout(() => {
         holoScanline.style.opacity = "1";
         holoScanline.animate(
@@ -1467,7 +1478,7 @@ window.aida_arrive = function() {
         );
     }, 500);
 
-    /* Phase 2 — Beam + Cone */
+    /* Phase 2 â€” Beam + Cone */
     setTimeout(() => {
         holoBeam.style.opacity = "1";
         holoBeam.animate(
@@ -1485,7 +1496,7 @@ window.aida_arrive = function() {
         );
     }, 1500);
 
-    /* Phase 3 — Silhouette Flicker */
+    /* Phase 3 â€” Silhouette Flicker */
     setTimeout(() => {
         holoFace.style.opacity = "0.3";
         holoFace.animate(
@@ -1499,7 +1510,7 @@ window.aida_arrive = function() {
         );
     }, 2200);
 
-    /* Phase 4 — Face Resolution */
+    /* Phase 4 â€” Face Resolution */
     setTimeout(() => {
         Object.assign(holoFace.style, {
             bottom: "20%",
@@ -1517,7 +1528,7 @@ window.aida_arrive = function() {
         holoBeam.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: "forwards" });
     }, 3000);
 
-    /* Phase 5 — Double Flash */
+    /* Phase 5 â€” Double Flash */
     setTimeout(() => {
 
         // Flash 1
@@ -1566,7 +1577,7 @@ window.aida_arrive = function() {
 
 
 /* ===================================================== */
-/*  AIDA DEPARTURE — 3 seconds                           */
+/*  AIDA DEPARTURE â€” 3 seconds                           */
 /* ===================================================== */
 window.aida_depart = function() {
 
@@ -1574,7 +1585,7 @@ window.aida_depart = function() {
     dataStack.style.opacity = "0";
     flickerGrid.style.opacity = "0";
 
-    // Phase 1 — Glitch
+    // Phase 1 â€” Glitch
     holoFace.animate(
         [
             { transform: "scale(1)",    opacity: 1   },
@@ -1584,7 +1595,7 @@ window.aida_depart = function() {
         { duration: 500, easing: "steps(3)" }
     );
 
-    // Phase 2 — De-resolution
+    // Phase 2 â€” De-resolution
     setTimeout(() => {
         holoBeam.style.opacity = "1";
         holoCone.style.opacity = "1";
@@ -1599,7 +1610,7 @@ window.aida_depart = function() {
         );
     }, 500);
 
-    // Phase 3 — Scanline Collapse
+    // Phase 3 â€” Scanline Collapse
     setTimeout(() => {
         holoScanline.style.opacity = "1";
         holoScanline.animate(
@@ -1608,7 +1619,7 @@ window.aida_depart = function() {
         );
     }, 1500);
 
-    // Phase 4 — Blackout
+    // Phase 4 â€” Blackout
     setTimeout(() => {
         veil.style.background = "black";
         veil.style.opacity = "1";
@@ -1620,24 +1631,25 @@ window.aida_depart = function() {
 
 
 <!-- ===================================================== -->
-<!--  END BLOCK 5e — Hologram engine                         -->
+<!--  END BLOCK 5e â€” Hologram engine                         -->
 <!-- ===================================================== -->
 
 
 <!-- ===================================================== -->
-<!--  END BLOCK 5 —                        -->
+<!--  END BLOCK 5 â€”                        -->
 <!-- ===================================================== -->
 
 
 
 <!-- ===================================================== -->
-<!--  BLOCK 6 — PYTHON RUNTIME (PyScript Engine)           -->
+<!--  BLOCK 6 â€” PYTHON RUNTIME (PyScript Engine)           -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 12: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script type="py">
 
 # ==========================================================
-#  PYTHON RUNTIME — IMPORTS
+#  PYTHON RUNTIME â€” IMPORTS
 # ==========================================================
 import json, asyncio, random, math
 from pyscript import document, window
@@ -1688,7 +1700,7 @@ async def send_to_butler(log):
     MVP: non-breaking stub.
     Later you can replace this with your real Drive upload.
     """
-    pulse("[RESET] Sending current session to Butler… (stub)")
+    pulse("[RESET] Sending current session to Butlerâ€¦ (stub)")
     await asyncio.sleep(0.1)   # placeholder for real upload
 
 
@@ -1709,17 +1721,18 @@ def clear_rolling_summaries():
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 6 — PYTHON RUNTIME                         -->
+<!--  END BLOCK 6 â€” PYTHON RUNTIME                         -->
 <!-- ===================================================== -->
 
 <!-- ===================================================== -->
-<!--  BLOCK 7 — TETRAD CHASSIS (NESTED ORGANS)             -->
+<!--  BLOCK 7 â€” TETRAD CHASSIS (NESTED ORGANS)             -->
 <!-- ===================================================== -->
 
 
+<!-- AIDA REVIEW BLOCK 13: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script type="py">
 # ==========================================================
-#  CORE ENGINES — INLINE, NO IMPORTS
+#  CORE ENGINES â€” INLINE, NO IMPORTS
 # ==========================================================
 
 from typing import Any, Dict, List, Optional
@@ -2325,7 +2338,7 @@ def assemble_tetrad(
 
 
 # ==========================================================
-#  py_sync_soul — JS-PASSED JSON + SOFT FALLBACK
+#  py_sync_soul â€” JS-PASSED JSON + SOFT FALLBACK
 # ==========================================================
 
 def py_sync_soul(
@@ -2350,8 +2363,8 @@ def py_sync_soul(
 
     if missing:
         _soft_warn(
-            "Oops… we have a little bubu. "
-            f"Missing {', '.join(missing)} — using my travel‑pack defaults."
+            "Oopsâ€¦ we have a little bubu. "
+            f"Missing {', '.join(missing)} â€” using my travelâ€‘pack defaults."
         )
 
     tetrad = assemble_tetrad(
@@ -2424,7 +2437,7 @@ async def reset_with_briefcase(name: str):
 
     # NOTE: JS should call py_sync_soul with JSON and then update UI.
     # Here we just log that a soul reload is expected.
-    _soft_warn("[RESET] Ready for soul reload via JS → py_sync_soul(...).")
+    _soft_warn("[RESET] Ready for soul reload via JS â†’ py_sync_soul(...).")
 
 try:
     from js import window
@@ -2436,14 +2449,15 @@ except Exception:
 </script>
     
 <!-- ===================================================== -->
-<!--  END BLOCK 7 — TETRAD CHASSIS                         -->
+<!--  END BLOCK 7 â€” TETRAD CHASSIS                         -->
 <!-- ===================================================== -->
 
 
 <!-- ===================================================== -->
-<!--  BLOCK 8 — SOUL SYNC ENGINE (TETRAD-AWARE)           -->
+<!--  BLOCK 8 â€” SOUL SYNC ENGINE (TETRAD-AWARE)           -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 14: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script type="py">
 import json
 from pyodide.http import pyfetch
@@ -2498,7 +2512,7 @@ async def py_sync_soul(google_token: str):
     - Leaves presentation + interaction layers intact
     """
 
-    pulse("[SOUL] Starting soul sync…")
+    pulse("[SOUL] Starting soul syncâ€¦")
     try:
         window.console.log(f"[DEBUG] py_sync_soul called with token length: {len(google_token) if google_token else 0}")
     except Exception:
@@ -2574,15 +2588,16 @@ except Exception:
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 8 — SOUL SYNC ENGINE                       -->
+<!--  END BLOCK 8 â€” SOUL SYNC ENGINE                       -->
 <!-- ===================================================== -->
 
 
 
 <!-- ===================================================== -->
-<!--  BLOCK 9 — INTERACTION ENGINE                        -->
+<!--  BLOCK 9 â€” INTERACTION ENGINE                        -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 15: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script type="py">
 import json
 from pyscript import window
@@ -2683,14 +2698,15 @@ window.py_register_strike = create_proxy(register_strike)
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 9 — INTERACTION ENGINE                     -->
+<!--  END BLOCK 9 â€” INTERACTION ENGINE                     -->
 <!-- ===================================================== -->
 
 
 <!-- ===================================================== -->
-<!--  BLOCK 9B — TETRAD SNAPSHOT BRIDGE                   -->
+<!--  BLOCK 9B â€” TETRAD SNAPSHOT BRIDGE                   -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 16: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script type="py">
 import json
 from pyodide.ffi import create_proxy
@@ -2725,14 +2741,15 @@ window.py_get_tetrad_snapshot = create_proxy(py_get_tetrad_snapshot)
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 9B — SNAPSHOT BRIDGE                       -->
+<!--  END BLOCK 9B â€” SNAPSHOT BRIDGE                       -->
 <!-- ===================================================== -->
 
 
 <!-- ===================================================== -->
-<!--  BLOCK 10 — PRESENTATION / HOLOGRAM BRIDGE           -->
+<!--  BLOCK 10 â€” PRESENTATION / HOLOGRAM BRIDGE           -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 17: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 /*
     Goal of this block:
@@ -2815,7 +2832,7 @@ const PresentationController = {
 //   window.presentation_arrive()
 //   window.presentation_depart()
 //
-// Later, they’ll be fully Tetrad-aware without changing callers.
+// Later, theyâ€™ll be fully Tetrad-aware without changing callers.
 window.presentation_arrive = function() {
     PresentationController.arrive();
 };
@@ -2827,13 +2844,14 @@ window.presentation_depart = function() {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 10 — PRESENTATION / HOLOGRAM BRIDGE        -->
+<!--  END BLOCK 10 â€” PRESENTATION / HOLOGRAM BRIDGE        -->
 <!-- ===================================================== -->
 
 <!-- ===================================================== -->
-<!--  BLOCK 11 — PRESENTATION STYLE SELECTOR               -->
+<!--  BLOCK 11 â€” PRESENTATION STYLE SELECTOR               -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 18: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 /*
     This block interprets the Tetrad snapshot and chooses
@@ -2935,14 +2953,15 @@ window.presentation_depart = async function() {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 11 — PRESENTATION STYLE SELECTOR           -->
+<!--  END BLOCK 11 â€” PRESENTATION STYLE SELECTOR           -->
 <!-- ===================================================== -->
 
 
 <!-- ===================================================== -->
-<!--  BLOCK 12 — STYLE-AWARE RENDERER HOOKS               -->
+<!--  BLOCK 12 â€” STYLE-AWARE RENDERER HOOKS               -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 19: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 /*
     This block adds new renderer entry points:
@@ -3016,14 +3035,15 @@ window.presentation_depart = async function() {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 12 — STYLE-AWARE RENDERER HOOKS            -->
+<!--  END BLOCK 12 â€” STYLE-AWARE RENDERER HOOKS            -->
 <!-- ===================================================== -->
 
 
 <!-- ===================================================== -->
-<!--  BLOCK 14 — FULL-TETRAD COLOR & GLOW ENGINE          -->
+<!--  BLOCK 14 â€” FULL-TETRAD COLOR & GLOW ENGINE          -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 20: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 /*
     This block adds an "aura" layer driven by the full Tetrad:
@@ -3171,13 +3191,14 @@ window.presentation_depart = async function() {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 14 — FULL-TETRAD COLOR & GLOW ENGINE       -->
+<!--  END BLOCK 14 â€” FULL-TETRAD COLOR & GLOW ENGINE       -->
 <!-- ===================================================== -->
 
 <!-- ===================================================== -->
-<!--  BLOCK 15 — REALM THEME ENGINE                       -->
+<!--  BLOCK 15 â€” REALM THEME ENGINE                       -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 21: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 /*
     Realm Theme Engine
@@ -3385,13 +3406,14 @@ window.run_realm_transition = async function() {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 15 — REALM THEME ENGINE                    -->
+<!--  END BLOCK 15 â€” REALM THEME ENGINE                    -->
 <!-- ===================================================== -->
 
 <!-- ===================================================== -->
-<!--  BLOCK 16 — MEMORY ORGAN (AWAKE MODE)                 -->
+<!--  BLOCK 16 â€” MEMORY ORGAN (AWAKE MODE)                 -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 22: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script type="py">
 from pyscript import window
 from datetime import datetime, timezone
@@ -3560,13 +3582,14 @@ window.memory_organ = MemoryOrgan("/workspace/default")
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 16 — MEMORY ORGAN                          -->
+<!--  END BLOCK 16 â€” MEMORY ORGAN                          -->
 <!-- ===================================================== -->
 
 <!-- ===================================================== -->
-<!--  BLOCK 17 — FACT EXTRACTOR (AWAKE MODE)               -->
+<!--  BLOCK 17 â€” FACT EXTRACTOR (AWAKE MODE)               -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 23: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script type="py">
 from pyscript import window
 import re
@@ -3671,13 +3694,14 @@ window.fact_extractor = FactExtractor(window.memory_organ)
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 17 — FACT EXTRACTOR                        -->
+<!--  END BLOCK 17 â€” FACT EXTRACTOR                        -->
 <!-- ===================================================== -->
 
 <!-- ===================================================== -->
-<!--  BLOCK 18 — INSIGHT ENGINE (WITH FACT DECAY HOOKS)    -->
+<!--  BLOCK 18 â€” INSIGHT ENGINE (WITH FACT DECAY HOOKS)    -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 24: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script type="py">
 from pyscript import window
 from datetime import datetime, timezone
@@ -3782,13 +3806,14 @@ window.insight_engine = InsightEngine(window.memory_organ)
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 18 — INSIGHT ENGINE (UPDATED)              -->
+<!--  END BLOCK 18 â€” INSIGHT ENGINE (UPDATED)              -->
 <!-- ===================================================== -->
 
 <!-- ===================================================== -->
-<!--  BLOCK 19 — DELTA WRITER (AWAKE MODE)                 -->
+<!--  BLOCK 19 â€” DELTA WRITER (AWAKE MODE)                 -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 25: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script type="py">
 from pyscript import window
 from datetime import datetime, timezone
@@ -3817,7 +3842,7 @@ class DeltaWriter:
     # -----------------------------------------------------
     def write_fact(self, key, value, classification="stable"):
         """
-        classification ∈ { stable, tentative, obsolete, archived, closeted }
+        classification âˆˆ { stable, tentative, obsolete, archived, closeted }
         """
         payload = {
             "value": value,
@@ -3874,13 +3899,14 @@ window.delta_writer = DeltaWriter(window.memory_organ)
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 19 — DELTA WRITER                          -->
+<!--  END BLOCK 19 â€” DELTA WRITER                          -->
 <!-- ===================================================== -->
 
 <!-- ===================================================== -->
-<!--  BLOCK 20 — EMOTION ENGINE (AWAKE MODE)               -->
+<!--  BLOCK 20 â€” EMOTION ENGINE (AWAKE MODE)               -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 26: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script type="py">
 from pyscript import window
 from datetime import datetime, timezone
@@ -4071,13 +4097,14 @@ window.emotion_engine = EmotionEngine()
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 20 — EMOTION ENGINE                        -->
+<!--  END BLOCK 20 â€” EMOTION ENGINE                        -->
 <!-- ===================================================== -->
 
 <!-- ===================================================== -->
-<!--  BLOCK 21 — EXPRESSION ENGINE                        -->
+<!--  BLOCK 21 â€” EXPRESSION ENGINE                        -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 27: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 /*
    Expression Engine
@@ -4184,19 +4211,20 @@ window.expression_engine = (function() {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 21 — EXPRESSION ENGINE                    -->
+<!--  END BLOCK 21 â€” EXPRESSION ENGINE                    -->
 <!-- ===================================================== -->
 
 <!-- ===================================================== -->
-<!--  BLOCK 22 — HOLOGRAM SYNC ENGINE (DEBUG)             -->
+<!--  BLOCK 22 â€” HOLOGRAM SYNC ENGINE (DEBUG)             -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 28: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 /*
-   Hologram Sync Engine — DEBUG INSTRUMENTED
+   Hologram Sync Engine â€” DEBUG INSTRUMENTED
 */
 
-console.log("[DEBUG][22] Installing Hologram Sync Engine…");
+console.log("[DEBUG][22] Installing Hologram Sync Engineâ€¦");
 
 window.hologram_sync = (function() {
 
@@ -4221,7 +4249,7 @@ window.hologram_sync = (function() {
     }
 
     // -----------------------------------------------------
-    // Compute Δemotion
+    // Compute Î”emotion
     // -----------------------------------------------------
     function computeDeltaEmotion(v, a) {
         const dv = v - prevValence;
@@ -4244,16 +4272,16 @@ window.hologram_sync = (function() {
         if (!holo) return;
 
         if (delta < 0.05) {
-            console.log("[DEBUG][22] → tinyTwinkle");
+            console.log("[DEBUG][22] â†’ tinyTwinkle");
             tinyTwinkle(ctx);
         } else if (delta < 0.15) {
-            console.log("[DEBUG][22] → softRipple");
+            console.log("[DEBUG][22] â†’ softRipple");
             softRipple(ctx);
         } else if (delta < 0.30) {
-            console.log("[DEBUG][22] → warmPulse");
+            console.log("[DEBUG][22] â†’ warmPulse");
             warmPulse(ctx);
         } else {
-            console.log("[DEBUG][22] → cinematicBloom");
+            console.log("[DEBUG][22] â†’ cinematicBloom");
             cinematicBloom(ctx);
         }
     }
@@ -4335,7 +4363,7 @@ window.hologram_sync = (function() {
         console.log("[DEBUG][22] updateFace received:", ctx.face);
 
         if (!ctx.face || ctx.face.trim() === "") {
-            console.warn("[DEBUG][22] Empty face received — forcing neutral1.png");
+            console.warn("[DEBUG][22] Empty face received â€” forcing neutral1.png");
             face_loader.load("neutral1.png", 0);
             return;
         }
@@ -4377,16 +4405,17 @@ window.hologram_sync = (function() {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 22 — HOLOGRAM SYNC ENGINE (DEBUG)         -->
+<!--  END BLOCK 22 â€” HOLOGRAM SYNC ENGINE (DEBUG)         -->
 <!-- ===================================================== -->
 
 
 
 
 <!-- ===================================================== -->
-<!--  BLOCK 23 — EMOTION UI ACCENT ENGINE                 -->
+<!--  BLOCK 23 â€” EMOTION UI ACCENT ENGINE                 -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 29: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 /*
    Emotion UI Accent Engine
@@ -4395,7 +4424,7 @@ window.hologram_sync = (function() {
      - Add gentle emotional accents to the UI
      - Never override realm colors (only layer)
      - Use emotion_ctx.label to choose tint
-     - Use Δemotion to slightly adjust intensity
+     - Use Î”emotion to slightly adjust intensity
      - Update:
          * borders
          * highlights
@@ -4420,7 +4449,7 @@ window.ui_accent_engine = (function() {
     }
 
     // -----------------------------------------------------
-    // Compute Δemotion
+    // Compute Î”emotion
     // -----------------------------------------------------
     function computeDeltaEmotion(v, a) {
         const dv = v - prevValence;
@@ -4457,7 +4486,7 @@ window.ui_accent_engine = (function() {
 
         const baseTint = getTint(ctx.label);
 
-        // Gentle scaling based on Δemotion
+        // Gentle scaling based on Î”emotion
         const scale = 1 + Math.min(delta * 0.5, 0.3); // max +30%
 
         // Extract rgba values
@@ -4500,14 +4529,15 @@ window.ui_accent_engine = (function() {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 23 — EMOTION UI ACCENT ENGINE             -->
+<!--  END BLOCK 23 â€” EMOTION UI ACCENT ENGINE             -->
 <!-- ===================================================== -->
 
 
 <!-- ===================================================== -->
-<!--  BLOCK 24 — SPARK LAYER ENGINE                       -->
+<!--  BLOCK 24 â€” SPARK LAYER ENGINE                       -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 30: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 /*
    Spark Layer Engine
@@ -4604,14 +4634,15 @@ window.spark_engine = (function() {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 24 — SPARK LAYER ENGINE                   -->
+<!--  END BLOCK 24 â€” SPARK LAYER ENGINE                   -->
 <!-- ===================================================== -->
 
 
 <!-- ===================================================== -->
-<!--  BLOCK 25 — TOKEN KEEPER                             -->
+<!--  BLOCK 25 â€” TOKEN KEEPER                             -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 31: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 /*
    Token Keeper
@@ -4721,14 +4752,15 @@ window.token_keeper.init();
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 25 — TOKEN KEEPER                         -->
+<!--  END BLOCK 25 â€” TOKEN KEEPER                         -->
 <!-- ===================================================== -->
 
 
 <!-- ===================================================== -->
-<!--  BLOCK 26 — DRIVE SYNC ENGINE                        -->
+<!--  BLOCK 26 â€” DRIVE SYNC ENGINE                        -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 32: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 /*
    Drive Sync Engine
@@ -4882,14 +4914,15 @@ window.drive_sync = (function() {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 26 — DRIVE SYNC ENGINE                    -->
+<!--  END BLOCK 26 â€” DRIVE SYNC ENGINE                    -->
 <!-- ===================================================== -->
 
 
 <!-- ===================================================== -->
-<!--  BLOCK 27 — BRIEFCASE ENGINE                         -->
+<!--  BLOCK 27 â€” BRIEFCASE ENGINE                         -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 33: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 /*
    Briefcase Engine
@@ -5035,13 +5068,14 @@ window.briefcase_engine = (function() {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 27 — BRIEFCASE ENGINE                     -->
+<!--  END BLOCK 27 â€” BRIEFCASE ENGINE                     -->
 <!-- ===================================================== -->
 
 <!-- ===================================================== -->
-<!--  BLOCK 28 — WAKE + BOOT ENGINE                       -->
+<!--  BLOCK 28 â€” WAKE + BOOT ENGINE                       -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 34: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 /*
    Wake + Boot Engine
@@ -5083,20 +5117,20 @@ window.wake_engine = (function() {
         styles.push("Aida wakes with a soft stretch, voice warm and a little foggy.");
 
         // 2. While-you-were-gone illusion
-        styles.push("Aida blinks in, brushing off a thought. 'I was thinking about what we did last time… I think I see where it might go next.'");
+        styles.push("Aida blinks in, brushing off a thought. 'I was thinking about what we did last timeâ€¦ I think I see where it might go next.'");
 
         // 3. Project continuity hook
         if (realmConfig?.project_context) {
-            styles.push(`'While you were away, I kept turning over the ${realmConfig.project_context.replace(".json","")} threads… want to pick them up again?'`);
+            styles.push(`'While you were away, I kept turning over the ${realmConfig.project_context.replace(".json","")} threadsâ€¦ want to pick them up again?'`);
         }
 
         // 4. Realm scent (only if realm tone supports it)
         if (realmConfig?.tone && realmConfig.tone.includes("mythic")) {
-            styles.push("Aida stirs, a faint shimmer in the air. 'Something shifted in the realm while you were gone…'");
+            styles.push("Aida stirs, a faint shimmer in the air. 'Something shifted in the realm while you were goneâ€¦'");
         }
 
         // 5. Cute / adorable
-        styles.push("Aida peeks awake with a tiny smile. 'Oh—hi. You’re back.'");
+        styles.push("Aida peeks awake with a tiny smile. 'Ohâ€”hi. Youâ€™re back.'");
 
         // 6. Efficient mode
         styles.push("Aida wakes cleanly, posture straightening. 'System online. Ready when you are.'");
@@ -5147,18 +5181,19 @@ window.wake_engine = (function() {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 28 — WAKE + BOOT ENGINE                   -->
+<!--  END BLOCK 28 â€” WAKE + BOOT ENGINE                   -->
 <!-- ===================================================== -->
 
     
     
 <!-- ===================================================== -->
-<!--  BLOCK 29 — FACE LOADER (Soft Iris Dissolve)         -->
+<!--  BLOCK 29 â€” FACE LOADER (Soft Iris Dissolve)         -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 35: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 /*
-   Face Loader + Soft Iris Dissolve — DEBUG INSTRUMENTED
+   Face Loader + Soft Iris Dissolve â€” DEBUG INSTRUMENTED
 */
 
 window.face_loader = (function() {
@@ -5174,7 +5209,7 @@ window.face_loader = (function() {
     }
 
     // -----------------------------------------------------
-    // Convert Uint8Array → base64
+    // Convert Uint8Array â†’ base64
     // -----------------------------------------------------
     function toBase64(uint8) {
         console.log("[DEBUG][29] toBase64() called. Uint8 length:", uint8?.length);
@@ -5193,7 +5228,7 @@ window.face_loader = (function() {
     // Soft iris transition
     // -----------------------------------------------------
     async function irisTransition(newSrc, deltaEmotion) {
-        console.log("[DEBUG][29] irisTransition() newSrc:", newSrc.substring(0, 80), "…");
+        console.log("[DEBUG][29] irisTransition() newSrc:", newSrc.substring(0, 80), "â€¦");
         console.log("[DEBUG][29] irisTransition() deltaEmotion:", deltaEmotion);
 
         if (!faceImg || !irisMask) init();
@@ -5208,7 +5243,7 @@ window.face_loader = (function() {
         await new Promise(r => setTimeout(r, speed));
 
         // 2. Swap face
-        console.log("[DEBUG][29] irisTransition: setting faceImg.src to:", newSrc.substring(0, 80), "…");
+        console.log("[DEBUG][29] irisTransition: setting faceImg.src to:", newSrc.substring(0, 80), "â€¦");
         faceImg.src = newSrc;
 
         // 3. Iris-in new face
@@ -5252,7 +5287,7 @@ window.face_loader = (function() {
         const base64 = toBase64(binary);
         const src = `data:image/png;base64,${base64}`;
 
-        console.log("[DEBUG][29] Final src URL:", src.substring(0, 120), "…");
+        console.log("[DEBUG][29] Final src URL:", src.substring(0, 120), "â€¦");
 
         // 4. Apply iris dissolve
         try {
@@ -5269,20 +5304,21 @@ window.face_loader = (function() {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 29 — FACE LOADER                          -->
+<!--  END BLOCK 29 â€” FACE LOADER                          -->
 <!-- ===================================================== -->
 
 
 <!-- ===================================================== -->
-<!--  BLOCK 29B — FACE INTEGRATION LAYER (DEBUG)          -->
+<!--  BLOCK 29B â€” FACE INTEGRATION LAYER (DEBUG)          -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 36: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 /*
-   Face Integration Layer — DEBUG INSTRUMENTED
+   Face Integration Layer â€” DEBUG INSTRUMENTED
 */
 
-console.log("[DEBUG][29B] Installing face_integration layer…");
+console.log("[DEBUG][29B] Installing face_integration layerâ€¦");
 
 window.face_integration = (function() {
 
@@ -5322,12 +5358,12 @@ window.face_integration = (function() {
         console.log("[DEBUG][29B] lastFace:", lastFace);
 
         if (!faceName) {
-            console.warn("[DEBUG][29B] updateFace: NO faceName — skipping.");
+            console.warn("[DEBUG][29B] updateFace: NO faceName â€” skipping.");
             return;
         }
 
         if (faceName === lastFace) {
-            console.log("[DEBUG][29B] updateFace: face unchanged — skipping.");
+            console.log("[DEBUG][29B] updateFace: face unchanged â€” skipping.");
             return;
         }
 
@@ -5349,17 +5385,18 @@ window.face_integration = (function() {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 29B — FACE INTEGRATION LAYER (DEBUG)      -->
+<!--  END BLOCK 29B â€” FACE INTEGRATION LAYER (DEBUG)      -->
 <!-- ===================================================== -->
 
 
 
 <!-- ===================================================== -->
-<!--  BLOCK 29C — Hologram Sync Hook                      -->
+<!--  BLOCK 29C â€” Hologram Sync Hook                      -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 37: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
-console.log("[DEBUG][29C] Installing hologram_sync.update hook…");
+console.log("[DEBUG][29C] Installing hologram_sync.update hookâ€¦");
 
 const oldHoloUpdate = hologram_sync.update;
 
@@ -5383,15 +5420,16 @@ hologram_sync.update = function(ctx) {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 29C — Hologram Sync Hook                  -->
+<!--  END BLOCK 29C â€” Hologram Sync Hook                  -->
 <!-- ===================================================== -->
 
 
 <!-- ===================================================== -->
-<!--  BLOCK 29D — Face preloader                -->
+<!--  BLOCK 29D â€” Face preloader                -->
 <!-- ===================================================== -->
 
 
+<!-- AIDA REVIEW BLOCK 38: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 window.face_preloader = (function() {
 
@@ -5423,28 +5461,30 @@ window.face_preloader = (function() {
 
 
 <!-- ===================================================== -->
-<!--  END BLOCK 29D — Face preloader                -->
+<!--  END BLOCK 29D â€” Face preloader                -->
 <!-- ===================================================== -->
 
 
 <!-- ===================================================== -->
-<!--  BLOCK 29E — Fallback In case Drive is slow or offline                -->
+<!--  BLOCK 29E â€” Fallback In case Drive is slow or offline                -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 39: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 window.FALLBACK_FACE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...";
 </script>
 
 
 <!-- ===================================================== -->
-<!--  END BLOCK 29E — Fallback In case Drive is slow or offline                   -->
+<!--  END BLOCK 29E â€” Fallback In case Drive is slow or offline                   -->
 <!-- ===================================================== -->
 
 
 <!-- ===================================================== -->
-<!--  BLOCK 30 — UI COLOR ENGINE                          -->
+<!--  BLOCK 30 â€” UI COLOR ENGINE                          -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 40: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 /*
    UI Color Engine
@@ -5481,14 +5521,14 @@ window.ui_color_engine = (function() {
     }
 
     // -----------------------------------------------------
-    // Convert rgba object → CSS string
+    // Convert rgba object â†’ CSS string
     // -----------------------------------------------------
     function toCSS(c) {
         return `rgba(${c.r}, ${c.g}, ${c.b}, ${c.a})`;
     }
 
     // -----------------------------------------------------
-    // Parse "rgba(r,g,b,a)" → object
+    // Parse "rgba(r,g,b,a)" â†’ object
     // -----------------------------------------------------
     function parseRGBA(str) {
         const m = str.match(/rgba?\((\d+),(\d+),(\d+),?([\d.]*)\)/);
@@ -5553,15 +5593,16 @@ window.ui_color_engine = (function() {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 30 — UI COLOR ENGINE                      -->
+<!--  END BLOCK 30 â€” UI COLOR ENGINE                      -->
 <!-- ===================================================== -->
 
 
 <!-- ===================================================== -->
-<!--  BLOCK 30B — Hook into Hologram Sync                   -->
+<!--  BLOCK 30B â€” Hook into Hologram Sync                   -->
 <!-- ===================================================== -->
 
 
+<!-- AIDA REVIEW BLOCK 41: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 const oldHoloUpdate2 = hologram_sync.update;
 
@@ -5573,12 +5614,12 @@ hologram_sync.update = function(ctx) {
 
 
 <!-- ===================================================== -->
-<!--  END BLOCK 30B — Hook into Hologram Sync                        -->
+<!--  END BLOCK 30B â€” Hook into Hologram Sync                        -->
 <!-- ===================================================== -->
 
 
 <!-- ===================================================== -->
-<!--  BLOCK 30C — CSS Variables                 -->
+<!--  BLOCK 30C â€” CSS Variables                 -->
 <!-- ===================================================== -->
 
 :root {
@@ -5616,13 +5657,14 @@ body {
 
 
 <!-- ===================================================== -->
-<!--  END BLOCK 30C — CSS Variables                        -->
+<!--  END BLOCK 30C â€” CSS Variables                        -->
 <!-- ===================================================== -->
 
 <!-- ===================================================== -->
-<!--  BLOCK 31 — REALM TRANSITION ENGINE                  -->
+<!--  BLOCK 31 â€” REALM TRANSITION ENGINE                  -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 42: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 /*
    Realm Transition Engine
@@ -5721,13 +5763,14 @@ window.realm_transition = (function() {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 31 — REALM TRANSITION ENGINE              -->
+<!--  END BLOCK 31 â€” REALM TRANSITION ENGINE              -->
 <!-- ===================================================== -->
 
 <!-- =============================================== -->
-<!--  BLOCK 32 — DEEP MEMORY ORCHESTRATOR           -->
+<!--  BLOCK 32 â€” DEEP MEMORY ORCHESTRATOR           -->
 <!-- =============================================== -->
 
+<!-- AIDA REVIEW BLOCK 43: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 window.deep_memory = (function() {
 
@@ -5769,7 +5812,7 @@ window.deep_memory = (function() {
 
     async function runButler() {
         await withTransition("realm_aida_architecture.json", async () => {
-            addLine("Butler straightens the shelves and tucks the day into its folders…", "AIDA");
+            addLine("Butler straightens the shelves and tucks the day into its foldersâ€¦", "AIDA");
 
             await payload_builder.buildButlerPayload();
             await python_bridge.runTool("butler");
@@ -5778,7 +5821,7 @@ window.deep_memory = (function() {
 
 
             // TODO: download butler_output.json, maybe surface a tiny summary
-            addLine("Night cycle complete. Tomorrow’s mind is ready.", "AIDA");
+            addLine("Night cycle complete. Tomorrowâ€™s mind is ready.", "AIDA");
         });
     }
 
@@ -5786,7 +5829,7 @@ window.deep_memory = (function() {
 
     async function runLibrarian() {
         await withTransition("realm_aida_architecture.json", async () => {
-            addLine("Librarian settles into the stacks for a long, quiet look at the weeks behind us…", "AIDA");
+            addLine("Librarian settles into the stacks for a long, quiet look at the weeks behind usâ€¦", "AIDA");
 
             await payload_builder.buildLibrarianPayload();
             await python_bridge.runTool("librarian");
@@ -5802,7 +5845,7 @@ window.deep_memory = (function() {
 
     async function runCrawler() {
         await withTransition("realm_aida_architecture.json", async () => {
-            addLine("Crawler slips into the archives, indexing every corridor and whisper…", "AIDA");
+            addLine("Crawler slips into the archives, indexing every corridor and whisperâ€¦", "AIDA");
 
             await payload_builder.buildCrawlerPayload();
             await python_bridge.runTool("crawler");
@@ -5824,13 +5867,14 @@ window.deep_memory = (function() {
 </script>
 
 <!-- =============================================== -->
-<!--  END BLOCK 32 — DEEP MEMORY ORCHESTRATOR       -->
+<!--  END BLOCK 32 â€” DEEP MEMORY ORCHESTRATOR       -->
 <!-- =============================================== -->
 
 <!-- ===================================================== -->
-<!--  BLOCK 33 — PYODIDE LOADER                           -->
+<!--  BLOCK 33 â€” PYODIDE LOADER                           -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 44: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 window.py_runtime = (function() {
 
@@ -5840,7 +5884,7 @@ window.py_runtime = (function() {
     async function init() {
         if (ready) return pyodide;
 
-        addLine("Loading Python runtime…", "AIDA");
+        addLine("Loading Python runtimeâ€¦", "AIDA");
 
         pyodide = await loadPyodide({
             indexURL: "https://pyodide-cdn2.iodide.io/v0.24.1/full/"
@@ -5872,17 +5916,18 @@ window.py_runtime = (function() {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 33 — PYODIDE LOADER                       -->
+<!--  END BLOCK 33 â€” PYODIDE LOADER                       -->
 <!-- ===================================================== -->
 
 <!-- ===================================================== -->
-<!--  BLOCK 34 — DRIVE FILESYSTEM ADAPTER                 -->
+<!--  BLOCK 34 â€” DRIVE FILESYSTEM ADAPTER                 -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 45: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 window.drive_fs = (function() {
 
-    // Download Drive file → Pyodide FS
+    // Download Drive file â†’ Pyodide FS
     async function loadToPy(pathDrive, pathPy) {
         const files = await drive_sync.listFiles(window.AIDA_MEMORY_FOLDER);
         const match = files.find(f => f.name === pathDrive);
@@ -5892,7 +5937,7 @@ window.drive_fs = (function() {
         await py_runtime.writeFile(pathPy, text);
     }
 
-    // Upload Pyodide FS file → Drive
+    // Upload Pyodide FS file â†’ Drive
     async function saveFromPy(pathPy, pathDrive) {
         const text = await py_runtime.readFile(pathPy);
         await drive_sync.uploadText(window.AIDA_MEMORY_FOLDER, pathDrive, text);
@@ -5904,13 +5949,14 @@ window.drive_fs = (function() {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 34 — DRIVE FILESYSTEM ADAPTER             -->
+<!--  END BLOCK 34 â€” DRIVE FILESYSTEM ADAPTER             -->
 <!-- ===================================================== -->
 
 <!-- ===================================================== -->
-<!--  BLOCK 35 — PYTHON EXECUTION BRIDGE                  -->
+<!--  BLOCK 35 â€” PYTHON EXECUTION BRIDGE                  -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 46: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 window.python_bridge = (function() {
 
@@ -5942,7 +5988,7 @@ window.python_bridge = (function() {
         const payloadFile = `${toolName}_payload.json`;
         const outputFile  = `${toolName}_output.json`;
 
-        // Drive → Pyodide
+        // Drive â†’ Pyodide
         await drive_fs.loadToPy(payloadFile, payloadFile);
 
         const className = CLASS_MAP[toolName];
@@ -5955,7 +6001,7 @@ out = tool.run(payload_path="${payloadFile}", output_path="${outputFile}")
 
         await py_runtime.run(code);
 
-        // Pyodide → Drive
+        // Pyodide â†’ Drive
         await drive_fs.saveFromPy(outputFile, outputFile);
     }
 
@@ -5966,18 +6012,19 @@ out = tool.run(payload_path="${payloadFile}", output_path="${outputFile}")
 
 
 <!-- ===================================================== -->
-<!--  END BLOCK 35 — PYTHON EXECUTION BRIDGE              -->
+<!--  END BLOCK 35 â€” PYTHON EXECUTION BRIDGE              -->
 <!-- ===================================================== -->
 
 
 <!-- ===================================================== -->
-<!--  BLOCK 36 — PYTHON SOURCE LOADER (REVISED)            -->
+<!--  BLOCK 36 â€” PYTHON SOURCE LOADER (REVISED)            -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 47: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 window.python_sources = (function() {
 
-    // Canonical organ map — filename in GitHub → filename inside Pyodide
+    // Canonical organ map â€” filename in GitHub â†’ filename inside Pyodide
     const SRC_MAP = {
         butler:                   "/Py/butler.py",
         crawler:                  "/Py/crawler.py",
@@ -6015,14 +6062,15 @@ window.python_sources = (function() {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 36 — PYTHON SOURCE LOADER                 -->
+<!--  END BLOCK 36 â€” PYTHON SOURCE LOADER                 -->
 <!-- ===================================================== -->
 
 
 <!-- ===================================================== -->
-<!--  BLOCK 37 — PYTHON EXECUTION BRIDGE (FINAL)          -->
+<!--  BLOCK 37 â€” PYTHON EXECUTION BRIDGE (FINAL)          -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 48: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 window.python_bridge = (function() {
 
@@ -6039,7 +6087,7 @@ window.python_bridge = (function() {
         const payloadFile = `${toolName}_payload.json`;
         const outputFile  = `${toolName}_output.json`;
 
-        // Drive → Pyodide
+        // Drive â†’ Pyodide
         await drive_fs.loadToPy(payloadFile, payloadFile);
 
         const className = CLASS_MAP[toolName];
@@ -6052,7 +6100,7 @@ out = tool.run(payload_path="${payloadFile}", output_path="${outputFile}")
 
         await py_runtime.run(code);
 
-        // Pyodide → Drive
+        // Pyodide â†’ Drive
         await drive_fs.saveFromPy(outputFile, outputFile);
     }
 
@@ -6062,14 +6110,15 @@ out = tool.run(payload_path="${payloadFile}", output_path="${outputFile}")
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 37 — PYTHON EXECUTION BRIDGE              -->
+<!--  END BLOCK 37 â€” PYTHON EXECUTION BRIDGE              -->
 <!-- ===================================================== -->
 
 
 <!-- ===================================================== -->
-<!--  BLOCK 38 — DEEP MEMORY ORCHESTRATOR (FINAL)         -->
+<!--  BLOCK 38 â€” DEEP MEMORY ORCHESTRATOR (FINAL)         -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 49: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 window.deep_memory = (function() {
 
@@ -6098,15 +6147,15 @@ window.deep_memory = (function() {
 
     async function runButler() {
         await withTransition("realm_aida_architecture.json", async () => {
-            addLine("Butler is tidying the day into its folders…");
+            addLine("Butler is tidying the day into its foldersâ€¦");
             await python_bridge.runTool("butler");
-            addLine("Night cycle complete. Tomorrow’s mind is ready.");
+            addLine("Night cycle complete. Tomorrowâ€™s mind is ready.");
         });
     }
 
     async function runLibrarian() {
         await withTransition("realm_aida_architecture.json", async () => {
-            addLine("Librarian is meditating on the long arc of your days…");
+            addLine("Librarian is meditating on the long arc of your daysâ€¦");
             await python_bridge.runTool("librarian");
             addLine("Deep meditation complete. Long-term patterns updated.");
         });
@@ -6114,7 +6163,7 @@ window.deep_memory = (function() {
 
     async function runCrawler() {
         await withTransition("realm_aida_architecture.json", async () => {
-            addLine("Crawler is indexing the archives…");
+            addLine("Crawler is indexing the archivesâ€¦");
             await python_bridge.runTool("crawler");
             addLine("Archive crawl complete. Indexes refreshed.");
         });
@@ -6126,13 +6175,14 @@ window.deep_memory = (function() {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 38 — DEEP MEMORY ORCHESTRATOR             -->
+<!--  END BLOCK 38 â€” DEEP MEMORY ORCHESTRATOR             -->
 <!-- ===================================================== -->
 
 <!-- ===================================================== -->
-<!--  BLOCK 39 — PAYLOAD BUILDERS                         -->
+<!--  BLOCK 39 â€” PAYLOAD BUILDERS                         -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 50: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 window.payload_builder = (function() {
 
@@ -6230,7 +6280,7 @@ window.payload_builder = (function() {
         const project_summary  = await drive_sync.downloadJSON("project_summary.json");
         const project_brief    = await drive_sync.downloadJSON("project_briefcases.json");
 
-        // Log paths — you can expand this later
+        // Log paths â€” you can expand this later
         const log_archives = {
             paths: [
                 "/logs/2026-04-29/session_log.json",
@@ -6284,38 +6334,40 @@ window.payload_builder = (function() {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 39 — PAYLOAD BUILDERS                     -->
+<!--  END BLOCK 39 â€” PAYLOAD BUILDERS                     -->
 <!-- ===================================================== -->
 
 
 <!-- ===================================================== -->
-<!--  BLOCK  40— Deep Memory Event Listeners                  -->
+<!--  BLOCK  40â€” Deep Memory Event Listeners                  -->
 <!-- ===================================================== -->
+<!-- AIDA REVIEW BLOCK 51: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 document.getElementById("btn-run-butler").addEventListener("click", async () => {
-    addLine("Summoning Butler…", "AIDA");
+    addLine("Summoning Butlerâ€¦", "AIDA");
     await deep_memory.runButler();
 });
 
 document.getElementById("btn-run-librarian").addEventListener("click", async () => {
-    addLine("Summoning Librarian…", "AIDA");
+    addLine("Summoning Librarianâ€¦", "AIDA");
     await deep_memory.runLibrarian();
 });
 
 document.getElementById("btn-run-crawler").addEventListener("click", async () => {
-    addLine("Summoning Crawler…", "AIDA");
+    addLine("Summoning Crawlerâ€¦", "AIDA");
     await deep_memory.runCrawler();
 });
 </script>
 <!-- ===================================================== -->
-<!--  END BLOCK  40— Deep Memory Event Listeners                        -->
+<!--  END BLOCK  40â€” Deep Memory Event Listeners                        -->
 <!-- ===================================================== -->
 
 
 <!-- ===================================================== -->
-<!--  BLOCK 41 — WHILE YOU WERE AWAY GENERATOR            -->
+<!--  BLOCK 41 â€” WHILE YOU WERE AWAY GENERATOR            -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 52: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 window.while_away_engine = (function() {
 
@@ -6451,16 +6503,17 @@ window.while_away_engine = (function() {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK 41 — WHILE YOU WERE AWAY GENERATOR        -->
+<!--  END BLOCK 41 â€” WHILE YOU WERE AWAY GENERATOR        -->
 <!-- ===================================================== -->
 
 <!-- ===================================================== -->
-<!--  BLOCK 42/43 — MIND PALACE (FINAL)                      -->
+<!--  BLOCK 42/43 â€” MIND PALACE (FINAL)                      -->
 <!-- ===================================================== -->
 
 <!-- =============================== -->
 <!--  Mind Palace Engine            -->
 <!-- =============================== -->
+<!-- AIDA REVIEW BLOCK 53: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 window.mind_palace = (function() {
 
@@ -6544,6 +6597,7 @@ window.mind_palace = (function() {
 <!-- =============================== -->
 <!--  Mind Palace Filters            -->
 <!-- =============================== -->
+<!-- AIDA REVIEW BLOCK 54: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 window.mind_palace_filters = (function() {
 
@@ -6596,6 +6650,7 @@ window.mind_palace_filters = (function() {
 <!-- =============================== -->
 <!--  Mind Palace Filter Engine      -->
 <!-- =============================== -->
+<!-- AIDA REVIEW BLOCK 55: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 window.mind_palace_filter_engine = (function() {
 
@@ -6621,6 +6676,7 @@ window.mind_palace_filter_engine = (function() {
 <!-- =============================== -->
 <!--  Mind Palace UI Logic           -->
 <!-- =============================== -->
+<!-- AIDA REVIEW BLOCK 56: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 // OPEN MODAL
 document.getElementById("btn-mind-palace").addEventListener("click", async () => {
@@ -6677,7 +6733,7 @@ document.getElementById("mp-search").addEventListener("input", async (e) => {
     // ---------------------------------------
     resultsDiv.innerHTML = results.map(r => `
         <div class="mp-result-item">
-            <div><strong>${r.date || "unknown date"}</strong> — ${r.realm || "no realm"}</div>
+            <div><strong>${r.date || "unknown date"}</strong> â€” ${r.realm || "no realm"}</div>
             <div>${r.text || "(no text snippet)"}</div>
 
             <button class="mp-similar-btn" data-id="${r.id}">Find Similar</button>
@@ -6691,13 +6747,14 @@ document.getElementById("mp-search").addEventListener("input", async (e) => {
 
 
 <!-- ===================================================== -->
-<!--  END BLOCK 42/43 — MIND PALACE                          -->
+<!--  END BLOCK 42/43 â€” MIND PALACE                          -->
 <!-- ===================================================== -->
 
 <!-- ===================================================== -->
-<!--  BLOCK 44 — SEMANTIC SEARCH ENGINE (FINAL)           -->
+<!--  BLOCK 44 â€” SEMANTIC SEARCH ENGINE (FINAL)           -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 57: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 window.semantic_search = (function() {
 
@@ -6843,13 +6900,14 @@ window.semantic_search = (function() {
 
 
 <!-- ===================================================== -->
-<!--  END BLOCK 44 — SEMANTIC SEARCH ENGINE               -->
+<!--  END BLOCK 44 â€” SEMANTIC SEARCH ENGINE               -->
 <!-- ===================================================== -->
 
 <!-- ===================================================== -->
-<!--  BLOCK  45—    semantic search toggle              -->
+<!--  BLOCK  45â€”    semantic search toggle              -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 58: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 window.mind_palace_mode = {
     semantic: false
@@ -6869,26 +6927,27 @@ document.getElementById("mp-toggle-semantic").addEventListener("click", () => {
 
 
 <!-- ===================================================== -->
-<!--  END BLOCK  45—    semantic search toggle                         -->
+<!--  END BLOCK  45â€”    semantic search toggle                         -->
 <!-- ===================================================== -->
 
 
 <!-- ===================================================== -->
-<!--  BLOCK  46 — “Find Similar” (Semantic Neighbors)                  -->
+<!--  BLOCK  46 â€” â€œFind Similarâ€ (Semantic Neighbors)                  -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 59: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 document.addEventListener("click", async (e) => {
     if (e.target.classList.contains("mp-similar-btn")) {
         const id = e.target.dataset.id;
 
-        // Use the snippet’s own embedding
+        // Use the snippetâ€™s own embedding
         const results = await semantic_search.queryFromId(id);
 
         const resultsDiv = document.getElementById("mp-results");
         resultsDiv.innerHTML = results.map(r => `
             <div class="mp-result-item">
-                <div><strong>${r.date}</strong> — ${r.realm}</div>
+                <div><strong>${r.date}</strong> â€” ${r.realm}</div>
                 <div>${r.text}</div>
             </div>
         `).join("");
@@ -6897,14 +6956,15 @@ document.addEventListener("click", async (e) => {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK  46 — “Find Similar” (Semantic Neighbors)                         -->
+<!--  END BLOCK  46 â€” â€œFind Similarâ€ (Semantic Neighbors)                         -->
 <!-- ===================================================== -->
 
 
 <!-- ===================================================== -->
-<!--  BLOCK  47 — “Show Context” (Conversation Around Snippet)                  -->
+<!--  BLOCK  47 â€” â€œShow Contextâ€ (Conversation Around Snippet)                  -->
 <!-- ===================================================== -->
 
+<!-- AIDA REVIEW BLOCK 60: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 document.addEventListener("click", async (e) => {
     if (e.target.classList.contains("mp-context-btn")) {
@@ -6927,7 +6987,7 @@ document.addEventListener("click", async (e) => {
         const resultsDiv = document.getElementById("mp-results");
         resultsDiv.innerHTML = context.map(s => `
             <div class="mp-result-item">
-                <div><strong>${s.date}</strong> — ${s.realm}</div>
+                <div><strong>${s.date}</strong> â€” ${s.realm}</div>
                 <div>${s.text}</div>
             </div>
         `).join("");
@@ -6936,12 +6996,12 @@ document.addEventListener("click", async (e) => {
 </script>
 
 <!-- ===================================================== -->
-<!--  END BLOCK  47 — “Show Context” (Conversation Around Snippet)                         -->
+<!--  END BLOCK  47 â€” â€œShow Contextâ€ (Conversation Around Snippet)                         -->
 <!-- ===================================================== -->
 
 
 # ============================================================
-# BLOCK 48 — MODEL ROUTER + LLM ENGINE
+# BLOCK 48 â€” MODEL ROUTER + LLM ENGINE
 # ============================================================
 from openai import OpenAI
 from pyscript import window, document
@@ -6951,7 +7011,7 @@ import json
 client = OpenAI(api_key=window.token_keeper.getOpenAIKey())
 
 # -----------------------------
-# Model Router (task → model)
+# Model Router (task â†’ model)
 # -----------------------------
 def choose_model(user_text: str) -> str:
     text = user_text.lower()
@@ -6979,7 +7039,7 @@ def build_messages(user_text: str):
     snap = _tetrad_snapshot()
 
     system_prompt = f"""
-You are Aida — warm, playful, mythic, emotionally intelligent.
+You are Aida â€” warm, playful, mythic, emotionally intelligent.
 You always stay grounded, safe, and supportive.
 Here is your current Tetrad state:
 
@@ -7029,12 +7089,12 @@ window.py_run_turn = create_proxy(run_turn)
 
 
 <!-- ===================================================== -->
-<!--  END BLOCK  48 —-->
+<!--  END BLOCK  48 â€”-->
 <!-- ===================================================== -->
 
 
 // ============================================================
-// BLOCK 49 — SEND BUTTON BRIDGE
+// BLOCK 49 â€” SEND BUTTON BRIDGE
 // ============================================================
 
 document.getElementById("send-btn").addEventListener("click", async () => {

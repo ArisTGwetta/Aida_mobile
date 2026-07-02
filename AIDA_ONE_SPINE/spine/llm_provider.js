@@ -1,3 +1,5 @@
+// AIDA REVIEW BLOCK 1: File header - AIDA_ONE_SPINE\spine\llm_provider.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 (function () {
   const MODULE_ID = "spine.llm.provider";
   const FIXED_ENDPOINTS = {
@@ -5,14 +7,17 @@
     xai: "https://api.x.ai/v1/responses"
   };
 
+// AIDA REVIEW BLOCK 3: Function runtime - callable behavior in this runtime organ.
   function runtime() {
     return window.AIDA_RUNTIME;
   }
 
+// AIDA REVIEW BLOCK 4: Function config - callable behavior in this runtime organ.
   function config() {
     return window.AIDA_CONFIG?.llm || {};
   }
 
+// AIDA REVIEW BLOCK 5: Function normalizeProvider - callable behavior in this runtime organ.
   function normalizeProvider(value) {
     const provider = String(value || "openai").trim().toLowerCase();
     if (provider === "grok") return "xai";
@@ -20,18 +25,22 @@
     return provider;
   }
 
+// AIDA REVIEW BLOCK 6: Function route - callable behavior in this runtime organ.
   function route() {
     return runtime()?.tokens?.llm || {};
   }
 
+// AIDA REVIEW BLOCK 7: Function providerDefaults - callable behavior in this runtime organ.
   function providerDefaults(provider) {
     return config().providers?.[provider] || {};
   }
 
+// AIDA REVIEW BLOCK 8: Function requiresKey - callable behavior in this runtime organ.
   function requiresKey(provider = normalizeProvider(route().provider)) {
     return provider !== "ollama" && route().auth !== "none";
   }
 
+// AIDA REVIEW BLOCK 9: Function endpointFor - callable behavior in this runtime organ.
   function endpointFor(provider) {
     if (FIXED_ENDPOINTS[provider]) return FIXED_ENDPOINTS[provider];
     if (provider !== "ollama") throw new Error(`Unsupported LLM provider: ${provider}.`);
@@ -49,6 +58,7 @@
     return parsed.toString();
   }
 
+// AIDA REVIEW BLOCK 10: Function assertBrowserCanReach - callable behavior in this runtime organ.
   function assertBrowserCanReach(provider, endpoint) {
     if (provider !== "ollama" || typeof window === "undefined") return;
 
@@ -68,6 +78,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 11: Function modelFor - callable behavior in this runtime organ.
   function modelFor(provider, override) {
     return (
       override ||
@@ -78,6 +89,7 @@
     );
   }
 
+// AIDA REVIEW BLOCK 12: Function currentInfo - callable behavior in this runtime organ.
   function currentInfo() {
     if (!route().provider) return null;
     const provider = normalizeProvider(route().provider);
@@ -96,6 +108,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 13: Function extractOutputText - callable behavior in this runtime organ.
   function extractOutputText(data) {
     if (typeof data?.output_text === "string" && data.output_text.trim()) {
       return data.output_text.trim();
@@ -110,6 +123,7 @@
     return chunks.join("\n").trim();
   }
 
+// AIDA REVIEW BLOCK 14: Function extractWebSources - callable behavior in this runtime organ.
   function extractWebSources(data) {
     const sources = [];
     for (const item of data?.output || []) {
@@ -134,6 +148,7 @@
     });
   }
 
+// AIDA REVIEW BLOCK 15: Function readiness - callable behavior in this runtime organ.
   function readiness() {
     const selected = normalizeProvider(route().provider);
     const missing = [];
@@ -146,6 +161,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 16: Function callMessages - callable behavior in this runtime organ.
   async function callMessages(messages, options = {}) {
     const ready = readiness();
     if (!ready.pass) throw new Error(`LLM route is not ready: ${ready.missing.join(", ")}.`);
@@ -191,6 +207,7 @@
     return text;
   }
 
+// AIDA REVIEW BLOCK 17: Function callWebSearch - callable behavior in this runtime organ.
   async function callWebSearch(query, options = {}) {
     const ready = readiness();
     if (!ready.pass) throw new Error(`LLM route is not ready: ${ready.missing.join(", ")}.`);
@@ -249,6 +266,7 @@
     return result;
   }
 
+// AIDA REVIEW BLOCK 18: Browser export AIDA_LLM_PROVIDER - exposes this organ to the page runtime.
   window.AIDA_LLM_PROVIDER = {
     callMessages,
     callWebSearch,

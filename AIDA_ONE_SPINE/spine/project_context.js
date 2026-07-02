@@ -1,14 +1,19 @@
+// AIDA REVIEW BLOCK 1: File header - AIDA_ONE_SPINE\spine\project_context.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 (function () {
   const MODULE_ID = "spine.project.context";
 
+// AIDA REVIEW BLOCK 3: Function runtime - callable behavior in this runtime organ.
   function runtime() {
     return window.AIDA_RUNTIME;
   }
 
+// AIDA REVIEW BLOCK 4: Function safeArray - callable behavior in this runtime organ.
   function safeArray(value) {
     return Array.isArray(value) ? value : [];
   }
 
+// AIDA REVIEW BLOCK 5: Function log - callable behavior in this runtime organ.
   function log(message, className = "log-green") {
     if (window.AIDA_BIOS?.log) {
       window.AIDA_BIOS.log(message, className);
@@ -20,6 +25,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 6: Function isProjectFile - callable behavior in this runtime organ.
   function isProjectFile(name) {
     return (
       name !== "project_summary.json" &&
@@ -32,13 +38,16 @@
     );
   }
 
+// AIDA REVIEW BLOCK 7: Function isRealmFile - callable behavior in this runtime organ.
   function isRealmFile(name) {
     return name.startsWith("realm_") || name.startsWith("REALM_");
   }
 
+// AIDA REVIEW BLOCK 8: Function valueName - callable behavior in this runtime organ.
   function valueName(value, fallback = "unnamed") {
     if (!value || typeof value !== "object") return fallback;
 
+// AIDA REVIEW BLOCK 9: Function direct - arrow-function behavior in this runtime organ.
     const direct = (
       value.project_name ||
       value.briefcase_title ||
@@ -68,6 +77,7 @@
     return fallback;
   }
 
+// AIDA REVIEW BLOCK 10: Function keyName - callable behavior in this runtime organ.
   function keyName(value) {
     return String(value || "")
       .toLowerCase()
@@ -81,15 +91,18 @@
       .replace(/^_+|_+$/g, "");
   }
 
+// AIDA REVIEW BLOCK 11: Function firstPresent - callable behavior in this runtime organ.
   function firstPresent(...values) {
     return values.find((value) => value !== undefined && value !== null && value !== "");
   }
 
+// AIDA REVIEW BLOCK 12: Function textFrom - callable behavior in this runtime organ.
   function textFrom(value, limit = 220) {
     if (value === null || value === undefined) return "";
     if (typeof value === "string") return value.replace(/\s+/g, " ").trim().slice(0, limit);
     if (typeof value !== "object") return String(value).slice(0, limit);
 
+// AIDA REVIEW BLOCK 13: Function candidate - arrow-function behavior in this runtime organ.
     const candidate = (
       value.status ||
       value.one_liner ||
@@ -104,6 +117,7 @@
     return "";
   }
 
+// AIDA REVIEW BLOCK 14: Function latestSummary - callable behavior in this runtime organ.
   function latestSummary(project) {
     if (!project || typeof project !== "object") return "";
     return (
@@ -115,6 +129,7 @@
     );
   }
 
+// AIDA REVIEW BLOCK 15: Function isSupersededProject - callable behavior in this runtime organ.
   function isSupersededProject(project) {
     return Boolean(
       project &&
@@ -127,10 +142,12 @@
     );
   }
 
+// AIDA REVIEW BLOCK 16: Function normalizeProjectIndex - callable behavior in this runtime organ.
   function normalizeProjectIndex(files) {
     const raw = files["project_summary.json"] || files["project_briefcases.json"] || null;
     if (!raw || typeof raw !== "object") return {};
 
+// AIDA REVIEW BLOCK 17: Function candidate - arrow-function behavior in this runtime organ.
     const candidate = (
       raw.projects ||
       raw.project_briefcases ||
@@ -143,6 +160,7 @@
     return candidate;
   }
 
+// AIDA REVIEW BLOCK 18: Function findLoadFileForProject - callable behavior in this runtime organ.
   function findLoadFileForProject(projectKey, projectData, projects, realms) {
     const candidates = [
       projectData?.fileName,
@@ -174,9 +192,11 @@
     return allNames.find((name) => name.toLowerCase().includes(foldedKey)) || null;
   }
 
+// AIDA REVIEW BLOCK 19: Function buildProjectLedger - callable behavior in this runtime organ.
   function buildProjectLedger(files, projects, realms) {
     const ledger = {};
     const projectIndex = normalizeProjectIndex(files);
+// AIDA REVIEW BLOCK 20: Function globalActivity - arrow-function behavior in this runtime organ.
     const globalActivity = (
       files["global_briefcase.json"]?.recent_project_activity ||
       files["global_identity.json"]?.recent_project_activity ||
@@ -280,8 +300,10 @@
     return ledger;
   }
 
+// AIDA REVIEW BLOCK 21: Function buildRealmLedger - callable behavior in this runtime organ.
   function buildRealmLedger(realms) {
     const ledger = {};
+// AIDA REVIEW BLOCK 22: Function addRealm - arrow-function behavior in this runtime organ.
     const addRealm = (fileName, realm, loaded) => {
       const realmKey = keyName(valueName(realm, fileName));
       if (!realmKey || ledger[realmKey]?.loaded) return;
@@ -308,6 +330,7 @@
     return ledger;
   }
 
+// AIDA REVIEW BLOCK 23: Function resolveRealmEntry - callable behavior in this runtime organ.
   function resolveRealmEntry(value) {
     const rt = runtime();
     const wanted = keyName(value);
@@ -319,6 +342,7 @@
     )) || null;
   }
 
+// AIDA REVIEW BLOCK 24: Function contextParts - callable behavior in this runtime organ.
   function contextParts(project) {
     if (!project || typeof project !== "object") {
       return {
@@ -339,6 +363,7 @@
       project.goals,
       project.contexts
     ) || null;
+// AIDA REVIEW BLOCK 25: Function summaries - arrow-function behavior in this runtime organ.
     const summaries = (
       project.latest_summary ||
       project.project_summary ||
@@ -384,6 +409,7 @@
     return { facts, summaries, memory, recentTurns, interactionRules, roleRef };
   }
 
+// AIDA REVIEW BLOCK 26: Function roleRefs - callable behavior in this runtime organ.
   function roleRefs(roleRef) {
     if (!roleRef) return [];
     if (Array.isArray(roleRef)) return roleRef.flatMap(roleRefs);
@@ -403,6 +429,7 @@
     return [roleRef];
   }
 
+// AIDA REVIEW BLOCK 27: Function defaultRoleRefsFor - callable behavior in this runtime organ.
   function defaultRoleRefsFor(selected) {
     const selectedKey = keyName(valueName(selected, ""));
     const aliases = {
@@ -417,6 +444,7 @@
     return aliases[selectedKey] || [];
   }
 
+// AIDA REVIEW BLOCK 28: Function cleanCheckpointKey - callable behavior in this runtime organ.
   function cleanCheckpointKey(value) {
     return String(value || "")
       .toLowerCase()
@@ -429,11 +457,13 @@
       .replace(/^_+|_+$/g, "");
   }
 
+// AIDA REVIEW BLOCK 29: Function latestExchange - callable behavior in this runtime organ.
   function latestExchange(rt) {
     const turns = rt.session?.currentTurns || [];
     return turns[turns.length - 1] || null;
   }
 
+// AIDA REVIEW BLOCK 30: Function exchangeBelongsToContext - callable behavior in this runtime organ.
   function exchangeBelongsToContext(exchange, contextKey) {
     if (!exchange || !contextKey) return false;
     const expected = cleanCheckpointKey(contextKey);
@@ -449,6 +479,7 @@
     return candidates.includes(expected);
   }
 
+// AIDA REVIEW BLOCK 31: Function hasUncheckpointedContextWork - callable behavior in this runtime organ.
   function hasUncheckpointedContextWork(rt, currentKey) {
     const exchange = latestExchange(rt);
     if (!exchangeBelongsToContext(exchange, currentKey)) return false;
@@ -458,6 +489,7 @@
     return latestTurn > lastCheckpointTurn;
   }
 
+// AIDA REVIEW BLOCK 32: Function checkpointBeforeContextSwitch - callable behavior in this runtime organ.
   function checkpointBeforeContextSwitch(nextKey) {
     const rt = runtime();
     const currentKey = rt.context?.projectName || rt.mind?.activeProjectName || null;
@@ -481,6 +513,7 @@
     return packet;
   }
 
+// AIDA REVIEW BLOCK 33: Function resolveRole - callable behavior in this runtime organ.
   function resolveRole(roleRef, selected) {
     const rt = runtime();
     const roles = rt.mind.roles || {};
@@ -530,6 +563,7 @@
     return { role: rt.mind.role || Object.values(roles)[0] || null, source: "default_role" };
   }
 
+// AIDA REVIEW BLOCK 34: Function select - callable behavior in this runtime organ.
   function select(projectKey) {
     const rt = runtime();
     const projects = rt.mind.projects || {};
@@ -638,6 +672,7 @@
     return selected;
   }
 
+// AIDA REVIEW BLOCK 35: Function createDraft - callable behavior in this runtime organ.
   function createDraft(name, options = {}) {
     const rt = runtime();
     const cleanName = String(name || "").replace(/\s+/g, " ").trim();
@@ -735,14 +770,17 @@
     };
   }
 
+// AIDA REVIEW BLOCK 36: Function activeLlmProvider - callable behavior in this runtime organ.
   function activeLlmProvider() {
     return window.AIDA_LLM_SCOPE?.current?.().provider || runtime().tokens?.llm?.provider || null;
   }
 
+// AIDA REVIEW BLOCK 37: Function isGenericRpg - callable behavior in this runtime organ.
   function isGenericRpg(value) {
     return /^(rpg|realm_rpg|realm_as_project_rpg)$/i.test(keyName(value || ""));
   }
 
+// AIDA REVIEW BLOCK 38: Function sourceRef - callable behavior in this runtime organ.
   function sourceRef(record, fallbackIndex) {
     return (
       safeArray(record?.source_refs)[0] ||
@@ -751,6 +789,7 @@
     );
   }
 
+// AIDA REVIEW BLOCK 39: Function historyRecord - callable behavior in this runtime organ.
   function historyRecord(record, fallbackIndex) {
     const tags = record?.tags || {};
     return {
@@ -765,6 +804,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 40: Function isAdoptableRecord - callable behavior in this runtime organ.
   function isAdoptableRecord(record, provider) {
     const item = historyRecord(record, 0);
     const project = record?.project || record?.tags?.project || item.original_project;
@@ -780,6 +820,7 @@
     );
   }
 
+// AIDA REVIEW BLOCK 41: Function recentAdoptableHistory - callable behavior in this runtime organ.
   function recentAdoptableHistory(options = {}) {
     const rt = runtime();
     const provider = options.provider || activeLlmProvider();
@@ -798,6 +839,7 @@
       .slice(-limit);
   }
 
+// AIDA REVIEW BLOCK 42: Function openingHint - callable behavior in this runtime organ.
   function openingHint(records) {
     const words = records
       .flatMap((item) => `${item.user} ${item.aida}`.toLowerCase().match(/[a-z]{4,}/g) || [])
@@ -817,6 +859,7 @@
       .join(", ");
   }
 
+// AIDA REVIEW BLOCK 43: Function adoptHistory - callable behavior in this runtime organ.
   function adoptHistory(options = {}) {
     const rt = runtime();
     const project = rt.context?.project;
@@ -886,16 +929,19 @@
     };
   }
 
+// AIDA REVIEW BLOCK 44: Function suggestUnnamedStory - callable behavior in this runtime organ.
   function suggestUnnamedStory() {
     runtime().context.pendingUnnamedStory = null;
     return null;
   }
 
+// AIDA REVIEW BLOCK 45: Function consumeUnnamedStoryTitle - callable behavior in this runtime organ.
   function consumeUnnamedStoryTitle(text) {
     runtime().context.pendingUnnamedStory = null;
     return null;
   }
 
+// AIDA REVIEW BLOCK 46: Function needsHydration - callable behavior in this runtime organ.
   function needsHydration(projectKey) {
     const rt = runtime();
     const ledger = rt.mind.projectLedger || {};
@@ -919,6 +965,7 @@
     );
   }
 
+// AIDA REVIEW BLOCK 47: Function selectHydrated - callable behavior in this runtime organ.
   async function selectHydrated(projectKey) {
     if (needsHydration(projectKey)) {
       log(`PROJECT: Hydrating ${projectKey} from Drive before selection.`, "log-amber");
@@ -930,6 +977,7 @@
   }
 
   let hierarchyHydration = null;
+// AIDA REVIEW BLOCK 48: Function hierarchyNeedsHydration - callable behavior in this runtime organ.
   function hierarchyNeedsHydration() {
     const rt = runtime();
     return Object.keys(rt.drive?.fileIndex || {}).some((fileName) => (
@@ -937,6 +985,7 @@
     ));
   }
 
+// AIDA REVIEW BLOCK 49: Function hydrateHierarchy - callable behavior in this runtime organ.
   async function hydrateHierarchy() {
     if (!hierarchyNeedsHydration()) return hierarchy();
     if (hierarchyHydration) return hierarchyHydration;
@@ -958,10 +1007,12 @@
     return hierarchyHydration;
   }
 
+// AIDA REVIEW BLOCK 50: Function list - callable behavior in this runtime organ.
   function list() {
     return Object.values(runtime().mind.projectLedger || {});
   }
 
+// AIDA REVIEW BLOCK 51: Function currentProviderAllows - callable behavior in this runtime organ.
   function currentProviderAllows(project) {
     const active = String(activeLlmProvider() || "").toLowerCase();
     const provider = String(
@@ -974,6 +1025,7 @@
     return !active || !provider || provider === "shared" || provider === active;
   }
 
+// AIDA REVIEW BLOCK 52: Function uniqueValues - callable behavior in this runtime organ.
   function uniqueValues(...lists) {
     const output = [];
     const seen = new Set();
@@ -991,6 +1043,7 @@
     return output;
   }
 
+// AIDA REVIEW BLOCK 53: Function projectContentCount - callable behavior in this runtime organ.
   function projectContentCount(project) {
     if (!project || typeof project !== "object") return 0;
     return [
@@ -1007,6 +1060,7 @@
     ].filter(Boolean).length;
   }
 
+// AIDA REVIEW BLOCK 54: Function projectSnapshot - callable behavior in this runtime organ.
   function projectSnapshot(entry) {
     const rt = runtime();
     const fileName = entry?.fileName || entry?.key;
@@ -1037,6 +1091,7 @@
     "what", "when", "where", "which", "with", "would", "aida", "francisco"
   ]);
 
+// AIDA REVIEW BLOCK 55: Function portfolioText - callable behavior in this runtime organ.
   function portfolioText(snapshot) {
     const project = snapshot?.project || {};
     return [
@@ -1059,6 +1114,7 @@
     )).join(" ");
   }
 
+// AIDA REVIEW BLOCK 56: Function portfolioCoreTokens - callable behavior in this runtime organ.
   function portfolioCoreTokens(snapshot) {
     const project = snapshot?.project || {};
     return new Set(
@@ -1079,6 +1135,7 @@
     );
   }
 
+// AIDA REVIEW BLOCK 57: Function portfolioTokens - callable behavior in this runtime organ.
   function portfolioTokens(snapshot) {
     return new Set(
       (portfolioText(snapshot).toLowerCase().match(/[a-z0-9]{4,}/g) || [])
@@ -1086,18 +1143,21 @@
     );
   }
 
+// AIDA REVIEW BLOCK 58: Function sharedPortfolioTokens - callable behavior in this runtime organ.
   function sharedPortfolioTokens(left, right) {
     const a = portfolioTokens(left);
     const b = portfolioTokens(right);
     return [...a].filter((token) => b.has(token));
   }
 
+// AIDA REVIEW BLOCK 59: Function mentionsProject - callable behavior in this runtime organ.
   function mentionsProject(text, snapshot) {
     const haystack = keyName(text);
     const nameTokens = [...similarityTokens(snapshot?.name || "")];
     return nameTokens.length > 0 && nameTokens.every((token) => haystack.includes(token));
   }
 
+// AIDA REVIEW BLOCK 60: Function explicitRelationship - callable behavior in this runtime organ.
   function explicitRelationship(left, right) {
     const leftText = portfolioText(left);
     const rightText = portfolioText(right);
@@ -1118,6 +1178,7 @@
     return null;
   }
 
+// AIDA REVIEW BLOCK 61: Function relationshipRecommendation - callable behavior in this runtime organ.
   function relationshipRecommendation(type) {
     if (type === "dependency") return "sequence_and_link";
     if (type === "conflict") return "review_before_linking";
@@ -1126,6 +1187,7 @@
     return "keep_related";
   }
 
+// AIDA REVIEW BLOCK 62: Function portfolioRelationship - callable behavior in this runtime organ.
   function portfolioRelationship(left, right) {
     const shared = sharedPortfolioTokens(left, right);
     const smaller = Math.max(1, Math.min(portfolioTokens(left).size, portfolioTokens(right).size));
@@ -1151,6 +1213,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 63: Function spinOffSuggestions - callable behavior in this runtime organ.
   function spinOffSuggestions(snapshot) {
     const threads = safeArray(snapshot?.project?.open_threads);
     const projectTerms = portfolioCoreTokens(snapshot);
@@ -1174,6 +1237,7 @@
       .filter(Boolean);
   }
 
+// AIDA REVIEW BLOCK 64: Function portfolioGlance - callable behavior in this runtime organ.
   async function portfolioGlance(options = {}) {
     await hydrateHierarchy();
     const overview = memoryOverview({ limit: 50 });
@@ -1205,6 +1269,7 @@
     return result;
   }
 
+// AIDA REVIEW BLOCK 65: Function stageProjectRelationship - callable behavior in this runtime organ.
   function stageProjectRelationship(index = 1) {
     const rt = runtime();
     const suggestions = safeArray(rt.context?.pendingPortfolioRelationships);
@@ -1219,6 +1284,7 @@
       return { ok: false, reason: "llm_scope_mismatch" };
     }
     const linkedAt = new Date().toISOString();
+// AIDA REVIEW BLOCK 66: Function linkFor - arrow-function behavior in this runtime organ.
     const linkFor = (other) => ({
       project_file: other.fileName,
       project_name: other.name,
@@ -1257,12 +1323,14 @@
     return { ok: true, relationship, stagedForCommit: true };
   }
 
+// AIDA REVIEW BLOCK 67: Function clearPortfolioSuggestions - callable behavior in this runtime organ.
   function clearPortfolioSuggestions() {
     const hadSuggestions = safeArray(runtime().context?.pendingPortfolioRelationships).length > 0;
     runtime().context.pendingPortfolioRelationships = [];
     return hadSuggestions;
   }
 
+// AIDA REVIEW BLOCK 68: Function memoryOverview - callable behavior in this runtime organ.
   function memoryOverview(options = {}) {
     const rt = runtime();
     const projects = Object.values(rt.mind.projectLedger || {})
@@ -1280,6 +1348,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 69: Function similarityTokens - callable behavior in this runtime organ.
   function similarityTokens(value) {
     return new Set(
       String(value || "")
@@ -1289,6 +1358,7 @@
     );
   }
 
+// AIDA REVIEW BLOCK 70: Function projectMatchScore - callable behavior in this runtime organ.
   function projectMatchScore(query, entry) {
     const wanted = similarityTokens(query);
     const available = similarityTokens(`${entry?.name || ""} ${entry?.fileName || ""}`);
@@ -1300,6 +1370,7 @@
     return overlap / wanted.size;
   }
 
+// AIDA REVIEW BLOCK 71: Function compareProjects - callable behavior in this runtime organ.
   async function compareProjects(query = "") {
     await hydrateHierarchy();
     const entries = Object.values(runtime().mind.projectLedger || {})
@@ -1343,6 +1414,7 @@
     return comparison;
   }
 
+// AIDA REVIEW BLOCK 72: Function summarizeProject - callable behavior in this runtime organ.
   async function summarizeProject(query = "") {
     await hydrateHierarchy();
     const match = Object.values(runtime().mind.projectLedger || {})
@@ -1354,6 +1426,7 @@
     return { ok: true, ...match.snapshot };
   }
 
+// AIDA REVIEW BLOCK 73: Function mergeProjectPayloads - callable behavior in this runtime organ.
   function mergeProjectPayloads(survivor, duplicate, survivorFile, duplicateFile) {
     const mergedAt = new Date().toISOString();
     return {
@@ -1396,6 +1469,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 74: Function confirmProjectReconciliation - callable behavior in this runtime organ.
   function confirmProjectReconciliation() {
     const rt = runtime();
     const pending = rt.context?.pendingProjectReconciliation;
@@ -1452,12 +1526,14 @@
     };
   }
 
+// AIDA REVIEW BLOCK 75: Function cancelProjectReconciliation - callable behavior in this runtime organ.
   function cancelProjectReconciliation() {
     const hadPending = Boolean(runtime().context?.pendingProjectReconciliation);
     runtime().context.pendingProjectReconciliation = null;
     return hadPending;
   }
 
+// AIDA REVIEW BLOCK 76: Function findByName - callable behavior in this runtime organ.
   function findByName(name, kind = "project") {
     const wanted = keyName(name);
     const entries = kind === "realm"
@@ -1470,6 +1546,7 @@
     )) || entries.find((entry) => keyName(entry.name).includes(wanted)) || null;
   }
 
+// AIDA REVIEW BLOCK 77: Function openNamed - callable behavior in this runtime organ.
   async function openNamed(name, kind = "project") {
     const entry = findByName(name, kind);
     if (!entry) return null;
@@ -1477,6 +1554,7 @@
     return selected ? { entry, selected } : null;
   }
 
+// AIDA REVIEW BLOCK 78: Function returnContext - callable behavior in this runtime organ.
   function returnContext(provider = activeLlmProvider()) {
     const rt = runtime();
     const normalizedProvider = String(provider || "").toLowerCase();
@@ -1541,6 +1619,7 @@
     return result;
   }
 
+// AIDA REVIEW BLOCK 79: Function acceptReturnContext - callable behavior in this runtime organ.
   async function acceptReturnContext() {
     const rt = runtime();
     const proposed = rt.context?.proposedReturnContext;
@@ -1555,11 +1634,13 @@
     };
   }
 
+// AIDA REVIEW BLOCK 80: Function dismissReturnContext - callable behavior in this runtime organ.
   function dismissReturnContext() {
     runtime().context.proposedReturnContext = null;
     return true;
   }
 
+// AIDA REVIEW BLOCK 81: Function claimProject - callable behavior in this runtime organ.
   async function claimProject(projectName, realmName) {
     const rt = runtime();
     const projectEntry = findByName(projectName, "project");
@@ -1618,6 +1699,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 82: Function editableBriefcase - callable behavior in this runtime organ.
   function editableBriefcase(fileName) {
     const rt = runtime();
     if (!fileName) return null;
@@ -1627,6 +1709,7 @@
     return project;
   }
 
+// AIDA REVIEW BLOCK 83: Function stageBriefcaseEdit - callable behavior in this runtime organ.
   function stageBriefcaseEdit(fileName, patch = {}) {
     const rt = runtime();
     const project = editableBriefcase(fileName);
@@ -1685,10 +1768,12 @@
     };
   }
 
+// AIDA REVIEW BLOCK 84: Function hierarchy - callable behavior in this runtime organ.
   function hierarchy() {
     const rt = runtime();
     const realms = Object.values(rt.mind.realmLedger || {});
     const projects = Object.values(rt.mind.projectLedger || {});
+// AIDA REVIEW BLOCK 85: Function isActiveProject - arrow-function behavior in this runtime organ.
     const isActiveProject = (project) => (
       rt.context?.activeProjectName === project.key ||
       rt.context?.activeProjectName === project.fileName
@@ -1726,6 +1811,7 @@
     return groups;
   }
 
+// AIDA REVIEW BLOCK 86: Function mapDriveFilesToMind - callable behavior in this runtime organ.
   function mapDriveFilesToMind(files = runtime().drive?.files || {}, options = {}) {
     const rt = runtime();
     const selectDefault = options.selectDefault !== false;
@@ -1793,6 +1879,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 87: Browser export AIDA_PROJECTS - exposes this organ to the page runtime.
   window.AIDA_PROJECTS = {
     list,
     hierarchy,

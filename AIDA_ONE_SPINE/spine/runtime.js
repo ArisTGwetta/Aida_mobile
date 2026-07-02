@@ -1,6 +1,9 @@
+// AIDA REVIEW BLOCK 1: File header - AIDA_ONE_SPINE\spine\runtime.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 (function () {
   if (window.AIDA_RUNTIME) return;
 
+// AIDA REVIEW BLOCK 3: Browser export AIDA_RUNTIME - exposes this organ to the page runtime.
   window.AIDA_RUNTIME = {
     version: "spine-0.1",
     boot: {
@@ -207,6 +210,7 @@
     }
   };
 
+// AIDA REVIEW BLOCK 4: Browser export AIDA_MODULES - exposes this organ to the page runtime.
   window.AIDA_MODULES = {
     registry: {},
     register(module) {

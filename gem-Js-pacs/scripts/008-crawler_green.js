@@ -1,3 +1,5 @@
+// AIDA REVIEW BLOCK 1: File header - gem-Js-pacs\scripts\008-crawler_green.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 // --- MODULE: CRAWLER.PY (GREEN PHASE) ---
 const CRAWLER_PY = `
 import json
@@ -8,6 +10,7 @@ def tokenize(text):
     text = text.lower()
     return re.findall(r"[a-z0-9_]+", text)
 
+// AIDA REVIEW BLOCK 3: Class Crawler - owns a grouped runtime organ or service surface.
 class Crawler:
     """
     Log analysis engine. Sifts through raw history to detect 

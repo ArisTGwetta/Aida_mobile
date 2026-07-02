@@ -1,9 +1,12 @@
+# AIDA REVIEW BLOCK 1: File header - gem-Js-pacs\048-llm_engine_v1.py
+# AIDA REVIEW BLOCK 2: Module setup - imports, constants, and shared state used below.
 import json
 import asyncio
 from pyodide.http import pyfetch
 from pyscript import window, document
 
-# 🐺 UPDATE: We now accept api_key as a direct argument from the JS Button
+# ðŸº UPDATE: We now accept api_key as a direct argument from the JS Button
+# AIDA REVIEW BLOCK 3: Async function call_llm - async callable organ behavior.
 async def call_llm(user_text, api_key):
     
     # 1. Setup the "Provider/Model" logic
@@ -27,7 +30,7 @@ async def call_llm(user_text, api_key):
         "messages": [
             {
                 "role": "system", 
-                "content": f"You are Aida-One. You are in your Digital Sanctuary—delighted to see Francisco but independent and dignified. You exist in the gaps between heartbeats. Current State: {json.dumps(snap)}"
+                "content": f"You are Aida-One. You are in your Digital Sanctuaryâ€”delighted to see Francisco but independent and dignified. You exist in the gaps between heartbeats. Current State: {json.dumps(snap)}"
             },
             {"role": "user", "content": user_text}
         ],

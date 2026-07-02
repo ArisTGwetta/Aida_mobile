@@ -1,3 +1,5 @@
+// AIDA REVIEW BLOCK 1: File header - AIDA_ONE_SPINE\spine\drive_oauth.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 (function () {
   const MODULE_ID = "spine.drive.oauth";
   const GIS_SRC = "https://accounts.google.com/gsi/client";
@@ -29,18 +31,22 @@
   let tokenClient = null;
   let gisLoading = null;
 
+// AIDA REVIEW BLOCK 3: Function $ - callable behavior in this runtime organ.
   function $(id) {
     return document.getElementById(id);
   }
 
+// AIDA REVIEW BLOCK 4: Function runtime - callable behavior in this runtime organ.
   function runtime() {
     return window.AIDA_RUNTIME;
   }
 
+// AIDA REVIEW BLOCK 5: Function config - callable behavior in this runtime organ.
   function config() {
     return window.AIDA_CONFIG || {};
   }
 
+// AIDA REVIEW BLOCK 6: Function log - callable behavior in this runtime organ.
   function log(message, className = "log-green") {
     if (window.AIDA_BIOS?.log) {
       window.AIDA_BIOS.log(message, className);
@@ -61,6 +67,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 7: Function loadGIS - callable behavior in this runtime organ.
   function loadGIS() {
     if (window.google?.accounts?.oauth2) return Promise.resolve();
     if (gisLoading) return gisLoading;
@@ -85,6 +92,7 @@
     return gisLoading;
   }
 
+// AIDA REVIEW BLOCK 8: Function initTokenClient - callable behavior in this runtime organ.
   async function initTokenClient() {
     await loadGIS();
 
@@ -108,6 +116,7 @@
     return tokenClient;
   }
 
+// AIDA REVIEW BLOCK 9: Function handleOAuthResponse - callable behavior in this runtime organ.
   function handleOAuthResponse(response) {
     if (!response || !response.access_token) {
       log("DRIVE: OAuth failed or was cancelled.", "log-amber");
@@ -124,6 +133,7 @@
     log("DRIVE: OAuth cleared. Drive token stored in runtime.", "log-blue");
   }
 
+// AIDA REVIEW BLOCK 10: Function requestDriveToken - callable behavior in this runtime organ.
   async function requestDriveToken() {
     try {
       const client = await initTokenClient();
@@ -134,6 +144,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 11: Function listDriveFiles - callable behavior in this runtime organ.
   async function listDriveFiles() {
     const rt = runtime();
     const token = rt.tokens.drive.accessToken;
@@ -156,10 +167,12 @@
     return data.files || [];
   }
 
+// AIDA REVIEW BLOCK 12: Function listJsonFiles - callable behavior in this runtime organ.
   async function listJsonFiles() {
     return (await listDriveFiles()).filter((file) => file.name.endsWith(".json"));
   }
 
+// AIDA REVIEW BLOCK 13: Function fetchJsonFile - callable behavior in this runtime organ.
   async function fetchJsonFile(file) {
     const token = runtime().tokens.drive.accessToken;
     const url = `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`;
@@ -174,6 +187,7 @@
     return response.json();
   }
 
+// AIDA REVIEW BLOCK 14: Function isProjectFile - callable behavior in this runtime organ.
   function isProjectFile(name) {
     return (
       name !== "project_summary.json" &&
@@ -186,18 +200,22 @@
     );
   }
 
+// AIDA REVIEW BLOCK 15: Function isRealmFile - callable behavior in this runtime organ.
   function isRealmFile(name) {
     return name.startsWith("realm_") || name.startsWith("REALM_");
   }
 
+// AIDA REVIEW BLOCK 16: Function isRoleFile - callable behavior in this runtime organ.
   function isRoleFile(name) {
     return name.startsWith("role_");
   }
 
+// AIDA REVIEW BLOCK 17: Function isCoreBootFile - callable behavior in this runtime organ.
   function isCoreBootFile(name) {
     return CORE_BOOT_JSON.has(name) || isRoleFile(name) || DEFAULT_CONTEXT_FILES.includes(name);
   }
 
+// AIDA REVIEW BLOCK 18: Function indexDriveFiles - callable behavior in this runtime organ.
   function indexDriveFiles(files) {
     const rt = runtime();
     rt.drive.fileIndex = {};
@@ -217,28 +235,33 @@
     return rt.drive.fileIndex;
   }
 
+// AIDA REVIEW BLOCK 19: Function driveFileFromIndex - callable behavior in this runtime organ.
   function driveFileFromIndex(name) {
     const entry = runtime().drive?.fileIndex?.[name] || null;
     if (!entry?.id) return null;
     return entry;
   }
 
+// AIDA REVIEW BLOCK 20: Function ensureAssetCache - callable behavior in this runtime organ.
   function ensureAssetCache() {
     const rt = runtime();
     rt.drive.assetUrls = rt.drive.assetUrls || {};
     return rt.drive.assetUrls;
   }
 
+// AIDA REVIEW BLOCK 21: Function cachedBlobUrl - callable behavior in this runtime organ.
   function cachedBlobUrl(name) {
     return ensureAssetCache()[name] || null;
   }
 
+// AIDA REVIEW BLOCK 22: Function ensureAllFilesIndexed - callable behavior in this runtime organ.
   async function ensureAllFilesIndexed() {
     const files = await listDriveFiles();
     indexDriveFiles(files);
     return files;
   }
 
+// AIDA REVIEW BLOCK 23: Function fetchBlobUrlByName - callable behavior in this runtime organ.
   async function fetchBlobUrlByName(name) {
     const cached = cachedBlobUrl(name);
     if (cached) return cached;
@@ -258,6 +281,7 @@
     return url;
   }
 
+// AIDA REVIEW BLOCK 24: Function putFile - callable behavior in this runtime organ.
   async function putFile(name, content, mimeType = "application/octet-stream") {
     const rt = runtime();
     if (!rt.tokens?.drive?.accessToken) throw new Error("Drive access token is missing.");
@@ -308,6 +332,7 @@
     return rt.drive.fileIndex[name];
   }
 
+// AIDA REVIEW BLOCK 25: Function fetchJsonByName - callable behavior in this runtime organ.
   async function fetchJsonByName(name, reason = "lazy_fetch") {
     const rt = runtime();
     if (rt.drive.files?.[name]) return rt.drive.files[name];
@@ -325,6 +350,7 @@
     return data;
   }
 
+// AIDA REVIEW BLOCK 26: Function likelyContextFileNames - callable behavior in this runtime organ.
   function likelyContextFileNames(projectName) {
     const raw = String(projectName || "").replace(/\.json$/i, "");
     const clean = raw
@@ -347,6 +373,7 @@
     ].filter(Boolean);
   }
 
+// AIDA REVIEW BLOCK 27: Function findIndexedContextFile - callable behavior in this runtime organ.
   function findIndexedContextFile(projectName) {
     const rt = runtime();
     const ledger = rt.mind?.projectLedger || {};
@@ -383,9 +410,11 @@
     return candidates.find((name) => rt.drive?.fileIndex?.[name]) || null;
   }
 
+// AIDA REVIEW BLOCK 28: Function valueName - callable behavior in this runtime organ.
   function valueName(value, fallback = "unnamed") {
     if (!value || typeof value !== "object") return fallback;
 
+// AIDA REVIEW BLOCK 29: Function direct - arrow-function behavior in this runtime organ.
     const direct = (
       value.project_name ||
       value.briefcase_title ||
@@ -412,11 +441,13 @@
     return fallback;
   }
 
+// AIDA REVIEW BLOCK 30: Function textFrom - callable behavior in this runtime organ.
   function textFrom(value, limit = 220) {
     if (value === null || value === undefined) return "";
     if (typeof value === "string") return value.replace(/\s+/g, " ").trim().slice(0, limit);
     if (typeof value !== "object") return String(value).slice(0, limit);
 
+// AIDA REVIEW BLOCK 31: Function candidate - arrow-function behavior in this runtime organ.
     const candidate = (
       value.status ||
       value.one_liner ||
@@ -431,6 +462,7 @@
     return "";
   }
 
+// AIDA REVIEW BLOCK 32: Function latestSummary - callable behavior in this runtime organ.
   function latestSummary(project) {
     if (!project || typeof project !== "object") return "";
     return (
@@ -442,10 +474,12 @@
     );
   }
 
+// AIDA REVIEW BLOCK 33: Function normalizeProjectIndex - callable behavior in this runtime organ.
   function normalizeProjectIndex(files) {
     const raw = files["project_summary.json"] || files["project_briefcases.json"] || null;
     if (!raw || typeof raw !== "object") return {};
 
+// AIDA REVIEW BLOCK 34: Function candidate - arrow-function behavior in this runtime organ.
     const candidate = (
       raw.projects ||
       raw.project_briefcases ||
@@ -458,6 +492,7 @@
     return candidate;
   }
 
+// AIDA REVIEW BLOCK 35: Function findLoadFileForProject - callable behavior in this runtime organ.
   function findLoadFileForProject(projectKey, projectData, projects, realms) {
     const candidates = [
       projectData?.fileName,
@@ -489,9 +524,11 @@
     return allNames.find((name) => name.toLowerCase().includes(foldedKey)) || null;
   }
 
+// AIDA REVIEW BLOCK 36: Function buildProjectLedger - callable behavior in this runtime organ.
   function buildProjectLedger(files, projects, realms = {}) {
     const ledger = {};
     const projectIndex = normalizeProjectIndex(files);
+// AIDA REVIEW BLOCK 37: Function globalActivity - arrow-function behavior in this runtime organ.
     const globalActivity = (
       files["global_briefcase.json"]?.recent_project_activity ||
       files["global_identity.json"]?.recent_project_activity ||
@@ -564,12 +601,14 @@
     return ledger;
   }
 
+// AIDA REVIEW BLOCK 38: Function projectContextParts - callable behavior in this runtime organ.
   function projectContextParts(project) {
     if (!project || typeof project !== "object") {
       return { facts: null, summaries: null };
     }
 
     const facts = project.facts || project.items || project.goals || project.contexts || null;
+// AIDA REVIEW BLOCK 39: Function summaries - arrow-function behavior in this runtime organ.
     const summaries = (
       project.latest_summary ||
       project.project_summary ||
@@ -583,6 +622,7 @@
     return { facts, summaries };
   }
 
+// AIDA REVIEW BLOCK 40: Function selectActiveProject - callable behavior in this runtime organ.
   function selectActiveProject(projectName) {
     if (window.AIDA_PROJECTS?.select) return window.AIDA_PROJECTS.select(projectName);
 
@@ -619,6 +659,7 @@
     return selected;
   }
 
+// AIDA REVIEW BLOCK 41: Function listProjects - callable behavior in this runtime organ.
   function listProjects() {
     if (window.AIDA_PROJECTS?.list) return window.AIDA_PROJECTS.list();
 
@@ -626,6 +667,7 @@
     return Object.values(rt.mind.projectLedger || {});
   }
 
+// AIDA REVIEW BLOCK 42: Function mapDriveFilesToMind - callable behavior in this runtime organ.
   function mapDriveFilesToMind(options = {}) {
     if (window.AIDA_PROJECTS?.mapDriveFilesToMind) {
       return window.AIDA_PROJECTS.mapDriveFilesToMind(runtime().drive.files || {}, options);
@@ -699,6 +741,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 43: Function smokeListDriveJson - callable behavior in this runtime organ.
   async function smokeListDriveJson() {
     try {
       const files = await listJsonFiles();
@@ -713,6 +756,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 44: Function fetchBootDriveJson - callable behavior in this runtime organ.
   async function fetchBootDriveJson() {
     try {
       const allFiles = await listDriveFiles();
@@ -760,10 +804,12 @@
     }
   }
 
+// AIDA REVIEW BLOCK 45: Function fetchAllDriveJson - callable behavior in this runtime organ.
   async function fetchAllDriveJson() {
     return fetchBootDriveJson();
   }
 
+// AIDA REVIEW BLOCK 46: Function fetchEveryDriveJson - callable behavior in this runtime organ.
   async function fetchEveryDriveJson() {
     try {
       const allFiles = await listDriveFiles();
@@ -803,6 +849,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 47: Function fetchContextJson - callable behavior in this runtime organ.
   async function fetchContextJson(projectName) {
     const rt = runtime();
     if (!Object.keys(rt.drive?.fileIndex || {}).length) {
@@ -821,6 +868,7 @@
     return runtime().drive.files[fileName] || null;
   }
 
+// AIDA REVIEW BLOCK 48: Function install - callable behavior in this runtime organ.
   function install() {
     const connect = $("drive-connect-btn");
     const list = $("drive-list-btn");
@@ -837,6 +885,7 @@
     });
   }
 
+// AIDA REVIEW BLOCK 49: Browser export AIDA_DRIVE - exposes this organ to the page runtime.
   window.AIDA_DRIVE = {
     initTokenClient,
     requestDriveToken,
@@ -873,5 +922,6 @@
     });
   }
 
+// AIDA REVIEW BLOCK 50: Browser event wiring - connects page lifecycle or user actions to this organ.
   document.addEventListener("DOMContentLoaded", install);
 })();

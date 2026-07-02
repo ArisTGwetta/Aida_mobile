@@ -1,3 +1,5 @@
+# AIDA REVIEW BLOCK 1: File header - ONE\py\triad.py
+# AIDA REVIEW BLOCK 2: Module setup - imports, constants, and shared state used below.
 # triad.py (updated for Tetrad)
 
 from identity_engine import IdentityEngine
@@ -8,11 +10,13 @@ import json
 from pathlib import Path
 
 
+# AIDA REVIEW BLOCK 3: Function load_emotion_state - callable organ behavior.
 def load_emotion_state(path: Path):
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
+# AIDA REVIEW BLOCK 4: Function assemble_tetrad - callable organ behavior.
 def assemble_tetrad(core_identity,
                     realm_config,
                     role_config,
@@ -34,7 +38,7 @@ def assemble_tetrad(core_identity,
     identity_engine = IdentityEngine(core_identity, realm_ctx, role_ctx)
     identity_ctx = identity_engine.get_resolved_identity()
 
-    # 4. Emotion (valence/arousal → label + face)
+    # 4. Emotion (valence/arousal â†’ label + face)
     emotion_state = load_emotion_state(emotion_state_path)
     selector = EmotionSelector()
     emo_result = selector.select_emotion(

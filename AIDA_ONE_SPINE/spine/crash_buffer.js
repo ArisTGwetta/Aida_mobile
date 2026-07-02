@@ -1,11 +1,15 @@
+// AIDA REVIEW BLOCK 1: File header - AIDA_ONE_SPINE\spine\crash_buffer.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 (function () {
   const MODULE_ID = "spine.crash.buffer";
   const DEFAULT_KEY = "AIDA_SPINE_CRASH_BUFFER_V1";
 
+// AIDA REVIEW BLOCK 3: Function runtime - callable behavior in this runtime organ.
   function runtime() {
     return window.AIDA_RUNTIME;
   }
 
+// AIDA REVIEW BLOCK 4: Function log - callable behavior in this runtime organ.
   function log(message, className = "log-blue") {
     if (window.AIDA_BIOS?.log) {
       window.AIDA_BIOS.log(message, className);
@@ -14,10 +18,12 @@
     if (window.AIDA_BODY?.pulse) window.AIDA_BODY.pulse(message);
   }
 
+// AIDA REVIEW BLOCK 5: Function nowIso - callable behavior in this runtime organ.
   function nowIso() {
     return new Date().toISOString();
   }
 
+// AIDA REVIEW BLOCK 6: Function copyJson - callable behavior in this runtime organ.
   function copyJson(value, fallback) {
     if (value === undefined) return fallback;
     try {
@@ -27,6 +33,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 7: Function storage - callable behavior in this runtime organ.
   function storage() {
     try {
       if (!window.localStorage) return null;
@@ -39,6 +46,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 8: Function ensureState - callable behavior in this runtime organ.
   function ensureState() {
     const rt = runtime();
     rt.crashBuffer = rt.crashBuffer || {};
@@ -47,6 +55,7 @@
     return rt.crashBuffer;
   }
 
+// AIDA REVIEW BLOCK 9: Function hasWork - callable behavior in this runtime organ.
   function hasWork(rt) {
     return Boolean(
       rt?.session?.currentTurns?.length ||
@@ -57,6 +66,7 @@
     );
   }
 
+// AIDA REVIEW BLOCK 10: Function buildSnapshot - callable behavior in this runtime organ.
   function buildSnapshot(reason = "manual") {
     const rt = runtime();
     const savedAt = nowIso();
@@ -76,6 +86,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 11: Function checkpoint - callable behavior in this runtime organ.
   function checkpoint(reason = "runtime_checkpoint") {
     const rt = runtime();
     const state = ensureState();
@@ -111,6 +122,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 12: Function readSnapshot - callable behavior in this runtime organ.
   function readSnapshot() {
     const state = ensureState();
     const store = storage();
@@ -125,10 +137,12 @@
     }
   }
 
+// AIDA REVIEW BLOCK 13: Function runtimeIsEmpty - callable behavior in this runtime organ.
   function runtimeIsEmpty(rt) {
     return !rt.session?.currentTurns?.length && !rt.sleep?.pendingJournal?.length;
   }
 
+// AIDA REVIEW BLOCK 14: Function restore - callable behavior in this runtime organ.
   function restore(options = {}) {
     const rt = runtime();
     const state = ensureState();
@@ -174,6 +188,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 15: Function clear - callable behavior in this runtime organ.
   function clear(reason = "manual_clear") {
     const state = ensureState();
     const store = storage();
@@ -184,6 +199,7 @@
     return { ok: true, reason, clearedAt: state.lastClearedAt };
   }
 
+// AIDA REVIEW BLOCK 16: Function inspect - callable behavior in this runtime organ.
   function inspect() {
     const state = ensureState();
     const snapshot = readSnapshot();
@@ -218,6 +234,7 @@
     return summary;
   }
 
+// AIDA REVIEW BLOCK 17: Function install - callable behavior in this runtime organ.
   function install() {
     ensureState();
     const result = restore();
@@ -228,6 +245,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 18: Browser export AIDA_CRASH_BUFFER - exposes this organ to the page runtime.
   window.AIDA_CRASH_BUFFER = {
     checkpoint,
     restore,
@@ -247,5 +265,6 @@
     });
   }
 
+// AIDA REVIEW BLOCK 19: Browser event wiring - connects page lifecycle or user actions to this organ.
   document.addEventListener("DOMContentLoaded", install);
 })();

@@ -1,15 +1,20 @@
+// AIDA REVIEW BLOCK 1: File header - AIDA_ONE_SPINE\spine\llm_messages.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 (function () {
   const MODULE_ID = "spine.llm.messages";
   const SECTION_LIMIT = 5200;
 
+// AIDA REVIEW BLOCK 3: Function $ - callable behavior in this runtime organ.
   function $(id) {
     return document.getElementById(id);
   }
 
+// AIDA REVIEW BLOCK 4: Function runtime - callable behavior in this runtime organ.
   function runtime() {
     return window.AIDA_RUNTIME;
   }
 
+// AIDA REVIEW BLOCK 5: Function log - callable behavior in this runtime organ.
   function log(message, className = "log-green") {
     if (window.AIDA_BIOS?.log) {
       window.AIDA_BIOS.log(message, className);
@@ -30,9 +35,11 @@
     }
   }
 
+// AIDA REVIEW BLOCK 6: Function valueName - callable behavior in this runtime organ.
   function valueName(value, fallback = "unnamed") {
     if (!value || typeof value !== "object") return fallback;
 
+// AIDA REVIEW BLOCK 7: Function direct - arrow-function behavior in this runtime organ.
     const direct = (
       value.name ||
       value.display_name ||
@@ -64,12 +71,14 @@
     return fallback;
   }
 
+// AIDA REVIEW BLOCK 8: Function countArrayLike - callable behavior in this runtime organ.
   function countArrayLike(value) {
     if (Array.isArray(value)) return value.length;
     if (value && typeof value === "object") return Object.keys(value).length;
     return 0;
   }
 
+// AIDA REVIEW BLOCK 9: Function countLikely - callable behavior in this runtime organ.
   function countLikely(value, keys) {
     if (!value || typeof value !== "object") return 0;
     for (const key of keys) {
@@ -78,6 +87,7 @@
     return countArrayLike(value);
   }
 
+// AIDA REVIEW BLOCK 10: Function emotionSummary - callable behavior in this runtime organ.
   function emotionSummary(emotion) {
     if (!emotion || typeof emotion !== "object") return "missing";
     const label = emotion.label || emotion.emotion || emotion.state || "unlabeled";
@@ -86,6 +96,7 @@
     return `${label} (valence=${valence}, arousal=${arousal})`;
   }
 
+// AIDA REVIEW BLOCK 11: Function stableJson - callable behavior in this runtime organ.
   function stableJson(value) {
     if (value === null || value === undefined) return "null";
     try {
@@ -95,6 +106,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 12: Function boundedSection - callable behavior in this runtime organ.
   function boundedSection(label, value) {
     const text = stableJson(value);
     if (text.length <= SECTION_LIMIT) {
@@ -104,32 +116,38 @@
     return `## ${label}\n${text.slice(0, SECTION_LIMIT)}\n[truncated after ${SECTION_LIMIT} characters]`;
   }
 
+// AIDA REVIEW BLOCK 13: Function looksLikeMemoryRecall - callable behavior in this runtime organ.
   function looksLikeMemoryRecall(userText) {
     const text = String(userText || "").toLowerCase();
     if (!text.trim()) return false;
     return /\b(remember|recall|mind palace|memory|do you know|did we|have we|find it in your mind)\b/.test(text);
   }
 
+// AIDA REVIEW BLOCK 14: Function looksLikeLibrarianReview - callable behavior in this runtime organ.
   function looksLikeLibrarianReview(userText) {
     const text = String(userText || "").toLowerCase();
     return /\b(librarian|skim (?:my |the )?(?:diary|journal|memories)|look through (?:my |the )?(?:diary|journal)|find (?:an |the )?(?:idea|theme|pattern) in (?:my |the )?(?:diary|journal|memories))\b/.test(text);
   }
 
+// AIDA REVIEW BLOCK 15: Function looksLikeCrawlerSearch - callable behavior in this runtime organ.
   function looksLikeCrawlerSearch(userText) {
     const text = String(userText || "").toLowerCase();
     return /\b(crawler|crawl (?:my |the )?(?:logs|history)|search (?:my |the )?(?:logs|history|raw log)|meditat(?:e|ion).*(?:logs|memory)|mind palace)\b/.test(text);
   }
 
+// AIDA REVIEW BLOCK 16: Function requestedMemoryScope - callable behavior in this runtime organ.
   function requestedMemoryScope(userText) {
     const text = String(userText || "").toLowerCase();
     if (/\b(?:all llms|all models|across llms|across models|every llm)\b/.test(text)) return "all";
     return "current";
   }
 
+// AIDA REVIEW BLOCK 17: Function needsArchive - callable behavior in this runtime organ.
   function needsArchive(userText) {
     return looksLikeLibrarianReview(userText) || looksLikeCrawlerSearch(userText) || looksLikeMemoryRecall(userText);
   }
 
+// AIDA REVIEW BLOCK 18: Function buildMemoryRetrieval - callable behavior in this runtime organ.
   function buildMemoryRetrieval(userText, context) {
     const requestedScope = requestedMemoryScope(userText);
     const grantedScope = window.AIDA_LLM_SCOPE?.retrievalMode?.() || "current";
@@ -237,6 +255,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 19: Function resolveContext - callable behavior in this runtime organ.
   function resolveContext() {
     const rt = runtime();
     const mind = rt.mind || {};
@@ -283,6 +302,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 20: Function buildTetrad - callable behavior in this runtime organ.
   function buildTetrad(context) {
     const arenaProjectName = context.project
       ? valueName(context.project, "unnamed_project")
@@ -323,6 +343,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 21: Function preflightGate - callable behavior in this runtime organ.
   function preflightGate(context) {
     const missing = [];
     if (!context.rt.boot?.driveLoaded) missing.push("Drive JSON fetch");
@@ -339,6 +360,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 22: Function buildSystemContent - callable behavior in this runtime organ.
   function buildSystemContent(context, tetrad, retrieval) {
     const projectPayload = context.project || {
       mode: context.projectMode,
@@ -388,6 +410,7 @@
     ].join("\n");
   }
 
+// AIDA REVIEW BLOCK 23: Function buildUserContent - callable behavior in this runtime organ.
   function buildUserContent(input, attachment) {
     if (!attachment?.dataUrl || !attachment?.kind) return input;
     if (attachment.kind === "image") {
@@ -409,6 +432,7 @@
     return input;
   }
 
+// AIDA REVIEW BLOCK 24: Function buildMessages - callable behavior in this runtime organ.
   function buildMessages(userText = "", options = {}) {
     const context = resolveContext();
     const gate = preflightGate(context);
@@ -480,6 +504,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 25: Function previewMessages - callable behavior in this runtime organ.
   function previewMessages() {
     const userInput = $("user-in")?.value || "";
     const result = buildMessages(userInput);
@@ -498,12 +523,14 @@
     return result;
   }
 
+// AIDA REVIEW BLOCK 26: Function install - callable behavior in this runtime organ.
   function install() {
     const button = $("llm-preview-btn");
     if (button) button.addEventListener("click", previewMessages);
     log("LLM message assembler loaded. Waiting for context and airlock.", "log-blue");
   }
 
+// AIDA REVIEW BLOCK 27: Browser export AIDA_LLM_MESSAGES - exposes this organ to the page runtime.
   window.AIDA_LLM_MESSAGES = {
     build: buildMessages,
     preview: previewMessages,
@@ -523,5 +550,6 @@
     });
   }
 
+// AIDA REVIEW BLOCK 28: Browser event wiring - connects page lifecycle or user actions to this organ.
   document.addEventListener("DOMContentLoaded", install);
 })();

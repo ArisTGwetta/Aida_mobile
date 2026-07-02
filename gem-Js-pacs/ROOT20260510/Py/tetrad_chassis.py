@@ -1,3 +1,5 @@
+# AIDA REVIEW BLOCK 1: File header - gem-Js-pacs\ROOT20260510\Py\tetrad_chassis.py
+# AIDA REVIEW BLOCK 2: Module setup - imports, constants, and shared state used below.
 from identity_organ import IdentityEngine
 from realm_organ import RealmEngine
 from role_organ import RoleEngine
@@ -6,11 +8,13 @@ import json
 from pathlib import Path
 
 
+# AIDA REVIEW BLOCK 3: Function load_emotion_state - callable organ behavior.
 def load_emotion_state(path: Path):
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
+# AIDA REVIEW BLOCK 4: Function assemble_tetrad - callable organ behavior.
 def assemble_tetrad(
     core_identity,
     realm_config,

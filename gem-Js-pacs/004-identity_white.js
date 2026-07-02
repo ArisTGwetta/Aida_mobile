@@ -1,7 +1,10 @@
+// AIDA REVIEW BLOCK 1: File header - gem-Js-pacs\004-identity_white.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 // --- MODULE: IDENTITY_ORGAN.PY (WHITE PHASE) ---
 const IDENTITY_PY = `
 import json
 
+// AIDA REVIEW BLOCK 3: Class IdentityEngine - owns a grouped runtime organ or service surface.
 class IdentityEngine:
     def __init__(self, core_identity=None, realm_config=None, role_config=None):
         # The Vanilla "Sanctuary" Defaults

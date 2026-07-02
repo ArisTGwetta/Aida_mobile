@@ -1,14 +1,19 @@
+// AIDA REVIEW BLOCK 1: File header - AIDA_ONE_SPINE\spine\context_inspector.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 (function () {
   const MODULE_ID = "spine.context.inspector";
 
+// AIDA REVIEW BLOCK 3: Function $ - callable behavior in this runtime organ.
   function $(id) {
     return document.getElementById(id);
   }
 
+// AIDA REVIEW BLOCK 4: Function runtime - callable behavior in this runtime organ.
   function runtime() {
     return window.AIDA_RUNTIME;
   }
 
+// AIDA REVIEW BLOCK 5: Function log - callable behavior in this runtime organ.
   function log(message, className = "log-green") {
     if (window.AIDA_BIOS?.log) {
       window.AIDA_BIOS.log(message, className);
@@ -29,8 +34,10 @@
     }
   }
 
+// AIDA REVIEW BLOCK 6: Function valueName - callable behavior in this runtime organ.
   function valueName(value) {
     if (!value || typeof value !== "object") return null;
+// AIDA REVIEW BLOCK 7: Function direct - arrow-function behavior in this runtime organ.
     const direct = (
       value.name ||
       value.display_name ||
@@ -63,6 +70,7 @@
     return null;
   }
 
+// AIDA REVIEW BLOCK 8: Function directNameCandidates - callable behavior in this runtime organ.
   function directNameCandidates(value) {
     if (!value || typeof value !== "object") return {};
     const candidateKeys = [
@@ -95,6 +103,7 @@
     return nameCandidates;
   }
 
+// AIDA REVIEW BLOCK 9: Function legacyValueName - callable behavior in this runtime organ.
   function legacyValueName(value) {
     if (!value || typeof value !== "object") return null;
     return (
@@ -116,6 +125,7 @@
     );
   }
 
+// AIDA REVIEW BLOCK 10: Function safeShape - callable behavior in this runtime organ.
   function safeShape(name, value) {
     if (!value || typeof value !== "object") {
       return { name, present: false, keys: [], nameCandidates: {} };
@@ -147,12 +157,14 @@
     };
   }
 
+// AIDA REVIEW BLOCK 11: Function countArrayLike - callable behavior in this runtime organ.
   function countArrayLike(value) {
     if (Array.isArray(value)) return value.length;
     if (value && typeof value === "object") return Object.keys(value).length;
     return 0;
   }
 
+// AIDA REVIEW BLOCK 12: Function findProjectSummaries - callable behavior in this runtime organ.
   function findProjectSummaries(project) {
     if (!project || typeof project !== "object") return 0;
     return findLikelyCount(project, [
@@ -166,6 +178,7 @@
     ]);
   }
 
+// AIDA REVIEW BLOCK 13: Function findLikelyCount - callable behavior in this runtime organ.
   function findLikelyCount(obj, keys) {
     if (!obj || typeof obj !== "object") return 0;
     for (const key of keys) {
@@ -174,6 +187,7 @@
     return countArrayLike(obj);
   }
 
+// AIDA REVIEW BLOCK 14: Function emotionSummary - callable behavior in this runtime organ.
   function emotionSummary(emotion) {
     if (!emotion || typeof emotion !== "object") return "missing";
     const label = emotion.label || emotion.emotion || emotion.state || "unlabeled";
@@ -182,6 +196,7 @@
     return `${label} (valence=${valence}, arousal=${arousal})`;
   }
 
+// AIDA REVIEW BLOCK 15: Function preLlmGate - callable behavior in this runtime organ.
   function preLlmGate(summary) {
     const missing = [];
     if (!summary.identity.present) missing.push("identity");
@@ -197,6 +212,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 16: Function buildContextSummary - callable behavior in this runtime organ.
   function buildContextSummary() {
     const rt = runtime();
     const mind = rt.mind || {};
@@ -313,6 +329,7 @@
     return summary;
   }
 
+// AIDA REVIEW BLOCK 17: Function inspectContext - callable behavior in this runtime organ.
   function inspectContext() {
     const summary = buildContextSummary();
     const gate = summary.preLlmGate;
@@ -342,10 +359,12 @@
       log(`PRE-LLM GATE: WAIT. Missing ${gate.missing.join(", ")}.`, "log-amber");
     }
 
+// AIDA REVIEW BLOCK 18: Browser export AIDA_CONTEXT_SUMMARY - exposes this organ to the page runtime.
     window.AIDA_CONTEXT_SUMMARY = summary;
     return summary;
   }
 
+// AIDA REVIEW BLOCK 19: Function inspectShapes - callable behavior in this runtime organ.
   function inspectShapes() {
     const rt = runtime();
     const files = rt.drive?.files || {};
@@ -383,10 +402,12 @@
       if (nested) log(`SHAPE ${shape.name}: nested=${nested}`);
     });
 
+// AIDA REVIEW BLOCK 20: Browser export AIDA_SHAPE_SUMMARY - exposes this organ to the page runtime.
     window.AIDA_SHAPE_SUMMARY = shapes;
     return shapes;
   }
 
+// AIDA REVIEW BLOCK 21: Function install - callable behavior in this runtime organ.
   function install() {
     const button = $("context-inspect-btn");
     if (button) button.addEventListener("click", inspectContext);
@@ -403,6 +424,7 @@
     log("Context inspector loaded.", "log-blue");
   }
 
+// AIDA REVIEW BLOCK 22: Browser export AIDA_CONTEXT_INSPECTOR - exposes this organ to the page runtime.
   window.AIDA_CONTEXT_INSPECTOR = {
     inspect: inspectContext,
     inspectShapes,
@@ -420,5 +442,6 @@
     });
   }
 
+// AIDA REVIEW BLOCK 23: Browser event wiring - connects page lifecycle or user actions to this organ.
   document.addEventListener("DOMContentLoaded", install);
 })();

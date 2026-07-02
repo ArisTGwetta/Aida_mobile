@@ -1,10 +1,13 @@
 <!DOCTYPE html>
+<!-- AIDA REVIEW BLOCK 1: File header - gem-Js-pacs\interface.html -->
 <html lang="en">
+<!-- AIDA REVIEW BLOCK 2: Head setup - metadata, title, styles, and preloaded runtime assets. -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AIDA | Interface</title>
     
+<!-- AIDA REVIEW BLOCK 3: Style rules - visual layout and responsive behavior. -->
     <style>
         :root {
             --ega-green: #00ff41;
@@ -99,8 +102,10 @@
         @keyframes scan { from { top: 0; } to { top: 100%; } }
     </style>
 
+<!-- AIDA REVIEW BLOCK 4: Script bridge - loads or runs JavaScript behavior for this screen. -->
     <script src="scripts/010-chassis_gold.js"></script>
 </head>
+<!-- AIDA REVIEW BLOCK 5: Body shell - visible app surface and runtime mounting point. -->
 <body>
 
     <div class="scanline"></div>
@@ -119,6 +124,7 @@
         <button id="send-btn" onclick="communicate()">SEND</button>
     </div>
 
+<!-- AIDA REVIEW BLOCK 6: Script bridge - loads or runs JavaScript behavior for this screen. -->
     <script>
         // Simple communication bridge
         function communicate() {

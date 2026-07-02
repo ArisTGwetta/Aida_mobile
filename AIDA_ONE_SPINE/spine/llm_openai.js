@@ -1,18 +1,24 @@
+// AIDA REVIEW BLOCK 1: File header - AIDA_ONE_SPINE\spine\llm_openai.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 (function () {
   const MODULE_ID = "spine.llm.conversation";
 
+// AIDA REVIEW BLOCK 3: Function $ - callable behavior in this runtime organ.
   function $(id) {
     return document.getElementById(id);
   }
 
+// AIDA REVIEW BLOCK 4: Function runtime - callable behavior in this runtime organ.
   function runtime() {
     return window.AIDA_RUNTIME;
   }
 
+// AIDA REVIEW BLOCK 5: Function config - callable behavior in this runtime organ.
   function config() {
     return window.AIDA_CONFIG || {};
   }
 
+// AIDA REVIEW BLOCK 6: Function log - callable behavior in this runtime organ.
   function log(message, className = "log-green") {
     if (window.AIDA_BIOS?.log) {
       window.AIDA_BIOS.log(message, className);
@@ -28,10 +34,12 @@
     logs.scrollTop = logs.scrollHeight;
   }
 
+// AIDA REVIEW BLOCK 7: Function pulse - callable behavior in this runtime organ.
   function pulse(message) {
     if (window.AIDA_BODY?.pulse) window.AIDA_BODY.pulse(message);
   }
 
+// AIDA REVIEW BLOCK 8: Function appendChat - callable behavior in this runtime organ.
   function appendChat(role, text, options = {}) {
     if (window.AIDA_BODY?.appendChat) {
       return window.AIDA_BODY.appendChat(role, text, options);
@@ -47,17 +55,19 @@
     return line;
   }
 
+// AIDA REVIEW BLOCK 9: Function setPendingText - callable behavior in this runtime organ.
   function setPendingText(line, text) {
     const content = line?.querySelector?.(".line-text");
     if (content) content.textContent = text;
     else if (line) line.textContent = text;
   }
 
+// AIDA REVIEW BLOCK 10: Function projectCommand - callable behavior in this runtime organ.
   function projectCommand(text) {
     const value = String(text || "").trim();
     const match = value.match(/^\s*#(?:newproject|new-project|project)\s+(.+?)\s*$/i);
-    const natural = value.match(/^(?:(?:let'?s|let us)\s+)?(?:start|begin|create|open)\s+(?:a\s+)?(?:new\s+)?(?:story|project)\s+(?:called|named|titled)\s+["“”']?(.+?)["“”']?[.!]*$/i) ||
-      value.match(/^(?:new\s+)?(?:story|project)\s*:\s*["“”']?(.+?)["“”']?\s*$/i);
+    const natural = value.match(/^(?:(?:let'?s|let us)\s+)?(?:start|begin|create|open)\s+(?:a\s+)?(?:new\s+)?(?:story|project)\s+(?:called|named|titled)\s+["â€œâ€']?(.+?)["â€œâ€']?[.!]*$/i) ||
+      value.match(/^(?:new\s+)?(?:story|project)\s*:\s*["â€œâ€']?(.+?)["â€œâ€']?\s*$/i);
     if (natural) return { realm: null, name: natural[1].trim() };
     if (!match) return null;
     const payload = match[1].trim();
@@ -67,10 +77,12 @@
       : { realm: null, name: payload };
   }
 
+// AIDA REVIEW BLOCK 11: Function isAdoptHistoryCommand - callable behavior in this runtime organ.
   function isAdoptHistoryCommand(text) {
     return /^\s*#(?:adopthistory|adopt-history)\s*$/i.test(String(text || ""));
   }
 
+// AIDA REVIEW BLOCK 12: Function meditationScopeRequest - callable behavior in this runtime organ.
   function meditationScopeRequest(text) {
     const value = String(text || "").toLowerCase();
     if (!/\bmeditat(?:e|ion)\b/.test(value)) return null;
@@ -78,18 +90,22 @@
     return "current";
   }
 
+// AIDA REVIEW BLOCK 13: Function isFreshGlanceRequest - callable behavior in this runtime organ.
   function isFreshGlanceRequest(text) {
     return /\b(?:fresh glance|review (?:our |the )?(?:recent )?logs|look (?:over|through) (?:our |the )?(?:recent )?logs|what (?:did you notice|stands out) in (?:our |the )?logs|catch me up from (?:our |the )?logs)\b/i.test(String(text || ""));
   }
 
+// AIDA REVIEW BLOCK 14: Function isFreshGlanceSourcesRequest - callable behavior in this runtime organ.
   function isFreshGlanceSourcesRequest(text) {
     return /\b(?:show|give|list)\s+(?:me\s+)?(?:the\s+)?sources?\s+(?:for|from)\s+(?:that|the)\s+(?:fresh\s+)?glance\b/i.test(String(text || ""));
   }
 
+// AIDA REVIEW BLOCK 15: Function isMemoryOverviewRequest - callable behavior in this runtime organ.
   function isMemoryOverviewRequest(text) {
     return /\b(?:what do (?:we|you) have|review what (?:we|you) have|give me (?:a )?(?:quick )?(?:memory|project) summary|summarize (?:your|our|the) memory|show me around (?:your|the) memory|help me navigate (?:your|the) memory)\b/i.test(String(text || ""));
   }
 
+// AIDA REVIEW BLOCK 16: Function projectReconciliationRequest - callable behavior in this runtime organ.
   function projectReconciliationRequest(text) {
     const value = String(text || "").trim();
     if (/^(?:cancel|never mind|nevermind|stop)(?: the)? (?:merge|reconciliation)|^(?:cancel|never mind|nevermind)$/i.test(value)) {
@@ -106,12 +122,14 @@
     return null;
   }
 
+// AIDA REVIEW BLOCK 17: Function projectSummaryRequest - callable behavior in this runtime organ.
   function projectSummaryRequest(text) {
     const value = String(text || "").trim();
     const match = value.match(/^(?:summarize|review|catch me up on|what do (?:you|we) (?:have|remember) (?:about|for))\s+(?:the\s+)?(?:project|story)?\s*(.+?)\s*[?.!]*$/i);
     return match?.[1] ? { query: match[1].trim() } : null;
   }
 
+// AIDA REVIEW BLOCK 18: Function portfolioRequest - callable behavior in this runtime organ.
   function portfolioRequest(text) {
     const value = String(text || "").trim();
     const link = value.match(/^(?:yes[, ]+)?(?:link|connect)\s+(?:portfolio\s+)?suggestion\s+(\d+)[.!]*$/i);
@@ -128,10 +146,12 @@
     return null;
   }
 
+// AIDA REVIEW BLOCK 19: Function isCommandGuideRequest - callable behavior in this runtime organ.
   function isCommandGuideRequest(text) {
     return /^(?:help|commands?|command list|show (?:me )?(?:the )?(?:commands?|guide|glossary)|what can (?:you|aida) do|how do i use (?:you|aida)|what can i ask(?: you)?)[?.!]*$/i.test(String(text || "").trim());
   }
 
+// AIDA REVIEW BLOCK 20: Function webSearchRequest - callable behavior in this runtime organ.
   function webSearchRequest(text) {
     const value = String(text || "").trim();
     if (/\b(?:our|my|the)\s+(?:logs?|memory|memories|diary|journal|drive)\b/i.test(value)) return null;
@@ -139,6 +159,7 @@
     return match?.[1] ? { query: match[1].trim() } : null;
   }
 
+// AIDA REVIEW BLOCK 21: Function recentMemoryContext - callable behavior in this runtime organ.
   function recentMemoryContext(limit = 3) {
     const turns = runtime()?.session?.currentTurns || [];
     return turns.slice(-limit).map((turn) => [
@@ -147,6 +168,7 @@
     ].join(" ")).join(" ");
   }
 
+// AIDA REVIEW BLOCK 22: Function memorySearchRequest - callable behavior in this runtime organ.
   function memorySearchRequest(text) {
     const value = String(text || "").trim();
     if (!value) return null;
@@ -174,6 +196,7 @@
     return { query, original: value, wantsTrace: sourceTrace };
   }
 
+// AIDA REVIEW BLOCK 23: Function memorySearchFromRoute - callable behavior in this runtime organ.
   function memorySearchFromRoute(route) {
     return {
       query: route.query || route.value || route.target || "",
@@ -182,6 +205,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 24: Function memoryNoteRequest - callable behavior in this runtime organ.
   function memoryNoteRequest(text) {
     const value = String(text || "").trim();
     const match = value.match(/^(?:let'?s\s+)?(?:remember|note|make a note|save a note|mark)\s+(?:that\s+)?(.+?)\s*[.!]*$/i);
@@ -192,9 +216,10 @@
     };
   }
 
+// AIDA REVIEW BLOCK 25: Function runWebSearch - callable behavior in this runtime organ.
   async function runWebSearch(command, userText) {
     appendChat("USER", userText);
-    const pending = appendChat("AIDA", "I’m checking the current web and gathering sources...");
+    const pending = appendChat("AIDA", "Iâ€™m checking the current web and gathering sources...");
     try {
       const result = await window.AIDA_LLM_PROVIDER?.callWebSearch?.(command.query);
       if (!result?.text) throw new Error("No sourced result returned.");
@@ -219,6 +244,7 @@
       const rt = runtime();
       const priorTags = Array.isArray(rt.context.customTags) ? rt.context.customTags.slice() : [];
       rt.context.customTags = [...new Set([...priorTags, "external_research", "web_sourced"])];
+// AIDA REVIEW BLOCK 26: Function sourceText - arrow-function behavior in this runtime organ.
       const sourceText = (result.sources || []).map((source) => source.url).join("\n");
       window.AIDA_SESSION_CAPTURE?.captureExchange?.(
         userText,
@@ -238,10 +264,11 @@
     }
   }
 
+// AIDA REVIEW BLOCK 27: Function runMemorySearch - callable behavior in this runtime organ.
   async function runMemorySearch(command, userText, route = null) {
     if (!window.AIDA_CRAWLER?.search) return false;
     appendChat("USER", userText);
-    const pending = appendChat("AIDA", "I’m searching the indexed memory for the earlier thread...");
+    const pending = appendChat("AIDA", "Iâ€™m searching the indexed memory for the earlier thread...");
     window.AIDA_CRAWLER.indexNow?.("explicit_memory_search");
     const result = window.AIDA_CRAWLER.search(command.query, {
       limit: 8,
@@ -281,6 +308,7 @@
     return true;
   }
 
+// AIDA REVIEW BLOCK 28: Function runMemoryNote - callable behavior in this runtime organ.
   function runMemoryNote(command, userText) {
     const rt = runtime();
     appendChat("USER", userText);
@@ -289,7 +317,7 @@
       rt?.mind?.activeProject?.project_name ||
       rt?.mind?.activeProject?.name ||
       "this thread";
-    const reply = `I’m making a note of that for ${projectName}: ${command.note}`;
+    const reply = `Iâ€™m making a note of that for ${projectName}: ${command.note}`;
     const priorTags = Array.isArray(rt.context.customTags) ? rt.context.customTags.slice() : [];
     rt.context.customTags = [...new Set([...priorTags, "MEMORY", "NOTE"])];
     appendChat("AIDA", reply);
@@ -300,6 +328,7 @@
     return true;
   }
 
+// AIDA REVIEW BLOCK 29: Function runIntentRoute - callable behavior in this runtime organ.
   async function runIntentRoute(userText) {
     if (!window.AIDA_INTENT_ROUTER?.infer) return null;
     const route = await window.AIDA_INTENT_ROUTER.infer(userText);
@@ -327,41 +356,42 @@
     return null;
   }
 
+// AIDA REVIEW BLOCK 30: Function runCommandGuide - callable behavior in this runtime organ.
   function runCommandGuide(userText) {
     const reply = [
       "Here is my current conversation guide. Natural wording is fine; these are examples, not passwords.",
       "",
       "Memory and review",
-      "- “Give me a fresh glance.” — surface a few recent memory threads.",
-      "- “Show me the sources for that glance.” — show supporting references.",
-      "- “Review what we have.” — map visible projects and recent memory.",
-      "- “Summarize Bard and the Frozen Guide.” — review one project.",
-      "- “Search our logs for Liora.” — search indexed memory.",
+      "- â€œGive me a fresh glance.â€ â€” surface a few recent memory threads.",
+      "- â€œShow me the sources for that glance.â€ â€” show supporting references.",
+      "- â€œReview what we have.â€ â€” map visible projects and recent memory.",
+      "- â€œSummarize Bard and the Frozen Guide.â€ â€” review one project.",
+      "- â€œSearch our logs for Liora.â€ â€” search indexed memory.",
       "",
       "Projects",
-      "- “List my projects.” / “Open project …” / “Open realm RPG.”",
-      "- “Move project … into realm RPG.”",
-      "- “Compare the two … project versions.”",
-      "- “Yes, merge them.” / “Cancel merge.”",
+      "- â€œList my projects.â€ / â€œOpen project â€¦â€ / â€œOpen realm RPG.â€",
+      "- â€œMove project â€¦ into realm RPG.â€",
+      "- â€œCompare the two â€¦ project versions.â€",
+      "- â€œYes, merge them.â€ / â€œCancel merge.â€",
       "",
       "Portfolio",
-      "- “Give me a portfolio glance.” — find synergies, dependencies, overlaps, conflicts, and spin-off candidates.",
-      "- “Link suggestion 1.” — stage reciprocal project links for Commit.",
-      "- “Clear portfolio suggestions.”",
+      "- â€œGive me a portfolio glance.â€ â€” find synergies, dependencies, overlaps, conflicts, and spin-off candidates.",
+      "- â€œLink suggestion 1.â€ â€” stage reciprocal project links for Commit.",
+      "- â€œClear portfolio suggestions.â€",
       "",
       "Privacy lanes",
       "- Memory stays inside the current LLM lane plus shared core memory.",
-      "- “Meditate across all LLMs …” grants one-use cross-lane retrieval, then reseals.",
+      "- â€œMeditate across all LLMs â€¦â€ grants one-use cross-lane retrieval, then reseals.",
       "",
       "Persistence",
       "- Sleep prepares memory updates.",
       "- Commit writes staged updates to Drive.",
       "",
       "Current web research",
-      "- “Search the web for …” / “Look this up online …” — explicit current research with clickable sources.",
+      "- â€œSearch the web for â€¦â€ / â€œLook this up online â€¦â€ â€” explicit current research with clickable sources.",
       "- Web research is on-demand; I do not pretend to browse while you are away.",
       "",
-      "You can always ask “What can you do?” to see this guide again."
+      "You can always ask â€œWhat can you do?â€ to see this guide again."
     ].join("\n");
     appendChat("USER", userText);
     appendChat("AIDA", reply);
@@ -370,6 +400,7 @@
     return true;
   }
 
+// AIDA REVIEW BLOCK 31: Function navigationCommand - callable behavior in this runtime organ.
   function navigationCommand(text) {
     const value = String(text || "").trim();
     if (/^(?:list|show)\s+(?:my\s+)?(?:stories|projects|realms)\??$/i.test(value)) {
@@ -384,6 +415,7 @@
     return null;
   }
 
+// AIDA REVIEW BLOCK 32: Function asksForLlmIdentity - callable behavior in this runtime organ.
   function asksForLlmIdentity(text) {
     const value = String(text || "").toLowerCase();
     const asksAboutHistory = /\b(remember|recall|memory|before|earlier|previous|last time|when we|used to)\b/.test(value);
@@ -401,14 +433,16 @@
     return directPatterns.some((pattern) => pattern.test(value));
   }
 
+// AIDA REVIEW BLOCK 33: Function llmIdentityReply - callable behavior in this runtime organ.
   function llmIdentityReply() {
     const info = window.AIDA_LLM_PROVIDER?.currentInfo?.();
-    if (!info) return "I’m Aida, but my current underlying LLM route is not available yet.";
+    if (!info) return "Iâ€™m Aida, but my current underlying LLM route is not available yet.";
 
     const locality = info.local ? "running locally on this computer" : "through its hosted API";
-    return `I’m Aida—the identity and memory system. Right now my underlying voice engine is ${info.providerLabel}, using ${info.model}, ${locality}.`;
+    return `Iâ€™m Aidaâ€”the identity and memory system. Right now my underlying voice engine is ${info.providerLabel}, using ${info.model}, ${locality}.`;
   }
 
+// AIDA REVIEW BLOCK 34: Function runLocalReply - callable behavior in this runtime organ.
   function runLocalReply(userText, reply) {
     appendChat("USER", userText);
     appendChat("AIDA", reply);
@@ -420,6 +454,7 @@
     return true;
   }
 
+// AIDA REVIEW BLOCK 35: Function runProjectCommand - callable behavior in this runtime organ.
   function runProjectCommand(command, visibleUserText) {
     if (!window.AIDA_PROJECTS?.createDraft) return null;
     const result = window.AIDA_PROJECTS.createDraft(command.name, {
@@ -444,6 +479,7 @@
     return result;
   }
 
+// AIDA REVIEW BLOCK 36: Function runAdoptHistoryCommand - callable behavior in this runtime organ.
   async function runAdoptHistoryCommand(visibleUserText) {
     await window.AIDA_LIBRARIAN?.prepareArchive?.("project_history_adoption");
     const result = window.AIDA_PROJECTS?.adoptHistory?.();
@@ -467,6 +503,7 @@
     return Boolean(result?.ok);
   }
 
+// AIDA REVIEW BLOCK 37: Function runNavigationCommand - callable behavior in this runtime organ.
   async function runNavigationCommand(command, visibleUserText) {
     let reply = "";
     if (command.action === "list") {
@@ -484,9 +521,9 @@
       if (result?.ok) {
         reply = `Claimed ${result.projectName} under ${result.realmName}. Sleep and Commit will make that filing durable in Drive.`;
       } else if (result?.reason === "project_not_found") {
-        reply = `I could not find the project "${command.projectName}". Try “list my stories” to see the current names.`;
+        reply = `I could not find the project "${command.projectName}". Try â€œlist my storiesâ€ to see the current names.`;
       } else if (result?.reason === "realm_not_found") {
-        reply = `I could not find the realm "${command.realmName}". Try “list my stories” to see the current realms.`;
+        reply = `I could not find the realm "${command.realmName}". Try â€œlist my storiesâ€ to see the current realms.`;
       } else {
         reply = `I found ${command.projectName}, but its briefcase is not loaded yet. Please refresh Drive and try the claim again.`;
       }
@@ -496,7 +533,7 @@
         ? command.kind === "realm"
           ? `Realm opened: ${opened.entry.name}. I can consider its shared context and all projects, but no single project is active.`
           : `Project opened: ${opened.entry.name}. Its realm context is also active.`
-        : `I could not find a ${command.kind} named "${command.name}". Try “list my stories” to see what is available.`;
+        : `I could not find a ${command.kind} named "${command.name}". Try â€œlist my storiesâ€ to see what is available.`;
     }
     appendChat("USER", visibleUserText);
     appendChat("AIDA", reply);
@@ -506,6 +543,7 @@
     return true;
   }
 
+// AIDA REVIEW BLOCK 38: Function runFreshGlance - callable behavior in this runtime organ.
   async function runFreshGlance(userText) {
     await window.AIDA_LIBRARIAN?.prepareArchive?.("fresh_glance");
     const glance = window.AIDA_CRAWLER?.freshGlance?.({ limit: 3 });
@@ -521,7 +559,7 @@
         if (thread.kind === "diary") return `The emotional shape I found was ${thread.text}.`;
         return `And one recent exchange that still has some energy is ${thread.text}.`;
       });
-      reply = `I took a fresh glance through the memories available to this LLM. ${lines.join(" ")} Nothing there feels urgent—I just thought those threads were worth bringing back to the table.`;
+      reply = `I took a fresh glance through the memories available to this LLM. ${lines.join(" ")} Nothing there feels urgentâ€”I just thought those threads were worth bringing back to the table.`;
     }
     appendChat("USER", userText);
     appendChat("AIDA", reply);
@@ -531,6 +569,7 @@
     return true;
   }
 
+// AIDA REVIEW BLOCK 39: Function runMemoryOverview - callable behavior in this runtime organ.
   async function runMemoryOverview(userText) {
     await window.AIDA_PROJECTS?.hydrateHierarchy?.();
     await window.AIDA_LIBRARIAN?.prepareArchive?.("memory_overview");
@@ -551,12 +590,13 @@
     return true;
   }
 
+// AIDA REVIEW BLOCK 40: Function runProjectReconciliation - callable behavior in this runtime organ.
   async function runProjectReconciliation(command, userText) {
     let reply;
     if (command.action === "cancel") {
       const cancelled = window.AIDA_PROJECTS?.cancelProjectReconciliation?.();
       if (!cancelled) return null;
-      reply = "All right—I cancelled the pending project merge. Nothing was changed.";
+      reply = "All rightâ€”I cancelled the pending project merge. Nothing was changed.";
     } else if (command.action === "confirm") {
       const result = window.AIDA_PROJECTS?.confirmProjectReconciliation?.();
       if (!result?.ok) {
@@ -572,12 +612,12 @@
       if (!comparison?.ok) {
         reply = comparison?.candidates?.length === 1
           ? `I found only one matching project: ${comparison.candidates[0].name}. I need two loaded briefcases before I can compare or reconcile them.`
-          : "I could not find two matching project briefcases in the current LLM lane. Try “list my projects” so we can use their visible names.";
+          : "I could not find two matching project briefcases in the current LLM lane. Try â€œlist my projectsâ€ so we can use their visible names.";
       } else {
         const details = comparison.candidates.map((item) => (
           `- ${item.fileName}: realm=${item.realm}, memory items=${item.contentCount}, sources=${item.sourceRefCount}, summary=${item.summary}`
         )).join("\n");
-        reply = `I found ${comparison.candidates.length} likely matching briefcases:\n${details}\n\nMy safest recommendation is to keep ${comparison.recommendedSurvivor.fileName}, merge unique memories from ${comparison.recommendedDuplicate.fileName}, and archive the duplicate rather than deleting it. Say “yes, merge them” to stage that reconciliation, or “cancel merge” to leave both untouched.`;
+        reply = `I found ${comparison.candidates.length} likely matching briefcases:\n${details}\n\nMy safest recommendation is to keep ${comparison.recommendedSurvivor.fileName}, merge unique memories from ${comparison.recommendedDuplicate.fileName}, and archive the duplicate rather than deleting it. Say â€œyes, merge themâ€ to stage that reconciliation, or â€œcancel mergeâ€ to leave both untouched.`;
       }
     }
     appendChat("USER", userText);
@@ -588,11 +628,12 @@
     return true;
   }
 
+// AIDA REVIEW BLOCK 41: Function runProjectSummary - callable behavior in this runtime organ.
   async function runProjectSummary(command, userText) {
     const result = await window.AIDA_PROJECTS?.summarizeProject?.(command.query);
     const reply = !result?.ok
-      ? `I could not find a visible project matching “${command.query}” in the current LLM lane. Try “list my projects” to see the loaded names.`
-      : `${result.name} is filed under ${result.realm}. ${result.summary} It currently has ${result.openThreadCount} open thread(s) and ${result.sourceRefCount} direct source reference(s). Say “open project ${result.name}” to continue there.`;
+      ? `I could not find a visible project matching â€œ${command.query}â€ in the current LLM lane. Try â€œlist my projectsâ€ to see the loaded names.`
+      : `${result.name} is filed under ${result.realm}. ${result.summary} It currently has ${result.openThreadCount} open thread(s) and ${result.sourceRefCount} direct source reference(s). Say â€œopen project ${result.name}â€ to continue there.`;
     appendChat("USER", userText);
     appendChat("AIDA", reply);
     window.AIDA_SESSION_CAPTURE?.captureExchange?.(userText, reply);
@@ -600,6 +641,7 @@
     return true;
   }
 
+// AIDA REVIEW BLOCK 42: Function runPortfolio - callable behavior in this runtime organ.
   async function runPortfolio(command, userText) {
     let reply;
     if (command.action === "clear") {
@@ -624,15 +666,17 @@
       if (!glance?.relationshipCount && !glance?.spinOffs?.length) {
         reply = `I reviewed ${glance?.projectCount || 0} visible project(s), but I do not yet have enough shared evidence to claim a useful relationship. I would rather leave the map sparse than invent connections.`;
       } else {
+// AIDA REVIEW BLOCK 43: Function relationshipLines - arrow-function behavior in this runtime organ.
         const relationshipLines = (glance.relationships || []).map((item, index) => {
-          const names = item.projects.map((project) => project.name).join(" ↔ ");
+          const names = item.projects.map((project) => project.name).join(" â†” ");
           const evidence = item.evidence.length ? ` Shared signals: ${item.evidence.join(", ")}.` : "";
           return `${index + 1}. ${item.type}: ${names} (${item.confidence}).${evidence} Recommendation: ${item.recommendation}.`;
         });
+// AIDA REVIEW BLOCK 44: Function spinOffLines - arrow-function behavior in this runtime organ.
         const spinOffLines = (glance.spinOffs || []).map((item) => (
           `- spin-off candidate from ${item.project.name}: ${item.thread}`
         ));
-        reply = `I took a portfolio glance across ${glance.projectCount} project(s) in this LLM lane.\n${relationshipLines.join("\n")}${spinOffLines.length ? `\n\nPossible spin-offs:\n${spinOffLines.join("\n")}` : ""}\n\nThis is a proposal map, not a restructuring. Say “link suggestion 1” to stage a reciprocal project link, or ask me to compare a consolidation candidate before merging anything.`;
+        reply = `I took a portfolio glance across ${glance.projectCount} project(s) in this LLM lane.\n${relationshipLines.join("\n")}${spinOffLines.length ? `\n\nPossible spin-offs:\n${spinOffLines.join("\n")}` : ""}\n\nThis is a proposal map, not a restructuring. Say â€œlink suggestion 1â€ to stage a reciprocal project link, or ask me to compare a consolidation candidate before merging anything.`;
       }
       runtime().context.lastPortfolioGlance = glance || null;
     }
@@ -644,6 +688,7 @@
     return true;
   }
 
+// AIDA REVIEW BLOCK 45: Function runFreshGlanceSources - callable behavior in this runtime organ.
   function runFreshGlanceSources(userText) {
     const glance = runtime().context?.lastFreshGlance;
     const refs = [...new Set((glance?.threads || []).flatMap((thread) => thread.sourceRefs || []))];
@@ -657,6 +702,7 @@
     return true;
   }
 
+// AIDA REVIEW BLOCK 46: Function runReturnContextChoice - callable behavior in this runtime organ.
   async function runReturnContextChoice(userText) {
     const proposed = runtime().context?.proposedReturnContext;
     if (!proposed?.projectKey) return null;
@@ -680,6 +726,7 @@
     return true;
   }
 
+// AIDA REVIEW BLOCK 47: Function runPendingStoryTitle - callable behavior in this runtime organ.
   function runPendingStoryTitle(userText) {
     const result = window.AIDA_PROJECTS?.consumeUnnamedStoryTitle?.(userText);
     if (!result?.handled) return null;
@@ -696,6 +743,7 @@
     return true;
   }
 
+// AIDA REVIEW BLOCK 48: Function offerUnnamedStorySuggestion - callable behavior in this runtime organ.
   function offerUnnamedStorySuggestion() {
     const suggestion = window.AIDA_PROJECTS?.suggestUnnamedStory?.();
     if (!suggestion?.text) return null;
@@ -705,6 +753,7 @@
     return suggestion;
   }
 
+// AIDA REVIEW BLOCK 49: Function gate - callable behavior in this runtime organ.
   function gate() {
     const rt = runtime();
     const missing = [];
@@ -722,8 +771,10 @@
     };
   }
 
+// AIDA REVIEW BLOCK 50: Function sendText - callable behavior in this runtime organ.
   async function sendText(userText, options = {}) {
     const attachment = options.attachment || window.AIDA_GLASSES?.peek?.() || null;
+// AIDA REVIEW BLOCK 51: Function text - arrow-function behavior in this runtime organ.
     const text = (userText || "").trim() || (
       attachment
         ? "Please examine the attached file and tell me what you notice."
@@ -845,6 +896,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 52: Function sendFromInput - callable behavior in this runtime organ.
   async function sendFromInput() {
     const input = $("user-in");
     const send = $("send-btn");
@@ -870,18 +922,22 @@
     }
   }
 
+// AIDA REVIEW BLOCK 53: Function install - callable behavior in this runtime organ.
   function install() {
+// AIDA REVIEW BLOCK 54: Browser export AIDA_CONVERSATION - exposes this organ to the page runtime.
     window.AIDA_CONVERSATION = {
       sendText,
       sendFromInput,
       gate,
       isLlmIdentityQuestion: asksForLlmIdentity
     };
+// AIDA REVIEW BLOCK 55: Browser export AIDA_LLM - exposes this organ to the page runtime.
     window.AIDA_LLM = {
       callMessages: window.AIDA_LLM_PROVIDER.callMessages,
       extractOutputText: window.AIDA_LLM_PROVIDER.extractOutputText,
       gate
     };
+// AIDA REVIEW BLOCK 56: Browser export AIDA_OPENAI - exposes this organ to the page runtime.
     window.AIDA_OPENAI = window.AIDA_LLM;
     log("Multi-provider conversation organ loaded. Live send is gated.", "log-blue");
   }
@@ -897,5 +953,6 @@
     });
   }
 
+// AIDA REVIEW BLOCK 57: Browser event wiring - connects page lifecycle or user actions to this organ.
   document.addEventListener("DOMContentLoaded", install);
 })();

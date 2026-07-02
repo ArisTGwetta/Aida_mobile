@@ -1,3 +1,5 @@
+// AIDA REVIEW BLOCK 1: File header - gem-Js-pacs\010-chassis_gold.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 /* ===================================================== */
 /* 010-CHASSIS_GOLD.JS: HOLOGRAM & UI BUILDERS         */
 /* ===================================================== */
@@ -8,6 +10,7 @@ window.addEventListener('DOMContentLoaded', () => {
     buildSparks();
 });
 
+// AIDA REVIEW BLOCK 3: Function buildPixelGrid - callable behavior in this runtime organ.
 function buildPixelGrid() {
     const grid = document.getElementById("pixelGrid");
     if (!grid) return;
@@ -20,6 +23,7 @@ function buildPixelGrid() {
     }
 }
 
+// AIDA REVIEW BLOCK 4: Function buildSparks - callable behavior in this runtime organ.
 function buildSparks() {
     const layer = document.getElementById("sparkLayer");
     if (!layer) return;
@@ -34,6 +38,7 @@ function buildSparks() {
     }
 }
 
+// AIDA REVIEW BLOCK 5: Browser export aida_arrive - exposes this organ to the page runtime.
 window.aida_arrive = function() {
     console.log("AIDA ARRIVING...");
     const veil = document.getElementById("veil");

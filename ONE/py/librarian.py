@@ -1,3 +1,5 @@
+# AIDA REVIEW BLOCK 1: File header - ONE\py\librarian.py
+# AIDA REVIEW BLOCK 2: Module setup - imports, constants, and shared state used below.
 import json
 import copy
 from pathlib import Path
@@ -9,6 +11,7 @@ BASE_DIR = Path(__file__).parent
 
 # ---- Helpers ---------------------------------------------------------------
 
+# AIDA REVIEW BLOCK 3: Function load_json - callable organ behavior.
 def load_json(path: Path, default):
     if not path.exists():
         return copy.deepcopy(default)
@@ -16,11 +19,13 @@ def load_json(path: Path, default):
         return json.load(f)
 
 
+# AIDA REVIEW BLOCK 4: Function save_json - callable organ behavior.
 def save_json(path: Path, data):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
+# AIDA REVIEW BLOCK 5: Function now_iso - callable organ behavior.
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
@@ -39,17 +44,20 @@ DEFAULT_EMOTIONAL_HISTORY = {"states": []}
 
 # ---- Librarian -------------------------------------------------------------
 
+# AIDA REVIEW BLOCK 6: Class Librarian - grouped organ/service behavior.
 class Librarian:
     """
     Long-term, slow-thinking pattern engine.
     Operates on weeks/months of data, not daily noise.
     """
 
+# AIDA REVIEW BLOCK 7: Function __init__ - callable organ behavior.
     def __init__(self, base_dir: Path = BASE_DIR):
         self.base_dir = base_dir
 
     # -- High-level entry point --
 
+# AIDA REVIEW BLOCK 8: Function run - callable organ behavior.
     def run(self,
             payload_path: Path = None,
             output_path: Path = None) -> dict:
@@ -183,6 +191,7 @@ class Librarian:
 
     # ---- Emotional analysis -------------------------------------------------
 
+# AIDA REVIEW BLOCK 9: Function _analyze_emotional_history - callable organ behavior.
     def _analyze_emotional_history(self, emotional_history, memory_summaries):
         """
         Placeholder emotional arc analysis.
@@ -210,6 +219,7 @@ class Librarian:
         }
         return [pattern]
 
+# AIDA REVIEW BLOCK 10: Function _label_emotional_arc - callable organ behavior.
     def _label_emotional_arc(self, v, a):
         if v > 0.2 and abs(a) < 0.3:
             return "mostly_calm_positive"
@@ -221,6 +231,7 @@ class Librarian:
 
     # ---- Preference & user model analysis ----------------------------------
 
+# AIDA REVIEW BLOCK 11: Function _analyze_preferences - callable organ behavior.
     def _analyze_preferences(self, memory_summaries, insights, user_model):
         """
         Placeholder: look for simple counters in insights like 'prefers_mythic_tone_count'
@@ -242,6 +253,7 @@ class Librarian:
 
     # ---- Project analysis ---------------------------------------------------
 
+# AIDA REVIEW BLOCK 12: Function _analyze_projects - callable organ behavior.
     def _analyze_projects(self, project_summary, project_briefcases, memory_summaries):
         """
         Placeholder: mark projects as 'active', 'stalled', or 'dormant'
@@ -276,6 +288,7 @@ class Librarian:
 
     # ---- Realm analysis -----------------------------------------------------
 
+# AIDA REVIEW BLOCK 13: Function _analyze_realms - callable organ behavior.
     def _analyze_realms(self, realm_config, memory_summaries, settings):
         """
         Placeholder: count realm usage and optionally mark rarely used realms.
@@ -305,6 +318,7 @@ class Librarian:
 
     # ---- Insight consolidation ---------------------------------------------
 
+# AIDA REVIEW BLOCK 14: Function _consolidate_insights - callable organ behavior.
     def _consolidate_insights(self, insights, memory_summaries):
         """
         Placeholder: treat any insight with a 'confidence' field and:
@@ -334,6 +348,7 @@ class Librarian:
 
     # ---- Drift / contradiction detection -----------------------------------
 
+# AIDA REVIEW BLOCK 15: Function _detect_drift - callable organ behavior.
     def _detect_drift(self, facts, insights, user_model):
         """
         Placeholder: look for obvious contradictions between user_model and insights.
@@ -358,6 +373,7 @@ class Librarian:
 
 # ---- CLI-ish entry ---------------------------------------------------------
 
+# AIDA REVIEW BLOCK 16: Command-line entrypoint - runs this organ when launched directly.
 if __name__ == "__main__":
     librarian = Librarian()
     out = librarian.run()

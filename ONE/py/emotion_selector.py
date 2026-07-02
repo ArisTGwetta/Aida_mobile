@@ -1,3 +1,5 @@
+# AIDA REVIEW BLOCK 1: File header - ONE\py\emotion_selector.py
+# AIDA REVIEW BLOCK 2: Module setup - imports, constants, and shared state used below.
 import json
 import math
 import random
@@ -9,7 +11,9 @@ EMOTION_COORDS_PATH = BASE_DIR / "emotion_coordinates.json"
 FACE_MAP_PATH = BASE_DIR / "face_map.json"
 
 
+# AIDA REVIEW BLOCK 3: Class EmotionSelector - grouped organ/service behavior.
 class EmotionSelector:
+# AIDA REVIEW BLOCK 4: Function __init__ - callable organ behavior.
     def __init__(self,
                  coords_path: Path = EMOTION_COORDS_PATH,
                  face_map_path: Path = FACE_MAP_PATH,
@@ -38,14 +42,17 @@ class EmotionSelector:
         self.transitions = self.face_map.get("transitions", {})
 
     @staticmethod
+# AIDA REVIEW BLOCK 5: Function _load_json - callable organ behavior.
     def _load_json(path: Path):
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     @staticmethod
+# AIDA REVIEW BLOCK 6: Function _distance - callable organ behavior.
     def _distance(v1, a1, v2, a2) -> float:
         return math.sqrt((v1 - v2) ** 2 + (a1 - a2) ** 2)
 
+# AIDA REVIEW BLOCK 7: Function find_closest_emotions - callable organ behavior.
     def find_closest_emotions(self, valence: float, arousal: float):
         distances = []
         for label, coords in self.emotions.items():
@@ -58,6 +65,7 @@ class EmotionSelector:
         distances.sort(key=lambda x: x[1])
         return distances  # list of (label, distance)
 
+# AIDA REVIEW BLOCK 8: Function select_emotion - callable organ behavior.
     def select_emotion(self, valence: float, arousal: float):
         """
         Returns:
@@ -101,6 +109,7 @@ class EmotionSelector:
             "distance": dist1
         }
 
+# AIDA REVIEW BLOCK 9: Function _pick_face - callable organ behavior.
     def _pick_face(self, label: str) -> str:
         variants = self.faces.get(label)
         if not variants:

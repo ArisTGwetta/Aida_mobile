@@ -1,3 +1,5 @@
+// AIDA REVIEW BLOCK 1: File header - ONE\js\050-while_away_gold.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 /* 050-while_away_gold.js
    While-You-Were-Away Organ (embedded Python + JS bridge)
    Version: 0.1 (Socket ready, logic safe to extend)
@@ -114,6 +116,7 @@ def py_get_while_away_script(state_js_json):
     //    Example (in 033-python_gold.js):
     //      await window.WHILE_AWAY_BOOT(pyodide);
     // =========================================================
+// AIDA REVIEW BLOCK 3: Browser export WHILE_AWAY_BOOT - exposes this organ to the page runtime.
     window.WHILE_AWAY_BOOT = async function (pyodide) {
         try {
             await pyodide.runPythonAsync(WHILE_AWAY_PY);
@@ -134,6 +137,7 @@ def py_get_while_away_script(state_js_json):
     //          seed_topic: null | {...}
     //        }
     // =========================================================
+// AIDA REVIEW BLOCK 4: Browser export WHILE_AWAY_BRIDGE - exposes this organ to the page runtime.
     window.WHILE_AWAY_BRIDGE = {
         getReentryScript: async (stateJs) => {
             try {
@@ -149,7 +153,7 @@ def py_get_while_away_script(state_js_json):
                 const pyFunc = window.pyodide.globals.get("py_get_while_away_script");
                 const payload = JSON.stringify(stateJs || {});
                 const result = await pyFunc(payload);
-                // result is a PyProxy (dict) → convert to JS
+                // result is a PyProxy (dict) â†’ convert to JS
                 const jsResult = result.toJs ? result.toJs() : result;
                 console.log("[WHILE_AWAY] Reentry script:", jsResult);
                 return jsResult;

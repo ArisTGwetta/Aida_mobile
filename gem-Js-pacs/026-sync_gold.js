@@ -1,7 +1,10 @@
+// AIDA REVIEW BLOCK 1: File header - gem-Js-pacs\026-sync_gold.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 /* 026-sync_gold.js
    THE LOGISTICS HUB: DRIVE SYNC & BRIEFCASE ENGINE (BLOCKS 26 & 27)
 */
 
+// AIDA REVIEW BLOCK 3: Browser export logistics_hub - exposes this organ to the page runtime.
 window.logistics_hub = (function() {
     const DRIVE_URL = "https://www.googleapis.com/drive/v3/files";
     const UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
@@ -10,6 +13,7 @@ window.logistics_hub = (function() {
     let state = { global: null, realm: null, project: null };
 
     // --- DRIVE SYNC CORE ---
+// AIDA REVIEW BLOCK 4: Function apiRequest - callable behavior in this runtime organ.
     async function apiRequest(url, options = {}) {
         const headers = { ...token_keeper.driveHeaders(), ...options.headers };
         const resp = await fetch(url, { ...options, headers });

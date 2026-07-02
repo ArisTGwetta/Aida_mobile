@@ -1,11 +1,15 @@
+// AIDA REVIEW BLOCK 1: File header - AIDA_ONE_SPINE\spine\intent_router.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 (function () {
   const MODULE_ID = "spine.intent.router";
   const CONFIDENCE_AUTO_RUN = 0.74;
 
+// AIDA REVIEW BLOCK 3: Function runtime - callable behavior in this runtime organ.
   function runtime() {
     return window.AIDA_RUNTIME;
   }
 
+// AIDA REVIEW BLOCK 4: Function log - callable behavior in this runtime organ.
   function log(message, className = "log-blue") {
     if (window.AIDA_BIOS?.log) {
       window.AIDA_BIOS.log(message, className);
@@ -14,6 +18,7 @@
     if (window.AIDA_BODY?.pulse) window.AIDA_BODY.pulse(message);
   }
 
+// AIDA REVIEW BLOCK 5: Function cleanText - callable behavior in this runtime organ.
   function cleanText(value, limit = 900) {
     return String(value || "")
       .replace(/\s+/g, " ")
@@ -21,6 +26,7 @@
       .slice(0, limit);
   }
 
+// AIDA REVIEW BLOCK 6: Function valueName - callable behavior in this runtime organ.
   function valueName(value, fallback = "") {
     if (!value || typeof value !== "object") return fallback;
     return String(
@@ -34,6 +40,7 @@
     );
   }
 
+// AIDA REVIEW BLOCK 7: Function recentExchanges - callable behavior in this runtime organ.
   function recentExchanges(limit = 2) {
     const turns = runtime()?.session?.currentTurns || [];
     return turns.slice(-limit).map((turn) => ({
@@ -44,6 +51,7 @@
     }));
   }
 
+// AIDA REVIEW BLOCK 8: Function packet - callable behavior in this runtime organ.
   function packet(userText) {
     const rt = runtime();
     const context = rt?.context || {};
@@ -109,6 +117,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 9: Function systemPrompt - callable behavior in this runtime organ.
   function systemPrompt() {
     return [
       "You are Aida's small intent router. Return only strict JSON.",
@@ -132,6 +141,7 @@
     ].join("\n");
   }
 
+// AIDA REVIEW BLOCK 10: Function parseJson - callable behavior in this runtime organ.
   function parseJson(text) {
     const raw = String(text || "").trim();
     const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1];
@@ -143,6 +153,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 11: Function normalizeIntent - callable behavior in this runtime organ.
   function normalizeIntent(value) {
     const supported = [
       "conversation",
@@ -181,6 +192,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 12: Function infer - callable behavior in this runtime organ.
   async function infer(userText, options = {}) {
     if (!window.AIDA_LLM_PROVIDER?.callMessages) {
       return normalizeIntent({ intent: "none", reason: "provider_unavailable" });
@@ -220,6 +232,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 13: Function composerSystemPrompt - callable behavior in this runtime organ.
   function composerSystemPrompt() {
     return [
       "You are Aida composing a final reply after a deterministic tool has already run.",
@@ -232,6 +245,7 @@
     ].join("\n");
   }
 
+// AIDA REVIEW BLOCK 14: Function composeToolReply - callable behavior in this runtime organ.
   async function composeToolReply(payload = {}, options = {}) {
     if (!window.AIDA_LLM_PROVIDER?.callMessages) return null;
     const safePayload = {
@@ -277,6 +291,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 15: Browser export AIDA_INTENT_ROUTER - exposes this organ to the page runtime.
   window.AIDA_INTENT_ROUTER = {
     infer,
     packet,

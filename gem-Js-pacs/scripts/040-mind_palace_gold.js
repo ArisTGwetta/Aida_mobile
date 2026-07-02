@@ -1,7 +1,10 @@
+// AIDA REVIEW BLOCK 1: File header - gem-Js-pacs\scripts\040-mind_palace_gold.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 /* 040-mind_palace_gold.js
    THE COGNITIVE CYCLE: ORCHESTRATION & NARRATION
 */
 
+// AIDA REVIEW BLOCK 3: Browser export mind_palace - exposes this organ to the page runtime.
 window.mind_palace = (function() {
 
     // --- 1. THE SUITCASE (Payloads) ---
@@ -40,6 +43,7 @@ window.mind_palace = (function() {
     };
 
     // --- 3. THE CYCLE (Orchestrator) ---
+// AIDA REVIEW BLOCK 4: Function runCycle - callable behavior in this runtime organ.
     async function runCycle(tool, className, wakeMsg) {
         // Shift to Architecture Realm
         await aura_engine.manifest("realm_aida_architecture.json");
@@ -67,6 +71,7 @@ window.mind_palace = (function() {
 })();
 
 // --- 4. THE LISTENERS ---
+// AIDA REVIEW BLOCK 5: Browser event wiring - connects page lifecycle or user actions to this organ.
 document.addEventListener('click', (e) => {
     if (e.target.id === "btn-run-butler") mind_palace.butler();
     if (e.target.id === "btn-run-librarian") mind_palace.librarian();

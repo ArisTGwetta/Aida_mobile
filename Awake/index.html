@@ -1,11 +1,15 @@
 <!DOCTYPE html>
+<!-- AIDA REVIEW BLOCK 1: File header - Awake\index.html -->
 <html lang="en">
+<!-- AIDA REVIEW BLOCK 2: Head setup - metadata, title, styles, and preloaded runtime assets. -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Poket_AIDA</title>
+<!-- AIDA REVIEW BLOCK 3: Script bridge - loads or runs JavaScript behavior for this screen. -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
+<!-- AIDA REVIEW BLOCK 4: Script bridge - loads or runs JavaScript behavior for this screen. -->
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
 
     <link rel="apple-touch-icon" href="aida_icon.png">
@@ -16,6 +20,7 @@
     <meta name="apple-mobile-web-app-title" content="Aida">
 
     
+<!-- AIDA REVIEW BLOCK 5: Style rules - visual layout and responsive behavior. -->
     <style>
         :root { --aida-gold: #005f73; --aida-bg: #222; --aida-dark: #000; }
         
@@ -32,7 +37,7 @@
             display: flex;
             flex-direction: column;
             height: 100dvh;
-            overflow: hidden;          /* engine itself doesn’t scroll */
+            overflow: hidden;          /* engine itself doesnâ€™t scroll */
         }
         
         #chat-flow {
@@ -496,6 +501,7 @@
         .hidden { display: none !important; }
     </style>
 </head>
+<!-- AIDA REVIEW BLOCK 6: Body shell - visible app surface and runtime mounting point. -->
 <body>
 
 
@@ -577,13 +583,13 @@
                 <div id="pres-content">Engine Stitched.</div>
             </div>
         </div>
-    </div> <!-- ✅ CLOSE aida-display HERE -->
+    </div> <!-- âœ… CLOSE aida-display HERE -->
         
-    <!-- ✅ NOW input-dock is under the whole engine -->  
+    <!-- âœ… NOW input-dock is under the whole engine -->  
     <div id="input-dock">
     
         <!-- Old tag bar (now disabled) -->
-        <!-- <input type="text" id="tag-in" placeholder="#tags…"> -->
+        <!-- <input type="text" id="tag-in" placeholder="#tagsâ€¦"> -->
     
         <div id="tag-buttons">
             <button class="tag-btn" data-index="0">#</button>
@@ -593,7 +599,7 @@
             <button class="tag-btn" data-index="4">#</button>
             <button class="tag-btn" data-index="5">#</button>
     
-            <input id="tag-edit" type="text" placeholder="type tag…" />
+            <input id="tag-edit" type="text" placeholder="type tagâ€¦" />
         </div>
     
         <input type="text" id="user-in" placeholder="Talk to Aida...">
@@ -637,6 +643,7 @@
 
     
                     
+<!-- AIDA REVIEW BLOCK 7: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
         let tokenClient;
         const VAULT_KEY_FOLDERS = {
@@ -755,7 +762,7 @@ function closeBriefcaseModal() {
                 .join(" ");
         }
         
-        window.getActiveTags = getActiveTags;   // ← exposes it to Python
+        window.getActiveTags = getActiveTags;   // â† exposes it to Python
     
 
         // Build the pixel grid once
@@ -814,8 +821,8 @@ function closeBriefcaseModal() {
 
     
 /* -----------------------------------------------------------
-   AIDA HOLOGRAM RITUAL — FULL ARRIVAL (4s) + DEPARTURE (3s)
-   Drop‑in replacement for aida_arrive() and aida_depart()
+   AIDA HOLOGRAM RITUAL â€” FULL ARRIVAL (4s) + DEPARTURE (3s)
+   Dropâ€‘in replacement for aida_arrive() and aida_depart()
    ----------------------------------------------------------- */
 
     // DOM references
@@ -956,7 +963,7 @@ window.addEventListener("load", () => {
 
 
     /* -----------------------------------------------------------
-       ARRIVAL — 4 seconds
+       ARRIVAL â€” 4 seconds
        ----------------------------------------------------------- */
     window.aida_arrive = function() {
     
@@ -976,8 +983,8 @@ window.addEventListener("load", () => {
         veil.style.pointerEvents = "auto";
     
         /* -----------------------------------------------------------
-           Phase 1 — Scanline (0.5 → 1.5s)
-           Full sweep from top → bottom → return
+           Phase 1 â€” Scanline (0.5 â†’ 1.5s)
+           Full sweep from top â†’ bottom â†’ return
            ----------------------------------------------------------- */
         setTimeout(() => {
             holoScanline.style.opacity = "1";
@@ -993,7 +1000,7 @@ window.addEventListener("load", () => {
         }, 500);
     
         /* -----------------------------------------------------------
-           Phase 2 — Beam + Cone (1.5 → 2.2s)
+           Phase 2 â€” Beam + Cone (1.5 â†’ 2.2s)
            ----------------------------------------------------------- */
         setTimeout(() => {
             holoBeam.style.opacity = "1";
@@ -1013,7 +1020,7 @@ window.addEventListener("load", () => {
         }, 1500);
     
         /* -----------------------------------------------------------
-           Phase 3 — Silhouette Flicker (2.2 → 3.0s)
+           Phase 3 â€” Silhouette Flicker (2.2 â†’ 3.0s)
            ----------------------------------------------------------- */
         setTimeout(() => {
             holoFace.style.opacity = "0.3";
@@ -1029,7 +1036,7 @@ window.addEventListener("load", () => {
         }, 2200);
     
         /* -----------------------------------------------------------
-           Phase 4 — Face Resolution (Small & Fuzzy)
+           Phase 4 â€” Face Resolution (Small & Fuzzy)
            ----------------------------------------------------------- */
         setTimeout(() => {
             // Apply the "Fuzzy Halo" and position her at the top of the cone
@@ -1051,7 +1058,7 @@ window.addEventListener("load", () => {
         }, 3000);
     
         /* -----------------------------------------------------------
-           Phase 5 — The Double Flash (Small -> HUGE -> UI)
+           Phase 5 â€” The Double Flash (Small -> HUGE -> UI)
            ----------------------------------------------------------- */
         setTimeout(() => {
         
@@ -1103,7 +1110,7 @@ window.addEventListener("load", () => {
 
 
     /* -----------------------------------------------------------
-       DEPARTURE — 3 seconds
+       DEPARTURE â€” 3 seconds
        ----------------------------------------------------------- */
     window.aida_depart = function() {
 
@@ -1112,7 +1119,7 @@ window.addEventListener("load", () => {
         dataStack.style.opacity = "0";
         flickerGrid.style.opacity = "0";
 
-        /* Phase 1 — Glitch (0 → 0.5s) */
+        /* Phase 1 â€” Glitch (0 â†’ 0.5s) */
         holoFace.animate(
             [
                 { transform: "scale(1)", opacity: 1 },
@@ -1122,7 +1129,7 @@ window.addEventListener("load", () => {
             { duration: 500, easing: "steps(3)" }
         );
 
-        /* Phase 2 — Beam Return + De-resolution (0.5 → 1.5s) */
+        /* Phase 2 â€” Beam Return + De-resolution (0.5 â†’ 1.5s) */
         setTimeout(() => {
             holoBeam.style.opacity = "1";
             holoCone.style.opacity = "1";
@@ -1137,7 +1144,7 @@ window.addEventListener("load", () => {
             );
         }, 500);
 
-        /* Phase 3 — Scanline Collapse DOWNWARD (1.5 → 2.5s) */
+        /* Phase 3 â€” Scanline Collapse DOWNWARD (1.5 â†’ 2.5s) */
         setTimeout(() => {
             holoScanline.style.opacity = "1";
             holoScanline.animate(
@@ -1146,7 +1153,7 @@ window.addEventListener("load", () => {
             );
         }, 1500);
 
-        /* Phase 4 — Blackout (persistent) */
+        /* Phase 4 â€” Blackout (persistent) */
         setTimeout(() => {
             veil.style.background = "black";
             veil.style.opacity = "1";
@@ -1157,6 +1164,7 @@ window.addEventListener("load", () => {
 });
 
     </script>        
+<!-- AIDA REVIEW BLOCK 8: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script type="py">
 import json, asyncio, random, math
 from pyscript import document, window
@@ -1195,7 +1203,7 @@ async def send_to_butler(log):
     MVP: non-breaking stub.
     Later you can replace this with your real Drive upload.
     """
-    pulse("[RESET] Sending current session to Butler… (stub)")
+    pulse("[RESET] Sending current session to Butlerâ€¦ (stub)")
     # TODO: implement real upload
     await asyncio.sleep(0.1)
 
@@ -1418,7 +1426,7 @@ async def py_sync_soul(token):
 
     # Google token (for Drive)
     aida.google_headers = {"Authorization": f"Bearer {token}"}
-    aida.google_token = token   # ← store for later resets
+    aida.google_token = token   # â† store for later resets
 
     # OpenAI key (for LLM)
     aida.openai_key = window.sessionStorage.getItem("aida_active_key")
@@ -1474,10 +1482,10 @@ async def py_sync_soul(token):
 
 
     except Exception:
-        add_line("Aida blinks awake, but something feels fuzzy…", "AIDA")
+        add_line("Aida blinks awake, but something feels fuzzyâ€¦", "AIDA")
         pulse("[WAKE] Wake-line fallback triggered.")
 
-    # --- PATCH 0.1d: Wake → Fail → Yawn → Retry (with debug) ---
+    # --- PATCH 0.1d: Wake â†’ Fail â†’ Yawn â†’ Retry (with debug) ---
     async def generate_wake_line():
         wake_prompt = """
         You are Aida, just waking up.
@@ -1490,14 +1498,14 @@ async def py_sync_soul(token):
         - conversational, not formal
 
         Behavior:
-        - 2% chance of a sleepy “five more minutes…” line
+        - 2% chance of a sleepy â€œfive more minutesâ€¦â€ line
         - otherwise choose ONE:
             1. Realm Scent
             2. Continuity Hook
             3. While-You-Were-Gone Illusion
 
         Rules:
-        - keep it short (1–2 sentences)
+        - keep it short (1â€“2 sentences)
         - natural, like the first thing someone says after waking
         - open the door for the user to reply
         """
@@ -1540,7 +1548,7 @@ async def py_sync_soul(token):
             return
 
         except Exception:
-            fuzzy = "Aida stirs… a little fuzzy…"
+            fuzzy = "Aida stirsâ€¦ a little fuzzyâ€¦"
             add_line(fuzzy, "AIDA")
             aida.session_log.append({"role": "assistant", "content": fuzzy})
 
@@ -1553,21 +1561,21 @@ async def py_sync_soul(token):
                 return
 
             except Exception:
-                fallback = "Aida blinks slowly… still waking up."
+                fallback = "Aida blinks slowlyâ€¦ still waking up."
                 add_line(fallback, "AIDA")
                 aida.session_log.append({"role": "assistant", "content": fallback})
                 return
 
 
-    # ⭐ Aida materializes into the realm
+    # â­ Aida materializes into the realm
 
-    # ⭐ Let the animation finish
+    # â­ Let the animation finish
     await asyncio.sleep(2)
 
-    # ⭐ Now she wakes up and speaks (ONCE)
+    # â­ Now she wakes up and speaks (ONCE)
     await generate_wake_line()
 
-    # ⭐ Reveal the main engine
+    # â­ Reveal the main engine
     document.getElementById("airlock").classList.add("hidden")
     document.getElementById("main-engine").classList.remove("hidden")
 
@@ -1667,7 +1675,7 @@ async def send_message(e=None):
             )
             aida.strike_count = 3
             document.getElementById("aida-display").classList.add("is-alert")
-            pulse("[COOLDOWN] Triggered — reframing response.")
+            pulse("[COOLDOWN] Triggered â€” reframing response.")
         
             
         if aida.strike_count > 0:
@@ -1681,7 +1689,7 @@ async def send_message(e=None):
             {
                 "role": "assistant",
                 "content": reply,
-                "tags": aida.last_tags,   # ← ADD THIS LINE
+                "tags": aida.last_tags,   # â† ADD THIS LINE
                 "briefcase": aida.briefcase_filename,
                 "v": v,
                 "a": a,

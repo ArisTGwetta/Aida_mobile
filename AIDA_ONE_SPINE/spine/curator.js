@@ -1,10 +1,14 @@
+// AIDA REVIEW BLOCK 1: File header - AIDA_ONE_SPINE\spine\curator.js
+// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 (function () {
   const MODULE_ID = "spine.curator";
 
+// AIDA REVIEW BLOCK 3: Function runtime - callable behavior in this runtime organ.
   function runtime() {
     return window.AIDA_RUNTIME;
   }
 
+// AIDA REVIEW BLOCK 4: Function log - callable behavior in this runtime organ.
   function log(message, className = "log-blue") {
     if (window.AIDA_BIOS?.log) {
       window.AIDA_BIOS.log(message, className);
@@ -13,10 +17,12 @@
     if (window.AIDA_BODY?.pulse) window.AIDA_BODY.pulse(message);
   }
 
+// AIDA REVIEW BLOCK 5: Function nowIso - callable behavior in this runtime organ.
   function nowIso() {
     return new Date().toISOString();
   }
 
+// AIDA REVIEW BLOCK 6: Function copyJson - callable behavior in this runtime organ.
   function copyJson(value, fallback) {
     if (value === undefined) return fallback;
     try {
@@ -26,10 +32,12 @@
     }
   }
 
+// AIDA REVIEW BLOCK 7: Function safeArray - callable behavior in this runtime organ.
   function safeArray(value) {
     return Array.isArray(value) ? value : [];
   }
 
+// AIDA REVIEW BLOCK 8: Function slug - callable behavior in this runtime organ.
   function slug(value, fallback = "draft") {
     return String(value || fallback)
       .toLowerCase()
@@ -38,6 +46,7 @@
       .slice(0, 80) || fallback;
   }
 
+// AIDA REVIEW BLOCK 9: Function consoleReport - callable behavior in this runtime organ.
   function consoleReport(label, value) {
     if (typeof console === "undefined" || !console.log) return;
     try {
@@ -47,6 +56,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 10: Function ensureState - callable behavior in this runtime organ.
   function ensureState() {
     const rt = runtime();
     rt.curator = rt.curator || {};
@@ -65,6 +75,7 @@
     return rt.curator;
   }
 
+// AIDA REVIEW BLOCK 11: Function upsertById - callable behavior in this runtime organ.
   function upsertById(list, item) {
     if (!item || typeof item !== "object") return;
     const id = item.id || `${item.type || "curator_draft"}_${list.length + 1}`;
@@ -74,16 +85,19 @@
     else list.push(stamped);
   }
 
+// AIDA REVIEW BLOCK 12: Function isLegacyFallbackCandidate - callable behavior in this runtime organ.
   function isLegacyFallbackCandidate(item) {
     return item?.source === "fallback" || item?.method === "deterministic_runtime_draft";
   }
 
+// AIDA REVIEW BLOCK 13: Function pruneLegacyFallbackCandidates - callable behavior in this runtime organ.
   function pruneLegacyFallbackCandidates(state) {
     state.factWriteDrafts = safeArray(state.factWriteDrafts).filter((item) => !isLegacyFallbackCandidate(item));
     state.insightWriteDrafts = safeArray(state.insightWriteDrafts).filter((item) => !isLegacyFallbackCandidate(item));
     state.needsConfirmation = safeArray(state.needsConfirmation).filter((item) => !isLegacyFallbackCandidate(item));
   }
 
+// AIDA REVIEW BLOCK 14: Function projectNameFromDraft - callable behavior in this runtime organ.
   function projectNameFromDraft(draft) {
     return (
       draft?.project?.name ||
@@ -94,10 +108,12 @@
     );
   }
 
+// AIDA REVIEW BLOCK 15: Function latestProjectDraft - callable behavior in this runtime organ.
   function latestProjectDraft(staged) {
     return safeArray(staged.projectBriefcaseDrafts).slice(-1)[0] || null;
   }
 
+// AIDA REVIEW BLOCK 16: Function classifyFact - callable behavior in this runtime organ.
   function classifyFact(fact) {
     const claim = String(fact?.claim || "");
     const confidence = Number(fact?.confidence || 0);
@@ -110,6 +126,7 @@
     return "needs_confirmation";
   }
 
+// AIDA REVIEW BLOCK 17: Function reviewFacts - callable behavior in this runtime organ.
   function reviewFacts(staged, reviewedAt) {
     return safeArray(staged.factCandidates).map((fact) => {
       const reviewStatus = classifyFact(fact);
@@ -123,6 +140,7 @@
     });
   }
 
+// AIDA REVIEW BLOCK 18: Function reviewInsights - callable behavior in this runtime organ.
   function reviewInsights(staged, reviewedAt) {
     return safeArray(staged.insightCandidates).map((insight) => ({
       ...insight,
@@ -133,6 +151,7 @@
     }));
   }
 
+// AIDA REVIEW BLOCK 19: Function buildSensitiveContextWrites - callable behavior in this runtime organ.
   function buildSensitiveContextWrites(staged, reviewedAt) {
     return safeArray(staged.sensitiveContextCandidates).map((draft) => ({
       ...draft,
@@ -144,6 +163,7 @@
     }));
   }
 
+// AIDA REVIEW BLOCK 20: Function buildSalutationSignalWrites - callable behavior in this runtime organ.
   function buildSalutationSignalWrites(staged, reviewedAt) {
     return safeArray(staged.salutationSignals).map((draft) => ({
       ...draft,
@@ -154,6 +174,7 @@
     }));
   }
 
+// AIDA REVIEW BLOCK 21: Function buildRawLogWrites - callable behavior in this runtime organ.
   function buildRawLogWrites(staged, reviewedAt) {
     return safeArray(staged.rawLogEntries).map((draft) => ({
       ...draft,
@@ -163,6 +184,7 @@
     }));
   }
 
+// AIDA REVIEW BLOCK 22: Function buildProcessingBacklogWrites - callable behavior in this runtime organ.
   function buildProcessingBacklogWrites(staged, reviewedAt) {
     return safeArray(staged.processingBacklog).map((draft) => ({
       ...draft,
@@ -172,6 +194,7 @@
     }));
   }
 
+// AIDA REVIEW BLOCK 23: Function buildDiaryWrites - callable behavior in this runtime organ.
   function buildDiaryWrites(staged, reviewedAt) {
     return safeArray(staged.diaryDrafts).map((draft) => ({
       ...draft,
@@ -181,6 +204,7 @@
     }));
   }
 
+// AIDA REVIEW BLOCK 24: Function buildProjectListingDraft - callable behavior in this runtime organ.
   function buildProjectListingDraft(staged, reviewedAt) {
     const projectDraft = latestProjectDraft(staged);
     if (!projectDraft) return null;
@@ -209,6 +233,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 25: Function buildProjectBriefcaseWrites - callable behavior in this runtime organ.
   function buildProjectBriefcaseWrites(staged, reviewedAt) {
     const latestByProject = new Map();
     safeArray(staged.projectBriefcaseDrafts).forEach((draft) => {
@@ -223,6 +248,7 @@
     }));
   }
 
+// AIDA REVIEW BLOCK 26: Function buildWritePlan - callable behavior in this runtime organ.
   function buildWritePlan(state, reviewedAt) {
     const packetId = state.lastReviewedPacketId || "unknown_packet";
     return {
@@ -256,6 +282,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 27: Function removePacketEntries - callable behavior in this runtime organ.
   function removePacketEntries(state, packetId) {
     if (!packetId) return;
     for (const key of [
@@ -282,6 +309,7 @@
     ));
   }
 
+// AIDA REVIEW BLOCK 28: Function keepOnlyPacketEntries - callable behavior in this runtime organ.
   function keepOnlyPacketEntries(state, packetId) {
     if (!packetId) return;
     for (const key of [
@@ -303,6 +331,7 @@
     }
   }
 
+// AIDA REVIEW BLOCK 29: Function reviewLibrarian - callable behavior in this runtime organ.
   function reviewLibrarian() {
     const state = ensureState();
     pruneLegacyFallbackCandidates(state);
@@ -369,6 +398,7 @@
     return { ready: true, summary, writePlan };
   }
 
+// AIDA REVIEW BLOCK 30: Function getReviewed - callable behavior in this runtime organ.
   function getReviewed() {
     const state = ensureState();
     pruneLegacyFallbackCandidates(state);
@@ -390,6 +420,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 31: Function safeSummary - callable behavior in this runtime organ.
   function safeSummary() {
     const state = ensureState();
     pruneLegacyFallbackCandidates(state);
@@ -413,6 +444,7 @@
     };
   }
 
+// AIDA REVIEW BLOCK 32: Function inspect - callable behavior in this runtime organ.
   function inspect() {
     const summary = safeSummary();
     log("CURATOR: review summary follows.", "log-blue");
@@ -430,11 +462,13 @@
     return summary;
   }
 
+// AIDA REVIEW BLOCK 33: Function install - callable behavior in this runtime organ.
   function install() {
     ensureState();
     log("Curator organ loaded. Review/write plans are draft-only.", "log-blue");
   }
 
+// AIDA REVIEW BLOCK 34: Browser export AIDA_CURATOR - exposes this organ to the page runtime.
   window.AIDA_CURATOR = {
     reviewLibrarian,
     inspect,
@@ -464,5 +498,6 @@
     });
   }
 
+// AIDA REVIEW BLOCK 35: Browser event wiring - connects page lifecycle or user actions to this organ.
   document.addEventListener("DOMContentLoaded", install);
 })();

@@ -1,10 +1,13 @@
 <!DOCTYPE html>
+<!-- AIDA REVIEW BLOCK 1: File header - ONE\assets\KeyPadTest.html -->
 <html lang="en">
+<!-- AIDA REVIEW BLOCK 2: Head setup - metadata, title, styles, and preloaded runtime assets. -->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Holo Airlock</title>
 
+<!-- AIDA REVIEW BLOCK 3: Style rules - visual layout and responsive behavior. -->
 <style>
 :root {
   --bg: #000;
@@ -119,6 +122,7 @@ html, body {
 </style>
 </head>
 
+<!-- AIDA REVIEW BLOCK 4: Body shell - visible app surface and runtime mounting point. -->
 <body>
 <div id="airlock">
   <div class="panel">
@@ -130,7 +134,7 @@ html, body {
       maxlength="8"
       inputmode="numeric"
       autocomplete="off"
-      placeholder="••••"
+      placeholder="â€¢â€¢â€¢â€¢"
     >
 
     <div class="keypad" id="keypad"></div>
@@ -139,6 +143,7 @@ html, body {
   </div>
 </div>
 
+<!-- AIDA REVIEW BLOCK 5: Script bridge - loads or runs JavaScript behavior for this screen. -->
 <script>
 const input = document.getElementById("scramble-pin");
 const keypad = document.getElementById("keypad");
@@ -179,7 +184,7 @@ function renderKeypad() {
   };
 
   const back = document.createElement("button");
-  back.textContent = "⌫";
+  back.textContent = "âŒ«";
   back.onclick = () => {
     input.value = input.value.slice(0, -1);
   };

@@ -1,9 +1,12 @@
+# AIDA REVIEW BLOCK 1: File header - gem-Js-pacs\ROOT20260510\Py\role_organ.py
+# AIDA REVIEW BLOCK 2: Module setup - imports, constants, and shared state used below.
 # role_engine.py
 
 import json
 from typing import Any, Dict, List, Optional
 
 
+# AIDA REVIEW BLOCK 3: Class RoleEngine - grouped organ/service behavior.
 class RoleEngine:
     """
     Pure logic engine for Aida's roles (modes).
@@ -16,6 +19,7 @@ class RoleEngine:
     - Exposes a clean API for the runtime + IdentityEngine
     """
 
+# AIDA REVIEW BLOCK 4: Function __init__ - callable organ behavior.
     def __init__(self, role_config: Dict[str, Any]):
         self.role_config = role_config or {}
         self._validate()
@@ -25,6 +29,7 @@ class RoleEngine:
     # Convenience constructor
     # -------------------------------------------------------------------------
     @classmethod
+# AIDA REVIEW BLOCK 5: Function from_file - callable organ behavior.
     def from_file(cls, role_config_path: str) -> "RoleEngine":
         with open(role_config_path, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -33,6 +38,7 @@ class RoleEngine:
     # -------------------------------------------------------------------------
     # Validation
     # -------------------------------------------------------------------------
+# AIDA REVIEW BLOCK 6: Function _validate - callable organ behavior.
     def _validate(self) -> None:
         """
         Minimal structural validation.
@@ -45,6 +51,7 @@ class RoleEngine:
     # -------------------------------------------------------------------------
     # Resolution
     # -------------------------------------------------------------------------
+# AIDA REVIEW BLOCK 7: Function _resolve_role - callable organ behavior.
     def _resolve_role(self) -> Dict[str, Any]:
         rc = self.role_config
 
@@ -88,6 +95,7 @@ class RoleEngine:
     # -------------------------------------------------------------------------
     # Helpers
     # -------------------------------------------------------------------------
+# AIDA REVIEW BLOCK 8: Function _normalize_str_list - callable organ behavior.
     def _normalize_str_list(self, value: Any) -> List[str]:
         if isinstance(value, str):
             return [value]
@@ -98,33 +106,43 @@ class RoleEngine:
     # -------------------------------------------------------------------------
     # Public API
     # -------------------------------------------------------------------------
+# AIDA REVIEW BLOCK 9: Function get_resolved_role - callable organ behavior.
     def get_resolved_role(self) -> Dict[str, Any]:
         return self.resolved_role
 
+# AIDA REVIEW BLOCK 10: Function get_name - callable organ behavior.
     def get_name(self) -> str:
         return self.resolved_role.get("name", "")
 
+# AIDA REVIEW BLOCK 11: Function get_tone_modifiers - callable organ behavior.
     def get_tone_modifiers(self) -> List[str]:
         return self.resolved_role.get("tone_modifiers", [])
 
+# AIDA REVIEW BLOCK 12: Function get_priorities - callable organ behavior.
     def get_priorities(self) -> List[str]:
         return self.resolved_role.get("priorities", [])
 
+# AIDA REVIEW BLOCK 13: Function get_communication_style - callable organ behavior.
     def get_communication_style(self) -> List[str]:
         return self.resolved_role.get("communication_style", [])
 
+# AIDA REVIEW BLOCK 14: Function get_capabilities - callable organ behavior.
     def get_capabilities(self) -> List[str]:
         return self.resolved_role.get("capabilities", [])
 
+# AIDA REVIEW BLOCK 15: Function get_constraints - callable organ behavior.
     def get_constraints(self) -> List[str]:
         return self.resolved_role.get("constraints", [])
 
+# AIDA REVIEW BLOCK 16: Function get_flags - callable organ behavior.
     def get_flags(self) -> Dict[str, bool]:
         return self.resolved_role.get("flags", {})
 
+# AIDA REVIEW BLOCK 17: Function has_capability - callable organ behavior.
     def has_capability(self, capability: str) -> bool:
         return capability in self.get_capabilities()
 
+# AIDA REVIEW BLOCK 18: Function is_flag_enabled - callable organ behavior.
     def is_flag_enabled(self, flag_name: str) -> bool:
         return bool(self.get_flags().get(flag_name, False))
 
