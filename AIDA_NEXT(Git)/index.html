@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<!-- AIDA REVIEW BLOCK 1: File header - AIDA_ONE_SPINE\index.html -->
+<html lang="en">
+<!-- AIDA REVIEW BLOCK 2: Head setup - metadata, title, styles, and preloaded runtime assets. -->
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>AIDA-One Spine</title>
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Aida">
+  <link rel="apple-touch-icon" href="body/assets/aida_icon.png">
+  <link rel="icon" type="image/png" href="body/assets/aida_icon.png">
+  <link rel="stylesheet" href="body/awake.css?v=20260627c">
+<!-- AIDA REVIEW BLOCK 3: Style rules - visual layout and responsive behavior. -->
+<style>
+    /* Absolute system fallback shield to kill startup white flash artifacts */
+    html, body, #bios-screen, #aida-interface, #main-engine {
+        background: #000000 !important;
+        background-color: #000000 !important;
+    }
+</style>
+</head>
+  
+<!-- AIDA REVIEW BLOCK 4: Body shell - visible app surface and runtime mounting point. -->
+<body>
+<!-- AIDA REVIEW BLOCK 5: Main workspace - primary user interaction flow. -->
+  <main id="bios-screen" aria-label="AIDA BIOS boot log">
+    <div id="bios-controls" aria-label="AIDA boot controls">
+      <button id="wake-aida-btn" type="button">Wake Aida</button>
+      <button id="airlock-start-btn" type="button">Begin Airlock</button>
+      <button id="drive-connect-btn" type="button">Connect Drive</button>
+      <button id="drive-list-btn" type="button">List Drive JSON</button>
+      <button id="drive-fetch-btn" type="button">Fetch Drive JSON</button>
+      <button id="context-inspect-btn" type="button">Inspect Context</button>
+      <button id="session-inspect-btn" type="button">Inspect Session</button>
+      <button id="emotion-inspect-btn" type="button">Inspect Emotion</button>
+      <button id="while-away-inspect-btn" type="button">Inspect Away</button>
+      <button id="shape-inspect-btn" type="button">Inspect Shapes</button>
+      <button id="llm-preview-btn" type="button">Build LLM Messages</button>
+      <button id="drive-write-preview-btn" type="button">Preview Drive Writes</button>
+      <button id="drive-write-dryrun-btn" type="button">Dry-Run Drive Writes</button>
+      <button id="drive-write-apply-btn" type="button">Apply Drive Writes</button>
+      <button id="boot-preview-btn" type="button">Switch to Body</button>
+      <button id="director-demo-btn" type="button">Offline Director</button>
+    </div>
+    <div id="bios-latest" aria-live="polite">>>> BIOS ready.</div>
+    <div id="bios-logs">
+      <div class="log-white">>>> INITIALIZING AIDA-ONE SPINE...</div>
+      <div class="log-amber">>>> Awake body donor ready. Mind not mounted yet.</div>
+    </div>
+  </main>
+
+<!-- AIDA REVIEW BLOCK 6: Section - grouped UI panel or runtime stage. -->
+  <section id="airlock" aria-label="AIDA airlock">
+    <h1 class="airlock-title">AIDA</h1>
+    <div class="airlock-panel">
+      <h2>SECURITY CLEARANCE</h2>
+      <input type="password" id="scramble-pin" placeholder="---" maxlength="18" readonly>
+      <div id="airlock-status">Zeros are decoys. Three meaningful fragments required.</div>
+      <div class="keypad">
+        <button class="key" type="button">1</button>
+        <button class="key" type="button">2</button>
+        <button class="key" type="button">3</button>
+        <button class="key" type="button">4</button>
+        <button class="key" type="button">5</button>
+        <button class="key" type="button">6</button>
+        <button class="key" type="button">7</button>
+        <button class="key" type="button">8</button>
+        <button class="key" type="button">9</button>
+        <button class="key key-clear" type="button">CLR</button>
+        <button class="key" type="button">0</button>
+        <button class="key" type="button">OK</button>
+      </div>
+      <div class="airlock-tools">
+        <button
+          id="airlock-inspect-btn"
+          type="button"
+          onclick="window.AIDA_AIRLOCK?.inspectFromAirlock?.() || window.AIDA_AIRLOCK?.inspectRoutes?.() || window.AIDA_CONTEXT_INSPECTOR?.inspect?.()"
+        >Inspect</button>
+        <button
+          id="airlock-bios-btn"
+          type="button"
+          onclick="document.getElementById('airlock').style.display='none';document.getElementById('bios-screen').style.display='flex';window.AIDA_BIOS?.scrollToLatest?.();window.AIDA_AIRLOCK?.returnToBios?.()"
+        >BIOS</button>
+      </div>
+    </div>
+  </section>
+
+<!-- AIDA REVIEW BLOCK 7: Section - grouped UI panel or runtime stage. -->
+  <section id="aida-interface" aria-label="AIDA interface">
+    <div id="veil"></div>
+    <div class="pixel-grid" id="pixelGrid"></div>
+    <div class="spark-layer" id="sparkLayer"></div>
+
+    <div id="main-engine" class="hidden">
+      <div id="chat-flow">
+        <div class="line AIDA">Body shell online. Waking Aida's Drive memory...</div>
+      </div>
+
+      <div id="aida-display">
+        <div id="portrait-spacer">
+<!-- AIDA REVIEW BLOCK 8: Section - grouped UI panel or runtime stage. -->
+          <section id="director-stage" aria-label="Aida's director stage">
+            <div
+              id="director-stage-frame"
+              role="button"
+              tabindex="0"
+              title="Tap to advance the offline Director demonstration"
+              aria-label="Advance offline Director demonstration"
+            >
+              <img
+                id="director-stage-image"
+                src="body/assets/stage/System/Pensive.png"
+                alt="Aida's current presentation"
+              >
+              <div id="director-stage-scan" aria-hidden="true"></div>
+              <div id="director-stage-label">AIDA'S STAGE</div>
+            </div>
+            <div id="director-stage-caption">A quiet thought, held beside the conversation.</div>
+          </section>
+        </div>
+
+        <div id="portrait-pane">
+          <div id="flicker-grid"></div>
+          <div id="face-data-slow" class="face-data-grid face-data-slow"></div>
+          <div id="face-data-fast" class="face-data-grid face-data-fast"></div>
+          <div class="tint-layer debug-green"></div>
+          <div class="tint-layer alert-o"></div>
+          <div class="tint-layer provider-tint" aria-hidden="true"></div>
+          <div id="llm-route-badge" hidden></div>
+          <img id="aida-portrait" src="body/assets/neutral1.png" alt="Aida portrait">
+        </div>
+
+        <div id="data-stack">
+          <div id="debug-pane">
+            <div id="log-content">Initializing body...</div>
+          </div>
+          <div id="presentation-pane">
+            <div id="realm-tag">NO REALM</div>
+            <div id="pres-content">Spine waiting for first transplant.</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="input-dock">
+        <div id="tag-buttons">
+          <button class="tag-btn selected" data-index="0" data-mode="francisco" type="button">FRANCISCO</button>
+          <button class="tag-btn" data-index="1" data-mode="narrator" type="button">NARRATOR</button>
+          <button class="tag-btn" data-index="2" data-mode="director" type="button">DIRECTOR</button>
+          <button class="tag-btn" data-index="3" data-mode="action" type="button">ACTION</button>
+          <button class="tag-btn" data-index="4" data-mode="character" type="button">CHARACTER</button>
+          <button class="tag-btn" data-index="5" data-mode="character_2" type="button">CHARACTER 2</button>
+          <button class="tag-btn" data-index="6" data-mode="new" type="button">NEW</button>
+          <button class="tag-btn" data-index="7" data-mode="memory" type="button">MEMORY</button>
+          <button class="tag-btn" data-index="8" data-mode="fact" type="button">FACT</button>
+          <button class="tag-btn" data-index="9" data-mode="insight" type="button">INSIGHT</button>
+          <button class="tag-btn" data-index="10" data-mode="question" type="button">QUESTION</button>
+          <input id="tag-edit" type="text" placeholder="type tag...">
+        </div>
+
+        <div id="message-row">
+          <button id="glasses-attach-btn" type="button" title="Attach an image or PDF" aria-label="Attach an image or PDF">+</button>
+          <input id="glasses-file-in" type="file" accept="image/png,image/jpeg,image/webp,image/gif,application/pdf" hidden>
+          <input type="text" id="user-in" placeholder="Talk to Aida...">
+        </div>
+        <div id="glasses-attachment-status" aria-live="polite"></div>
+
+        <div class="controls">
+          <button id="send-btn" type="button">SEND</button>
+          <button id="eject-btn" type="button">REALMS</button>
+          <button id="bios-return-btn" type="button">BIOS</button>
+          <button id="sleep-btn" type="button">SLEEP</button>
+        </div>
+      </div>
+    </div>
+  </section>
+<!-- AIDA REVIEW BLOCK 9: Script bridge - loads or runs JavaScript behavior for this screen. -->
+  <script src="spine/runtime.js?v=20260620b"></script>
+<!-- AIDA REVIEW BLOCK 10: Script bridge - loads or runs JavaScript behavior for this screen. -->
+  <script src="spine/config.js?v=20260622a"></script>
+<!-- AIDA REVIEW BLOCK 11: Script bridge - loads or runs JavaScript behavior for this screen. -->
+  <script src="spine/bios_console.js?v=20260606i"></script>
+<!-- AIDA REVIEW BLOCK 12: Script bridge - loads or runs JavaScript behavior for this screen. -->
+  <script src="body/awake.js?v=20260628c"></script>
+<!-- AIDA REVIEW BLOCK 13: Script bridge - loads or runs JavaScript behavior for this screen. -->
+  <script src="spine/airlock.js?v=20260621a"></script>
+<!-- AIDA REVIEW BLOCK 14: Script bridge - loads or runs JavaScript behavior for this screen. -->
+  <script src="spine/project_context.js?v=20260627e"></script>
+<!-- AIDA REVIEW BLOCK 15: Script bridge - loads or runs JavaScript behavior for this screen. -->
+  <script src="spine/drive_oauth.js?v=20260627a"></script>
+<!-- AIDA REVIEW BLOCK 16: Script bridge - loads or runs JavaScript behavior for this screen. -->
+  <script src="spine/context_inspector.js?v=20260620a"></script>
+<!-- AIDA REVIEW BLOCK 17: Script bridge - loads or runs JavaScript behavior for this screen. -->
+  <script src="spine/llm_messages.js?v=20260620a"></script>
+<!-- AIDA REVIEW BLOCK 18: Script bridge - loads or runs JavaScript behavior for this screen. -->
+  <script src="spine/llm_provider.js?v=20260622a"></script>
+<!-- AIDA REVIEW BLOCK 19: Script bridge - loads or runs JavaScript behavior for this screen. -->
+  <script src="spine/llm_scope.js?v=20260621a"></script>
+<!-- AIDA REVIEW BLOCK 20: Script bridge - loads or runs JavaScript behavior for this screen. -->
+  <script src="spine/crash_buffer.js?v=20260607e"></script>
+<!-- AIDA REVIEW BLOCK 21: Script bridge - loads or runs JavaScript behavior for this screen. -->
+  <script src="spine/session_capture.js?v=20260621a"></script>
+<!-- AIDA REVIEW BLOCK 22: Script bridge - loads or runs JavaScript behavior for this screen. -->
+  <script src="spine/context_evolution.js?v=20260621a"></script>
+<!-- AIDA REVIEW BLOCK 23: Script bridge - loads or runs JavaScript behavior for this screen. -->
+  <script src="spine/emotion_engine.js?v=20260607a"></script>
+<!-- AIDA REVIEW BLOCK 24: Script bridge - loads or runs JavaScript behavior for this screen. -->
+  <script src="spine/while_away.js?v=20260621b"></script>
+<!-- AIDA REVIEW BLOCK 25: Script bridge - loads or runs JavaScript behavior for this screen. -->
+  <script src="spine/sleep_cycle.js?v=20260628a"></script>
+<!-- AIDA REVIEW BLOCK 26: Script bridge - loads or runs JavaScript behavior for this screen. -->
+  <script src="spine/librarian.js?v=20260621a"></script>
+<!-- AIDA REVIEW BLOCK 27: Script bridge - loads or runs JavaScript behavior for this screen. -->
+  <script src="spine/curator.js?v=20260614f"></script>
+<!-- AIDA REVIEW BLOCK 28: Script bridge - loads or runs JavaScript behavior for this screen. -->
+  <script src="spine/crawler.js?v=20260622a"></script>
+<!-- AIDA REVIEW BLOCK 29: Script bridge - loads or runs JavaScript behavior for this screen. -->
+  <script src="spine/drive_writeback.js?v=20260627b"></script>
+<!-- AIDA REVIEW BLOCK 30: Script bridge - loads or runs JavaScript behavior for this screen. -->
+  <script src="spine/glasses.js?v=20260620a"></script>
+<!-- AIDA REVIEW BLOCK 31: Script bridge - loads or runs JavaScript behavior for this screen. -->
+  <script src="spine/director_stage.js?v=20260622a"></script>
+<!-- AIDA REVIEW BLOCK 32: Script bridge - loads or runs JavaScript behavior for this screen. -->
+  <script src="spine/intent_router.js?v=20260628a"></script>
+<!-- AIDA REVIEW BLOCK 33: Script bridge - loads or runs JavaScript behavior for this screen. -->
+  <script src="spine/llm_openai.js?v=20260628c"></script>
+<!-- AIDA REVIEW BLOCK 34: Script bridge - loads or runs JavaScript behavior for this screen. -->
+  <script src="spine/boot_flow.js?v=20260620d"></script>
+</body>
+</html>
