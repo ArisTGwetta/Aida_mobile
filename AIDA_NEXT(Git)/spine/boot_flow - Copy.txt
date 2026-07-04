@@ -109,24 +109,14 @@
   }
 
 // AIDA REVIEW BLOCK 13: Function continueWake - callable behavior in this runtime organ.
-async function continueWake() {
-    // 1. Arrive first — UI must exist before messages
+  async function continueWake() {
+    buildMessages();
     arrive();
-
-    // 2. Build messages AFTER arrival
-    try {
-        buildMessages();
-        log("WAKE: LLM messages assembled after arrival.", "log-blue");
-    } catch (err) {
-        log(`WAKE: Message builder skipped during wake: ${err.message}`, "log-amber");
-    }
-
     const rt = runtime();
     if (rt) rt.boot.phase = "wake_complete";
     log("WAKE: Aida wake flow complete.", "log-blue");
     return true;
-}
-
+  }
 
 // AIDA REVIEW BLOCK 14: Function wakeAida - callable behavior in this runtime organ.
   async function wakeAida() {
