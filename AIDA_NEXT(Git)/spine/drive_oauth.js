@@ -173,19 +173,31 @@
   }
 
 // AIDA REVIEW BLOCK 13: Function fetchJsonFile - callable behavior in this runtime organ.
-  async function fetchJsonFile(file) {
-    const token = runtime().tokens.drive.accessToken;
-    const url = `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`;
-    const response = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+// AIDA PATCH: MIME‑agnostic JSON loader for Google Drive
+async function fetchJsonFile(file) {
+  const token = runtime().tokens.drive.accessToken;
+  const url = `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`;
 
-    if (!response.ok) {
-      throw new Error(`Fetch failed for ${file.name}: HTTP ${response.status}.`);
-    }
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
 
-    return response.json();
+  if (!response.ok) {
+    throw new Error(`Fetch failed for ${file.name}: HTTP ${response.status}.`);
   }
+
+  // Read raw text instead of relying on MIME type
+  const raw = await response.text();
+
+  try {
+    // Remove BOM if present
+    const clean = raw.replace(/^\uFEFF/, "");
+    return JSON.parse(clean);
+  } catch (err) {
+    throw new Error(`JSON parse failed for ${file.name}: ${err.message}`);
+  }
+}
+
 
 // AIDA REVIEW BLOCK 14: Function isProjectFile - callable behavior in this runtime organ.
   function isProjectFile(name) {
