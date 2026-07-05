@@ -41,6 +41,15 @@
     return window.AIDA_RUNTIME;
   }
 
+const rt = runtime();
+rt.context = rt.context || {};
+rt.mind = rt.mind || {};
+rt.session = rt.session || {};
+rt.drive = rt.drive || {};
+rt.boot = rt.boot || {};
+
+log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
+
 // AIDA REVIEW BLOCK 5: Function config - callable behavior in this runtime organ.
   function config() {
     return window.AIDA_CONFIG || {};
@@ -864,6 +873,12 @@ async function fetchJsonFile(file) {
 // AIDA REVIEW BLOCK 47: Function fetchContextJson - callable behavior in this runtime organ.
   async function fetchContextJson(projectName) {
     const rt = runtime();
+    rt.context = rt.context || {};
+    rt.mind = rt.mind || {};
+    rt.session = rt.session || {};
+    rt.drive = rt.drive || {};
+    rt.boot = rt.boot || {};
+
     if (!Object.keys(rt.drive?.fileIndex || {}).length) {
       indexDriveFiles(await listJsonFiles());
     }

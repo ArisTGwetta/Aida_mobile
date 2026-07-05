@@ -11,6 +11,24 @@
     return window.AIDA_RUNTIME;
   }
 
+function log(message, className = "log-blue") {
+    if (window.AIDA_BIOS?.log) {
+        window.AIDA_BIOS.log(message, className);
+        return;
+    }
+    if (window.AIDA_BODY?.pulse) {
+        window.AIDA_BODY.pulse(message);
+    }
+}
+const rt = runtime();
+rt.context = rt.context || {};
+rt.mind = rt.mind || {};
+rt.session = rt.session || {};
+rt.drive = rt.drive || {};
+rt.boot = rt.boot || {};
+
+log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
+
   // AIDA REVIEW BLOCK 4: Function config - callable behavior in this runtime organ.
   function config() {
     return window.AIDA_CONFIG?.llm || {};

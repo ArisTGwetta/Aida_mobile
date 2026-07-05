@@ -1,10 +1,14 @@
 // AIDA REVIEW BLOCK 1: File header - AIDA_ONE_SPINE\spine\airlock.js
 // AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 (function () {
+
   const MODULE_ID = "spine.airlock";
   const MAX_REAL_DIGITS = 3;
   const STORAGE_KEY = "aida_active_key";
   const STORAGE_ROUTE = "aida_active_route";
+
+log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
+
 
 // AIDA REVIEW BLOCK 3: Function $ - callable behavior in this runtime organ.
   function $(id) {

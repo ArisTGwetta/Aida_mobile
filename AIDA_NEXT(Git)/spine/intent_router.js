@@ -9,6 +9,17 @@
     return window.AIDA_RUNTIME;
   }
 
+const rt = runtime();
+rt.context = rt.context || {};
+rt.mind = rt.mind || {};
+rt.session = rt.session || {};
+rt.drive = rt.drive || {};
+rt.boot = rt.boot || {};
+
+log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
+
+
+
   // AIDA REVIEW BLOCK 4: Function log - callable behavior in this runtime organ.
   function log(message, className = "log-blue") {
     if (window.AIDA_BIOS?.log) {
@@ -303,7 +314,7 @@
       runtime().context.lastToolReplyComposition = {
         intent: safePayload.intent,
         query: safePayload.query,
-        composedAt: new Date()..toISOString(),
+        composedAt: new Date().toISOString(),
         ok: false,
         error: error.message
       };
