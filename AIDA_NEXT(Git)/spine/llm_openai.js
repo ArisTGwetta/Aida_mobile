@@ -15,6 +15,16 @@
     return window.AIDA_RUNTIME;
   }
 
+function log(message, className = "log-blue") {
+    if (window.AIDA_BIOS?.log) {
+        window.AIDA_BIOS.log(message, className);
+        return;
+    }
+    if (window.AIDA_BODY?.pulse) {
+        window.AIDA_BODY.pulse(message);
+    }
+}
+
 const rt = runtime();
 rt.context = rt.context || {};
 rt.mind = rt.mind || {};
