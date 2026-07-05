@@ -15,6 +15,7 @@ rt.session = rt.session || {};
 rt.drive = rt.drive || {};
 rt.boot = rt.boot || {};
 
+log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
 
   // AIDA REVIEW BLOCK 3: Function log - lightweight logging to BIOS or BODY.
   function log(message, className = "log-blue") {

@@ -15,6 +15,15 @@
     return window.AIDA_RUNTIME;
   }
 
+const rt = runtime();
+rt.context = rt.context || {};
+rt.mind = rt.mind || {};
+rt.session = rt.session || {};
+rt.drive = rt.drive || {};
+rt.boot = rt.boot || {};
+
+log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
+
   function config() {
     return window.AIDA_CONFIG || {};
   }

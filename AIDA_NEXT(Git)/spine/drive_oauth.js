@@ -41,6 +41,15 @@
     return window.AIDA_RUNTIME;
   }
 
+const rt = runtime();
+rt.context = rt.context || {};
+rt.mind = rt.mind || {};
+rt.session = rt.session || {};
+rt.drive = rt.drive || {};
+rt.boot = rt.boot || {};
+
+log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
+
 // AIDA REVIEW BLOCK 5: Function config - callable behavior in this runtime organ.
   function config() {
     return window.AIDA_CONFIG || {};

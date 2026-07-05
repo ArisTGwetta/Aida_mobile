@@ -15,6 +15,8 @@ rt.session = rt.session || {};
 rt.drive = rt.drive || {};
 rt.boot = rt.boot || {};
 
+log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
+
 // AIDA REVIEW BLOCK 4: Function log - callable behavior in this runtime organ.
   function log(message, className = "log-green") {
     if (window.AIDA_BIOS?.log) {
