@@ -303,7 +303,7 @@
       runtime().context.lastToolReplyComposition = {
         intent: safePayload.intent,
         query: safePayload.query,
-        composedAt: new Date()..toISOString(),
+        composedAt: new Date().toISOString(),
         ok: false,
         error: error.message
       };
