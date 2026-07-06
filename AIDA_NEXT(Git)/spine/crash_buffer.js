@@ -183,6 +183,26 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       };
     }
 
+// Ensure core runtime structures exist after restore
+rt.context = rt.context || {};
+rt.mind = rt.mind || {};
+rt.drive = rt.drive || {};
+rt.tokens = rt.tokens || {};
+rt.boot = rt.boot || {};
+
+// Rebuild essential context fields for wake re-entry
+rt.context.identity = rt.context.identity || rt.mind.identity;
+rt.context.realm = rt.context.realm || rt.mind.realm;
+rt.context.role = rt.context.role || rt.mind.role;
+rt.context.emotion = rt.context.emotion || rt.mind.emotion;
+
+rt.context.memoryWindow = rt.context.memoryWindow || {
+  recentTurns: rt.mind.session,
+  session: rt.mind.session,
+  summary: rt.mind.memory
+};
+
+    
     state.lastRestoredAt = nowIso();
     state.restored = true;
     state.error = null;
