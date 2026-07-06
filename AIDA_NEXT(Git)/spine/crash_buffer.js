@@ -8,6 +8,7 @@
   function runtime() {
     return window.AIDA_RUNTIME;
   }
+  
 
 const rt = runtime();
 rt.context = rt.context || {};
