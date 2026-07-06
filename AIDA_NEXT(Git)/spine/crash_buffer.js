@@ -221,13 +221,17 @@ rt.context.driveById = rt.context.driveById || {};
 rt.context.driveByName = rt.context.driveByName || {};
 rt.context.driveByPath = rt.context.driveByPath || {};
 
-// Ensure drive lookup structures exist
-rt.context.driveFiles = rt.context.driveFiles || [];
-rt.context.driveFolders = rt.context.driveFolders || {};
-rt.context.driveLookup = rt.context.driveLookup || {};
-rt.context.driveById = rt.context.driveById || {};
-rt.context.driveByName = rt.context.driveByName || {};
-rt.context.driveByPath = rt.context.driveByPath || {};
+// Ensure drive organ exists
+rt.drive = rt.drive || {};
+
+// Ensure drive hydration structures exist
+rt.drive.files = rt.drive.files || {};
+rt.drive.loadedNames = rt.drive.loadedNames || [];
+rt.drive.deferredNames = rt.drive.deferredNames || [];
+rt.drive.jsonCache = rt.drive.jsonCache || {};
+rt.drive.fileMap = rt.drive.fileMap || {};
+rt.drive.folderMap = rt.drive.folderMap || {};
+rt.drive.bootPhase = rt.drive.bootPhase || "boot";
 
     
     state.lastRestoredAt = nowIso();
