@@ -213,7 +213,15 @@ rt.context.realmSummaries = rt.context.realmSummaries || {};
 rt.context.driveMap = rt.context.driveMap || {};
 rt.context.driveIndex = rt.context.driveIndex || {};
 
-    // Ensure drive lookup structures exist
+// Ensure drive lookup structures exist
+rt.context.driveFiles = rt.context.driveFiles || [];
+rt.context.driveFolders = rt.context.driveFolders || {};
+rt.context.driveLookup = rt.context.driveLookup || {};
+rt.context.driveById = rt.context.driveById || {};
+rt.context.driveByName = rt.context.driveByName || {};
+rt.context.driveByPath = rt.context.driveByPath || {};
+
+// Ensure drive lookup structures exist
 rt.context.driveFiles = rt.context.driveFiles || [];
 rt.context.driveFolders = rt.context.driveFolders || {};
 rt.context.driveLookup = rt.context.driveLookup || {};
