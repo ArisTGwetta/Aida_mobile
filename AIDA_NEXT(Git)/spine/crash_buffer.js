@@ -246,6 +246,20 @@ rt.drive.fileMap = rt.drive.fileMap || {};
 rt.drive.folderMap = rt.drive.folderMap || {};
 rt.drive.bootPhase = rt.drive.bootPhase || "boot";
 
+
+// Rebuild drive file objects from boot-loaded JSON
+if (rt.mind?.driveBootFiles) {
+  rt.drive.files = {};
+  for (const [name, json] of Object.entries(rt.mind.driveBootFiles)) {
+    rt.drive.files[name] = {
+      name,
+      json,
+      context: json.context || null,
+      type: json.type || null
+    };
+  }
+}
+
     
     state.lastRestoredAt = nowIso();
     state.restored = true;
