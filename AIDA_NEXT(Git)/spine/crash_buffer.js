@@ -221,6 +221,19 @@ rt.context.driveById = rt.context.driveById || {};
 rt.context.driveByName = rt.context.driveByName || {};
 rt.context.driveByPath = rt.context.driveByPath || {};
 
+// Rebuild drive file objects from boot-loaded JSON
+if (rt.mind?.driveBootFiles) {
+  rt.drive.files = {};
+  for (const [name, json] of Object.entries(rt.mind.driveBootFiles)) {
+    rt.drive.files[name] = {
+      name,
+      json,
+      context: json.context || null,
+      type: json.type || null
+    };
+  }
+}
+
 // Ensure drive organ exists
 rt.drive = rt.drive || {};
 
