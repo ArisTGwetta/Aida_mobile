@@ -518,24 +518,20 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
           briefcaseEditId: op.briefcaseEditId || null,
           error: error.message
         });
-        state.lastAppliedAt = null;
-        state.lastStatus = dryRun ? "dry_run_failed" : "apply_failed";
-        state.operations = results;
-        state.history.push({ appliedAt, dryRun, results });
-        state.history = state.history.slice(-20);
-        const failed = { ready: false, status: state.lastStatus, dryRun, operations: results };
         log(`DRIVE WRITEBACK: failed on ${op.fileName}. ${error.message}`, "log-amber");
-        consoleReport("AIDA_DRIVE_WRITEBACK_APPLY", failed);
-        return failed;
       }
     }
 
-    state.lastAppliedAt = dryRun ? null : appliedAt;
-    state.lastStatus = dryRun ? "dry_run_complete" : "applied";
+    const failedCount = results.filter((item) => !item.ok).length;
+    const successCount = results.length - failedCount;
+    state.lastAppliedAt = !dryRun && successCount ? appliedAt : null;
+    state.lastStatus = failedCount
+      ? (successCount ? "partial_applied" : (dryRun ? "dry_run_failed" : "apply_failed"))
+      : (dryRun ? "dry_run_complete" : "applied");
     state.operations = results;
     state.history.push({ appliedAt, dryRun, results });
     state.history = state.history.slice(-20);
-    if (!dryRun) {
+    if (!dryRun && successCount) {
       runtime().drive.lastSync = appliedAt;
       const completedIds = new Set(
         results
@@ -563,9 +559,15 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       });
       window.AIDA_DRIVE?.mapDriveFilesToMind?.({ selectDefault: false });
     }
-    log(`DRIVE WRITEBACK: ${dryRun ? "dry-run" : "applied"} ${results.length} operation(s).`, "log-blue");
-    consoleReport("AIDA_DRIVE_WRITEBACK_APPLY", { ready: true, status: state.lastStatus, dryRun, operations: results });
-    return { ready: true, status: state.lastStatus, dryRun, operations: results };
+    log(
+      failedCount
+        ? `DRIVE WRITEBACK: ${state.lastStatus}. saved=${successCount}, failed=${failedCount}.`
+        : `DRIVE WRITEBACK: ${dryRun ? "dry-run" : "applied"} ${results.length} operation(s).`,
+      failedCount ? "log-amber" : "log-blue"
+    );
+    const result = { ready: failedCount === 0, status: state.lastStatus, dryRun, operations: results };
+    consoleReport("AIDA_DRIVE_WRITEBACK_APPLY", result);
+    return result;
   }
 
 // AIDA REVIEW BLOCK 26: Function inspect - callable behavior in this runtime organ.

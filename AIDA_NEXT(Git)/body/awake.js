@@ -226,6 +226,16 @@
       setSleepCardStatus("Saving reviewed memory to Drive...", "working");
       try {
         const result = await api.apply({ dryRun: false });
+        if (result?.status === "partial_applied") {
+          const ops = result.operations || [];
+          const savedCount = ops.filter((op) => op?.ok).length;
+          const failed = ops.find((op) => op && op.ok === false);
+          const failedDetail = failed
+            ? `${failed.fileName || failed.target || "Drive write"}: ${failed.error || "unknown error"}`
+            : "one or more Drive writes failed";
+          setSleepCardStatus(`Partial save: ${savedCount} update(s) saved; ${failedDetail}. Drafts remain safe.`, "error");
+          return;
+        }
         if (!result?.ready || result.status !== "applied") {
 // AIDA REVIEW BLOCK 15: Function failed - arrow-function behavior in this runtime organ.
           const failed = (result?.operations || []).find((op) => op && op.ok === false);

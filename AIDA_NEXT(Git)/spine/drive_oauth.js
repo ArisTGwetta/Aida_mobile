@@ -115,6 +115,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: googleConfig.clientId,
       scope: (googleConfig.scopes || []).join(" "),
+      include_granted_scopes: true,
       callback: handleOAuthResponse
     });
 
