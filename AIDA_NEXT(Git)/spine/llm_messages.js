@@ -7,7 +7,20 @@
 (function () {
     const MODULE_ID = "spine.llm.messages";
 
-    function build(userText, runtime, extras = {}) {
+    function build(userText = "", runtimeOrExtras = null, maybeExtras = {}) {
+        const looksLikeRuntime = Boolean(runtimeOrExtras?.context || runtimeOrExtras?.mind || runtimeOrExtras?.boot || runtimeOrExtras?.session);
+        const runtime = looksLikeRuntime ? runtimeOrExtras : window.AIDA_RUNTIME;
+        const extras = looksLikeRuntime ? maybeExtras : (runtimeOrExtras || {});
+        if (!runtime) {
+            return {
+                blocked: true,
+                missing: ["AIDA runtime"],
+                messages: null,
+            };
+        }
+        runtime.context = runtime.context || {};
+        runtime.boot = runtime.boot || {};
+
         const {
             persona = "",
             systemTone = "",
@@ -67,7 +80,8 @@
         //
         // 4. HISTORY — trimmed, continuity-preserving
         //
-        const historyMessages = (runtime.context.history || [])
+        const history = Array.isArray(runtime.context.history) ? runtime.context.history : [];
+        const historyMessages = history
             .slice(-8)
             .map((h) => ({
                 role: h.role === "AIDA" ? "assistant" : "user",
@@ -85,13 +99,28 @@
         //
         // 6. FINAL ASSEMBLY — pure, ordered, clean
         //
-        return [
+        const messages = [
             systemMessage,
             memoryMessage,
             glanceMessage,
             ...historyMessages,
             userMessage,
         ].filter(Boolean);
+
+        runtime.context.llmMessages = messages;
+        runtime.boot.mindReady = true;
+        runtime.boot.phase = "llm_messages_ready";
+
+        return {
+            blocked: false,
+            messages,
+            safeSummary: {
+                messageCount: messages.length,
+                historyCount: historyMessages.length,
+                memoryThreadCount: memoryThreads.length,
+                freshGlanceThreadCount: freshGlance?.threads?.length || 0,
+            },
+        };
     }
 
     // Attach to window like all other organs
