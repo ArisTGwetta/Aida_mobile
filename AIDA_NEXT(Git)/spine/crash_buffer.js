@@ -1,25 +1,11 @@
-// AIDA REVIEW BLOCK 1: File header - AIDA_ONE_SPINE\spine\crash_buffer.js
-// AIDA REVIEW BLOCK 2: Module setup - constants, helpers, imports, and shared state used below.
 (function () {
   const MODULE_ID = "spine.crash.buffer";
   const DEFAULT_KEY = "AIDA_SPINE_CRASH_BUFFER_V1";
 
-// AIDA REVIEW BLOCK 3: Function runtime - callable behavior in this runtime organ.
   function runtime() {
     return window.AIDA_RUNTIME;
   }
-  
 
-const rt = runtime();
-rt.context = rt.context || {};
-rt.mind = rt.mind || {};
-rt.session = rt.session || {};
-rt.drive = rt.drive || {};
-rt.boot = rt.boot || {};
-
-log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
-
-// AIDA REVIEW BLOCK 4: Function log - callable behavior in this runtime organ.
   function log(message, className = "log-blue") {
     if (window.AIDA_BIOS?.log) {
       window.AIDA_BIOS.log(message, className);
@@ -28,12 +14,10 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     if (window.AIDA_BODY?.pulse) window.AIDA_BODY.pulse(message);
   }
 
-// AIDA REVIEW BLOCK 5: Function nowIso - callable behavior in this runtime organ.
   function nowIso() {
     return new Date().toISOString();
   }
 
-// AIDA REVIEW BLOCK 6: Function copyJson - callable behavior in this runtime organ.
   function copyJson(value, fallback) {
     if (value === undefined) return fallback;
     try {
@@ -43,7 +27,6 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     }
   }
 
-// AIDA REVIEW BLOCK 7: Function storage - callable behavior in this runtime organ.
   function storage() {
     try {
       if (!window.localStorage) return null;
@@ -56,7 +39,6 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     }
   }
 
-// AIDA REVIEW BLOCK 8: Function ensureState - callable behavior in this runtime organ.
   function ensureState() {
     const rt = runtime();
     rt.crashBuffer = rt.crashBuffer || {};
@@ -65,7 +47,6 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     return rt.crashBuffer;
   }
 
-// AIDA REVIEW BLOCK 9: Function hasWork - callable behavior in this runtime organ.
   function hasWork(rt) {
     return Boolean(
       rt?.session?.currentTurns?.length ||
@@ -76,7 +57,6 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     );
   }
 
-// AIDA REVIEW BLOCK 10: Function buildSnapshot - callable behavior in this runtime organ.
   function buildSnapshot(reason = "manual") {
     const rt = runtime();
     const savedAt = nowIso();
@@ -96,7 +76,6 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     };
   }
 
-// AIDA REVIEW BLOCK 11: Function checkpoint - callable behavior in this runtime organ.
   function checkpoint(reason = "runtime_checkpoint") {
     const rt = runtime();
     const state = ensureState();
@@ -132,7 +111,6 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     }
   }
 
-// AIDA REVIEW BLOCK 12: Function readSnapshot - callable behavior in this runtime organ.
   function readSnapshot() {
     const state = ensureState();
     const store = storage();
@@ -147,12 +125,10 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     }
   }
 
-// AIDA REVIEW BLOCK 13: Function runtimeIsEmpty - callable behavior in this runtime organ.
   function runtimeIsEmpty(rt) {
     return !rt.session?.currentTurns?.length && !rt.sleep?.pendingJournal?.length;
   }
 
-// AIDA REVIEW BLOCK 14: Function restore - callable behavior in this runtime organ.
   function restore(options = {}) {
     const rt = runtime();
     const state = ensureState();
@@ -162,6 +138,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       return { ok: false, reason: "runtime_not_empty", snapshot };
     }
 
+    // Restore snapshot pieces
     rt.session = copyJson(snapshot.session || rt.session, rt.session);
     rt.contextEvolution = {
       ...(rt.contextEvolution || {}),
@@ -171,12 +148,14 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     rt.sleep.pendingJournal = copyJson(snapshot.sleep?.pendingJournal || [], []);
     rt.sleep.lastContextCheckpoint = copyJson(snapshot.sleep?.lastContextCheckpoint || null, null);
     if (snapshot.sleep?.lastActive) rt.sleep.lastActive = snapshot.sleep.lastActive;
+
     if (snapshot.librarian) {
       rt.librarian = {
         ...(rt.librarian || {}),
         ...copyJson(snapshot.librarian, {})
       };
     }
+
     if (snapshot.curator) {
       rt.curator = {
         ...(rt.curator || {}),
@@ -184,87 +163,34 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       };
     }
 
-// Ensure core runtime structures exist after restore
-rt.context = rt.context || {};
-rt.mind = rt.mind || {};
-rt.drive = rt.drive || {};
-rt.tokens = rt.tokens || {};
-rt.boot = rt.boot || {};
+    // Minimal safe runtime scaffolding
+    rt.context = rt.context || {};
+    rt.mind = rt.mind || {};
+    rt.drive = rt.drive || {};
+    rt.tokens = rt.tokens || {};
+    rt.boot = rt.boot || {};
 
-// Rebuild essential context fields for wake re-entry
-rt.context.identity = rt.context.identity || rt.mind.identity;
-rt.context.realm = rt.context.realm || rt.mind.realm;
-rt.context.role = rt.context.role || rt.mind.role;
-rt.context.emotion = rt.context.emotion || rt.mind.emotion;
+    // Minimal safe context rebuild
+    rt.context.identity = rt.context.identity || rt.mind.identity;
+    rt.context.realm = rt.context.realm || rt.mind.realm;
+    rt.context.role = rt.context.role || rt.mind.role;
+    rt.context.emotion = rt.context.emotion || rt.mind.emotion;
 
-rt.context.memoryWindow = rt.context.memoryWindow || {
-  recentTurns: rt.mind.session,
-  session: rt.mind.session,
-  summary: rt.mind.memory
-};
-    
-// Ensure project context fields exist
-rt.context.projectFacts = rt.context.projectFacts || {};
-rt.context.projectSummaries = rt.context.projectSummaries || {};
-rt.context.realmFacts = rt.context.realmFacts || {};
-rt.context.realmSummaries = rt.context.realmSummaries || {};
-
-// Ensure drive context fields exist
-rt.context.driveMap = rt.context.driveMap || {};
-rt.context.driveIndex = rt.context.driveIndex || {};
-
-// Ensure drive lookup structures exist
-rt.context.driveFiles = rt.context.driveFiles || [];
-rt.context.driveFolders = rt.context.driveFolders || {};
-rt.context.driveLookup = rt.context.driveLookup || {};
-rt.context.driveById = rt.context.driveById || {};
-rt.context.driveByName = rt.context.driveByName || {};
-rt.context.driveByPath = rt.context.driveByPath || {};
-
-// Rebuild drive file objects from boot-loaded JSON
-if (rt.mind?.driveBootFiles) {
-  rt.drive.files = {};
-  for (const [name, json] of Object.entries(rt.mind.driveBootFiles)) {
-    rt.drive.files[name] = {
-      name,
-      json,
-      context: json.context || null,
-      type: json.type || null
+    rt.context.memoryWindow = rt.context.memoryWindow || {
+      recentTurns: rt.mind.session,
+      session: rt.mind.session,
+      summary: rt.mind.memory
     };
-  }
-}
 
-// Ensure drive organ exists
-rt.drive = rt.drive || {};
-
-// Ensure drive hydration structures exist
-rt.drive.files = rt.drive.files || {};
-rt.drive.loadedNames = rt.drive.loadedNames || [];
-rt.drive.deferredNames = rt.drive.deferredNames || [];
-rt.drive.jsonCache = rt.drive.jsonCache || {};
-rt.drive.fileMap = rt.drive.fileMap || {};
-rt.drive.folderMap = rt.drive.folderMap || {};
-rt.drive.bootPhase = rt.drive.bootPhase || "boot";
-
-
-// Rebuild drive file objects from boot-loaded JSON
-if (rt.mind?.driveBootFiles) {
-  rt.drive.files = {};
-  for (const [name, json] of Object.entries(rt.mind.driveBootFiles)) {
-    rt.drive.files[name] = {
-      name,
-      json,
-      context: json.context || null,
-      type: json.type || null
-    };
-  }
-}
-
-    
     state.lastRestoredAt = nowIso();
     state.restored = true;
     state.error = null;
-    log(`CRASH BUFFER: restored session=${rt.session?.id || "unknown"}, exchanges=${rt.session?.currentTurns?.length || 0}.`, "log-blue");
+
+    log(
+      `CRASH BUFFER: restored session=${rt.session?.id || "unknown"}, exchanges=${rt.session?.currentTurns?.length || 0}.`,
+      "log-blue"
+    );
+
     return {
       ok: true,
       savedAt: snapshot.savedAt,
@@ -275,7 +201,6 @@ if (rt.mind?.driveBootFiles) {
     };
   }
 
-// AIDA REVIEW BLOCK 15: Function clear - callable behavior in this runtime organ.
   function clear(reason = "manual_clear") {
     const state = ensureState();
     const store = storage();
@@ -286,7 +211,6 @@ if (rt.mind?.driveBootFiles) {
     return { ok: true, reason, clearedAt: state.lastClearedAt };
   }
 
-// AIDA REVIEW BLOCK 16: Function inspect - callable behavior in this runtime organ.
   function inspect() {
     const state = ensureState();
     const snapshot = readSnapshot();
@@ -313,15 +237,19 @@ if (rt.mind?.driveBootFiles) {
 
     log("CRASH BUFFER: summary follows.", "log-blue");
     if (summary.snapshot) {
-      log(`CRASH BUFFER: saved=${summary.snapshot.savedAt}, session=${summary.snapshot.sessionId}, exchanges=${summary.snapshot.exchangeCount}, drafts=${summary.snapshot.summaryDraftCount}`);
+      log(
+        `CRASH BUFFER: saved=${summary.snapshot.savedAt}, session=${summary.snapshot.sessionId}, exchanges=${summary.snapshot.exchangeCount}, drafts=${summary.snapshot.summaryDraftCount}`
+      );
     } else {
       log("CRASH BUFFER: no saved snapshot.", "log-amber");
     }
-    if (typeof console !== "undefined" && console.log) console.log("AIDA_CRASH_BUFFER_INSPECT", summary);
+
+    if (typeof console !== "undefined" && console.log)
+      console.log("AIDA_CRASH_BUFFER_INSPECT", summary);
+
     return summary;
   }
 
-// AIDA REVIEW BLOCK 17: Function install - callable behavior in this runtime organ.
   function install() {
     ensureState();
     const result = restore();
@@ -332,7 +260,6 @@ if (rt.mind?.driveBootFiles) {
     }
   }
 
-// AIDA REVIEW BLOCK 18: Browser export AIDA_CRASH_BUFFER - exposes this organ to the page runtime.
   window.AIDA_CRASH_BUFFER = {
     checkpoint,
     restore,
@@ -345,13 +272,23 @@ if (rt.mind?.driveBootFiles) {
     window.AIDA_MODULES.register({
       id: MODULE_ID,
       phase: "crash_recovery",
-      reads: ["AIDA_RUNTIME.session", "AIDA_RUNTIME.contextEvolution", "AIDA_RUNTIME.sleep.pendingJournal"],
-      writes: ["localStorage.AIDA_SPINE_CRASH_BUFFER_V1", "AIDA_RUNTIME.session", "AIDA_RUNTIME.contextEvolution", "AIDA_RUNTIME.sleep.pendingJournal"],
+      reads: [
+        "AIDA_RUNTIME.session",
+        "AIDA_RUNTIME.contextEvolution",
+        "AIDA_RUNTIME.sleep.pendingJournal"
+      ],
+      writes: [
+        "localStorage.AIDA_SPINE_CRASH_BUFFER_V1",
+        "AIDA_RUNTIME.session",
+        "AIDA_RUNTIME.contextEvolution",
+        "AIDA_RUNTIME.sleep.pendingJournal"
+      ],
       requires: ["AIDA_RUNTIME"],
-      verifies: ["long single-project sessions checkpoint to localStorage and can restore after hard reload before sleep"]
+      verifies: [
+        "long single-project sessions checkpoint to localStorage and can restore after hard reload before sleep"
+      ]
     });
   }
 
-// AIDA REVIEW BLOCK 19: Browser event wiring - connects page lifecycle or user actions to this organ.
   document.addEventListener("DOMContentLoaded", install);
 })();
