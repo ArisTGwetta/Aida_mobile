@@ -202,6 +202,16 @@ rt.context.memoryWindow = rt.context.memoryWindow || {
   session: rt.mind.session,
   summary: rt.mind.memory
 };
+    
+// Ensure project context fields exist
+rt.context.projectFacts = rt.context.projectFacts || {};
+rt.context.projectSummaries = rt.context.projectSummaries || {};
+rt.context.realmFacts = rt.context.realmFacts || {};
+rt.context.realmSummaries = rt.context.realmSummaries || {};
+
+// Ensure drive context fields exist
+rt.context.driveMap = rt.context.driveMap || {};
+rt.context.driveIndex = rt.context.driveIndex || {};
 
     
     state.lastRestoredAt = nowIso();
