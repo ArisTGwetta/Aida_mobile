@@ -76,6 +76,29 @@
                           .join(" | "),
               }
             : null;
+        //
+        // 2.5 MEMORY WINDOW — full continuity injection
+        //
+        const memoryWindow = runtime.context.memoryWindow || {};
+        const identity = runtime.context.identity || {};
+        const projectFacts = runtime.context.projectFacts || {};
+        const realmFacts = runtime.context.realmFacts || {};
+        const diary = runtime.context.memoryWindow?.summary || {};
+        const whileAway = runtime.context.whileAway || {};
+
+        const continuityMessage = {
+            role: "system",
+            content: [
+                "Continuity context:",
+                "Identity:", JSON.stringify(identity),
+                "Facts:", JSON.stringify(memoryWindow.facts || []),
+                "Insights:", JSON.stringify(memoryWindow.insights || []),
+                "Diary:", JSON.stringify(diary),
+                "Project:", JSON.stringify(projectFacts),
+                "Realm:", JSON.stringify(realmFacts),
+                "While-away:", JSON.stringify(whileAway),
+            ].join(" "),
+        };
 
         //
         // 4. HISTORY — trimmed, continuity-preserving
@@ -103,6 +126,7 @@
             systemMessage,
             memoryMessage,
             glanceMessage,
+            continuityMessage,   
             ...historyMessages,
             userMessage,
         ].filter(Boolean);
