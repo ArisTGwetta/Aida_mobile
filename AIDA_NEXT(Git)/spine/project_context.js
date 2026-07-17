@@ -601,6 +601,75 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     const isDedicatedProject = hasProjectPayload || (isProjectLedgerEntry && selected && !realms[loadName]);
     const isRealmContext = Boolean(loadName && realms[loadName] && !isDedicatedProject);
 
+    if (selected && !currentProviderAllows(selected)) {
+      const sealedProvider = (
+        selected?.llm_provider ||
+        selected?.llmProvider ||
+        selected?.llm_scope ||
+        selected?.llmScope ||
+        ledgerEntry?.llmProvider ||
+        null
+      );
+      rt.context.sealedProject = {
+        requested: selectedKey,
+        loadName,
+        provider: sealedProvider,
+        activeProvider: activeLlmProvider(),
+        sealedAt: new Date().toISOString()
+      };
+      rt.context.activeProjectName = null;
+      rt.context.project = null;
+      rt.context.projectName = loadName || selectedKey;
+      rt.context.projectMode = "sealed_project";
+      rt.context.projectFacts = null;
+      rt.context.projectSummaries = null;
+      rt.context.projectMemory = null;
+      rt.context.projectRecentTurns = null;
+      rt.context.interactionRules = null;
+      rt.context.memoryWindow = {
+        ...(rt.context.memoryWindow || {}),
+        recentTurns: null,
+        summary: null
+      };
+      rt.context.tetrad = null;
+      rt.context.llmMessages = null;
+      rt.boot.mindReady = false;
+
+      log(
+        `PROJECT: ${valueName(selected, ledgerEntry?.name || selectedKey)} is sealed for ${activeLlmProvider() || "unselected"}; project details withheld.`,
+        "log-amber"
+      );
+
+      if (window.AIDA_LLM_MESSAGES?.build) {
+        const result = window.AIDA_LLM_MESSAGES.build("");
+        if (!result?.blocked) {
+          log("PROJECT: LLM context rebuilt with sealed project marker.", "log-blue");
+        }
+      }
+
+      window.dispatchEvent(new CustomEvent("aida:project-context-changed", {
+        detail: {
+          key: selectedKey,
+          loadName,
+          mode: rt.context.projectMode,
+          name: valueName(selected, ledgerEntry?.name || selectedKey),
+          realmKey: rt.context.activeRealmName,
+          projectKey: null,
+          sealed: true,
+          provider: sealedProvider
+        }
+      }));
+
+      return {
+        sealed: true,
+        projectKey: selectedKey,
+        fileName: loadName,
+        provider: sealedProvider
+      };
+    }
+
+    rt.context.sealedProject = null;
+
     if (isRealmContext) {
       rt.mind.realm = selected;
       rt.mind.activeRealmName = selectedKey;
@@ -1023,6 +1092,14 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
 
 // AIDA REVIEW BLOCK 51: Function currentProviderAllows - callable behavior in this runtime organ.
   function currentProviderAllows(project) {
+    if (window.AIDA_LLM_SCOPE?.retrievalMode?.() === "all") return true;
+    if (window.AIDA_LLM_SCOPE?.allows) {
+      return window.AIDA_LLM_SCOPE.allows(project, {
+        provider: activeLlmProvider(),
+        fallback: "shared"
+      });
+    }
+
     const active = String(activeLlmProvider() || "").toLowerCase();
     const provider = String(
       project?.llm_provider ||
