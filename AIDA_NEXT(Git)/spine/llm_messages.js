@@ -121,6 +121,7 @@
             continuity = "",
             memoryThreads = [],
             freshGlance = null,
+            attachment = null,
         } = extras;
 
         const blockedByFirewall = [];
@@ -216,9 +217,41 @@
         //
         // 5. USER MESSAGE — the new input
         //
+        const attachmentMessage = attachment
+            ? {
+                  role: "system",
+                  content: [
+                      "Aida's Glasses attachment is present for this turn.",
+                      `Name: ${attachment.name || "unnamed"}.`,
+                      `Kind: ${attachment.kind || "file"}.`,
+                      `MIME type: ${attachment.type || "unknown"}.`,
+                      "Use the attached visual/file content when the provider exposes it.",
+                      attachment.kind === "pdf"
+                          ? "If the PDF content is not available to the model, say that you received the PDF but cannot inspect its pages yet."
+                          : "",
+                  ].filter(Boolean).join(" "),
+              }
+            : null;
+
+        const userContent = attachment?.kind === "image" && attachment.dataUrl
+            ? [
+                  { type: "input_text", text: userText },
+                  { type: "input_image", image_url: attachment.dataUrl },
+              ]
+            : attachment?.kind === "pdf" && attachment.dataUrl
+            ? [
+                  { type: "input_text", text: userText },
+                  {
+                      type: "input_file",
+                      filename: attachment.name || "aida_attachment.pdf",
+                      file_data: attachment.dataUrl,
+                  },
+              ]
+            : userText;
+
         const userMessage = {
             role: "user",
-            content: userText,
+            content: userContent,
         };
 
         //
@@ -233,6 +266,7 @@
             memoryMessage,
             glanceMessage,
             continuityMessage,   
+            attachmentMessage,
             ...historyMessages,
             userMessage,
         ].filter(Boolean);
@@ -249,6 +283,8 @@
                 historyCount: historyMessages.length,
                 memoryThreadCount: memoryThreads.length,
                 freshGlanceThreadCount: freshGlance?.threads?.length || 0,
+                attachmentReady: Boolean(attachment),
+                attachmentKind: attachment?.kind || null,
                 firewallBlockedCount: blockedByFirewall.length,
                 firewallBlockedLanes: [...new Set(blockedByFirewall.map((item) => item.lane).filter(Boolean))],
             },

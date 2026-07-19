@@ -183,6 +183,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       }
 
       const transcript = directed?.transcript || reply;
+      if (attachment) window.AIDA_GLASSES?.markSent?.();
 
       // Emotional continuity and distillation hooks.
       window.AIDA_EMOTIONS?.afterExchange?.(text, transcript);
