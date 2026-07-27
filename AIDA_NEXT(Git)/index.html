@@ -22,6 +22,44 @@
 
   @media (max-width: 768px) {
 
+
+    /* Prevent horizontal overflow */
+    html, body {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+
+    #main-engine, #aida-interface {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+
+    /* Make control buttons wrap instead of overflow */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .controls button {
+      flex: 1 1 auto;
+      min-width: 70px;
+    }
+
+    /* Prevent chat bubbles from drifting right */
+    #chat-flow .line {
+      max-width: 100%;
+      overflow-wrap: break-word;
+    }
+
+    /* Safety clamp */
+    div {
+      max-width: 100%;
+    }
+
     /* Column layout for the whole engine */
     .mobile-column {
       display: flex;
