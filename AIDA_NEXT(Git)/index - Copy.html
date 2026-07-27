@@ -14,82 +14,12 @@
   <link rel="stylesheet" href="body/awake.css?v=20260627c">
 <!-- AIDA REVIEW BLOCK 3: Style rules - visual layout and responsive behavior. -->
 <style>
-  /* Absolute system fallback shield to kill startup white flash artifacts */
-  html, body, #bios-screen, #aida-interface, #main-engine {
-    background: #000000 !important;
-    background-color: #000000 !important;
-  }
-
-  @media (max-width: 768px) {
-
-    /* Column layout for the whole engine */
-    .mobile-column {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      padding: 0 10px;
+    /* Absolute system fallback shield to kill startup white flash artifacts */
+    html, body, #bios-screen, #aida-interface, #main-engine {
+        background: #000000 !important;
+        background-color: #000000 !important;
     }
-
-    /* Stage shrinks but stays visible */
-    .mobile-stage {
-      width: 100%;
-      max-width: 360px;
-      margin: 0 auto;
-    }
-    .mobile-stage img {
-      width: 100%;
-      height: auto;
-    }
-
-    /* Portrait scales cleanly */
-    .mobile-face {
-      width: 100%;
-      max-width: 360px;
-      margin: 0 auto;
-    }
-    #aida-portrait {
-      width: 100%;
-      height: auto;
-    }
-
-    /* Hide debug + realm tag */
-    .mobile-hide {
-      display: none !important;
-    }
-
-    /* Collapse tag bar */
-    .mobile-collapse {
-      display: none;
-    }
-
-    /* Input dock fixed at bottom */
-    .mobile-input {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: rgba(0,0,0,0.85);
-      padding: 10px;
-      backdrop-filter: blur(6px);
-      z-index: 9999;
-    }
-
-    /* Make chat-flow scrollable above input */
-    #chat-flow {
-      max-height: calc(100vh - 300px);
-      overflow-y: auto;
-      padding-bottom: 20px;
-    }
-
-    /* Make aida-display stack vertically */
-    #aida-display {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-  }
 </style>
-
 </head>
   
 <!-- AIDA REVIEW BLOCK 4: Body shell - visible app surface and runtime mounting point. -->
@@ -164,13 +94,11 @@
     <div class="spark-layer" id="sparkLayer"></div>
 
     <div id="main-engine" class="hidden">
-      <div class="mobile-column">
       <div id="chat-flow">
         <div class="line AIDA">Body shell online. Waking Aida's Drive memory...</div>
       </div>
 
       <div id="aida-display">
-        <div class="mobile-stage">
         <div id="portrait-spacer">
 <!-- AIDA REVIEW BLOCK 8: Section - grouped UI panel or runtime stage. -->
           <section id="director-stage" aria-label="Aida's director stage">
@@ -191,10 +119,8 @@
             </div>
             <div id="director-stage-caption">A quiet thought, held beside the conversation.</div>
           </section>
-          </div> <!-- closes portrait-spacer -->
-          </div> <!-- end mobile-stage -->
+        </div>
 
-        <div class="mobile-face">
         <div id="portrait-pane">
           <div id="flicker-grid"></div>
           <div id="face-data-slow" class="face-data-grid face-data-slow"></div>
@@ -204,11 +130,9 @@
           <div class="tint-layer provider-tint" aria-hidden="true"></div>
           <div id="llm-route-badge" hidden></div>
           <img id="aida-portrait" src="body/assets/neutral1.png" alt="Aida portrait">
-        </div> <!-- closes portrait-pane -->
-        </div> <!-- end mobile-face -->
+        </div>
 
-        <div class="mobile-hide">
-          <div id="data-stack">
+        <div id="data-stack">
           <div id="debug-pane">
             <div id="log-content">Initializing body...</div>
           </div>
@@ -216,13 +140,10 @@
             <div id="realm-tag">NO REALM</div>
             <div id="pres-content">Spine waiting for first transplant.</div>
           </div>
-          </div> <!-- closes data-stack -->
-        </div> <!-- end mobile-hide -->
+        </div>
       </div>
 
-    <div class="mobile-input">
       <div id="input-dock">
-        <div class="mobile-collapse">
         <div id="tag-buttons">
           <button class="tag-btn selected" data-index="0" data-mode="francisco" type="button">FRANCISCO</button>
           <button class="tag-btn" data-index="1" data-mode="narrator" type="button">NARRATOR</button>
@@ -236,9 +157,7 @@
           <button class="tag-btn" data-index="9" data-mode="insight" type="button">INSIGHT</button>
           <button class="tag-btn" data-index="10" data-mode="question" type="button">QUESTION</button>
           <input id="tag-edit" type="text" placeholder="type tag...">
-        </div> <!-- closes tag-buttons -->
-        </div> <!-- end mobile-collapse -->
-
+        </div>
 
         <div id="message-row">
           <button id="glasses-attach-btn" type="button" title="Attach an image or PDF" aria-label="Attach an image or PDF">+</button>
@@ -252,10 +171,8 @@
           <button id="eject-btn" type="button">REALMS</button>
           <button id="bios-return-btn" type="button">BIOS</button>
           <button id="sleep-btn" type="button">SLEEP</button>
-      </div> <!-- closes input-dock -->
-    </div> <!-- end mobile-input -->
-
-      </div> <!-- end mobile-column -->
+        </div>
+      </div>
     </div>
   </section>
 <!-- AIDA REVIEW BLOCK 9: Script bridge - loads or runs JavaScript behavior for this screen. -->
