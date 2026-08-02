@@ -227,7 +227,9 @@
                       `MIME type: ${attachment.type || "unknown"}.`,
                       "Use the attached visual/file content when the provider exposes it.",
                       attachment.kind === "pdf"
-                          ? "If the PDF content is not available to the model, say that you received the PDF but cannot inspect its pages yet."
+                          ? attachment.pdf?.renderedPages
+                            ? `Prepared ${attachment.pdf.renderedPages} of ${attachment.pdf.pageCount} PDF page preview(s) and ${attachment.pdf.text?.length || 0} extracted text characters for providers that cannot accept PDFs directly.`
+                            : "The PDF could not be prepared for providers that cannot accept PDFs directly. Say so plainly."
                           : "",
                   ].filter(Boolean).join(" "),
               }
@@ -246,6 +248,10 @@
                       filename: attachment.name || "aida_attachment.pdf",
                       file_data: attachment.dataUrl,
                   },
+                  ...(attachment.pdf?.text
+                    ? [{ type: "input_text", text: `PDF extracted text:\n${attachment.pdf.text}` }]
+                    : []),
+                  ...(attachment.pdf?.pageImages || []).map((imageUrl) => ({ type: "input_image", image_url: imageUrl })),
               ]
             : userText;
 

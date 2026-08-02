@@ -98,6 +98,15 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
 
 // AIDA REVIEW BLOCK 11: Function from - callable behavior in this runtime organ.
   function from(value, fallback = "shared") {
+    // Project identity is shared; the memory held inside it remains lane-tagged.
+    if (value?.directory_scope === "shared" || value?.memory_scope === "per_entry") {
+      return {
+        provider: null,
+        profile: null,
+        model: null,
+        scope: "shared"
+      };
+    }
     const provider = normalize(
       value?.llm_provider ||
       value?.llmProvider ||

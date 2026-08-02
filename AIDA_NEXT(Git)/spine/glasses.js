@@ -5,6 +5,9 @@
   const MAX_FILE_BYTES = 15 * 1024 * 1024;
   const IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
   const PDF_TYPE = "application/pdf";
+  const PDF_PAGE_LIMIT = 3;
+  const PDF_TEXT_LIMIT = 12000;
+  let pdfJsPromise = null;
 
 // AIDA REVIEW BLOCK 3: Function $ - callable behavior in this runtime organ.
   function $(id) {
@@ -59,6 +62,56 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     });
   }
 
+  function pdfConfig() {
+    return window.AIDA_CONFIG?.attachments || {};
+  }
+
+  async function pdfJs() {
+    if (pdfJsPromise) return pdfJsPromise;
+    const moduleUrl = pdfConfig().pdfJsModuleUrl || "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
+    const workerUrl = pdfConfig().pdfJsWorkerUrl || "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
+    pdfJsPromise = import(moduleUrl).then((module) => {
+      module.GlobalWorkerOptions.workerSrc = workerUrl;
+      return module;
+    });
+    return pdfJsPromise;
+  }
+
+  async function dataUrlBytes(dataUrl) {
+    const response = await fetch(dataUrl);
+    if (!response.ok) throw new Error("Could not read the PDF attachment.");
+    return new Uint8Array(await response.arrayBuffer());
+  }
+
+  async function canvasDataUrl(page, viewport) {
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.ceil(viewport.width);
+    canvas.height = Math.ceil(viewport.height);
+    const context = canvas.getContext("2d", { alpha: false });
+    await page.render({ canvasContext: context, viewport }).promise;
+    return canvas.toDataURL("image/jpeg", 0.82);
+  }
+
+  async function preparePdf(dataUrl) {
+    const library = await pdfJs();
+    const documentProxy = await library.getDocument({ data: await dataUrlBytes(dataUrl) }).promise;
+    const pages = [];
+    const text = [];
+    for (let number = 1; number <= Math.min(documentProxy.numPages, PDF_PAGE_LIMIT); number += 1) {
+      const page = await documentProxy.getPage(number);
+      const content = await page.getTextContent();
+      const pageText = content.items.map((item) => item.str || "").join(" ").replace(/\s+/g, " ").trim();
+      if (pageText) text.push(`Page ${number}: ${pageText}`);
+      pages.push(await canvasDataUrl(page, page.getViewport({ scale: 1.25 })));
+    }
+    return {
+      pageCount: documentProxy.numPages,
+      renderedPages: pages.length,
+      text: text.join("\n").slice(0, PDF_TEXT_LIMIT),
+      pageImages: pages
+    };
+  }
+
 // AIDA REVIEW BLOCK 9: Function renderState - callable behavior in this runtime organ.
   function renderState() {
     const state = ensureState();
@@ -75,7 +128,9 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     }
     if (status) {
       status.textContent = attachment
-        ? `${attachment.name} | ${attachment.kind}`
+        ? attachment.kind === "pdf"
+          ? `${attachment.name} | pdf | ${attachment.pdf?.renderedPages ? `${attachment.pdf.renderedPages}/${attachment.pdf.pageCount} pages prepared` : "preparation unavailable"}`
+          : `${attachment.name} | ${attachment.kind}`
         : "";
       status.classList.toggle("visible", Boolean(attachment));
     }
@@ -101,12 +156,24 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     try {
       const dataUrl = await readAsDataUrl(file);
       const preparedAt = new Date().toISOString();
+      let pdf = null;
+      let pdfPreparationError = null;
+      if (kind === "pdf") {
+        try {
+          pdf = await preparePdf(dataUrl);
+        } catch (error) {
+          pdfPreparationError = error.message;
+          log(`GLASSES: PDF preparation failed (${error.message}).`, "log-amber");
+        }
+      }
       state.attachment = {
         name: file.name || `aida_attachment.${kind === "pdf" ? "pdf" : "png"}`,
         type: file.type,
         kind,
         size: file.size,
         dataUrl,
+        pdf,
+        pdfPreparationError,
         preparedAt
       };
       state.lastPreparedAt = preparedAt;
@@ -156,6 +223,12 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
         type: state.attachment.type,
         kind: state.attachment.kind,
         size: state.attachment.size,
+        pdf: state.attachment.pdf ? {
+          pageCount: state.attachment.pdf.pageCount,
+          renderedPages: state.attachment.pdf.renderedPages,
+          textChars: state.attachment.pdf.text.length
+        } : null,
+        pdfPreparationError: state.attachment.pdfPreparationError || null,
         preparedAt: state.attachment.preparedAt
       } : null,
       lastPreparedAt: state.lastPreparedAt,

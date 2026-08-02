@@ -125,6 +125,52 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     return out;
   }
 
+  const BRIEFCASE_MEMORY_KEYS = [
+    "latest_summary",
+    "latest_status",
+    "rolling_summary_ids",
+    "long_summary_candidate_ids",
+    "open_threads",
+    "facts_to_consider",
+    "insights_to_consider",
+    "sensitive_context_to_consider",
+    "salutation_tone_signals",
+    "emotional_notes",
+    "last_active",
+    "last_write_packet_id"
+  ];
+
+  function laneKey(value) {
+    return String(value || "legacy").toLowerCase().replace(/[^a-z0-9]+/g, "_") || "legacy";
+  }
+
+  function migrateBriefcaseMemory(project) {
+    const base = { ...(project || {}) };
+    const owner = laneKey(base.llm_provider || base.llm_scope);
+    const lanes = { ...(base.memory_by_llm || {}) };
+    const hasLegacyMemory = BRIEFCASE_MEMORY_KEYS.some((key) => Object.prototype.hasOwnProperty.call(base, key));
+    if (hasLegacyMemory && !lanes[owner]) {
+      lanes[owner] = {
+        llm_provider: owner === "legacy" ? null : owner,
+        llm_scope: owner === "legacy" ? "legacy" : owner
+      };
+      BRIEFCASE_MEMORY_KEYS.forEach((key) => {
+        if (Object.prototype.hasOwnProperty.call(base, key)) lanes[owner][key] = base[key];
+      });
+    }
+    BRIEFCASE_MEMORY_KEYS.forEach((key) => delete base[key]);
+    return {
+      ...base,
+      memory_by_llm: lanes,
+      directory_scope: "shared",
+      memory_scope: "per_entry",
+      llm_provider: null,
+      llm_profile: null,
+      llm_model: null,
+      llm_scope: "shared"
+    };
+  }
+
 // AIDA REVIEW BLOCK 16: Function mergeAppendStore - callable behavior in this runtime organ.
   function mergeAppendStore(existing, key, items, generatedAt) {
     const base = Array.isArray(existing) ? { [key]: existing } : { ...(existing || {}) };
@@ -162,13 +208,35 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
 
 // AIDA REVIEW BLOCK 18: Function mergeBriefcase - callable behavior in this runtime organ.
   function mergeBriefcase(existing, draft, generatedAt) {
-    const base = {
+    const base = migrateBriefcaseMemory({
       ...(draft?.initialProject || {}),
       ...(existing || {})
-    };
+    });
     const update = draft?.update || {};
     const replaceConsiderationLists = draft?.source === "llm" || draft?.method === "llm_refined_draft";
     const wasRuntimeDraft = base?.draft?.status === "runtime_only" || base?.status === "runtime_draft";
+    const provider = laneKey(draft?.llm_provider || draft?.llm_scope);
+    const priorLane = base.memory_by_llm?.[provider] || {
+      llm_provider: provider === "legacy" ? null : provider,
+      llm_profile: draft?.llm_profile || null,
+      llm_model: draft?.llm_model || null,
+      llm_scope: provider === "legacy" ? "legacy" : provider
+    };
+    const laneMemory = {
+      ...priorLane,
+      latest_summary: update.latest_summary || priorLane.latest_summary || null,
+      latest_status: update.latest_status || priorLane.latest_status || null,
+      rolling_summary_ids: appendUnique(priorLane.rolling_summary_ids, update.rolling_summary_ids || []),
+      long_summary_candidate_ids: appendUnique(priorLane.long_summary_candidate_ids, update.long_summary_candidate_ids || []),
+      open_threads: replaceConsiderationLists ? safeArray(update.open_threads) : appendUnique(priorLane.open_threads, update.open_threads || []),
+      facts_to_consider: replaceConsiderationLists ? safeArray(update.facts_to_consider) : appendUnique(priorLane.facts_to_consider, update.facts_to_consider || []),
+      insights_to_consider: replaceConsiderationLists ? safeArray(update.insights_to_consider) : appendUnique(priorLane.insights_to_consider, update.insights_to_consider || []),
+      sensitive_context_to_consider: replaceConsiderationLists ? safeArray(update.sensitive_context_to_consider) : appendUnique(priorLane.sensitive_context_to_consider, update.sensitive_context_to_consider || []),
+      salutation_tone_signals: replaceConsiderationLists ? safeArray(update.salutation_tone_signals) : appendUnique(priorLane.salutation_tone_signals, update.salutation_tone_signals || []),
+      emotional_notes: appendUnique(priorLane.emotional_notes, update.emotional_notes || []),
+      last_active: update.last_active || priorLane.last_active || generatedAt,
+      last_write_packet_id: draft.packetId || priorLane.last_write_packet_id || null
+    };
     return {
       ...base,
       project_name: base.project_name || draft?.project?.name || draft?.project || "unknown_project",
@@ -176,23 +244,18 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       realm: base.realm || draft?.project?.realm || draft?.project?.name || "unknown_realm",
       status: wasRuntimeDraft ? "active" : base.status || "active",
       privacy: base.privacy || "private_candidate",
-      latest_summary: update.latest_summary || base.latest_summary || null,
-      latest_status: update.latest_status || base.latest_status || null,
-      rolling_summary_ids: appendUnique(base.rolling_summary_ids, update.rolling_summary_ids || []),
-      long_summary_candidate_ids: appendUnique(base.long_summary_candidate_ids, update.long_summary_candidate_ids || []),
-      open_threads: replaceConsiderationLists ? safeArray(update.open_threads) : appendUnique(base.open_threads, update.open_threads || []),
-      facts_to_consider: replaceConsiderationLists ? safeArray(update.facts_to_consider) : appendUnique(base.facts_to_consider, update.facts_to_consider || []),
-      insights_to_consider: replaceConsiderationLists ? safeArray(update.insights_to_consider) : appendUnique(base.insights_to_consider, update.insights_to_consider || []),
-      sensitive_context_to_consider: replaceConsiderationLists ? safeArray(update.sensitive_context_to_consider) : appendUnique(base.sensitive_context_to_consider, update.sensitive_context_to_consider || []),
-      salutation_tone_signals: replaceConsiderationLists ? safeArray(update.salutation_tone_signals) : appendUnique(base.salutation_tone_signals, update.salutation_tone_signals || []),
-      emotional_notes: appendUnique(base.emotional_notes, update.emotional_notes || []),
+      memory_by_llm: {
+        ...(base.memory_by_llm || {}),
+        [provider]: laneMemory
+      },
       last_active: update.last_active || base.last_active || generatedAt,
       last_updated: generatedAt,
-      last_write_packet_id: draft.packetId || base.last_write_packet_id || null,
-      llm_provider: draft.llm_provider || base.llm_provider || null,
-      llm_profile: draft.llm_profile || base.llm_profile || null,
-      llm_model: draft.llm_model || base.llm_model || null,
-      llm_scope: draft.llm_scope || base.llm_scope || draft.llm_provider || null,
+      directory_scope: "shared",
+      memory_scope: "per_entry",
+      llm_provider: null,
+      llm_profile: null,
+      llm_model: null,
+      llm_scope: "shared",
       draft: wasRuntimeDraft
         ? {
             ...(base.draft || {}),

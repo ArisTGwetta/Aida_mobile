@@ -111,6 +111,12 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
           autoRun: true
         },
         {
+          intent: "project_create",
+          description:
+            "Use when the user wants a named project created or opened as a new dedicated workspace. Requires confirmation before durable writes.",
+          autoRun: false
+        },
+        {
           intent: "project_update",
           description:
             "Use for rename/move/reclassify/change project or realm requests. Requires confirmation before durable writes.",
@@ -143,14 +149,14 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       "Your job is to translate natural user wording into a safe deterministic tool intent.",
       "Choose intent only from the supplied capabilities menu. Do not invent intent names.",
       "Use recentExchanges only to resolve underspecified follow-ups. Do not invent missing subjects.",
-      "Supported intents: conversation, web_search, memory_search, show_sources, memory_note, project_update, external_action, clarify, none.",
-      "Use action for the subtype when helpful, such as rename_project, move_project, create_reminder, draft_email, or show_memory_refs.",
+      "Supported intents: conversation, web_search, memory_search, show_sources, memory_note, project_create, project_update, external_action, clarify, none.",
+      "Use action for the subtype when helpful, such as create_project, rename_project, move_project, create_reminder, draft_email, or show_memory_refs.",
       "For web_search, rewrite query into a complete search query using the last one or two exchanges when needed.",
       "For show_sources, set query to the thing whose sources are requested; if it refers to the previous answer, use recentExchanges to infer the subject.",
       "For memory_note, put the note to save in value.",
-      "For project_update and external_action, set requiresConfirmation true.",
+      "For project_create, project_update, and external_action, set requiresConfirmation true.",
       "If the user is only chatting, return conversation.",
-      "Schema: {\"intent\":\"conversation|web_search|memory_search|show_sources|memory_note|project_update|external_action|clarify|none\",\"action\":\"string\",\"query\":\"string\",\"target\":\"string\",\"value\":\"string\",\"confidence\":0.0,\"reason\":\"short\",\"requiresTool\":boolean,\"requiresConfirmation\":boolean}"
+      "Schema: {\"intent\":\"conversation|web_search|memory_search|show_sources|memory_note|project_create|project_update|external_action|clarify|none\",\"action\":\"string\",\"query\":\"string\",\"target\":\"string\",\"value\":\"string\",\"confidence\":0.0,\"reason\":\"short\",\"requiresTool\":boolean,\"requiresConfirmation\":boolean}"
     ].join("\n");
   }
 
@@ -174,6 +180,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       "memory_search",
       "show_sources",
       "memory_note",
+      "project_create",
       "project_update",
       "external_action",
       "clarify",

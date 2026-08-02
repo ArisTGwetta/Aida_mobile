@@ -22,6 +22,70 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     return Array.isArray(value) ? value : [];
   }
 
+  const BRIEFCASE_MEMORY_KEYS = [
+    "latest_summary",
+    "latest_status",
+    "rolling_summary_ids",
+    "long_summary_candidate_ids",
+    "open_threads",
+    "facts_to_consider",
+    "insights_to_consider",
+    "sensitive_context_to_consider",
+    "salutation_tone_signals",
+    "emotional_notes",
+    "last_active",
+    "last_write_packet_id"
+  ];
+
+  function laneKey(value) {
+    return String(value || "legacy").toLowerCase().replace(/[^a-z0-9]+/g, "_") || "legacy";
+  }
+
+  function normalizeBriefcaseMemory(project) {
+    if (!project || typeof project !== "object") return project;
+    const hasBriefcaseMemory = BRIEFCASE_MEMORY_KEYS.some((key) => Object.prototype.hasOwnProperty.call(project, key));
+    if (!hasBriefcaseMemory && !project.memory_by_llm) return project;
+
+    const normalized = { ...project };
+    const owner = laneKey(project.llm_provider || project.llm_scope);
+    const lanes = { ...(project.memory_by_llm || {}) };
+    if (!lanes[owner] && hasBriefcaseMemory) {
+      lanes[owner] = {
+        llm_provider: owner === "legacy" ? null : owner,
+        llm_scope: owner === "legacy" ? "legacy" : owner
+      };
+      BRIEFCASE_MEMORY_KEYS.forEach((key) => {
+        if (Object.prototype.hasOwnProperty.call(project, key)) lanes[owner][key] = project[key];
+      });
+    }
+    BRIEFCASE_MEMORY_KEYS.forEach((key) => delete normalized[key]);
+    normalized.memory_by_llm = lanes;
+    normalized.directory_scope = "shared";
+    normalized.memory_scope = "per_entry";
+    normalized.llm_provider = null;
+    normalized.llm_profile = null;
+    normalized.llm_model = null;
+    normalized.llm_scope = "shared";
+    return normalized;
+  }
+
+  function activeLaneMemory(project) {
+    const lanes = project?.memory_by_llm || {};
+    if (window.AIDA_LLM_SCOPE?.retrievalMode?.() === "all") {
+      const allLanes = Object.values(lanes);
+      if (!allLanes.length) return null;
+      return {
+        latest_summary: allLanes.map((lane) => lane.latest_summary).filter(Boolean).join("\n"),
+        latest_status: allLanes.map((lane) => lane.latest_status).filter(Boolean).join("\n"),
+        facts: allLanes.flatMap((lane) => safeArray(lane.facts_to_consider)),
+        memory: allLanes.flatMap((lane) => safeArray(lane.rolling_summary_ids)),
+        recent_turns: allLanes.flatMap((lane) => safeArray(lane.recent_turns))
+      };
+    }
+    const provider = laneKey(window.AIDA_LLM_SCOPE?.current?.().provider || runtime()?.tokens?.llm?.provider);
+    return lanes[provider] || null;
+  }
+
 // AIDA REVIEW BLOCK 5: Function log - callable behavior in this runtime organ.
   function log(message, className = "log-green") {
     if (window.AIDA_BIOS?.log) {
@@ -364,8 +428,10 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       };
     }
 
+    const laneMemory = activeLaneMemory(project);
+    const source = laneMemory || project;
     const facts = firstPresent(
-      project.facts,
+      source.facts,
       project.realm_facts,
       project.project_facts,
       project.items,
@@ -374,27 +440,27 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     ) || null;
 // AIDA REVIEW BLOCK 25: Function summaries - arrow-function behavior in this runtime organ.
     const summaries = (
-      project.latest_summary ||
-      project.project_summary ||
-      project.briefcase_summary ||
-      project.summaries ||
-      project.summary ||
-      project.notes ||
+      source.latest_summary ||
+      source.project_summary ||
+      source.briefcase_summary ||
+      source.summaries ||
+      source.summary ||
+      source.notes ||
       null
     );
     const memory = firstPresent(
-      project.memory,
-      project.project_memory,
-      project.realm_memory,
-      project.memory_summary,
+      source.memory,
+      source.project_memory,
+      source.realm_memory,
+      source.memory_summary,
       summaries
     ) || null;
     const recentTurns = firstPresent(
-      project.recent_turns,
-      project.recentTurns,
-      project.turns,
-      project.session_memory,
-      project.sessionMemory
+      source.recent_turns,
+      source.recentTurns,
+      source.turns,
+      source.session_memory,
+      source.sessionMemory
     ) || null;
     const interactionRules = firstPresent(
       project.interaction_rules,
@@ -787,6 +853,8 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       realm: realmName,
       role: options.role || "role_co_narrator.json",
       privacy: options.privacy || "private_candidate",
+      directory_scope: "shared",
+      memory_scope: "per_entry",
       summary: options.summary || `New ${realmName} project created in conversation.`,
       interaction_rules: {
         mode: "collaborative roleplay",
@@ -1831,25 +1899,27 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       }
     };
 
-    rt.drive.files[fileName] = next;
-    rt.mind.projects[fileName] = next;
+    const normalizedNext = normalizeBriefcaseMemory(next);
+
+    rt.drive.files[fileName] = normalizedNext;
+    rt.mind.projects[fileName] = normalizedNext;
     rt.driveWriteback = rt.driveWriteback || {};
     rt.driveWriteback.briefcaseEdits = safeArray(rt.driveWriteback.briefcaseEdits);
     rt.driveWriteback.briefcaseEdits.push({
       id: `briefcase_edit_${Date.now()}`,
       createdAt: editedAt,
       fileName,
-      content: next,
+      content: normalizedNext,
       status: "staged"
     });
     mapDriveFilesToMind(rt.drive.files, { selectDefault: false });
     select(fileName);
     window.AIDA_CRASH_BUFFER?.checkpoint?.("briefcase_edit_staged");
-    log(`PROJECT: Staged briefcase header edit for ${valueName(next, fileName)}.`, "log-blue");
+    log(`PROJECT: Staged briefcase header edit for ${valueName(normalizedNext, fileName)}.`, "log-blue");
     return {
       ok: true,
       fileName,
-      projectName: valueName(next, fileName),
+      projectName: valueName(normalizedNext, fileName),
       stagedForCommit: true
     };
   }
@@ -1914,7 +1984,15 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
 
     rt.mind.realms = Object.fromEntries(Object.entries(files).filter(([name]) => isRealmFile(name)));
     rt.mind.roles = Object.fromEntries(Object.entries(files).filter(([name]) => name.startsWith("role_")));
-    rt.mind.projects = Object.fromEntries(Object.entries(files).filter(([name]) => isProjectFile(name)));
+    const normalizedProjects = Object.entries(files)
+      .filter(([name]) => isProjectFile(name))
+      .map(([name, project]) => [name, normalizeBriefcaseMemory(project)]);
+    normalizedProjects.forEach(([name, project]) => {
+      rt.drive.files[name] = project;
+    });
+    rt.mind.projects = Object.fromEntries(
+      normalizedProjects
+    );
     rt.mind.projectSummariesIndex = normalizeProjectIndex(files);
     rt.mind.projectLedger = buildProjectLedger(files, rt.mind.projects, rt.mind.realms);
     rt.mind.realmLedger = buildRealmLedger(rt.mind.realms);

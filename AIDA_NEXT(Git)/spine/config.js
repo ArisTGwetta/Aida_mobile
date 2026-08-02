@@ -9,6 +9,10 @@
     drive: {
       jsonFolderId: "1s-VljHb0SCPLcXvNfQ-wRonIl43jwT7I"
     },
+    attachments: {
+      pdfJsModuleUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs",
+      pdfJsWorkerUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs"
+    },
     llm: {
       model: "gpt-4.1-mini",
       webSearchModel: "gpt-5.5",

@@ -3,7 +3,7 @@
   const MODULE_ID = "spine.llm.provider";
   const FIXED_ENDPOINTS = {
     openai: "https://api.openai.com/v1/responses",
-    xai: "https://api.x.ai/v1/responses"
+    xai: "https://api.x.ai/v1/chat/completions"
   };
 
   // AIDA REVIEW BLOCK 3: Function runtime - callable behavior in this runtime organ.
@@ -145,7 +145,32 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
         if (typeof content.text === "string") chunks.push(content.text);
       }
     }
+    const chatText = data?.choices?.[0]?.message?.content;
+    if (typeof chatText === "string" && chatText.trim()) return chatText.trim();
     return chunks.join("\n").trim();
+  }
+
+  function xaiContent(content) {
+    if (typeof content === "string") return content;
+    if (!Array.isArray(content)) return String(content || "");
+    const parts = [];
+    for (const part of content) {
+      if (part?.type === "input_text") parts.push({ type: "text", text: part.text || "" });
+      if (part?.type === "input_image" && part.image_url) {
+        parts.push({ type: "image_url", image_url: { url: part.image_url } });
+      }
+      if (part?.type === "input_file") {
+        parts.push({ type: "text", text: `[PDF file ${part.filename || "attachment.pdf"} is represented by prepared text and page previews when available.]` });
+      }
+    }
+    return parts.length ? parts : [{ type: "text", text: "" }];
+  }
+
+  function xaiMessages(messages) {
+    return (messages || []).map((message) => ({
+      role: message?.role === "assistant" ? "assistant" : message?.role === "system" ? "system" : "user",
+      content: xaiContent(message?.content)
+    }));
   }
 
   // AIDA REVIEW BLOCK 14: Function extractWebSources - callable behavior in this runtime organ.
@@ -205,12 +230,19 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     const extraBody =
       options.body && typeof options.body === "object" ? options.body : {};
 
-    const body = {
-      model,
-      input: messages,
-      max_output_tokens: maxOutputTokens,
-      ...extraBody
-    };
+    const body = provider === "xai"
+      ? {
+          model,
+          messages: xaiMessages(messages),
+          max_tokens: maxOutputTokens,
+          ...extraBody
+        }
+      : {
+          model,
+          input: messages,
+          max_output_tokens: maxOutputTokens,
+          ...extraBody
+        };
 
     const headers = { "Content-Type": "application/json" };
     if (requiresKey(provider)) {
@@ -315,6 +347,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     callMessages,
     callWebSearch,
     extractOutputText,
+    xaiMessages,
     extractWebSources,
     readiness,
     currentInfo,

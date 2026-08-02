@@ -94,12 +94,42 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     return `I’m Aida—the identity and memory system. Right now my underlying voice engine is ${info.providerLabel}, using ${info.model}, ${locality}.`;
   }
 
+  function requestedCrossLlmConsultation(text) {
+    const value = String(text || "").toLowerCase();
+    return /\b(?:consult|use|open|search|remember)\b[^.?!]{0,60}\b(?:all\s+(?:llm\s+)?(?:memory|lanes)|cross[-\s]?llm|other\s+(?:model|llm)\s+(?:memory|lane))\b/.test(value) ||
+      /\b(?:grant|allow)\b[^.?!]{0,60}\bcross[-\s]?llm\b/.test(value);
+  }
+
   function runLocalReply(userText, reply) {
     appendChat("USER", userText);
     appendChat("AIDA", reply);
     window.AIDA_SESSION_CAPTURE?.captureExchange?.(userText, reply);
     pulse("Aida reported the active LLM route from runtime.");
     log("LLM IDENTITY: Reported provider/model from runtime without an API call.", "log-blue");
+    return true;
+  }
+
+  async function runProjectIntent(userText) {
+    const route = await window.AIDA_INTENT_ROUTER?.infer?.(userText);
+    if (!route || !["project_create", "project_update"].includes(route.intent)) return false;
+    const proposal = window.AIDA_ACTION_EXECUTOR?.propose?.(route);
+    if (!proposal) return false;
+    appendChat("USER", userText);
+    appendChat("AIDA", proposal.reply);
+    window.AIDA_SESSION_CAPTURE?.captureExchange?.(userText, proposal.reply);
+    pulse(proposal.ok ? "Project action awaiting confirmation." : "Project action needs clarification.");
+    log(`PROJECT ACTION: ${proposal.ok ? "proposed" : "needs clarification"} ${route.action || route.intent}.`, proposal.ok ? "log-blue" : "log-amber");
+    return true;
+  }
+
+  async function runPendingActionConfirmation(userText) {
+    const result = await window.AIDA_ACTION_EXECUTOR?.confirm?.(userText);
+    if (!result) return false;
+    appendChat("USER", userText);
+    appendChat("AIDA", result.reply);
+    window.AIDA_SESSION_CAPTURE?.captureExchange?.(userText, result.reply);
+    pulse(result.ok ? "Project action staged for Drive writeback." : "Project action was not completed.");
+    log(`PROJECT ACTION: ${result.ok ? "executed" : "rejected"}.`, result.ok ? "log-blue" : "log-amber");
     return true;
   }
 
@@ -138,11 +168,23 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       return runLocalReply(text, llmIdentityReply());
     }
 
+    if (await runPendingActionConfirmation(text)) return true;
+    if (await runProjectIntent(text)) return true;
+
     const ready = gate();
     if (!ready.pass) {
       log(`LLM SEND: WAIT. Missing ${ready.missing.join(", ")}.`, "log-amber");
       pulse(`LLM send blocked: missing ${ready.missing.join(", ")}.`);
       return false;
+    }
+
+    if (requestedCrossLlmConsultation(text)) {
+      window.AIDA_LLM_SCOPE?.authorizeOnce?.("all", "explicit_user_cross_llm_consultation");
+      const sealedProject = rt.context?.sealedProject;
+      if (sealedProject?.loadName || sealedProject?.requested) {
+        window.AIDA_PROJECTS?.select?.(sealedProject.loadName || sealedProject.requested);
+      }
+      log("LLM MEMORY: One-turn cross-LLM consultation authorized.", "log-amber");
     }
 
     // Prepare memory shelves if needed.
