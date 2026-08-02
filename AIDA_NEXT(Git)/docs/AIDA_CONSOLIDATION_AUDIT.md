@@ -14,12 +14,14 @@
 
 Choose scan roots intentionally. Start with the active Git reconstruction and a small number of clearly Aida-related folders. Keep output outside every scanned root.
 
+Nested roots are safe: the auditor records a physical file only once, using the first matching `--root`. For clearest reports, prefer the smallest useful roots rather than both a parent folder and all of its children.
+
 ```powershell
 python tools/aida_consolidation_audit.py `
   --root "C:\Users\arist\OneDrive\Documents\GitHub\Aida_mobile\AIDA_NEXT(Git)" `
   --root "C:\path\to\another\Aida\folder" `
   --reference-root "C:\Users\arist\OneDrive\Documents\GitHub\Aida_mobile\AIDA_NEXT(Git)" `
-  --output "C:\Users\arist\OneDrive\Documents\GitHub\Aida_mobile\consolidation_reports\first_audit"
+  --output "C:\Users\arist\OneDrive\Documents\Aida_consolidation_reports\first_audit"
 ```
 
 The output contains:

@@ -29,7 +29,8 @@ TEXT_EXTENSIONS = {
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".ico"}
 STORY_EXTENSIONS = {".docx", ".pdf", ".rtf", ".odt", ".epub"}
 AIDA_WORDS = {"aida", "awake", "spine", "airlock", "briefcase", "librarian", "realm", "pyodide"}
-LEGACY_WORDS = {"backup", "old", "legacy", "archive", "copy", "donor", "pre", "v1", "v2", "one", "awake", "spine"}
+LEGACY_WORDS = {"backup", "old", "legacy", "archive", "copy", "donor", "pre", "transparent"}
+VERSION_WORDS = {"awake", "one", "spine", "transparent"}
 MAX_TEXT_BYTES = 1_000_000
 
 
@@ -106,9 +107,11 @@ def classify(path: Path, relative_path: str, text: str | None) -> tuple[list[str
         tags.add("story_or_project_asset")
     if suffix == ".json" and any(word in haystack for word in ("memory", "fact", "insight", "diary", "briefcase", "project_")):
         tags.add("aida_data_candidate")
-    if path_words & LEGACY_WORDS or any(word in haystack for word in ("backup", "legacy", "previous version", "donor")):
+    # A current module may discuss legacy adapters; only its location/name should
+    # classify it as archival material.
+    if path_words & LEGACY_WORDS:
         tags.add("legacy_or_archive")
-    if any(word in path_words for word in ("awake", "one", "spine")) and score >= 1:
+    if path_words & VERSION_WORDS and "legacy_or_archive" in tags and score >= 1:
         tags.add("standalone_version_candidate")
     if not tags:
         tags.add("unclassified")
@@ -116,6 +119,7 @@ def classify(path: Path, relative_path: str, text: str | None) -> tuple[list[str
 
 
 def iter_files(roots: Iterable[Path], include_hidden: bool) -> Iterable[tuple[Path, Path]]:
+    seen_paths: set[Path] = set()
     for root in roots:
         for path in root.rglob("*"):
             if not path.is_file():
@@ -125,6 +129,10 @@ def iter_files(roots: Iterable[Path], include_hidden: bool) -> Iterable[tuple[Pa
                 continue
             if not include_hidden and any(part.startswith(".") for part in relative_parts):
                 continue
+            resolved = path.resolve()
+            if resolved in seen_paths:
+                continue
+            seen_paths.add(resolved)
             yield root, path
 
 
