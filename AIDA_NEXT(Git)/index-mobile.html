@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-title" content="Aida">
   <link rel="apple-touch-icon" href="body/assets/aida_icon.png">
   <link rel="icon" type="image/png" href="body/assets/aida_icon.png">
-  <link rel="stylesheet" href="body/awake.css?v=20260627c">
+  <link rel="stylesheet" href="body/awake.css?v=20260802c">
 
 <!-- AIDA REVIEW BLOCK 3: Style rules - visual layout and responsive behavior. -->
 <style>
@@ -117,7 +117,7 @@
         flex: 1 1 auto !important;
         min-width: 65px !important;
         padding: 6px 4px !important;
-        font-size: 11px !important;
+        font-size: calc(11px * var(--aida-font-scale)) !important;
       }
 
       #bios-screen {
@@ -385,6 +385,7 @@
           <button id="send-btn" type="button">SEND</button>
           <button id="eject-btn" type="button">REALMS</button>
           <button id="bios-return-btn" type="button">BIOS</button>
+          <button id="theme-btn" type="button">DISPLAY</button>
           <button id="sleep-btn" type="button">SLEEP</button>
         </div>
       </div>
@@ -405,6 +406,7 @@
   <script src="spine/config.js?v=20260622a"></script>
   <script src="spine/bios_console.js?v=20260606i"></script>
   <script src="body/awake.js?v=20260802b"></script>
+  <script src="spine/visual_settings.js?v=20260802a"></script>
   <script src="spine/airlock.js?v=20260621a"></script>
   <script src="spine/project_context.js?v=20260802a"></script>
   <script src="spine/self_model.js?v=20260802a"></script>
