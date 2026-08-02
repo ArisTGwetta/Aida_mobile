@@ -149,6 +149,13 @@
             ].filter(Boolean).join(" "),
         };
 
+        const selfModelMessage = window.AIDA_SELF_MODEL?.promptText
+            ? {
+                  role: "system",
+                  content: window.AIDA_SELF_MODEL.promptText(),
+              }
+            : null;
+
         //
         // 2. MEMORY THREADS — optional contextual hints
         //
@@ -267,6 +274,7 @@
         const projectFirewallMessage = sealedProjectNotice(runtime.context.sealedProject);
         const messages = [
             systemMessage,
+            selfModelMessage,
             firewallMessage,
             projectFirewallMessage,
             memoryMessage,

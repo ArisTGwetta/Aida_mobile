@@ -30,3 +30,8 @@ The rebuild must preserve:
 ## Rule
 
 Nothing joins the living app until it declares what it reads, what it writes, what boot phase it belongs to, and how to verify it is alive.
+
+## Current Orientation
+
+- [Architecture map](docs/AIDA_ARCHITECTURE_MAP.md) is the canonical current-system overview.
+- [Aida's operating narrative](docs/AIDA_SELF_MODEL.md) explains the non-secret self-model used by the conversation layer.

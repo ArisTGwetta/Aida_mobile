@@ -78,6 +78,7 @@
       memoryWindow: null,
       llmMessages: null
     },
+    selfModel: null,
     session: {
       id: null,
       startedAt: null,
