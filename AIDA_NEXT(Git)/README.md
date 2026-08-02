@@ -36,3 +36,4 @@ Nothing joins the living app until it declares what it reads, what it writes, wh
 - [Architecture map](docs/AIDA_ARCHITECTURE_MAP.md) is the canonical current-system overview.
 - [Aida's operating narrative](docs/AIDA_SELF_MODEL.md) explains the non-secret self-model used by the conversation layer.
 - [Consolidation audit](docs/AIDA_CONSOLIDATION_AUDIT.md) documents the read-only file inventory and duplicate-review tool.
+- [Project archaeology](docs/AIDA_PROJECT_ARCHAEOLOGY.md) documents the read-only, source-linked recovery pass for important personal projects.

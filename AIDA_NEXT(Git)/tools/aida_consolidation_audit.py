@@ -31,6 +31,7 @@ STORY_EXTENSIONS = {".docx", ".pdf", ".rtf", ".odt", ".epub"}
 AIDA_WORDS = {"aida", "awake", "spine", "airlock", "briefcase", "librarian", "realm", "pyodide"}
 LEGACY_WORDS = {"backup", "old", "legacy", "archive", "copy", "donor", "pre", "transparent"}
 VERSION_WORDS = {"awake", "one", "spine", "transparent"}
+SENSITIVE_PATH_WORDS = {"debug", "private", "personal", "hidden", "vault"}
 MAX_TEXT_BYTES = 1_000_000
 
 
@@ -113,6 +114,8 @@ def classify(path: Path, relative_path: str, text: str | None) -> tuple[list[str
         tags.add("legacy_or_archive")
     if path_words & VERSION_WORDS and "legacy_or_archive" in tags and score >= 1:
         tags.add("standalone_version_candidate")
+    if path_words & SENSITIVE_PATH_WORDS:
+        tags.add("sensitive_source_candidate")
     if not tags:
         tags.add("unclassified")
     return sorted(tags), score
