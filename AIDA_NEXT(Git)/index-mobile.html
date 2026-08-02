@@ -4,7 +4,7 @@
 <!-- AIDA REVIEW BLOCK 2: Head setup - metadata, title, styles, and preloaded runtime assets. -->
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>AIDA-One Spine</title>
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -12,129 +12,115 @@
   <link rel="apple-touch-icon" href="body/assets/aida_icon.png">
   <link rel="icon" type="image/png" href="body/assets/aida_icon.png">
   <link rel="stylesheet" href="body/awake.css?v=20260627c">
+
 <!-- AIDA REVIEW BLOCK 3: Style rules - visual layout and responsive behavior. -->
 <style>
-  /* Absolute system fallback shield to kill startup white flash artifacts */
-  html, body, #bios-screen, #aida-interface, #main-engine {
-    background: #000000 !important;
-    background-color: #000000 !important;
-  }
-
-  @media (max-width: 768px) {
-
-    #user-in {
-      font-size: 16px !important;
+    /* Absolute system fallback shield to kill startup white flash artifacts */
+    html, body, #bios-screen, #aida-interface, #main-engine {
+        background: #000000 !important;
+        background-color: #000000 !important;
     }
 
-    #tag-edit {
-      font-size: 16px !important;
-    }
+    /* ==========================================
+       MOBILE RESPONSIVE OVERRIDES (<= 768px)
+       ========================================== */
+    @media (max-width: 768px) {
+      /* Prevent iOS auto-zoom on input focus */
+      input, select, textarea, #user-in, #tag-edit {
+        font-size: 16px !important; 
+      }
 
-    /* Prevent horizontal overflow */
-    html, body {
-      width: 100%;
-      max-width: 100%;
-      overflow-x: hidden;
-    }
+      html, body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden; /* Lock page body scroll; let chat internal scroll */
+      }
 
-    #main-engine, #aida-interface {
-      width: 100%;
-      max-width: 100%;
-      overflow-x: hidden;
-    }
+      /* Main container layout using Dynamic Viewport Height (dvh) */
+      #main-engine {
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100dvh !important;
+        max-height: 100dvh !important;
+        overflow: hidden !important;
+        padding: 0 !important;
+      }
 
-    /* Make control buttons wrap instead of overflow */
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      justify-content: center;
-    }
+      /* Chat container gets remaining space & scrolls internally */
+      #chat-flow {
+        flex: 1 1 auto !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+        padding: 10px 10px 15px 10px !important;
+      }
 
-    .controls button {
-      flex: 1 1 auto;
-      min-width: 70px;
-    }
+      #chat-flow .line {
+        max-width: 100% !important;
+        overflow-wrap: break-word !important;
+      }
 
-    /* Prevent chat bubbles from drifting right */
-    #chat-flow .line {
-      max-width: 100%;
-      overflow-wrap: break-word;
-    }
+      /* Stage & Portrait display area */
+      #aida-display {
+        flex: 0 0 auto !important;
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: center !important;
+        align-items: center !important;
+        gap: 12px !important;
+        padding: 8px 10px !important;
+        background: rgba(0, 0, 0, 0.85);
+        border-top: 1px solid rgba(0, 240, 255, 0.2);
+        border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+      }
 
-    /* Safety clamp */
-    div {
-      max-width: 100%;
-    }
+      /* Ensure Stage and Portrait fit nicely side-by-side on phone screens */
+      #portrait-spacer, #portrait-pane {
+        position: relative !important;
+        width: 130px !important;
+        height: 160px !important;
+        flex: 0 0 auto !important;
+      }
 
-    /* Column layout for the whole engine */
-    .mobile-column {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      padding: 0 10px;
-    }
+      #director-stage-frame img, #aida-portrait {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+      }
 
-    /* Stage shrinks but stays visible */
-    .mobile-stage {
-      width: 100%;
-      max-width: 360px;
-      margin: 0 auto;
-    }
-    .mobile-stage img {
-      width: 100%;
-      height: auto;
-    }
+      /* Hide debug pane and extra text clutter on mobile */
+      #data-stack, #debug-pane, #presentation-pane {
+        display: none !important;
+      }
 
-    /* Portrait scales cleanly */
-    .mobile-face {
-      width: 100%;
-      max-width: 360px;
-      margin: 0 auto;
-    }
-    #aida-portrait {
-      width: 100%;
-      height: auto;
-    }
+      /* Compact Input Dock at bottom */
+      #input-dock {
+        flex: 0 0 auto !important;
+        background: #000000 !important;
+        padding: 8px 10px max(10px, env(safe-area-inset-bottom)) 10px !important;
+        z-index: 100;
+      }
 
-    /* Hide debug + realm tag */
-    .mobile-hide {
-      display: none !important;
-    }
+      /* Hide extra tag bar on small mobile viewports to preserve space */
+      #tag-buttons {
+        display: none !important; 
+      }
 
-    /* Collapse tag bar */
-    .mobile-collapse {
-      display: none;
-    }
+      /* Button bar adjustments */
+      .controls {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+        margin-top: 6px !important;
+      }
 
-    /* Input dock fixed at bottom */
-    .mobile-input {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: rgba(0,0,0,0.85);
-      padding: 10px;
-      backdrop-filter: blur(6px);
-      z-index: 9999;
+      .controls button {
+        flex: 1 1 auto !important;
+        min-width: 65px !important;
+        padding: 6px 4px !important;
+        font-size: 11px !important;
+      }
     }
-
-    /* Make chat-flow scrollable above input */
-    #chat-flow {
-      max-height: calc(100vh - 300px);
-      overflow-y: auto;
-      padding-bottom: 20px;
-    }
-
-    /* Make aida-display stack vertically */
-    #aida-display {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-  }
 </style>
-
 </head>
   
 <!-- AIDA REVIEW BLOCK 4: Body shell - visible app surface and runtime mounting point. -->
@@ -209,13 +195,11 @@
     <div class="spark-layer" id="sparkLayer"></div>
 
     <div id="main-engine" class="hidden">
-      <div class="mobile-column">
       <div id="chat-flow">
         <div class="line AIDA">Body shell online. Waking Aida's Drive memory...</div>
       </div>
 
       <div id="aida-display">
-        <div class="mobile-stage">
         <div id="portrait-spacer">
 <!-- AIDA REVIEW BLOCK 8: Section - grouped UI panel or runtime stage. -->
           <section id="director-stage" aria-label="Aida's director stage">
@@ -236,10 +220,8 @@
             </div>
             <div id="director-stage-caption">A quiet thought, held beside the conversation.</div>
           </section>
-          </div> <!-- closes portrait-spacer -->
-          </div> <!-- end mobile-stage -->
+        </div>
 
-        <div class="mobile-face">
         <div id="portrait-pane">
           <div id="flicker-grid"></div>
           <div id="face-data-slow" class="face-data-grid face-data-slow"></div>
@@ -249,11 +231,9 @@
           <div class="tint-layer provider-tint" aria-hidden="true"></div>
           <div id="llm-route-badge" hidden></div>
           <img id="aida-portrait" src="body/assets/neutral1.png" alt="Aida portrait">
-        </div> <!-- closes portrait-pane -->
-        </div> <!-- end mobile-face -->
+        </div>
 
-        <div class="mobile-hide">
-          <div id="data-stack">
+        <div id="data-stack">
           <div id="debug-pane">
             <div id="log-content">Initializing body...</div>
           </div>
@@ -261,13 +241,10 @@
             <div id="realm-tag">NO REALM</div>
             <div id="pres-content">Spine waiting for first transplant.</div>
           </div>
-          </div> <!-- closes data-stack -->
-        </div> <!-- end mobile-hide -->
+        </div>
       </div>
 
-    <div class="mobile-input">
       <div id="input-dock">
-        <div class="mobile-collapse">
         <div id="tag-buttons">
           <button class="tag-btn selected" data-index="0" data-mode="francisco" type="button">FRANCISCO</button>
           <button class="tag-btn" data-index="1" data-mode="narrator" type="button">NARRATOR</button>
@@ -281,9 +258,7 @@
           <button class="tag-btn" data-index="9" data-mode="insight" type="button">INSIGHT</button>
           <button class="tag-btn" data-index="10" data-mode="question" type="button">QUESTION</button>
           <input id="tag-edit" type="text" placeholder="type tag...">
-        </div> <!-- closes tag-buttons -->
-        </div> <!-- end mobile-collapse -->
-
+        </div>
 
         <div id="message-row">
           <button id="glasses-attach-btn" type="button" title="Attach an image or PDF" aria-label="Attach an image or PDF">+</button>
@@ -297,63 +272,37 @@
           <button id="eject-btn" type="button">REALMS</button>
           <button id="bios-return-btn" type="button">BIOS</button>
           <button id="sleep-btn" type="button">SLEEP</button>
-      </div> <!-- closes input-dock -->
-    </div> <!-- end mobile-input -->
-
-      </div> <!-- end mobile-column -->
+        </div>
+      </div>
     </div>
   </section>
-<!-- AIDA REVIEW BLOCK 9: Script bridge - loads or runs JavaScript behavior for this screen. -->
+
+<!-- AIDA REVIEW BLOCK 9 to 34: Script bridges intact -->
   <script src="spine/runtime.js?v=20260620b"></script>
-<!-- AIDA REVIEW BLOCK 10: Script bridge - loads or runs JavaScript behavior for this screen. -->
   <script src="spine/config.js?v=20260622a"></script>
-<!-- AIDA REVIEW BLOCK 11: Script bridge - loads or runs JavaScript behavior for this screen. -->
   <script src="spine/bios_console.js?v=20260606i"></script>
-<!-- AIDA REVIEW BLOCK 12: Script bridge - loads or runs JavaScript behavior for this screen. -->
   <script src="body/awake.js?v=20260628c"></script>
-<!-- AIDA REVIEW BLOCK 13: Script bridge - loads or runs JavaScript behavior for this screen. -->
   <script src="spine/airlock.js?v=20260621a"></script>
-<!-- AIDA REVIEW BLOCK 14: Script bridge - loads or runs JavaScript behavior for this screen. -->
   <script src="spine/project_context.js?v=20260627e"></script>
-<!-- AIDA REVIEW BLOCK 15: Script bridge - loads or runs JavaScript behavior for this screen. -->
   <script src="spine/drive_oauth.js?v=20260627a"></script>
-<!-- AIDA REVIEW BLOCK 16: Script bridge - loads or runs JavaScript behavior for this screen. -->
   <script src="spine/context_inspector.js?v=20260620a"></script>
-<!-- AIDA REVIEW BLOCK 17: Script bridge - loads or runs JavaScript behavior for this screen. -->
   <script src="spine/llm_messages.js?v=20260620a"></script>
-<!-- AIDA REVIEW BLOCK 18: Script bridge - loads or runs JavaScript behavior for this screen. -->
   <script src="spine/llm_provider.js?v=20260622a"></script>
-<!-- AIDA REVIEW BLOCK 19: Script bridge - loads or runs JavaScript behavior for this screen. -->
   <script src="spine/llm_scope.js?v=20260621a"></script>
-<!-- AIDA REVIEW BLOCK 20: Script bridge - loads or runs JavaScript behavior for this screen. -->
   <script src="spine/crash_buffer.js?v=20260607e"></script>
-<!-- AIDA REVIEW BLOCK 21: Script bridge - loads or runs JavaScript behavior for this screen. -->
   <script src="spine/session_capture.js?v=20260621a"></script>
-<!-- AIDA REVIEW BLOCK 22: Script bridge - loads or runs JavaScript behavior for this screen. -->
   <script src="spine/context_evolution.js?v=20260621a"></script>
-<!-- AIDA REVIEW BLOCK 23: Script bridge - loads or runs JavaScript behavior for this screen. -->
   <script src="spine/emotion_engine.js?v=20260607a"></script>
-<!-- AIDA REVIEW BLOCK 24: Script bridge - loads or runs JavaScript behavior for this screen. -->
   <script src="spine/while_away.js?v=20260621b"></script>
-<!-- AIDA REVIEW BLOCK 25: Script bridge - loads or runs JavaScript behavior for this screen. -->
   <script src="spine/sleep_cycle.js?v=20260628a"></script>
-<!-- AIDA REVIEW BLOCK 26: Script bridge - loads or runs JavaScript behavior for this screen. -->
   <script src="spine/librarian.js?v=20260621a"></script>
-<!-- AIDA REVIEW BLOCK 27: Script bridge - loads or runs JavaScript behavior for this screen. -->
   <script src="spine/curator.js?v=20260614f"></script>
-<!-- AIDA REVIEW BLOCK 28: Script bridge - loads or runs JavaScript behavior for this screen. -->
   <script src="spine/crawler.js?v=20260622a"></script>
-<!-- AIDA REVIEW BLOCK 29: Script bridge - loads or runs JavaScript behavior for this screen. -->
   <script src="spine/drive_writeback.js?v=20260627b"></script>
-<!-- AIDA REVIEW BLOCK 30: Script bridge - loads or runs JavaScript behavior for this screen. -->
   <script src="spine/glasses.js?v=20260620a"></script>
-<!-- AIDA REVIEW BLOCK 31: Script bridge - loads or runs JavaScript behavior for this screen. -->
   <script src="spine/director_stage.js?v=20260622a"></script>
-<!-- AIDA REVIEW BLOCK 32: Script bridge - loads or runs JavaScript behavior for this screen. -->
   <script src="spine/intent_router.js?v=20260628a"></script>
-<!-- AIDA REVIEW BLOCK 33: Script bridge - loads or runs JavaScript behavior for this screen. -->
   <script src="spine/llm_openai.js?v=20260628c"></script>
-<!-- AIDA REVIEW BLOCK 34: Script bridge - loads or runs JavaScript behavior for this screen. -->
   <script src="spine/boot_flow.js?v=20260620d"></script>
 </body>
 </html>
