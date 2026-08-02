@@ -671,17 +671,18 @@
   }
 
 // AIDA REVIEW BLOCK 29: Function renderProjectSelector - callable behavior in this runtime organ.
-  function renderProjectSelector() {
+  function renderProjectSelector(targetId = "pres-content", options = {}) {
     const tag = $("realm-tag");
-    const pane = $("pres-content");
+    const pane = $(targetId);
     if (!pane) return;
+    const includeInspector = options.includeInspector !== false;
 
     const hierarchy = window.AIDA_PROJECTS?.hierarchy?.() || [];
     const rt = runtime();
     if (window.AIDA_PROJECTS?.hierarchyNeedsHydration?.()) {
       pane.innerHTML = '<div class="project-shelf-loading">Loading project shelves from Drive...</div>';
       window.AIDA_PROJECTS.hydrateHierarchy()
-        .then(() => renderProjectSelector())
+        .then(() => renderProjectSelector(targetId, options))
         .catch((error) => {
           pane.textContent = `Project shelves could not finish loading: ${error.message}`;
           pulse(`Project hierarchy hydration failed: ${error.message}`);
@@ -744,7 +745,16 @@
           : `Project context switched to ${projectLabel(refreshedProject || entry)} inside ${projectLabel(refreshedRealm || {})}.`
       );
       pulse(`${isRealm ? "Realm" : "Project"} switched: ${entry.fileName || entry.key}`);
-      renderProjectSelector();
+      renderProjectSelector(targetId, options);
+      if (targetId === "mobile-project-selector") {
+        const drawer = $("realm-drawer");
+        const backdrop = $("realm-drawer-backdrop");
+        if (drawer && backdrop) {
+          drawer.hidden = true;
+          backdrop.hidden = true;
+          drawer.setAttribute("aria-hidden", "true");
+        }
+      }
     };
 
     hierarchy.forEach((realm) => {
@@ -791,7 +801,7 @@
       pane.appendChild(group);
     });
 
-    renderBriefcaseInspector(pane, activeProject);
+    if (includeInspector) renderBriefcaseInspector(pane, activeProject);
   }
 
 // AIDA REVIEW BLOCK 31: Function buildPixelGrid - callable behavior in this runtime organ.
@@ -969,6 +979,9 @@
     const input = $("user-in");
     const send = $("send-btn");
     const realms = $("eject-btn");
+    const realmDrawer = $("realm-drawer");
+    const realmDrawerBackdrop = $("realm-drawer-backdrop");
+    const realmDrawerClose = $("realm-drawer-close");
     const sleep = $("sleep-btn");
     const bios = $("bios-return-btn");
 
@@ -1018,9 +1031,26 @@
 
     if (realms) {
       realms.addEventListener("click", () => {
-        renderProjectSelector();
+        const mobilePane = $("mobile-project-selector");
+        if (!mobilePane || !realmDrawer || !realmDrawerBackdrop) {
+          renderProjectSelector();
+          return;
+        }
+        realmDrawer.hidden = false;
+        realmDrawerBackdrop.hidden = false;
+        realmDrawer.setAttribute("aria-hidden", "false");
+        renderProjectSelector("mobile-project-selector", { includeInspector: false });
       });
     }
+
+    const closeRealmDrawer = () => {
+      if (!realmDrawer || !realmDrawerBackdrop) return;
+      realmDrawer.hidden = true;
+      realmDrawerBackdrop.hidden = true;
+      realmDrawer.setAttribute("aria-hidden", "true");
+    };
+    realmDrawerClose?.addEventListener("click", closeRealmDrawer);
+    realmDrawerBackdrop?.addEventListener("click", closeRealmDrawer);
 
     if (sleep) {
       sleep.addEventListener("click", () => {

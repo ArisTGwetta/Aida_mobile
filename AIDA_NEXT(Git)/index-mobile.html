@@ -119,6 +119,117 @@
         padding: 6px 4px !important;
         font-size: 11px !important;
       }
+
+      #bios-screen {
+        padding-bottom: 154px !important;
+      }
+
+      #bios-controls {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      }
+
+      #mobile-landing-actions {
+        position: fixed;
+        right: 16px;
+        bottom: max(16px, env(safe-area-inset-bottom));
+        left: 16px;
+        z-index: 40;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      #mobile-landing-actions > a,
+      #mobile-landing-actions > button {
+        min-height: 58px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #00d4ff;
+        border-radius: 8px;
+        background: #005f73;
+        color: #ffffff;
+        font: inherit;
+        font-size: 16px;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      #mobile-landing-actions > a {
+        border-color: #8ec7a0;
+        background: #345a3f;
+      }
+
+      #realm-drawer-backdrop[hidden],
+      #realm-drawer[hidden] {
+        display: none !important;
+      }
+
+      #realm-drawer-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 6100;
+        background: rgba(0, 0, 0, 0.72);
+      }
+
+      #realm-drawer {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 6101;
+        width: min(360px, 88vw);
+        display: flex;
+        flex-direction: column;
+        border-left: 1px solid #00d4ff;
+        background: #03080a;
+        box-shadow: -12px 0 28px rgba(0, 0, 0, 0.52);
+      }
+
+      .realm-drawer-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: max(18px, env(safe-area-inset-top)) 16px 12px;
+        border-bottom: 1px solid rgba(0, 212, 255, 0.35);
+      }
+
+      .realm-drawer-title {
+        margin: 0;
+        color: #baf7ff;
+        font-size: 16px;
+      }
+
+      #realm-drawer-close {
+        width: 38px;
+        height: 38px;
+        padding: 0;
+        border: 1px solid rgba(0, 212, 255, 0.55);
+        border-radius: 6px;
+        background: #00171f;
+        color: #baf7ff;
+        font-size: 22px;
+      }
+
+      #mobile-project-selector {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        padding: 12px 14px max(18px, env(safe-area-inset-bottom));
+      }
+
+      #mobile-project-selector .project-row {
+        min-height: 52px;
+        padding: 10px;
+      }
+
+      #mobile-project-selector .project-row-name {
+        font-size: 12px;
+      }
+
+      #mobile-project-selector .project-row-meta {
+        font-size: 10px;
+      }
     }
 </style>
 </head>
@@ -128,7 +239,6 @@
 <!-- AIDA REVIEW BLOCK 5: Main workspace - primary user interaction flow. -->
   <main id="bios-screen" aria-label="AIDA BIOS boot log">
     <div id="bios-controls" aria-label="AIDA boot controls">
-      <button id="wake-aida-btn" type="button">Wake Aida</button>
       <button id="airlock-start-btn" type="button">Begin Airlock</button>
       <button id="drive-connect-btn" type="button">Connect Drive</button>
       <button id="drive-list-btn" type="button">List Drive JSON</button>
@@ -149,6 +259,10 @@
     <div id="bios-logs">
       <div class="log-white">>>> INITIALIZING AIDA-ONE SPINE...</div>
       <div class="log-amber">>>> Awake body donor ready. Mind not mounted yet.</div>
+    </div>
+    <div id="mobile-landing-actions" aria-label="Choose an assistant">
+      <button id="wake-aida-btn" type="button">Wake Aida</button>
+      <a href="https://lilliput-y8hq.vercel.app/" target="_blank" rel="noopener noreferrer">Lilliput</a>
     </div>
   </main>
 
@@ -277,19 +391,28 @@
     </div>
   </section>
 
+  <div id="realm-drawer-backdrop" hidden></div>
+  <aside id="realm-drawer" aria-label="Projects and realms" aria-hidden="true" hidden>
+    <div class="realm-drawer-header">
+      <h2 class="realm-drawer-title">Projects</h2>
+      <button id="realm-drawer-close" type="button" aria-label="Close projects">x</button>
+    </div>
+    <div id="mobile-project-selector"></div>
+  </aside>
+
 <!-- AIDA REVIEW BLOCK 9 to 34: Script bridges intact -->
   <script src="spine/runtime.js?v=20260620b"></script>
   <script src="spine/config.js?v=20260622a"></script>
   <script src="spine/bios_console.js?v=20260606i"></script>
-  <script src="body/awake.js?v=20260628c"></script>
+  <script src="body/awake.js?v=20260802b"></script>
   <script src="spine/airlock.js?v=20260621a"></script>
   <script src="spine/project_context.js?v=20260802a"></script>
   <script src="spine/self_model.js?v=20260802a"></script>
   <script src="spine/drive_oauth.js?v=20260627a"></script>
   <script src="spine/context_inspector.js?v=20260620a"></script>
   <script src="spine/llm_messages.js?v=20260802a"></script>
-  <script src="spine/llm_provider.js?v=20260622a"></script>
-  <script src="spine/llm_scope.js?v=20260621a"></script>
+  <script src="spine/llm_provider.js?v=20260802a"></script>
+  <script src="spine/llm_scope.js?v=20260802a"></script>
   <script src="spine/crash_buffer.js?v=20260607e"></script>
   <script src="spine/session_capture.js?v=20260621a"></script>
   <script src="spine/context_evolution.js?v=20260621a"></script>
@@ -299,11 +422,12 @@
   <script src="spine/librarian.js?v=20260621a"></script>
   <script src="spine/curator.js?v=20260614f"></script>
   <script src="spine/crawler.js?v=20260622a"></script>
-  <script src="spine/drive_writeback.js?v=20260627b"></script>
-  <script src="spine/glasses.js?v=20260620a"></script>
+  <script src="spine/drive_writeback.js?v=20260802a"></script>
+  <script src="spine/glasses.js?v=20260802a"></script>
   <script src="spine/director_stage.js?v=20260622a"></script>
-  <script src="spine/intent_router.js?v=20260628a"></script>
-  <script src="spine/llm_openai.js?v=20260628c"></script>
+  <script src="spine/action_executor.js?v=20260802a"></script>
+  <script src="spine/intent_router.js?v=20260802a"></script>
+  <script src="spine/llm_openai.js?v=20260802a"></script>
   <script src="spine/boot_flow.js?v=20260620d"></script>
 </body>
 </html>
