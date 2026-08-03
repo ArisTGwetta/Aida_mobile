@@ -22,9 +22,9 @@ VERSION = "1.0"
 MAX_SOURCE_BYTES = 2_000_000
 TEXT_EXTENSIONS = {".txt", ".md", ".json", ".js", ".ts", ".py", ".html", ".htm", ".css", ".csv", ".yaml", ".yml"}
 DEFAULT_FOCUS = {
-    "ghost_in_the_house": ["ghost in the house", "ghostinthehouse"],
-    "shirley_holmes": ["shirley holmes", "shirleyholmes"],
-    "gemini_games": ["gemini game", "gemini games"],
+    "ghost_in_the_house": ["ghost in the house", "there is a ghost in the house", "ghostinthehouse"],
+    "shirley_holmes": ["shirley holmes", "shirley homes", "shirleyholmes"],
+    "gemini_games": ["gemini game", "gemini games", "aris t gwetta - gemini games"],
     "rias": ["rias"],
     "cristy": ["cristy", "christy"],
 }
@@ -129,13 +129,18 @@ def collect(rows: list[dict[str, str]], focus: dict[str, list[str]], include_sen
         if not path.is_file():
             continue
         path_text = f"{row.get('relative_path', '')} {path.name}".lower()
-        text, extraction = source_text(path)
+        row_tags = [tag for tag in row.get("tags", "").split(";") if tag]
+        path_matches = any(term in path_text for terms in focus.values() for term in terms)
+        # Personal backup roots can contain unrelated family/financial documents.
+        # Search their contents only after a path clue, while Aida-tagged sources
+        # remain eligible for content recovery even when their filenames are vague.
+        text, extraction = source_text(path) if path_matches or "aida_candidate" in row_tags else (None, "path_only")
         searchable = f"{path_text}\n{text.lower() if text else ''}"
         for name, terms in focus.items():
             matched = [term for term in terms if term in searchable]
             if not matched:
                 continue
-            tags = [tag for tag in row.get("tags", "").split(";") if tag]
+            tags = list(row_tags)
             sensitive = "sensitive_source_candidate" in tags or bool(
                 {part.lower() for part in path.parts} & SENSITIVE_PATH_PARTS
             )

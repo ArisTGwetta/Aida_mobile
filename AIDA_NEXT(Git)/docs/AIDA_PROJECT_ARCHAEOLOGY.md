@@ -16,6 +16,8 @@ It reads text, JSON, and `.docx` content where possible, and records PDFs and ot
 
 Folders named `debug`, `private`, `personal`, `hidden`, or `vault` are included in discovery. They are tagged as sensitive candidates; by default packets list their source references without copying excerpts into a new report. Use `--include-sensitive-excerpts` only when the output location is itself appropriately private.
 
+For broad personal backup roots, the tool reads content only when a filename/path already matches a requested project, or when the source was previously tagged as Aida-related by the audit. This avoids searching unrelated family, financial, or personal documents merely because they share a parent archive.
+
 ## Run It
 
 Use the clean audit inventory and a new output directory outside the audit folder:
