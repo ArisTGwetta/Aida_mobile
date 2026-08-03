@@ -29,6 +29,14 @@ DEFAULT_FOCUS = {
     "cristy": ["cristy", "christy"],
 }
 SENSITIVE_PATH_PARTS = {"debug", "private", "personal", "hidden", "vault"}
+# These files describe or implement the discovery process. Their example focus
+# terms must never be mistaken for evidence about the projects themselves.
+DISCOVERY_TOOL_FILENAMES = {
+    "aida_project_archaeology.py",
+    "aida_consolidation_audit.py",
+    "aida_project_archaeology.md",
+    "aida_consolidation_audit.md",
+}
 
 
 @dataclass
@@ -127,6 +135,8 @@ def collect(rows: list[dict[str, str]], focus: dict[str, list[str]], include_sen
     for row in rows:
         path = Path(row["path"])
         if not path.is_file():
+            continue
+        if path.name.lower() in DISCOVERY_TOOL_FILENAMES:
             continue
         path_text = f"{row.get('relative_path', '')} {path.name}".lower()
         row_tags = [tag for tag in row.get("tags", "").split(";") if tag]
