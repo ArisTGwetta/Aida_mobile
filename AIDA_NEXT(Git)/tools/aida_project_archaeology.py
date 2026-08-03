@@ -191,6 +191,48 @@ def write_packet(output: Path, name: str, evidence: list[Evidence]) -> None:
     (output / "packets" / f"{name}.md").write_text("\n".join(lines), encoding="utf-8")
 
 
+def write_candidate_shortcuts(output: Path, clusters: dict[str, list[Evidence]]) -> None:
+    """Write path-based review targets without calling any one target canonical."""
+    media_extensions = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".pdf", ".pptx", ".docx", ".svg"}
+    lines = [
+        "# Candidate Review Shortcuts",
+        "",
+        "These are likely project locations inferred from discovery evidence. They are review targets, not canon selections. Open the competing folders, choose deliberately, then create a move manifest.",
+        "",
+    ]
+    for name, evidence in clusters.items():
+        grouped: dict[Path, list[Evidence]] = {}
+        for item in evidence:
+            path = Path(item.source_path)
+            relative = f"{item.relative_path} {path.name}".lower()
+            # Only show folders whose own path provides a project clue. This
+            # avoids turning general Aida logs into misleading asset targets.
+            if not any(term in relative for term in item.matched_terms):
+                continue
+            grouped.setdefault(path.parent, []).append(item)
+        lines.extend([f"## {name.replace('_', ' ').title()}", ""])
+        ranked = sorted(
+            grouped.items(),
+            key=lambda pair: (
+                -sum(item.extension.lower() in media_extensions for item in pair[1]),
+                -len(pair[1]),
+                str(pair[0]).lower(),
+            ),
+        )
+        if not ranked:
+            lines.extend(["- No path-based candidate location found. Review the evidence packet for source references.", ""])
+            continue
+        for directory, items in ranked[:12]:
+            media_count = sum(item.extension.lower() in media_extensions for item in items)
+            detail = f"{len(items)} matching item(s)"
+            if media_count:
+                detail += f", {media_count} visual/document asset(s)"
+            link_target = "/" + directory.as_posix()
+            lines.append(f"- [{directory.name or str(directory)}](<{link_target}>): {detail}.")
+        lines.append("")
+    (output / "CANDIDATE_REVIEW_SHORTCUTS.md").write_text("\n".join(lines), encoding="utf-8")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Read-only project archaeology evidence packer.")
     parser.add_argument("--inventory", required=True, help="CSV inventory from aida_consolidation_audit.py")
@@ -225,6 +267,7 @@ def main() -> int:
             "source_roots": dict(Counter(item.source_root for item in evidence)),
             "packet": str(output / "packets" / f"{name}.md"),
         })
+    write_candidate_shortcuts(output, clusters)
     registry = {
         "version": VERSION,
         "generated_at": datetime.now(timezone.utc).isoformat(),

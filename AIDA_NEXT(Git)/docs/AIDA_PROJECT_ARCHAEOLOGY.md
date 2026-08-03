@@ -33,6 +33,7 @@ Outputs:
 - `PROJECT_ARCHAEOLOGY_REPORT.md`: evidence counts for each priority project.
 - `project_registry_draft.json`: a source-linked registry draft.
 - `packets\<project>.md`: excerpts and file references for focused review.
+- `CANDIDATE_REVIEW_SHORTCUTS.md`: path-based review targets, ranked to surface likely visual/document editions. These are not canon decisions; use them to quickly compare competing locations before preparing a move manifest.
 
 ## Next Layer
 
