@@ -38,13 +38,15 @@ def read_manifest(path: Path) -> dict:
     return manifest
 
 
-def source_path(item: dict, source_root: Path | None = None) -> Path:
+def effective_source_path(item: dict, source_root: Path | None = None, extra_paths: dict[str, str] | None = None) -> Path:
+    if item.get("source_scope", "primary") == "extra":
+        return Path((extra_paths or {}).get(item["source_path"], item["source_path"]))
     return source_root / item["relative_path"] if source_root else Path(item["source_path"])
 
 
-def verify_sources(manifest: dict, source_root: Path | None = None) -> None:
+def verify_sources(manifest: dict, source_root: Path | None = None, extra_paths: dict[str, str] | None = None) -> None:
     for item in manifest["items"]:
-        source = source_path(item, source_root)
+        source = effective_source_path(item, source_root, extra_paths)
         if not source.is_file():
             raise SystemExit(f"Source file is missing: {source}")
         actual_hash = sha256(source)
@@ -113,12 +115,23 @@ def quarantine(manifest: dict, manifest_path: Path, delete_not_before: str) -> P
     if quarantined_root.exists():
         raise SystemExit(f"Quarantine destination already exists: {quarantined_root}")
     source_root.rename(quarantined_root)
+    extra_renames: dict[str, str] = {}
+    for item in manifest["items"]:
+        if item.get("source_scope", "primary") != "extra":
+            continue
+        source = Path(item["source_path"])
+        quarantined = source.with_name(f"{source.stem}{suffix}{source.suffix}")
+        if quarantined.exists():
+            raise SystemExit(f"Quarantine destination already exists: {quarantined}")
+        source.rename(quarantined)
+        extra_renames[str(source)] = str(quarantined)
     report = {
         "mode": "quarantined_pending_review",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "manifest": str(manifest_path),
         "original_source_root": str(source_root),
         "quarantined_source_root": str(quarantined_root),
+        "quarantined_extra_sources": extra_renames,
         "delete_not_before": not_before.isoformat(),
         "rules": [
             "The verified canonical copy remains at the manifest target root.",
@@ -149,16 +162,17 @@ def read_moratorium(path: Path, manifest_path: Path) -> dict:
 def finalize(manifest: dict, manifest_path: Path, moratorium_path: Path) -> Path:
     moratorium = read_moratorium(moratorium_path, manifest_path)
     source_root = Path(moratorium["quarantined_source_root"])
-    verify_sources(manifest, source_root)
+    extra_paths = moratorium.get("quarantined_extra_sources", {})
+    verify_sources(manifest, source_root, extra_paths)
     verify_destinations(manifest)
-    expected = {source_path(item, source_root).resolve() for item in manifest["items"]}
+    expected = {effective_source_path(item, source_root, extra_paths).resolve() for item in manifest["items"] if item.get("source_scope", "primary") == "primary"}
     actual = {path.resolve() for path in source_root.rglob("*") if path.is_file()}
     extras = actual - expected
     if extras:
         examples = ", ".join(str(path) for path in sorted(extras)[:3])
         raise SystemExit(f"Refusing to delete a source containing unmanifested files: {examples}")
     for item in manifest["items"]:
-        source_path(item, source_root).unlink()
+        effective_source_path(item, source_root, extra_paths).unlink()
     for directory in sorted((path for path in source_root.rglob("*") if path.is_dir()), key=lambda path: len(path.parts), reverse=True):
         directory.rmdir()
     source_root.rmdir()

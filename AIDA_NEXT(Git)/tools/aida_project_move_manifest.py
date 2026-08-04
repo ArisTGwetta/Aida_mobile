@@ -35,12 +35,26 @@ def files_in(source: Path) -> list[Path]:
     return sorted((path for path in source.rglob("*") if path.is_file()), key=lambda path: path.as_posix().lower())
 
 
+def parse_extra_file(value: str) -> tuple[Path, Path]:
+    if "=" not in value:
+        raise ValueError("--extra-file must use SOURCE_PATH=TARGET_RELATIVE_PATH format.")
+    raw_source, raw_relative = value.split("=", 1)
+    source = Path(raw_source).expanduser().resolve()
+    relative = Path(raw_relative.replace("\\", "/"))
+    if not source.is_file():
+        raise ValueError(f"Extra source file does not exist: {source}")
+    if relative.is_absolute() or ".." in relative.parts or relative.name in {"", "."}:
+        raise ValueError("Extra target path must be a non-empty relative path inside --target.")
+    return source, relative
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Create a read-only project relocation manifest.")
     parser.add_argument("--source", required=True, help="Approved source edition folder. It is read only.")
     parser.add_argument("--target", required=True, help="Proposed canonical folder. It is recorded but never created.")
     parser.add_argument("--project", required=True, help="Stable project identifier, for example shirley_holmes.")
     parser.add_argument("--output", required=True, help="Folder for this review manifest, outside the source folder.")
+    parser.add_argument("--extra-file", action="append", default=[], help="Optional SOURCE_PATH=TARGET_RELATIVE_PATH. Repeat for named supporting files outside --source.")
     return parser.parse_args()
 
 
@@ -64,10 +78,11 @@ def main() -> int:
     if not files:
         raise SystemExit(f"No files found in source directory: {source}")
 
+    extras = [parse_extra_file(value) for value in args.extra_file]
     seen_ids: set[str] = set()
     items = []
-    for path in files:
-        relative = path.relative_to(source)
+
+    def add_item(path: Path, relative: Path, source_scope: str) -> None:
         base_id = f"{project}.{slug(str(relative.with_suffix('')))}.{slug(path.suffix.lstrip('.'))}"
         asset_id = base_id
         suffix = 2
@@ -81,10 +96,18 @@ def main() -> int:
             "source_path": str(path),
             "target_path": str(target / relative),
             "relative_path": relative.as_posix(),
+            "source_scope": source_scope,
             "bytes": stat.st_size,
             "sha256": sha256(path),
             "operation": "move_after_approval_and_reverification",
         })
+
+    for path in files:
+        add_item(path, path.relative_to(source), "primary")
+    for path, relative in extras:
+        if path.is_relative_to(source):
+            raise SystemExit(f"Extra source is already inside --source: {path}")
+        add_item(path, relative, "extra")
 
     manifest = {
         "version": VERSION,
@@ -100,7 +123,12 @@ def main() -> int:
             "Delete the source only after destination verification and explicit user approval.",
             "Aida should use asset_id and SHA-256 as identity, not a machine-specific path.",
         ],
-        "summary": {"file_count": len(items), "total_bytes": sum(item["bytes"] for item in items)},
+        "summary": {
+            "file_count": len(items),
+            "primary_file_count": sum(item["source_scope"] == "primary" for item in items),
+            "extra_file_count": sum(item["source_scope"] == "extra" for item in items),
+            "total_bytes": sum(item["bytes"] for item in items),
+        },
         "items": items,
     }
     output.mkdir(parents=True, exist_ok=True)

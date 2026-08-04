@@ -14,6 +14,8 @@ python tools\aida_project_move_manifest.py `
   --output "C:\Users\arist\OneDrive\Documents\Aida_project_archaeology\priority_projects_with_dad_v2\move_manifests"
 ```
 
+Use `--extra-file "SOURCE_PATH=TARGET_RELATIVE_PATH"` for a named manuscript or other supporting file that belongs to the project but is outside the main asset folder. It becomes a separately identified manifest item and receives the same stage, verification, and moratorium treatment.
+
 Review the generated JSON and Markdown before requesting an apply executor. An approved move must re-hash sources, verify every target file, and require a separate explicit confirmation before the source is removed.
 
 ## Stage And Finalize
