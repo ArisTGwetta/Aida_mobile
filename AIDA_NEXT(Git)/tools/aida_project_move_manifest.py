@@ -50,32 +50,36 @@ def parse_extra_file(value: str) -> tuple[Path, Path]:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Create a read-only project relocation manifest.")
-    parser.add_argument("--source", required=True, help="Approved source edition folder. It is read only.")
+    parser.add_argument("--source", help="Approved source edition folder. It is read only.")
     parser.add_argument("--target", required=True, help="Proposed canonical folder. It is recorded but never created.")
     parser.add_argument("--project", required=True, help="Stable project identifier, for example shirley_holmes.")
     parser.add_argument("--output", required=True, help="Folder for this review manifest, outside the source folder.")
     parser.add_argument("--extra-file", action="append", default=[], help="Optional SOURCE_PATH=TARGET_RELATIVE_PATH. Repeat for named supporting files outside --source.")
+    parser.add_argument("--source-file", action="append", default=[], help="Optional SOURCE_PATH=TARGET_RELATIVE_PATH for an individual-file-only manifest. Repeat as needed.")
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
-    source = Path(args.source).expanduser().resolve()
+    source = Path(args.source).expanduser().resolve() if args.source else None
     target = Path(args.target).expanduser().resolve()
     output = Path(args.output).expanduser().resolve()
     project = slug(args.project)
 
-    if not source.is_dir():
+    if source and not source.is_dir():
         raise SystemExit(f"Source directory does not exist: {source}")
-    if target == source or target.is_relative_to(source):
+    if source and (target == source or target.is_relative_to(source)):
         raise SystemExit("--target must be outside --source.")
-    if output == source or output.is_relative_to(source):
+    if source and (output == source or output.is_relative_to(source)):
         raise SystemExit("--output must be outside --source.")
     if output == target or output.is_relative_to(target):
         raise SystemExit("--output must be outside the proposed target folder.")
 
-    files = files_in(source)
-    if not files:
+    files = files_in(source) if source else []
+    standalone = [parse_extra_file(value) for value in args.source_file]
+    if source is None and not standalone:
+        raise SystemExit("Provide --source or at least one --source-file.")
+    if source and not files:
         raise SystemExit(f"No files found in source directory: {source}")
 
     extras = [parse_extra_file(value) for value in args.extra_file]
@@ -105,16 +109,18 @@ def main() -> int:
     for path in files:
         add_item(path, path.relative_to(source), "primary")
     for path, relative in extras:
-        if path.is_relative_to(source):
+        if source and path.is_relative_to(source):
             raise SystemExit(f"Extra source is already inside --source: {path}")
         add_item(path, relative, "extra")
+    for path, relative in standalone:
+        add_item(path, relative, "standalone")
 
     manifest = {
         "version": VERSION,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "mode": "read_only_move_manifest",
         "project_id": project,
-        "source_root": str(source),
+        "source_root": str(source) if source else None,
         "proposed_target_root": str(target),
         "rules": [
             "This is a dry-run manifest only; no source or target file was changed.",
@@ -127,6 +133,7 @@ def main() -> int:
             "file_count": len(items),
             "primary_file_count": sum(item["source_scope"] == "primary" for item in items),
             "extra_file_count": sum(item["source_scope"] == "extra" for item in items),
+            "standalone_file_count": sum(item["source_scope"] == "standalone" for item in items),
             "total_bytes": sum(item["bytes"] for item in items),
         },
         "items": items,
@@ -141,7 +148,7 @@ def main() -> int:
         "",
         "Status: review only. No file or folder was created, copied, moved, renamed, or deleted.",
         "",
-        f"- Source: `{source}`",
+        f"- Source: `{source}`" if source else "- Source: individual approved files only",
         f"- Proposed target: `{target}`",
         f"- Files: {len(items)}",
         f"- Total bytes: {manifest['summary']['total_bytes']}",

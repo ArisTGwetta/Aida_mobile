@@ -39,7 +39,7 @@ def read_manifest(path: Path) -> dict:
 
 
 def effective_source_path(item: dict, source_root: Path | None = None, extra_paths: dict[str, str] | None = None) -> Path:
-    if item.get("source_scope", "primary") == "extra":
+    if item.get("source_scope", "primary") != "primary":
         return Path((extra_paths or {}).get(item["source_path"], item["source_path"]))
     return source_root / item["relative_path"] if source_root else Path(item["source_path"])
 
@@ -108,16 +108,19 @@ def quarantine(manifest: dict, manifest_path: Path, delete_not_before: str) -> P
         not_before = datetime.strptime(delete_not_before, "%Y-%m-%d").date()
     except ValueError as error:
         raise SystemExit("--delete-not-before must use YYYY-MM-DD.") from error
-    source_root = Path(manifest["source_root"])
+    source_root_value = manifest.get("source_root")
+    source_root = Path(source_root_value) if source_root_value else None
     verify_sources(manifest, source_root)
     suffix = f"__MOVED_PENDING_REVIEW__DELETE_NOT_BEFORE_{not_before.isoformat()}"
-    quarantined_root = source_root.with_name(f"{source_root.name}{suffix}")
-    if quarantined_root.exists():
-        raise SystemExit(f"Quarantine destination already exists: {quarantined_root}")
-    source_root.rename(quarantined_root)
+    quarantined_root = None
+    if source_root:
+        quarantined_root = source_root.with_name(f"{source_root.name}{suffix}")
+        if quarantined_root.exists():
+            raise SystemExit(f"Quarantine destination already exists: {quarantined_root}")
+        source_root.rename(quarantined_root)
     extra_renames: dict[str, str] = {}
     for item in manifest["items"]:
-        if item.get("source_scope", "primary") != "extra":
+        if item.get("source_scope", "primary") == "primary":
             continue
         source = Path(item["source_path"])
         quarantined = source.with_name(f"{source.stem}{suffix}{source.suffix}")
@@ -130,7 +133,7 @@ def quarantine(manifest: dict, manifest_path: Path, delete_not_before: str) -> P
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "manifest": str(manifest_path),
         "original_source_root": str(source_root),
-        "quarantined_source_root": str(quarantined_root),
+        "quarantined_source_root": str(quarantined_root) if quarantined_root else None,
         "quarantined_extra_sources": extra_renames,
         "delete_not_before": not_before.isoformat(),
         "rules": [
@@ -161,21 +164,24 @@ def read_moratorium(path: Path, manifest_path: Path) -> dict:
 
 def finalize(manifest: dict, manifest_path: Path, moratorium_path: Path) -> Path:
     moratorium = read_moratorium(moratorium_path, manifest_path)
-    source_root = Path(moratorium["quarantined_source_root"])
+    quarantined_root = moratorium.get("quarantined_source_root")
+    source_root = Path(quarantined_root) if quarantined_root else None
     extra_paths = moratorium.get("quarantined_extra_sources", {})
     verify_sources(manifest, source_root, extra_paths)
     verify_destinations(manifest)
     expected = {effective_source_path(item, source_root, extra_paths).resolve() for item in manifest["items"] if item.get("source_scope", "primary") == "primary"}
-    actual = {path.resolve() for path in source_root.rglob("*") if path.is_file()}
-    extras = actual - expected
-    if extras:
-        examples = ", ".join(str(path) for path in sorted(extras)[:3])
-        raise SystemExit(f"Refusing to delete a source containing unmanifested files: {examples}")
+    if source_root:
+        actual = {path.resolve() for path in source_root.rglob("*") if path.is_file()}
+        extras = actual - expected
+        if extras:
+            examples = ", ".join(str(path) for path in sorted(extras)[:3])
+            raise SystemExit(f"Refusing to delete a source containing unmanifested files: {examples}")
     for item in manifest["items"]:
         effective_source_path(item, source_root, extra_paths).unlink()
-    for directory in sorted((path for path in source_root.rglob("*") if path.is_dir()), key=lambda path: len(path.parts), reverse=True):
-        directory.rmdir()
-    source_root.rmdir()
+    if source_root:
+        for directory in sorted((path for path in source_root.rglob("*") if path.is_dir()), key=lambda path: len(path.parts), reverse=True):
+            directory.rmdir()
+        source_root.rmdir()
     report = {
         "mode": "finalized",
         "generated_at": datetime.now(timezone.utc).isoformat(),
