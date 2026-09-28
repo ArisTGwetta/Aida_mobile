@@ -145,7 +145,7 @@
   }
 
 // AIDA REVIEW BLOCK 11: Function listDriveFiles - callable behavior in this runtime organ.
-  async function listDriveFiles() {
+  async function listDriveFilesPage(pageToken = null, options = {}) {
     const rt = runtime();
     const token = rt.tokens.drive.accessToken;
     const folderId = rt.drive.folderId;
@@ -153,8 +153,11 @@
     if (!token) throw new Error("Drive access token is missing.");
     if (!folderId) throw new Error("Drive JSON folder ID is missing.");
 
-    const query = encodeURIComponent(`'${folderId}' in parents and trashed = false`);
-    const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,mimeType,modifiedTime)`;
+    const query = encodeURIComponent(options.query || `'${folderId}' in parents and trashed = false`);
+    const pageSize = encodeURIComponent(String(options.pageSize || 1000));
+    const fields = encodeURIComponent("nextPageToken,files(id,name,mimeType,modifiedTime)");
+    const tokenPart = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "";
+    const url = `https://www.googleapis.com/drive/v3/files?q=${query}&pageSize=${pageSize}&fields=${fields}${tokenPart}`;
     const response = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -164,7 +167,24 @@
     }
 
     const data = await response.json();
-    return data.files || [];
+    return {
+      files: data.files || [],
+      nextPageToken: data.nextPageToken || null
+    };
+  }
+
+  async function listDriveFiles(options = {}) {
+    const files = [];
+    let pageToken = null;
+    let pageCount = 0;
+    do {
+      const page = await listDriveFilesPage(pageToken, options);
+      files.push(...page.files);
+      pageToken = page.nextPageToken;
+      pageCount += 1;
+    } while (pageToken);
+    runtime().drive.lastListPageCount = pageCount;
+    return files;
   }
 
 // AIDA REVIEW BLOCK 12: Function listJsonFiles - callable behavior in this runtime organ.
@@ -348,6 +368,181 @@
     rt.drive.deferredNames = (rt.drive.deferredNames || []).filter((fileName) => fileName !== name);
     log(`DRIVE: Loaded ${name} (${reason}).`);
     return data;
+  }
+
+  const CONTINUITY_RECENT_PREFIX = "continuity_recent/";
+  const CONTINUITY_RECENT_MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
+
+  async function listContinuityRecentFiles() {
+    return (await listDriveFiles())
+      .filter((file) => String(file.name || "").startsWith(CONTINUITY_RECENT_PREFIX) && String(file.name || "").endsWith(".json"));
+  }
+
+  function validateContinuityRecentRecord(record) {
+    const issues = [];
+    if (!record || typeof record !== "object") return { valid: false, issues: ["record_not_object"] };
+    if (record.version !== 1) issues.push("unsupported_version");
+    if (!record.turn_id) issues.push("missing_turn_id");
+    if (!record.conversation_id) issues.push("missing_conversation_id");
+    if (!record.host_id) issues.push("missing_host_id");
+    if (!record.dedupe_key) issues.push("missing_dedupe_key");
+    if (!record.captured_at) issues.push("missing_captured_at");
+    if (!record.received_at) issues.push("missing_received_at");
+    if (!record.effective_at) issues.push("missing_effective_at");
+    if (typeof record.user?.text !== "string") issues.push("missing_user_text");
+    if (typeof record.aida?.text !== "string") issues.push("missing_aida_text");
+    return { valid: issues.length === 0, issues };
+  }
+
+  function redactContinuityRecentRecord(record, file, options = {}) {
+    const includeText = options.includeText === true;
+    const validation = validateContinuityRecentRecord(record);
+    const fileModifiedTime = file?.modifiedTime || null;
+    const capturedAt = record?.captured_at || null;
+    const receivedAt = fileModifiedTime || record?.received_at || null;
+    const clockSkewMs = capturedAt && receivedAt
+      ? Math.abs(new Date(capturedAt).getTime() - new Date(receivedAt).getTime())
+      : null;
+    const clockSuspect = Number.isFinite(clockSkewMs) && clockSkewMs > CONTINUITY_RECENT_MAX_CLOCK_SKEW_MS;
+    const summary = {
+      drive_file_id: file?.id || null,
+      drive_name: file?.name || null,
+      drive_modifiedTime: fileModifiedTime,
+      modified_time_source: "google_drive_file_metadata",
+      record_valid: validation.valid,
+      validation_issues: validation.issues,
+      turn_id: record?.turn_id || null,
+      conversation_id: record?.conversation_id || null,
+      host_id: record?.host_id || null,
+      source_host: record?.source_host || null,
+      captured_at: capturedAt,
+      record_received_at: record?.received_at || null,
+      effective_at: clockSuspect && fileModifiedTime ? fileModifiedTime : (record?.effective_at || fileModifiedTime),
+      clock_suspect: Boolean(clockSuspect || record?.clock_suspect),
+      clock_skew_ms: Number.isFinite(clockSkewMs) ? clockSkewMs : (record?.clock_skew_ms || null),
+      sequence: record?.sequence || null,
+      status: record?.status || null,
+      dedupe_key: record?.dedupe_key || null,
+      text_redacted: !includeText,
+      user_text_present: typeof record?.user?.text === "string",
+      user_text_length: typeof record?.user?.text === "string" ? record.user.text.length : 0,
+      aida_text_present: typeof record?.aida?.text === "string",
+      aida_text_length: typeof record?.aida?.text === "string" ? record.aida.text.length : 0
+    };
+    if (includeText) {
+      summary.user_text = record?.user?.text || "";
+      summary.aida_text = record?.aida?.text || "";
+    }
+    return summary;
+  }
+
+  function selectContinuityRecentInspectionWindow(recordSummaries, limit = 8) {
+    const dedupeDecisions = [];
+    const byDedupe = new Map();
+    (recordSummaries || []).forEach((summary) => {
+      if (!summary.record_valid || !summary.dedupe_key) {
+        dedupeDecisions.push({
+          drive_file_id: summary.drive_file_id,
+          drive_name: summary.drive_name,
+          decision: "excluded_invalid",
+          reason: (summary.validation_issues || []).join(",") || "invalid_record"
+        });
+        return;
+      }
+      const prior = byDedupe.get(summary.dedupe_key);
+      const currentTime = String(summary.drive_modifiedTime || summary.record_received_at || summary.effective_at || "");
+      const priorTime = prior ? String(prior.drive_modifiedTime || prior.record_received_at || prior.effective_at || "") : "";
+      if (!prior || currentTime > priorTime) {
+        if (prior) {
+          dedupeDecisions.push({
+            drive_file_id: prior.drive_file_id,
+            drive_name: prior.drive_name,
+            dedupe_key: prior.dedupe_key,
+            decision: "excluded_duplicate_older",
+            kept_drive_file_id: summary.drive_file_id
+          });
+        }
+        byDedupe.set(summary.dedupe_key, summary);
+      } else {
+        dedupeDecisions.push({
+          drive_file_id: summary.drive_file_id,
+          drive_name: summary.drive_name,
+          dedupe_key: summary.dedupe_key,
+          decision: "excluded_duplicate_older",
+          kept_drive_file_id: prior.drive_file_id
+        });
+      }
+    });
+    const selected = Array.from(byDedupe.values())
+      .sort((a, b) => (
+        String(a.effective_at || "").localeCompare(String(b.effective_at || "")) ||
+        String(a.drive_modifiedTime || "").localeCompare(String(b.drive_modifiedTime || "")) ||
+        String(a.turn_id || "").localeCompare(String(b.turn_id || ""))
+      ))
+      .slice(-limit);
+    selected.forEach((summary) => {
+      dedupeDecisions.push({
+        drive_file_id: summary.drive_file_id,
+        drive_name: summary.drive_name,
+        dedupe_key: summary.dedupe_key,
+        decision: "selected"
+      });
+    });
+    return { selected, dedupeDecisions };
+  }
+
+  async function inspectContinuityRecent(options = {}) {
+    const limit = options.limit || 8;
+    const partialFailures = [];
+    const report = {
+      inspector: "git_mobile_drive_continuity_recent",
+      read_only: true,
+      model_prompt_insertion_enabled: false,
+      shared_writes_enabled: false,
+      prefix: CONTINUITY_RECENT_PREFIX,
+      representation: "unknown",
+      immutable_retry_check: {
+        current_putFile_create_once: false,
+        same_name_retry_can_overwrite: true,
+        evidence: "putFile() PATCHes an indexed existing file with the same Drive name."
+      },
+      files_listed_count: 0,
+      records_fetched_count: 0,
+      page_count: null,
+      files: [],
+      selected_window: [],
+      dedupe_decisions: [],
+      partial_failures: partialFailures
+    };
+    let files = [];
+    try {
+      files = await listContinuityRecentFiles();
+      report.files_listed_count = files.length;
+      report.page_count = runtime().drive?.lastListPageCount || null;
+      report.representation = files.length ? "drive_flat_name_prefix" : "none_found";
+    } catch (error) {
+      partialFailures.push({ phase: "list", message: error.message });
+      return report;
+    }
+    for (const file of files) {
+      try {
+        const record = await fetchJsonFile(file);
+        report.files.push(redactContinuityRecentRecord(record, file, options));
+        report.records_fetched_count += 1;
+      } catch (error) {
+        partialFailures.push({
+          phase: "fetch_or_parse",
+          drive_file_id: file?.id || null,
+          drive_name: file?.name || null,
+          drive_modifiedTime: file?.modifiedTime || null,
+          message: error.message
+        });
+      }
+    }
+    const windowResult = selectContinuityRecentInspectionWindow(report.files, limit);
+    report.selected_window = windowResult.selected;
+    report.dedupe_decisions = windowResult.dedupeDecisions;
+    return report;
   }
 
 // AIDA REVIEW BLOCK 26: Function likelyContextFileNames - callable behavior in this runtime organ.
@@ -890,6 +1085,7 @@
     initTokenClient,
     requestDriveToken,
     listDriveFiles,
+    listDriveFilesPage,
     listJsonFiles,
     smokeListDriveJson,
     fetchAllDriveJson,
@@ -897,6 +1093,8 @@
     fetchEveryDriveJson,
     fetchJsonByName,
     fetchBlobUrlByName,
+    listContinuityRecentFiles,
+    inspectContinuityRecent,
     cachedBlobUrl,
     putFile,
     ensureAllFilesIndexed,
