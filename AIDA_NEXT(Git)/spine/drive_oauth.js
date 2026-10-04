@@ -773,12 +773,13 @@ async function fetchJsonFile(file) {
 
   async function inspectContinuityRecent(options = {}) {
     const limit = options.limit || 8;
+    const cfg = sharedRecentConfig();
     const partialFailures = [];
     const report = {
       inspector: "git_mobile_drive_continuity_recent",
       read_only: true,
-      model_prompt_insertion_enabled: false,
-      shared_writes_enabled: false,
+      model_prompt_insertion_enabled: cfg.promptInsertionEnabled,
+      shared_writes_enabled: cfg.automaticWritesEnabled,
       manual_canary_writer_available: true,
       folder_name: CONTINUITY_RECENT_FOLDER_NAME,
       folder_id: null,
@@ -787,7 +788,7 @@ async function fetchJsonFile(file) {
         current_putFile_create_once: false,
         manual_canary_create_once_enabled: true,
         same_name_retry_can_overwrite: false,
-        evidence: "writeContinuityRecentCanary() uses createContinuityRecentFileOnce(), which lists the real continuity_recent folder and refuses a same-name record before upload."
+        evidence: "Shared RECENT writers use createContinuityRecentFileOnce(), which lists the real continuity_recent folder and refuses a same-name record before upload."
       },
       files_listed_count: 0,
       records_fetched_count: 0,
