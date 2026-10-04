@@ -101,44 +101,6 @@
         };
     }
 
-    function historyKey(role, text) {
-        return `${String(role || "").toUpperCase()}::${String(text || "").trim()}`;
-    }
-
-    function sessionTurnsAsHistory(runtime) {
-        const turns = Array.isArray(runtime?.session?.currentTurns)
-            ? runtime.session.currentTurns
-            : [];
-        return turns.flatMap((turn) => {
-            const items = [];
-            const userText = turn?.user?.text;
-            const aidaText = turn?.aida?.text;
-            if (userText) items.push({ role: "USER", text: userText, source: "session.currentTurns", turnIndex: turn.turnIndex });
-            if (aidaText) items.push({ role: "AIDA", text: aidaText, source: "session.currentTurns", turnIndex: turn.turnIndex });
-            return items;
-        });
-    }
-
-    function mergedRecentHistory(runtime, limit = 8) {
-        const existing = Array.isArray(runtime?.context?.history)
-            ? runtime.context.history
-            : [];
-        const merged = [];
-        const seen = new Set();
-
-        [...existing, ...sessionTurnsAsHistory(runtime)].forEach((item) => {
-            const role = item?.role === "AIDA" || item?.role === "assistant" ? "AIDA" : "USER";
-            const text = String(item?.text || "").trim();
-            if (!text) return;
-            const key = historyKey(role, text);
-            if (seen.has(key)) return;
-            seen.add(key);
-            merged.push({ ...item, role, text });
-        });
-
-        return merged.slice(-limit);
-    }
-
     function build(userText = "", runtimeOrExtras = null, maybeExtras = {}) {
         const looksLikeRuntime = Boolean(runtimeOrExtras?.context || runtimeOrExtras?.mind || runtimeOrExtras?.boot || runtimeOrExtras?.session);
         const runtime = looksLikeRuntime ? runtimeOrExtras : window.AIDA_RUNTIME;
@@ -249,11 +211,11 @@
         // 4. HISTORY — trimmed, continuity-preserving
         //
         const history = sanitizeForLane(
-            mergedRecentHistory(runtime, 8),
+            Array.isArray(runtime.context.history) ? runtime.context.history : [],
             sanitizeOptions
         ) || [];
-        runtime.context.history = history;
         const historyMessages = history
+            .slice(-8)
             .map((h) => ({
                 role: h.role === "AIDA" ? "assistant" : "user",
                 content: h.text,
