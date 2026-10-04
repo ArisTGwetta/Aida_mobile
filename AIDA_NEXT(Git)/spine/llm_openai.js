@@ -193,6 +193,14 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       await window.AIDA_LIBRARIAN?.prepareArchive?.("conversation_memory_request");
     }
 
+    if (window.AIDA_DRIVE?.loadContinuityRecentPromptContext) {
+      try {
+        await window.AIDA_DRIVE.loadContinuityRecentPromptContext();
+      } catch (error) {
+        log(`SHARED RECENT: prompt context unavailable: ${error.message}`, "log-amber");
+      }
+    }
+
     const built = window.AIDA_LLM_MESSAGES?.build?.(text, { attachment });
     if (!built || built.blocked || !Array.isArray(rt.context.llmMessages)) {
       window.AIDA_LLM_SCOPE?.clearAccess?.();
@@ -229,7 +237,12 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
 
       // Emotional continuity and distillation hooks.
       window.AIDA_EMOTIONS?.afterExchange?.(text, transcript);
-      window.AIDA_SESSION_CAPTURE?.captureExchange?.(visibleUserText, transcript);
+      const exchange = window.AIDA_SESSION_CAPTURE?.captureExchange?.(visibleUserText, transcript);
+      if (exchange && window.AIDA_DRIVE?.writeContinuityRecentExchange) {
+        window.AIDA_DRIVE.writeContinuityRecentExchange(exchange).catch((error) => {
+          log(`SHARED RECENT: automatic write failed: ${error.message}`, "log-amber");
+        });
+      }
       window.AIDA_SLEEP_CYCLE?.afterExchange?.(text, transcript);
 
       rt.context.lastLlmResponse = {

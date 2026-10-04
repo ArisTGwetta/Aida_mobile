@@ -244,6 +244,12 @@
                 "While-away:", JSON.stringify(whileAway),
             ].join(" "),
         };
+        const sharedRecentMessage = runtime.context.sharedRecentPrompt
+            ? {
+                  role: "system",
+                  content: runtime.context.sharedRecentPrompt,
+              }
+            : null;
 
         //
         // 4. HISTORY — trimmed, continuity-preserving
@@ -318,6 +324,7 @@
             memoryMessage,
             glanceMessage,
             continuityMessage,   
+            sharedRecentMessage,
             attachmentMessage,
             ...historyMessages,
             userMessage,

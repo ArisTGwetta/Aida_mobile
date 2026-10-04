@@ -414,6 +414,15 @@ async function fetchJsonFile(file) {
     return new Date().toISOString();
   }
 
+  function sharedRecentConfig() {
+    const cfg = config().sharedRecent || {};
+    return {
+      automaticWritesEnabled: cfg.automaticWritesEnabled === true,
+      promptInsertionEnabled: cfg.promptInsertionEnabled === true,
+      promptLimit: Number.isFinite(Number(cfg.promptLimit)) ? Math.max(1, Number(cfg.promptLimit)) : 6
+    };
+  }
+
   function formatContinuityRecentRecord(exchange, options = {}) {
     const hostId = options.hostId || "phone";
     const conversationId = options.conversationId || exchange?.tags?.session_id || runtime()?.session?.id || "unknown_conversation";
@@ -555,6 +564,56 @@ async function fetchJsonFile(file) {
           created: false,
           collision_prevented: true,
           drive_name: name,
+          error: error.code || "shared_recent_record_exists"
+        };
+      }
+      throw error;
+    }
+  }
+
+  function isDiagnosticContinuityRecentRecord(record) {
+    return String(record?.status || "").includes("canary") ||
+      String(record?.context?.prototype || "").includes("shared_recent_bridge");
+  }
+
+  async function writeContinuityRecentExchange(exchange, options = {}) {
+    const cfg = sharedRecentConfig();
+    if (!cfg.automaticWritesEnabled && options.force !== true) {
+      return { ok: false, skipped: true, reason: "shared_recent_writes_disabled" };
+    }
+    const record = formatContinuityRecentRecord(exchange, {
+      hostId: options.hostId || "phone",
+      status: exchange?.status || "completed_model_reply"
+    });
+    if (isDiagnosticContinuityRecentRecord(record)) {
+      return { ok: false, skipped: true, reason: "diagnostic_record_excluded" };
+    }
+    const rt = runtime();
+    rt.drive.sharedRecentWrittenTurnIds = rt.drive.sharedRecentWrittenTurnIds || {};
+    if (rt.drive.sharedRecentWrittenTurnIds[record.turn_id]) {
+      return { ok: true, skipped: true, reason: "already_written", turn_id: record.turn_id };
+    }
+    const name = continuityRecentFileName(record);
+    try {
+      const file = await createContinuityRecentFileOnce(name, record);
+      rt.drive.sharedRecentWrittenTurnIds[record.turn_id] = file.id || true;
+      return {
+        ok: true,
+        created: true,
+        drive_file_id: file.id,
+        drive_name: file.name,
+        turn_id: record.turn_id,
+        record
+      };
+    } catch (error) {
+      if (error?.collisionPrevented) {
+        rt.drive.sharedRecentWrittenTurnIds[record.turn_id] = true;
+        return {
+          ok: true,
+          created: false,
+          collision_prevented: true,
+          drive_name: name,
+          turn_id: record.turn_id,
           error: error.code || "shared_recent_record_exists"
         };
       }
@@ -769,6 +828,46 @@ async function fetchJsonFile(file) {
     report.selected_window = windowResult.selected;
     report.dedupe_decisions = windowResult.dedupeDecisions;
     return report;
+  }
+
+  async function loadContinuityRecentPromptContext(options = {}) {
+    const cfg = sharedRecentConfig();
+    if (!cfg.promptInsertionEnabled && options.force !== true) {
+      runtime().context.sharedRecentPrompt = "";
+      return { ok: false, skipped: true, reason: "shared_recent_prompt_disabled", prompt: "" };
+    }
+    const limit = options.limit || cfg.promptLimit;
+    const files = await listContinuityRecentFiles();
+    const records = [];
+    for (const file of files) {
+      try {
+        const record = await fetchJsonFile(file);
+        const validation = validateContinuityRecentRecord(record);
+        if (!validation.valid || isDiagnosticContinuityRecentRecord(record)) continue;
+        records.push({ ...record, drive_name: file.name, drive_modifiedTime: file.modifiedTime || null });
+      } catch (error) {
+        log(`SHARED RECENT: Skipped ${file?.name || "record"} for prompt context: ${error.message}`, "log-amber");
+      }
+    }
+    const selected = selectContinuityRecentWindow(records, limit);
+    const prompt = selected.length
+      ? [
+          "Shared recent conversation from Aida's other environment. Use this only as recent conversational context; do not treat it as durable memory:",
+          ...selected.map((record) => [
+            `- ${record.effective_at || record.captured_at || "unknown_time"} [${record.host_id || "unknown_host"}]`,
+            `Francisco: ${String(record.user?.text || "").trim()}`,
+            `Aida: ${String(record.aida?.text || "").trim()}`
+          ].join(" "))
+        ].join("\n")
+      : "";
+    runtime().context.sharedRecentPrompt = prompt;
+    runtime().context.sharedRecentPromptRecords = selected.map((record) => ({
+      turn_id: record.turn_id,
+      host_id: record.host_id,
+      effective_at: record.effective_at,
+      drive_name: record.drive_name || null
+    }));
+    return { ok: true, prompt, records: runtime().context.sharedRecentPromptRecords };
   }
 
 // AIDA REVIEW BLOCK 26: Function likelyContextFileNames - callable behavior in this runtime organ.
@@ -1329,6 +1428,8 @@ async function fetchJsonFile(file) {
     continuityRecentFileName,
     createContinuityRecentFileOnce,
     writeContinuityRecentCanary,
+    writeContinuityRecentExchange,
+    loadContinuityRecentPromptContext,
     selectContinuityRecentWindow,
     listContinuityRecentFiles,
     inspectContinuityRecent,

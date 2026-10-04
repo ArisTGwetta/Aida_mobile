@@ -9,6 +9,11 @@
     drive: {
       jsonFolderId: "1s-VljHb0SCPLcXvNfQ-wRonIl43jwT7I"
     },
+    sharedRecent: {
+      automaticWritesEnabled: true,
+      promptInsertionEnabled: true,
+      promptLimit: 6
+    },
     attachments: {
       pdfJsModuleUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs",
       pdfJsWorkerUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs"
