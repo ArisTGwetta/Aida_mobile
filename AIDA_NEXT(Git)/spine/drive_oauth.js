@@ -394,7 +394,7 @@ async function fetchJsonFile(file) {
     return data;
   }
 
-  const CONTINUITY_RECENT_PREFIX = "continuity_recent/";
+  const CONTINUITY_RECENT_FOLDER_NAME = "continuity_recent";
   const CONTINUITY_RECENT_MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
 
   function continuityHash(value) {
@@ -448,15 +448,41 @@ async function fetchJsonFile(file) {
   }
 
   function continuityRecentFileName(record) {
-    return `${CONTINUITY_RECENT_PREFIX}turn_${continuitySafeStamp(record.effective_at)}_${record.host_id}_${record.dedupe_key}.json`;
+    return `turn_${continuitySafeStamp(record.effective_at)}_${record.host_id}_${record.dedupe_key}.json`;
+  }
+
+  function continuityRecentFolderIdFromConfig() {
+    return config().drive?.continuityRecentFolderId || runtime().drive?.continuityRecentFolderId || null;
+  }
+
+  async function resolveContinuityRecentFolderId() {
+    const rt = runtime();
+    if (!rt.tokens?.drive?.accessToken) throw new Error("Drive access token is missing.");
+    if (!rt.drive?.folderId) throw new Error("Drive JSON folder ID is missing.");
+    const configured = continuityRecentFolderIdFromConfig();
+    if (configured) {
+      rt.drive.continuityRecentFolderId = configured;
+      return configured;
+    }
+    const escapedName = CONTINUITY_RECENT_FOLDER_NAME.replace(/'/g, "\\'");
+    const query = `'${rt.drive.folderId}' in parents and name = '${escapedName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+    const folders = await listDriveFiles({ query, pageSize: 10 });
+    if (!folders.length) {
+      throw new Error(`Drive continuity_recent folder was not found under configured JSON folder ${rt.drive.folderId}.`);
+    }
+    if (folders.length > 1) {
+      throw new Error(`Multiple Drive continuity_recent folders found under configured JSON folder ${rt.drive.folderId}; set AIDA_CONFIG.drive.continuityRecentFolderId.`);
+    }
+    rt.drive.continuityRecentFolderId = folders[0].id;
+    return folders[0].id;
   }
 
   async function createContinuityRecentFileOnce(name, record) {
     const rt = runtime();
     if (!rt.tokens?.drive?.accessToken) throw new Error("Drive access token is missing.");
-    if (!rt.drive?.folderId) throw new Error("Drive folder ID is missing.");
-    await ensureAllFilesIndexed();
-    if (driveFileFromIndex(name)) {
+    const folderId = await resolveContinuityRecentFolderId();
+    const existing = (await listContinuityRecentFiles()).find((file) => file.name === name);
+    if (existing?.id) {
       const error = new Error(`Shared RECENT record already exists: ${name}`);
       error.code = "shared_recent_record_exists";
       error.collisionPrevented = true;
@@ -467,7 +493,7 @@ async function fetchJsonFile(file) {
     const metadata = JSON.stringify({
       name,
       mimeType,
-      parents: [rt.drive.folderId]
+      parents: [folderId]
     });
     const body = new Blob([JSON.stringify(record, null, 2), "\n"], { type: mimeType });
     const multipart = new Blob([
@@ -486,13 +512,14 @@ async function fetchJsonFile(file) {
     });
     if (!response.ok) throw new Error(`Shared RECENT create failed for ${name}: HTTP ${response.status}.`);
     const saved = await response.json();
-    rt.drive.fileIndex[name] = {
+    rt.drive.continuityRecentFileIndex = rt.drive.continuityRecentFileIndex || {};
+    rt.drive.continuityRecentFileIndex[name] = {
       id: saved.id,
       name: saved.name || name,
       mimeType: saved.mimeType || mimeType,
       modifiedTime: saved.modifiedTime || new Date().toISOString()
     };
-    return rt.drive.fileIndex[name];
+    return rt.drive.continuityRecentFileIndex[name];
   }
 
   async function writeContinuityRecentCanary(options = {}) {
@@ -553,8 +580,21 @@ async function fetchJsonFile(file) {
   }
 
   async function listContinuityRecentFiles() {
-    return (await listDriveFiles())
-      .filter((file) => String(file.name || "").startsWith(CONTINUITY_RECENT_PREFIX) && String(file.name || "").endsWith(".json"));
+    const folderId = await resolveContinuityRecentFolderId();
+    const query = `'${folderId}' in parents and trashed = false`;
+    const files = (await listDriveFiles({ query }))
+      .filter((file) => String(file.name || "").startsWith("turn_") && String(file.name || "").endsWith(".json"));
+    const rt = runtime();
+    rt.drive.continuityRecentFileIndex = {};
+    files.forEach((file) => {
+      rt.drive.continuityRecentFileIndex[file.name] = {
+        id: file.id,
+        name: file.name,
+        mimeType: file.mimeType,
+        modifiedTime: file.modifiedTime
+      };
+    });
+    return files;
   }
 
   function validateContinuityRecentRecord(record) {
@@ -681,13 +721,14 @@ async function fetchJsonFile(file) {
       model_prompt_insertion_enabled: false,
       shared_writes_enabled: false,
       manual_canary_writer_available: true,
-      prefix: CONTINUITY_RECENT_PREFIX,
+      folder_name: CONTINUITY_RECENT_FOLDER_NAME,
+      folder_id: null,
       representation: "unknown",
       immutable_retry_check: {
         current_putFile_create_once: false,
         manual_canary_create_once_enabled: true,
         same_name_retry_can_overwrite: false,
-        evidence: "writeContinuityRecentCanary() uses createContinuityRecentFileOnce(), which refuses an indexed same-name record before upload."
+        evidence: "writeContinuityRecentCanary() uses createContinuityRecentFileOnce(), which lists the real continuity_recent folder and refuses a same-name record before upload."
       },
       files_listed_count: 0,
       records_fetched_count: 0,
@@ -700,9 +741,10 @@ async function fetchJsonFile(file) {
     let files = [];
     try {
       files = await listContinuityRecentFiles();
+      report.folder_id = runtime().drive?.continuityRecentFolderId || continuityRecentFolderIdFromConfig();
       report.files_listed_count = files.length;
       report.page_count = runtime().drive?.lastListPageCount || null;
-      report.representation = files.length ? "drive_flat_name_prefix" : "none_found";
+      report.representation = "drive_child_folder";
     } catch (error) {
       partialFailures.push({ phase: "list", message: error.message });
       return report;
@@ -1303,7 +1345,7 @@ async function fetchJsonFile(file) {
     window.AIDA_MODULES.register({
       id: MODULE_ID,
       phase: "drive_handshake",
-      reads: ["AIDA_CONFIG.google.clientId", "AIDA_CONFIG.drive.jsonFolderId"],
+      reads: ["AIDA_CONFIG.google.clientId", "AIDA_CONFIG.drive.jsonFolderId", "AIDA_CONFIG.drive.continuityRecentFolderId"],
       writes: [
         "AIDA_RUNTIME.tokens.drive.accessToken",
         "AIDA_RUNTIME.boot.driveConnected",
