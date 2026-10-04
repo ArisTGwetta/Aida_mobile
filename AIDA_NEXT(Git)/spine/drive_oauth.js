@@ -853,7 +853,7 @@ async function fetchJsonFile(file) {
     const selected = selectContinuityRecentWindow(records, limit);
     const prompt = selected.length
       ? [
-          "Shared recent conversation from Aida's other environment. Use this only as recent conversational context; do not treat it as durable memory:",
+          "Latest shared RECENT conversation context from Aida's other environment. This is the freshest cross-device conversation thread. If Francisco asks where you were, what you were discussing, or asks a follow-up that depends on recent conversation, prefer this shared RECENT context over older local/project memory. Use it only as recent conversational context; do not treat it as durable memory:",
           ...selected.map((record) => [
             `- ${record.effective_at || record.captured_at || "unknown_time"} [${record.host_id || "unknown_host"}]`,
             `Francisco: ${String(record.user?.text || "").trim()}`,

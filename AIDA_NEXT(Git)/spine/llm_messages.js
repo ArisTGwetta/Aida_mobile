@@ -324,9 +324,9 @@
             memoryMessage,
             glanceMessage,
             continuityMessage,   
-            sharedRecentMessage,
             attachmentMessage,
             ...historyMessages,
+            sharedRecentMessage,
             userMessage,
         ].filter(Boolean);
 
