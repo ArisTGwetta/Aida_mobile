@@ -1,0 +1,370 @@
+warning: in the working copy of 'AIDA_NEXT(Git)/spine/curator.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'AIDA_NEXT(Git)/spine/drive_writeback.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'AIDA_NEXT(Git)/spine/sleep_cycle.js', LF will be replaced by CRLF the next time Git touches it
+ AIDA_NEXT(Git)/spine/curator.js                    |    65 [32m+[m[31m-[m
+ AIDA_NEXT(Git)/spine/drive_writeback.js            |     6 [32m+[m[31m-[m
+ AIDA_NEXT(Git)/spine/sleep_cycle.js                |    15 [32m+[m[31m-[m
+ AIDA_ONE_SPINE/.gitignore                          |     1 [31m-[m
+ AIDA_ONE_SPINE/README.md                           |    32 [31m-[m
+ .../director-stage-20260618-125901/awake.css       |   782 [31m-[m
+ .../director-stage-20260618-125901/awake.js        |   790 [31m-[m
+ .../director-stage-20260618-125901/index.html      |   166 [31m-[m
+ .../director-stage-20260618-125901/llm_messages.js |   509 [31m-[m
+ .../director-stage-20260618-125901/llm_openai.js   |   227 [31m-[m
+ .../director-stage-20260618-125901/runtime.js      |   199 [31m-[m
+ AIDA_ONE_SPINE/body/.gitkeep                       |     1 [31m-[m
+ .../Gemini_Generated_Image_wpk5ifwpk5ifwpk5.png    |   Bin [31m1192601[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/GreenHologram.PNG       |   Bin [31m602527[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/Know_It_All.png         |   Bin [31m178500[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/aida_icon.png           |   Bin [31m140021[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/angry.png               |   Bin [31m153324[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/calm1.png               |   Bin [31m144938[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/calm2.png               |   Bin [31m154100[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/concerned1.png          |   Bin [31m145806[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/concerned2.png          |   Bin [31m150703[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/excited1.png            |   Bin [31m154466[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/excited2.png            |   Bin [31m158476[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/exited1.png             |   Bin [31m154466[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/focused1.png            |   Bin [31m153241[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/focused2.png            |   Bin [31m142512[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/goodbye.png             |   Bin [31m612181[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/happy1.png              |   Bin [31m152385[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/happy2.png              |   Bin [31m150860[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/happy3.png              |   Bin [31m152385[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/happy4.png              |   Bin [31m154184[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/happy5.png              |   Bin [31m153276[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/hello-goobye.png        |   Bin [31m140021[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/hello.png               |   Bin [31m446321[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/inviting1.png           |   Bin [31m193702[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/inviting2.png           |   Bin [31m186580[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/lure1.png               |   Bin [31m181579[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/lure2.png               |   Bin [31m181638[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/mischievous1.png        |   Bin [31m191596[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/mischievous2.png        |   Bin [31m182283[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/mischievous3.png        |   Bin [31m181111[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/mischievous4.png        |   Bin [31m176061[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/neutral1.png            |   Bin [31m154343[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/neutral2.png            |   Bin [31m149826[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/pouting1.png            |   Bin [31m172863[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/pouting2.png            |   Bin [31m176735[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/pouting3.png            |   Bin [31m180280[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/pouting4.png            |   Bin [31m182762[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/sad1.png                |   Bin [31m153789[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/sad2.png                |   Bin [31m147395[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/sarcastic1.png          |   Bin [31m192217[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/sarcastic2.png          |   Bin [31m175168[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/sarcastic3.png          |   Bin [31m179865[m -> [32m0[m bytes
+ .../body/assets/stage/System/Celebration.png       |   Bin [31m60930[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/stage/System/Coy.png    |   Bin [31m46094[m -> [32m0[m bytes
+ .../body/assets/stage/System/Determined.png        |   Bin [31m43944[m -> [32m0[m bytes
+ .../body/assets/stage/System/Exhausted.png         |   Bin [31m45566[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/stage/System/Joyful.png |   Bin [31m69399[m -> [32m0[m bytes
+ .../body/assets/stage/System/Pensive.png           |   Bin [31m38184[m -> [32m0[m bytes
+ .../body/assets/stage/System/Picaresque.png        |   Bin [31m49862[m -> [32m0[m bytes
+ .../body/assets/stage/System/Satisfied.png         |   Bin [31m46143[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/stage/System/Wary.png   |   Bin [31m56278[m -> [32m0[m bytes
+ .../body/assets/stage/System/manifest.json         |    16 [31m-[m
+ AIDA_ONE_SPINE/body/assets/stanby-rot1.png         |   Bin [31m149529[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/stanby-rot2.png         |   Bin [31m136895[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/stanby-rot3.png         |   Bin [31m151547[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/stanby-rot4.png         |   Bin [31m146923[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/stanby-rot5.png         |   Bin [31m153472[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/stanby-rot6.png         |   Bin [31m141410[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/standby.png             |   Bin [31m152385[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/surprised1.png          |   Bin [31m153095[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/surprised2.png          |   Bin [31m151062[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/surprised3.png          |   Bin [31m156835[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/trans_calm_to_happy.png |   Bin [31m152696[m -> [32m0[m bytes
+ .../body/assets/trans_calm_to_neutral.png          |   Bin [31m147067[m -> [32m0[m bytes
+ .../body/assets/trans_concerned_to_focus.png       |   Bin [31m160038[m -> [32m0[m bytes
+ .../body/assets/trans_concerned_to_sad.png         |   Bin [31m154028[m -> [32m0[m bytes
+ .../body/assets/trans_exited_to_happy.png          |   Bin [31m155659[m -> [32m0[m bytes
+ .../body/assets/trans_exited_to_surprised.png      |   Bin [31m153095[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/assets/trans_focus.png         |   Bin [31m156207[m -> [32m0[m bytes
+ .../body/assets/trans_focus_to_concerned.png       |   Bin [31m156207[m -> [32m0[m bytes
+ .../body/assets/trans_focus_to_surprised.png       |   Bin [31m160825[m -> [32m0[m bytes
+ .../body/assets/trans_happy_to_exited.png          |   Bin [31m154184[m -> [32m0[m bytes
+ .../body/assets/trans_neutral_to_calm.png          |   Bin [31m152089[m -> [32m0[m bytes
+ .../body/assets/trans_sad_to_concerned.png         |   Bin [31m158705[m -> [32m0[m bytes
+ .../body/assets/trans_sad_to_neutral.png           |   Bin [31m154357[m -> [32m0[m bytes
+ .../body/assets/trans_surprised_to_calm.png        |   Bin [31m148872[m -> [32m0[m bytes
+ .../body/assets/trans_surprised_to_exited.png      |   Bin [31m153272[m -> [32m0[m bytes
+ .../body/assets/trans_surprised_to_focus.png       |   Bin [31m151536[m -> [32m0[m bytes
+ AIDA_ONE_SPINE/body/awake.css                      |  1204 [31m-[m
+ AIDA_ONE_SPINE/body/awake.js                       |  1429 [31m-[m
+ AIDA_ONE_SPINE/docs/AIDA_ONE_BOOT_MAP.md           |   196 [31m-[m
+ .../docs/AIDA_ORGANS_AND_FUNCTIONS_INVENTORY.md    |   195 [31m-[m
+ AIDA_ONE_SPINE/docs/AIDA_RUNTIME_CONTRACT.md       |   251 [31m-[m
+ .../docs/AIDA_TYPICAL_INTERACTION_FLOW.md          |   209 [31m-[m
+ .../docs/CODEX_RESET_HANDOFF_2026-06-07.md         |    88 [31m-[m
+ AIDA_ONE_SPINE/docs/DRIVE_LLM_FRAGMENTS_SCHEMA.md  |   119 [31m-[m
+ AIDA_ONE_SPINE/docs/HOSTING_AND_OAUTH_TEST.md      |    62 [31m-[m
+ .../docs/LIVE_ACCEPTANCE_TEST_2026-06-22.md        |   214 [31m-[m
+ AIDA_ONE_SPINE/docs/LLM_MESSAGE_ASSEMBLY.md        |    58 [31m-[m
+ .../docs/MEMORY_DISTILLATION_CONTRACT.md           |   263 [31m-[m
+ AIDA_ONE_SPINE/docs/MEMORY_LAYERS.md               |   115 [31m-[m
+ .../docs/NEXT_SESSION_AUDIT_2026-06-06.md          |   168 [31m-[m
+ AIDA_ONE_SPINE/docs/PRIVATE_CHARACTER_PACKS.md     |    35 [31m-[m
+ AIDA_ONE_SPINE/docs/PROJECT_BRIEFCASE_SCHEMA.md    |   181 [31m-[m
+ AIDA_ONE_SPINE/docs/SAVED_FOR_LATER.md             |    88 [31m-[m
+ AIDA_ONE_SPINE/docs/WEB_RETRIEVER.md               |    44 [31m-[m
+ AIDA_ONE_SPINE/docs/WHILE_AWAY.md                  |   118 [31m-[m
+ .../docs/examples/character_pack_serana.json       |    18 [31m-[m
+ AIDA_ONE_SPINE/donor/.gitkeep                      |     1 [31m-[m
+ AIDA_ONE_SPINE/drive_oauth_test.html               |   174 [31m-[m
+ AIDA_ONE_SPINE/index.html                          |   231 [31m-[m
+ AIDA_ONE_SPINE/organs/.gitkeep                     |     1 [31m-[m
+ AIDA_ONE_SPINE/spine/.gitkeep                      |     1 [31m-[m
+ AIDA_ONE_SPINE/spine/airlock.js                    |   476 [31m-[m
+ AIDA_ONE_SPINE/spine/bios_console.js               |    83 [31m-[m
+ AIDA_ONE_SPINE/spine/boot_flow.js                  |   188 [31m-[m
+ AIDA_ONE_SPINE/spine/config.js                     |    32 [31m-[m
+ AIDA_ONE_SPINE/spine/context_evolution.js          |   436 [31m-[m
+ AIDA_ONE_SPINE/spine/context_inspector.js          |   447 [31m-[m
+ AIDA_ONE_SPINE/spine/crash_buffer.js               |   270 [31m-[m
+ AIDA_ONE_SPINE/spine/crawler.js                    |   827 [31m-[m
+ AIDA_ONE_SPINE/spine/curator.js                    |   503 [31m-[m
+ AIDA_ONE_SPINE/spine/director_stage.js             |   471 [31m-[m
+ AIDA_ONE_SPINE/spine/drive_oauth.js                |  1125 [31m-[m
+ ...e_oauth.js.before_recent_inspector_20260928.bak |   927 [31m-[m
+ AIDA_ONE_SPINE/spine/drive_writeback.js            |   602 [31m-[m
+ AIDA_ONE_SPINE/spine/emotion_engine.js             |   566 [31m-[m
+ AIDA_ONE_SPINE/spine/glasses.js                    |   196 [31m-[m
+ AIDA_ONE_SPINE/spine/intent_router.js              |   311 [31m-[m
+ AIDA_ONE_SPINE/spine/librarian.js                  |   550 [31m-[m
+ AIDA_ONE_SPINE/spine/llm_messages.js               |   555 [31m-[m
+ AIDA_ONE_SPINE/spine/llm_openai.js                 |   958 [31m-[m
+ AIDA_ONE_SPINE/spine/llm_provider.js               |   291 [31m-[m
+ AIDA_ONE_SPINE/spine/llm_scope.js                  |   177 [31m-[m
+ AIDA_ONE_SPINE/spine/project_context.js            |  1924 [31m-[m
+ AIDA_ONE_SPINE/spine/runtime.js                    |   224 [31m-[m
+ AIDA_ONE_SPINE/spine/session_capture.js            |   332 [31m-[m
+ AIDA_ONE_SPINE/spine/sleep_cycle.js                |  1665 [31m-[m
+ .../spine/token_fragments.local.example.js         |    32 [31m-[m
+ AIDA_ONE_SPINE/spine/while_away.js                 |   975 [31m-[m
+ Awake/Aida_Asleep                                  |   211 [31m-[m
+ Awake/aida_icon.png                                |   Bin [31m118839[m -> [32m0[m bytes
+ Awake/assets/aida_icon.png                         |   Bin [31m140021[m -> [32m0[m bytes
+ Awake/assets/neutral1.png                          |   Bin [31m154343[m -> [32m0[m bytes
+ Awake/assets/neutral2.png                          |   Bin [31m149826[m -> [32m0[m bytes
+ Awake/index.html                                   |  1809 [31m-[m
+ ONE/aida_icon.png                                  |   Bin [31m118839[m -> [32m0[m bytes
+ .../Gemini_Generated_Image_wpk5ifwpk5ifwpk5.png    |   Bin [31m1192601[m -> [32m0[m bytes
+ ONE/assets/GreenHologram.PNG                       |   Bin [31m602527[m -> [32m0[m bytes
+ ONE/assets/KeyPadTest.html                         |   219 [31m-[m
+ ONE/assets/aida_icon.png                           |   Bin [31m140021[m -> [32m0[m bytes
+ ONE/assets/neutral1.png                            |   Bin [31m154343[m -> [32m0[m bytes
+ ONE/assets/neutral2.png                            |   Bin [31m149826[m -> [32m0[m bytes
+ ...E - Copilots Edition - UPDATED FULL INDEX .docx |   Bin [31m17478[m -> [32m0[m bytes
+ ...Copilots Edition - UPDATED FULL INDEX .docx.txt |    74 [31m-[m
+ ONE/docs/AIDA_One assembly instructions.docx       |   Bin [31m25761[m -> [32m0[m bytes
+ ONE/docs/AIDA_One assembly instructions.docx.txt   |   106 [31m-[m
+ ONE/docs/index.html                                |   383 [31m-[m
+ ONE/docs/orchestrator_blueprint.txt                |    35 [31m-[m
+ ONE/favicon.ico                                    |   Bin [31m602527[m -> [32m0[m bytes
+ ONE/index-ONE.html                                 |  2541 [31m-[m
+ ONE/index.html                                     |  3970 [31m--[m
+ ONE/js/001-buttler_amber.js                        |    44 [31m-[m
+ ONE/js/002-librarian_green.js                      |    57 [31m-[m
+ ONE/js/003-emotion_blue.js                         |    72 [31m-[m
+ ONE/js/004-identity_white.js                       |    60 [31m-[m
+ ONE/js/005-realm_silver.js                         |    41 [31m-[m
+ ONE/js/006-role_silver.js                          |    41 [31m-[m
+ ONE/js/007-soul_sync_blue.js                       |    46 [31m-[m
+ ONE/js/008-crawler_green.js                        |    56 [31m-[m
+ ONE/js/009-tetrad_silver.js                        |    48 [31m-[m
+ ONE/js/010-chassis_gold.js                         |    65 [31m-[m
+ ONE/js/011-butler_keys.js                          |    41 [31m-[m
+ ONE/js/012-handshake_amber.js                      |    39 [31m-[m
+ ONE/js/014-manifest_gold.js                        |   407 [31m-[m
+ ONE/js/020-vitality_gold.js                        |    84 [31m-[m
+ ONE/js/025-vault_gold.js                           |    95 [31m-[m
+ ONE/js/026-sync_gold.js                            |    85 [31m-[m
+ ONE/js/028-aura_gold.js                            |    69 [31m-[m
+ ONE/js/032-memory_gold.js                          |    56 [31m-[m
+ ONE/js/033-python_gold.js                          |   310 [31m-[m
+ ONE/js/040-mind_palace_gold.js                     |    79 [31m-[m
+ ONE/js/042-research_gold.js                        |    72 [31m-[m
+ ONE/js/048-llm_engine_v1.js                        |   215 [31m-[m
+ ONE/js/050-while_away_gold.js                      |   171 [31m-[m
+ ONE/json/README.md                                 |     0
+ ONE/json/placeholder.txt                           |     2 [31m-[m
+ ONE/py/aida-debug.py                               |  2140 [31m-[m
+ ONE/py/butler.py                                   |   390 [31m-[m
+ ONE/py/crawler.py                                  |   434 [31m-[m
+ ONE/py/emotion_selector-LAUNCH.py                  |    18 [31m-[m
+ ONE/py/emotion_selector.py                         |   123 [31m-[m
+ ONE/py/identity_engine.py                          |   246 [31m-[m
+ ONE/py/librarian.py                                |   381 [31m-[m
+ ONE/py/realm_engine.py                             |   229 [31m-[m
+ ONE/py/role_engine.py                              |   149 [31m-[m
+ ONE/py/runtime.py                                  |    40 [31m-[m
+ ONE/py/triad.py                                    |    69 [31m-[m
+ ONE/waking-up.html                                 |  4088 [31m--[m
+ .../first_audit/AIDA_CONSOLIDATION_REPORT.md       |    22 [31m-[m
+ .../first_audit/aida_consolidation_audit.json      | 47238 [31m-------------------[m
+ .../first_audit/aida_consolidation_inventory.csv   |  1189 [31m-[m
+ gem-Js-pacs/001-buttler_amber.js                   |    44 [31m-[m
+ gem-Js-pacs/002-librarian_green.js                 |    57 [31m-[m
+ gem-Js-pacs/003-emotion_blue.js                    |    72 [31m-[m
+ gem-Js-pacs/004-identity_white.js                  |    60 [31m-[m
+ gem-Js-pacs/005-realm_silver.js                    |    41 [31m-[m
+ gem-Js-pacs/006-role_silver.js                     |    41 [31m-[m
+ gem-Js-pacs/007-soul_sync_blue.js                  |    46 [31m-[m
+ gem-Js-pacs/008-crawler_green.js                   |    56 [31m-[m
+ gem-Js-pacs/009-tetrad_silver.js                   |    48 [31m-[m
+ gem-Js-pacs/010-chassis_gold.js                    |    65 [31m-[m
+ gem-Js-pacs/011-butler_keys.js                     |    41 [31m-[m
+ gem-Js-pacs/012-handshake_amber.js                 |    39 [31m-[m
+ gem-Js-pacs/013-engine_platinum.py                 |   153 [31m-[m
+ gem-Js-pacs/014-manifest_gold.js                   |   148 [31m-[m
+ gem-Js-pacs/016-memory_green.py                    |    79 [31m-[m
+ gem-Js-pacs/020-emotion_green.py                   |    85 [31m-[m
+ gem-Js-pacs/020-vitality_gold.js                   |    84 [31m-[m
+ gem-Js-pacs/025-vault_gold.js                      |    45 [31m-[m
+ gem-Js-pacs/026-sync_gold.js                       |    85 [31m-[m
+ gem-Js-pacs/028-manifest_gold.js                   |    69 [31m-[m
+ gem-Js-pacs/032-memory_gold.js                     |    56 [31m-[m
+ gem-Js-pacs/033-python_gold.js                     |    73 [31m-[m
+ gem-Js-pacs/040-mind_palace_gold.js                |    79 [31m-[m
+ gem-Js-pacs/042-research_gold.js                   |    72 [31m-[m
+ gem-Js-pacs/048-llm_engine_v1.js                   |    58 [31m-[m
+ gem-Js-pacs/048-llm_engine_v1.py                   |    61 [31m-[m
+ gem-Js-pacs/ROOT20260510/.nojekyll                 |     1 [31m-[m
+ gem-Js-pacs/ROOT20260510/Py/butler.py              |   390 [31m-[m
+ gem-Js-pacs/ROOT20260510/Py/crawler.py             |   434 [31m-[m
+ .../ROOT20260510/Py/emotion_selector-LAUNCH.py     |    18 [31m-[m
+ gem-Js-pacs/ROOT20260510/Py/emotion_selector.py    |   199 [31m-[m
+ gem-Js-pacs/ROOT20260510/Py/identity_organ.py      |   246 [31m-[m
+ gem-Js-pacs/ROOT20260510/Py/librarian.py           |   381 [31m-[m
+ gem-Js-pacs/ROOT20260510/Py/realm_organ.py         |   229 [31m-[m
+ gem-Js-pacs/ROOT20260510/Py/role_organ.py          |   149 [31m-[m
+ gem-Js-pacs/ROOT20260510/Py/soul_sync_engine.py    |    36 [31m-[m
+ gem-Js-pacs/ROOT20260510/Py/tetrad_chassis.py      |    59 [31m-[m
+ gem-Js-pacs/ROOT20260510/README.md                 |     2 [31m-[m
+ gem-Js-pacs/ROOT20260510/aida_icon.png             |   Bin [31m118839[m -> [32m0[m bytes
+ gem-Js-pacs/ROOT20260510/butler.py                 |   390 [31m-[m
+ gem-Js-pacs/ROOT20260510/crawler.py                |   434 [31m-[m
+ .../ROOT20260510/emotion_selector-LAUNCH.py        |    18 [31m-[m
+ gem-Js-pacs/ROOT20260510/emotion_selector.py       |   199 [31m-[m
+ gem-Js-pacs/ROOT20260510/identity_organ.py         |   246 [31m-[m
+ gem-Js-pacs/ROOT20260510/index.html                |  7135 [31m---[m
+ gem-Js-pacs/ROOT20260510/librarian.py              |   381 [31m-[m
+ gem-Js-pacs/ROOT20260510/python/butler.py          |   390 [31m-[m
+ gem-Js-pacs/ROOT20260510/python/crawler.py         |   434 [31m-[m
+ .../ROOT20260510/python/emotion_selector-LAUNCH.py |    18 [31m-[m
+ .../ROOT20260510/python/emotion_selector.py        |   199 [31m-[m
+ gem-Js-pacs/ROOT20260510/python/identity_organ.py  |   246 [31m-[m
+ gem-Js-pacs/ROOT20260510/python/librarian.py       |   381 [31m-[m
+ gem-Js-pacs/ROOT20260510/python/realm_organ.py     |   229 [31m-[m
+ gem-Js-pacs/ROOT20260510/python/role_organ.py      |   149 [31m-[m
+ .../ROOT20260510/python/soul_sync_engine.py        |    36 [31m-[m
+ gem-Js-pacs/ROOT20260510/python/tetrad_chassis.py  |    59 [31m-[m
+ gem-Js-pacs/ROOT20260510/realm_organ.py            |   229 [31m-[m
+ gem-Js-pacs/ROOT20260510/role_organ.py             |   149 [31m-[m
+ gem-Js-pacs/ROOT20260510/soul_sync_engine.py       |    36 [31m-[m
+ gem-Js-pacs/ROOT20260510/tetrad_chassis.py         |    59 [31m-[m
+ gem-Js-pacs/aida_icon.png                          |   Bin [31m92117[m -> [32m0[m bytes
+ .../Gemini_Generated_Image_wpk5ifwpk5ifwpk5.png    |   Bin [31m1192601[m -> [32m0[m bytes
+ gem-Js-pacs/assets/GreenHologram.PNG               |   Bin [31m602527[m -> [32m0[m bytes
+ gem-Js-pacs/assets/Know_It_All.png                 |   Bin [31m178500[m -> [32m0[m bytes
+ gem-Js-pacs/assets/aida_icon.png                   |   Bin [31m140021[m -> [32m0[m bytes
+ gem-Js-pacs/assets/angry.png                       |   Bin [31m153324[m -> [32m0[m bytes
+ gem-Js-pacs/assets/calm1.png                       |   Bin [31m144938[m -> [32m0[m bytes
+ gem-Js-pacs/assets/calm2.png                       |   Bin [31m154100[m -> [32m0[m bytes
+ gem-Js-pacs/assets/concerned1.png                  |   Bin [31m145806[m -> [32m0[m bytes
+ gem-Js-pacs/assets/concerned2.png                  |   Bin [31m150703[m -> [32m0[m bytes
+ gem-Js-pacs/assets/curious.png                     |   Bin [31m188620[m -> [32m0[m bytes
+ gem-Js-pacs/assets/excited1.png                    |   Bin [31m154466[m -> [32m0[m bytes
+ gem-Js-pacs/assets/excited2.png                    |   Bin [31m158476[m -> [32m0[m bytes
+ gem-Js-pacs/assets/exited1.png                     |   Bin [31m154466[m -> [32m0[m bytes
+ gem-Js-pacs/assets/focused1.png                    |   Bin [31m153241[m -> [32m0[m bytes
+ gem-Js-pacs/assets/focused2.png                    |   Bin [31m186051[m -> [32m0[m bytes
+ gem-Js-pacs/assets/goodbye.png                     |   Bin [31m612181[m -> [32m0[m bytes
+ gem-Js-pacs/assets/happy1.png                      |   Bin [31m152385[m -> [32m0[m bytes
+ gem-Js-pacs/assets/happy2.png                      |   Bin [31m150860[m -> [32m0[m bytes
+ gem-Js-pacs/assets/happy3.png                      |   Bin [31m152385[m -> [32m0[m bytes
+ gem-Js-pacs/assets/happy4.png                      |   Bin [31m154184[m -> [32m0[m bytes
+ gem-Js-pacs/assets/happy5.png                      |   Bin [31m153276[m -> [32m0[m bytes
+ gem-Js-pacs/assets/hello-goobye.png                |   Bin [31m140021[m -> [32m0[m bytes
+ gem-Js-pacs/assets/hello.png                       |   Bin [31m446321[m -> [32m0[m bytes
+ gem-Js-pacs/assets/inviting1.png                   |   Bin [31m193702[m -> [32m0[m bytes
+ gem-Js-pacs/assets/inviting2.png                   |   Bin [31m186580[m -> [32m0[m bytes
+ gem-Js-pacs/assets/lure1.png                       |   Bin [31m181579[m -> [32m0[m bytes
+ gem-Js-pacs/assets/lure2.png                       |   Bin [31m181638[m -> [32m0[m bytes
+ gem-Js-pacs/assets/mischievous1.png                |   Bin [31m191596[m -> [32m0[m bytes
+ gem-Js-pacs/assets/mischievous2.png                |   Bin [31m182283[m -> [32m0[m bytes
+ gem-Js-pacs/assets/mischievous3.png                |   Bin [31m181111[m -> [32m0[m bytes
+ gem-Js-pacs/assets/mischievous4.png                |   Bin [31m176061[m -> [32m0[m bytes
+ gem-Js-pacs/assets/neutral1.png                    |   Bin [31m154343[m -> [32m0[m bytes
+ gem-Js-pacs/assets/neutral2.png                    |   Bin [31m149826[m -> [32m0[m bytes
+ gem-Js-pacs/assets/png test                        |    20 [31m-[m
+ gem-Js-pacs/assets/pouting1.png                    |   Bin [31m172863[m -> [32m0[m bytes
+ gem-Js-pacs/assets/pouting2.png                    |   Bin [31m176735[m -> [32m0[m bytes
+ gem-Js-pacs/assets/pouting3.png                    |   Bin [31m180280[m -> [32m0[m bytes
+ gem-Js-pacs/assets/pouting4.png                    |   Bin [31m182762[m -> [32m0[m bytes
+ gem-Js-pacs/assets/sad1.png                        |   Bin [31m153789[m -> [32m0[m bytes
+ gem-Js-pacs/assets/sad2.png                        |   Bin [31m147395[m -> [32m0[m bytes
+ gem-Js-pacs/assets/sarcastic1.png                  |   Bin [31m192217[m -> [32m0[m bytes
+ gem-Js-pacs/assets/sarcastic2.png                  |   Bin [31m175168[m -> [32m0[m bytes
+ gem-Js-pacs/assets/sarcastic3.png                  |   Bin [31m179865[m -> [32m0[m bytes
+ gem-Js-pacs/assets/stanby-rot1.png                 |   Bin [31m149529[m -> [32m0[m bytes
+ gem-Js-pacs/assets/stanby-rot2.png                 |   Bin [31m136895[m -> [32m0[m bytes
+ gem-Js-pacs/assets/stanby-rot3.png                 |   Bin [31m151547[m -> [32m0[m bytes
+ gem-Js-pacs/assets/stanby-rot4.png                 |   Bin [31m146923[m -> [32m0[m bytes
+ gem-Js-pacs/assets/stanby-rot5.png                 |   Bin [31m153472[m -> [32m0[m bytes
+ gem-Js-pacs/assets/stanby-rot6.png                 |   Bin [31m141410[m -> [32m0[m bytes
+ gem-Js-pacs/assets/standby.png                     |   Bin [31m152385[m -> [32m0[m bytes
+ gem-Js-pacs/assets/surprised1.png                  |   Bin [31m153095[m -> [32m0[m bytes
+ gem-Js-pacs/assets/surprised2.png                  |   Bin [31m151062[m -> [32m0[m bytes
+ gem-Js-pacs/assets/surprised3.png                  |   Bin [31m156835[m -> [32m0[m bytes
+ gem-Js-pacs/assets/trans_calm_to_happy.png         |   Bin [31m152696[m -> [32m0[m bytes
+ gem-Js-pacs/assets/trans_calm_to_neutral.png       |   Bin [31m147067[m -> [32m0[m bytes
+ gem-Js-pacs/assets/trans_concerned_to_focus.png    |   Bin [31m160038[m -> [32m0[m bytes
+ gem-Js-pacs/assets/trans_concerned_to_sad.png      |   Bin [31m154028[m -> [32m0[m bytes
+ gem-Js-pacs/assets/trans_exited_to_happy.png       |   Bin [31m155659[m -> [32m0[m bytes
+ gem-Js-pacs/assets/trans_exited_to_surprised.png   |   Bin [31m153095[m -> [32m0[m bytes
+ gem-Js-pacs/assets/trans_focus.png                 |   Bin [31m156207[m -> [32m0[m bytes
+ gem-Js-pacs/assets/trans_focus_to_concerned.png    |   Bin [31m156207[m -> [32m0[m bytes
+ gem-Js-pacs/assets/trans_focus_to_surprised.png    |   Bin [31m160825[m -> [32m0[m bytes
+ gem-Js-pacs/assets/trans_happy_to_exited.png       |   Bin [31m154184[m -> [32m0[m bytes
+ gem-Js-pacs/assets/trans_neutral_to_calm.png       |   Bin [31m152089[m -> [32m0[m bytes
+ gem-Js-pacs/assets/trans_sad_to_concerned.png      |   Bin [31m158705[m -> [32m0[m bytes
+ gem-Js-pacs/assets/trans_sad_to_neutral.png        |   Bin [31m154357[m -> [32m0[m bytes
+ gem-Js-pacs/assets/trans_surprised_to_calm.png     |   Bin [31m148872[m -> [32m0[m bytes
+ gem-Js-pacs/assets/trans_surprised_to_exited.png   |   Bin [31m153272[m -> [32m0[m bytes
+ gem-Js-pacs/assets/trans_surprised_to_focus.png    |   Bin [31m151536[m -> [32m0[m bytes
+ gem-Js-pacs/index.html                             |   444 [31m-[m
+ gem-Js-pacs/interface.html                         |   155 [31m-[m
+ gem-Js-pacs/orchestrator_blueprint.txt             |    35 [31m-[m
+ gem-Js-pacs/scripts/001-buttler_amber.js           |    44 [31m-[m
+ gem-Js-pacs/scripts/002-librarian_green.js         |    57 [31m-[m
+ gem-Js-pacs/scripts/003-emotion_blue.js            |    72 [31m-[m
+ gem-Js-pacs/scripts/004-identity_white.js          |    47 [31m-[m
+ gem-Js-pacs/scripts/005-realm_silver.js            |    30 [31m-[m
+ gem-Js-pacs/scripts/006-role_silver.js             |    31 [31m-[m
+ gem-Js-pacs/scripts/007-soul_sync_blue.js          |    46 [31m-[m
+ gem-Js-pacs/scripts/008-crawler_green.js           |    56 [31m-[m
+ gem-Js-pacs/scripts/009-tetrad_silver.js           |    48 [31m-[m
+ gem-Js-pacs/scripts/010-chassis_gold.js            |    65 [31m-[m
+ gem-Js-pacs/scripts/011-butler_keys.js             |    36 [31m-[m
+ gem-Js-pacs/scripts/012-handshake_amber.js         |    39 [31m-[m
+ gem-Js-pacs/scripts/013-engine_platinum.py         |   153 [31m-[m
+ gem-Js-pacs/scripts/014-manifest_gold.js           |   148 [31m-[m
+ gem-Js-pacs/scripts/016-memory_green.py            |    79 [31m-[m
+ gem-Js-pacs/scripts/020-emotion_green.py           |    85 [31m-[m
+ gem-Js-pacs/scripts/020-vitality_gold.js           |    84 [31m-[m
+ gem-Js-pacs/scripts/025-vault_gold.js              |    45 [31m-[m
+ gem-Js-pacs/scripts/026-sync_gold.js               |    85 [31m-[m
+ gem-Js-pacs/scripts/028-manifest_gold.js           |    69 [31m-[m
+ gem-Js-pacs/scripts/032-memory_gold.js             |    56 [31m-[m
+ gem-Js-pacs/scripts/033-python_gold.js             |    73 [31m-[m
+ gem-Js-pacs/scripts/040-mind_palace_gold.js        |    79 [31m-[m
+ gem-Js-pacs/scripts/042-research_gold.js           |    72 [31m-[m
+ gem-Js-pacs/scripts/048-llm_engine_v1.py           |    59 [31m-[m
+ gem-Js-pacs/scripts/index.html                     |   104 [31m-[m
+ gem-Js-pacs/scripts/orchestrator_blueprint.txt     |    35 [31m-[m
+ handy/Aida_Asleep                                  |   211 [31m-[m
+ handy/Readme_KeyLinks                              |    11 [31m-[m
+ handy/Remote_Asleep_Trigger_and_Monitor            |    70 [31m-[m
+ 366 files changed, 81 insertions(+), 109754 deletions(-)

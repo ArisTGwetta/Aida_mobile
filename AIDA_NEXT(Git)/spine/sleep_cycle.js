@@ -69,11 +69,17 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
 
   // AIDA REVIEW BLOCK 10: Function exchangeSummary - callable behavior in this runtime organ.
   function exchangeSummary(exchange) {
+    const refs = sourceRefsForTurn(exchange, exchange.tags?.session_id);
     return {
       turnIndex: exchange.turnIndex,
       capturedAt: exchange.capturedAt,
       userChars: exchange.user?.text?.length || 0,
       aidaChars: exchange.aida?.text?.length || 0,
+      speaker_refs: {
+        user: refs.user,
+        aida: refs.aida
+      },
+      source_refs: refs.all,
       tags: copyJson(exchange.tags || {}, {})
     };
   }
@@ -98,6 +104,39 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
   // AIDA REVIEW BLOCK 13: Function sourceRef - callable behavior in this runtime organ.
   function sourceRef(sessionId, turnIndex) {
     return `${sessionId || "session_unknown"}#turn_${turnIndex}`;
+  }
+
+  function sourceRefFromTag(sessionId, tag) {
+    const match = String(tag || "").match(/(?:fixture_ref|paired_aida_ref):(?:[^#\s]+#)?turn_(\d+)/);
+    return match ? sourceRef(sessionId, match[1]) : null;
+  }
+
+  function sourceRefsForTurn(turn, sessionId) {
+    const tags = turn?.tags || {};
+    const custom = Array.isArray(tags.custom) ? tags.custom : [];
+    const resolvedSessionId = tags.session_id || sessionId;
+    const baseRef = sourceRef(resolvedSessionId, turn?.turnIndex);
+    const userRef =
+      turn?.user?.source_ref ||
+      turn?.user?.ref ||
+      custom
+        .filter((tag) => String(tag || "").startsWith("fixture_ref:"))
+        .map((tag) => sourceRefFromTag(resolvedSessionId, tag))
+        .find(Boolean) ||
+      baseRef;
+    const aidaRef =
+      turn?.aida?.source_ref ||
+      turn?.aida?.ref ||
+      custom
+        .filter((tag) => String(tag || "").startsWith("paired_aida_ref:"))
+        .map((tag) => sourceRefFromTag(resolvedSessionId, tag))
+        .find(Boolean) ||
+      baseRef;
+    return {
+      user: userRef,
+      aida: aidaRef,
+      all: [...new Set([userRef, aidaRef].filter(Boolean))]
+    };
   }
 
   // AIDA REVIEW BLOCK 14: Function turnsForRange - callable behavior in this runtime organ.
@@ -206,20 +245,27 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
 
   // AIDA REVIEW BLOCK 25: Function buildRawLogEntries - callable behavior in this runtime organ.
   function buildRawLogEntries({ packetId, sessionId, turns, createdAt }) {
-    return (turns || []).map((turn) => ({
-      id: `raw_log_${slug(packetId)}_${turn.turnIndex}`,
-      packetId,
-      session_id: turn.tags?.session_id || sessionId || null,
-      turnIndex: turn.turnIndex,
-      capturedAt: turn.capturedAt || createdAt,
-      project: turn.tags?.project || "unknown_project",
-      realm: turn.tags?.realm || "unknown_realm",
-      role: turn.tags?.role || "unknown_role",
-      custom_tags: copyJson(turn.tags?.custom || [], []),
-      user: cleanText(turn.user?.text, 1200),
-      aida: cleanText(turn.aida?.text, 1200),
-      source_refs: [sourceRef(turn.tags?.session_id || sessionId, turn.turnIndex)]
-    }));
+    return (turns || []).map((turn) => {
+      const refs = sourceRefsForTurn(turn, sessionId);
+      return {
+        id: `raw_log_${slug(packetId)}_${turn.turnIndex}`,
+        packetId,
+        session_id: turn.tags?.session_id || sessionId || null,
+        turnIndex: turn.turnIndex,
+        capturedAt: turn.capturedAt || createdAt,
+        project: turn.tags?.project || "unknown_project",
+        realm: turn.tags?.realm || "unknown_realm",
+        role: turn.tags?.role || "unknown_role",
+        custom_tags: copyJson(turn.tags?.custom || [], []),
+        speaker_refs: {
+          user: refs.user,
+          aida: refs.aida
+        },
+        user: cleanText(turn.user?.text, 1200),
+        aida: cleanText(turn.aida?.text, 1200),
+        source_refs: refs.all
+      };
+    });
   }
 
   // AIDA REVIEW BLOCK 26: Function extractSalutationSignals - callable behavior in this runtime organ.
@@ -735,6 +781,49 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     return merged;
   }
 
+  function textContains(haystack, needle) {
+    const cleanHaystack = cleanText(haystack, 1200).toLowerCase();
+    const cleanNeedle = cleanText(needle, 700).toLowerCase();
+    return Boolean(cleanHaystack && cleanNeedle && (cleanHaystack.includes(cleanNeedle) || cleanNeedle.includes(cleanHaystack)));
+  }
+
+  function repairCorrectionProvenanceFromPacket(fact, packet) {
+    if (!["reject_as_canon", "retain_correction"].includes(fact?.disposition) && fact?.durability !== "protective_correction") {
+      return fact;
+    }
+    const provenance = safeArray(fact?.speaker_provenance || fact?.speakerProvenance);
+    const hasAssistantUnsupported = provenance.some((item) => item?.authority === "assistant_unsupported_assertion");
+    const hasUserCorrection = provenance.some((item) => item?.authority === "user_correction");
+    if (!hasAssistantUnsupported || !hasUserCorrection) return fact;
+
+    const exchanges = safeArray(packet?.session?.latestExchanges).concat(safeArray(packet?.session?.exchanges));
+    const evidence = exchanges.find((exchange) => (
+      exchange?.speaker_refs?.aida &&
+      exchange?.speaker_refs?.user &&
+      textContains(exchange.aidaPreview || exchange.aida?.text, fact.original_claim_text || fact.claim)
+    ));
+    if (!evidence) return fact;
+
+    const repaired = {
+      ...fact,
+      speaker_provenance: provenance.map((item) => {
+        if (item?.authority === "assistant_unsupported_assertion") return { ...item, ref: evidence.speaker_refs.aida };
+        if (item?.authority === "user_correction") return { ...item, ref: evidence.speaker_refs.user };
+        return item;
+      })
+    };
+    repaired.source_refs = [
+      ...new Set(safeArray(fact.source_refs).concat(evidence.speaker_refs.aida, evidence.speaker_refs.user).filter(Boolean))
+    ];
+    repaired.boundary = {
+      ...copyJson(fact.boundary || {}, {}),
+      source_refs: [
+        ...new Set(safeArray(fact.boundary?.source_refs).concat(evidence.speaker_refs.aida, evidence.speaker_refs.user).filter(Boolean))
+      ]
+    };
+    return repaired;
+  }
+
   const LLM_SLEEP_PASSES = [
     {
       id: "continuity",
@@ -759,6 +848,11 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
         "Use disposition only from: retain_correction, promote_to_game_canon_candidate, short_or_diary_only, reject_as_canon, trace_only, defer_review.",
         "Use durability only from: durable_memory, scoped_rpg_canon, protective_correction, short_or_diary_only, trace_only, needs_review.",
         "Use speaker_provenance authority only from: user_assertion, user_correction, user_establishes_canon, assistant_acknowledgement, assistant_unsupported_assertion.",
+        "For a correction or rejection, preserve the corrected/rejected original claim text exactly in original_claim_text, not just the correction wording.",
+        "Use each exchange's speaker_refs when assigning speaker_provenance refs. Do not reuse the user ref for an assistant assertion when speaker_refs.aida is present.",
+        "If an assistant made an unsupported assertion and the user rejected or corrected it, include both provenance entries: the assistant assertion with authority assistant_unsupported_assertion and the user correction with authority user_correction. Do not omit either source ref when both appear in the packet.",
+        "For rejected fiction/RPG canon, use disposition reject_as_canon and durability protective_correction so the rejection is retained only to prevent the unsupported claim from resurfacing.",
+        "For each boundary object, include reality_scope, disposition, durability, corrections, exclusions, and source_refs when available from the packet; leave unknown subfields empty instead of inventing them.",
         "Set durability protective_correction for rejected claims that should be retained only to prevent resurfacing.",
         "Do not promote assistant-only unsupported assertions as facts; use trace_only or reject_as_canon.",
         "Do not turn greetings, transitions, test chatter, vague hopes, one-off mood, urgency, or temporary errands into durable facts.",
@@ -1102,11 +1196,13 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
   // AIDA REVIEW BLOCK 56: Function applyLlmDistillation - callable behavior in this runtime organ.
   function applyLlmDistillation(packet, llmDraft, createdAt) {
     const fallback = packet.distillation || {};
+    const repairedFactCandidates = safeArray(llmDraft.factCandidates)
+      .map((fact) => repairCorrectionProvenanceFromPacket(fact, packet));
     const merged = {
       diaryDrafts: llmDraft.diaryDrafts.length ? llmDraft.diaryDrafts : safeArray(fallback.diaryDrafts),
       rollingSummaries: llmDraft.rollingSummaries.length ? llmDraft.rollingSummaries : safeArray(fallback.rollingSummaries),
       longSummaryCandidates: llmDraft.longSummaryCandidates.length ? llmDraft.longSummaryCandidates : safeArray(fallback.longSummaryCandidates),
-      factCandidates: llmDraft.factCandidates.length ? llmDraft.factCandidates : safeArray(fallback.factCandidates),
+      factCandidates: repairedFactCandidates.length ? repairedFactCandidates : safeArray(fallback.factCandidates),
       insightCandidates: llmDraft.insightCandidates.length ? llmDraft.insightCandidates : safeArray(fallback.insightCandidates),
       sensitiveContextCandidates: llmDraft.sensitiveContextCandidates.length ? llmDraft.sensitiveContextCandidates : safeArray(fallback.sensitiveContextCandidates),
       salutationSignals: llmDraft.salutationSignals.length ? llmDraft.salutationSignals : safeArray(fallback.salutationSignals),
