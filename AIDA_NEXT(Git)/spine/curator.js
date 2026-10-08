@@ -135,15 +135,76 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     return "needs_confirmation";
   }
 
+  function memoryBoundaryGateEnabled() {
+    return Boolean(window.AIDA_CONFIG?.memory?.boundaryPromotionGate === true);
+  }
+
+  function hasAuthority(fact, authority) {
+    return safeArray(fact?.speaker_provenance || fact?.speakerProvenance)
+      .some((item) => item?.authority === authority);
+  }
+
+  function hasPositiveUserSupport(fact) {
+    return safeArray(fact?.speaker_provenance || fact?.speakerProvenance)
+      .some((item) => [
+        "user_assertion",
+        "user_correction",
+        "user_establishes_canon"
+      ].includes(item?.authority));
+  }
+
+  function isAssistantOnlyUnsupported(fact) {
+    const provenance = safeArray(fact?.speaker_provenance || fact?.speakerProvenance);
+    return (
+      provenance.length > 0 &&
+      provenance.every((item) => item?.speaker === "aida") &&
+      provenance.some((item) => item?.authority === "assistant_unsupported_assertion")
+    );
+  }
+
+  function promotionGateDecision(fact) {
+    if (fact?.durability === "protective_correction") {
+      return { lane: "protective_correction", eligible: true, reason: "explicit_protective_correction" };
+    }
+    if (fact?.disposition === "reject_as_canon" && hasAuthority(fact, "user_correction")) {
+      return { lane: "protective_correction", eligible: true, reason: "rejected_canon_with_user_correction" };
+    }
+    if (isAssistantOnlyUnsupported(fact)) {
+      return { lane: "trace_only", eligible: false, reason: "assistant_only_unsupported" };
+    }
+    if (fact?.durability === "short_or_diary_only" || fact?.disposition === "short_or_diary_only") {
+      return { lane: "short_or_diary_only", eligible: false, reason: "passing_or_non_durable" };
+    }
+    if (fact?.durability === "durable_memory") {
+      return hasPositiveUserSupport(fact)
+        ? { lane: "durable_memory", eligible: true, reason: "positive_user_supported_general_memory" }
+        : { lane: "needs_review", eligible: false, reason: "durable_memory_without_user_support" };
+    }
+    if (String(fact?.scope || "").startsWith("rpg:") || fact?.durability === "scoped_rpg_canon") {
+      if (hasAuthority(fact, "user_establishes_canon") && fact?.disposition === "promote_to_game_canon_candidate") {
+        return { lane: "scoped_rpg_canon", eligible: true, reason: "positive_user_supported_canon" };
+      }
+      return { lane: "needs_review", eligible: false, reason: "rpg_canon_requires_positive_user_establishment" };
+    }
+    return { lane: "needs_review", eligible: false, reason: "unverified_or_ambiguous" };
+  }
+
 // AIDA REVIEW BLOCK 17: Function reviewFacts - callable behavior in this runtime organ.
   function reviewFacts(staged, reviewedAt) {
     return safeArray(staged.factCandidates).map((fact) => {
       const reviewStatus = classifyFact(fact);
+      const gateDecision = promotionGateDecision(fact);
+      const gated = memoryBoundaryGateEnabled();
       return {
         ...fact,
         type: "fact_write_draft",
-        reviewStatus,
-        writeStatus: reviewStatus === "candidate" ? "staged_candidate" : "needs_confirmation",
+        boundaryGate: {
+          enabled: gated,
+          draftOnly: gated,
+          ...gateDecision
+        },
+        reviewStatus: gated ? `draft_${gateDecision.lane}` : reviewStatus,
+        writeStatus: gated ? "draft_only_boundary_gate" : reviewStatus === "candidate" ? "staged_candidate" : "needs_confirmation",
         reviewedAt
       };
     });

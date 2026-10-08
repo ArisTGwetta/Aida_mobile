@@ -556,7 +556,12 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       confidence: confidence(item.confidence, 0.72),
       source_refs: safeArray(item.source_refs || item.sourceRefs || rawSourceRefs),
       status: item.status || "candidate",
-      last_seen: item.last_seen || item.lastSeen || capturedAt
+      last_seen: item.last_seen || item.lastSeen || capturedAt,
+      original_claim_text: cleanText(item.original_claim_text || item.originalClaimText || item.claim || item.text || "", 700),
+      disposition: item.disposition || item.status || "candidate",
+      durability: item.durability || "needs_review",
+      speaker_provenance: safeArray(item.speaker_provenance || item.speakerProvenance),
+      boundary: copyJson(item.boundary || {}, {})
     })).filter((item) => item.claim);
     const temporaryFactThreads = rawFactCandidates
       .map((item, index) => openThreadFromTemporaryFact(item, packetId, capturedAt, index))
@@ -750,6 +755,12 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
         "Fill only durableFacts, behaviorInsights, and sensitiveContext.",
         "Keep diaryEntry, sessionSummary, longSummary, toneSignals, and openThreads empty.",
         "Facts are stable, specific claims only. Use practical memory half-life: durable facts should likely still help next week or next month.",
+        "For durableFacts, include original_claim_text, disposition, durability, speaker_provenance, and boundary when a memory boundary or correction matters.",
+        "Use disposition only from: retain_correction, promote_to_game_canon_candidate, short_or_diary_only, reject_as_canon, trace_only, defer_review.",
+        "Use durability only from: durable_memory, scoped_rpg_canon, protective_correction, short_or_diary_only, trace_only, needs_review.",
+        "Use speaker_provenance authority only from: user_assertion, user_correction, user_establishes_canon, assistant_acknowledgement, assistant_unsupported_assertion.",
+        "Set durability protective_correction for rejected claims that should be retained only to prevent resurfacing.",
+        "Do not promote assistant-only unsupported assertions as facts; use trace_only or reject_as_canon.",
         "Do not turn greetings, transitions, test chatter, vague hopes, one-off mood, urgency, or temporary errands into durable facts.",
         "Do not combine temporary context with durable facts in one claim. Split them or omit the temporary part. Example: write 'Francisco's mother lives in Kansas City' as a durable fact; do not write 'Francisco needs to pick up his mother at the airport and she lives in Kansas City' as one fact.",
         "Use scope 'user' for personal facts about Francisco or family, and 'project:aida_architecture' for facts about the Aida project. Do not output a literal combined scope such as 'user|project:aida_architecture'.",
@@ -849,7 +860,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       '    "diaryEntry": "",',
       '    "sessionSummary": "",',
       '    "longSummary": "",',
-      '    "durableFacts": [{"claim": "", "scope": "user", "confidence": 0.0, "source_refs": []}],',
+      '    "durableFacts": [{"original_claim_text": "", "claim": "", "scope": "user", "confidence": 0.0, "source_refs": [], "disposition": "defer_review", "durability": "needs_review", "speaker_provenance": [{"ref": "", "speaker": "user", "authority": "user_assertion"}], "boundary": {}}],',
       '    "behaviorInsights": [{"guidance": "", "confidence": 0.0, "source_refs": []}],',
       '    "sensitiveContext": [{"note": "", "handling": "", "confidence": 0.0, "source_refs": []}],',
       '    "toneSignals": [{"observed_text": "", "guidance": "", "warmth": "", "source_ref": ""}],',

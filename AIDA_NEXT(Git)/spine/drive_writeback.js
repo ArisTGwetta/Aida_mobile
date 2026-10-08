@@ -315,7 +315,11 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       });
     });
 
-    const factCandidates = safeArray(reviewed?.factWriteDrafts).filter((item) => item.writeStatus === "staged_candidate");
+    const factCandidates = safeArray(reviewed?.factWriteDrafts).filter((item) => (
+      item.writeStatus === "staged_candidate" &&
+      item.boundaryGate?.writeStatus !== "draft_only_boundary_gate" &&
+      item.boundaryGate?.draftOnly !== true
+    ));
     if (factCandidates.length) {
       ops.push({
         target: "facts_candidates",
