@@ -1243,9 +1243,7 @@ async function fetchJsonFile(file) {
     rt.context.memoryWindow = {
       recentTurns: files["recent_turns.json"] || null,
       session: rt.mind.session,
-      summary: rt.mind.memory,
-      facts: rt.mind.facts || null,
-      insights: rt.mind.insights || null
+      summary: rt.mind.memory
     };
 
     return {
