@@ -135,47 +135,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
 
   function needsFullProjectContext(text) {
     const value = String(text || "").toLowerCase();
-    return (
-      /\b(?:open|switch|load|show|summarize|status|details|continue|resume|review)\b[^.?!]{0,80}\b(?:project|briefcase|realm|rpg|astra|canon|study|workbench|portfolio|architecture)\b/.test(value) ||
-      /\b(?:project|briefcase|realm|rpg|astra|canon|study|workbench|portfolio|architecture)\b[^.?!]{0,80}\b(?:status|details|summary|context|memory|canon|briefcase)\b/.test(value)
-    );
-  }
-
-  function needsFreshRecentContext(text) {
-    const value = String(text || "").toLowerCase();
-    return /\b(?:other\s+(?:device|environment|phone|workbench|git|mobile)|cross[-\s]?device|shared\s+recent|recent\s+(?:conversation|chat|context|memory)|where\s+we\s+(?:left\s+off|were)|what\s+we\s+were\s+(?:discussing|talking\s+about)|check\s+(?:your\s+)?memory)\b/.test(value);
-  }
-
-  function isSharedRecentFresh(rt = runtime()) {
-    const freshness = rt?.context?.sharedRecentFreshness || {};
-    const loadedAt = freshness.loadedAt ? new Date(freshness.loadedAt).getTime() : NaN;
-    const ttlMs = Number(freshness.ttlMs) || 5 * 60 * 1000;
-    return Number.isFinite(loadedAt) && Date.now() - loadedAt < ttlMs && freshness.stale !== true;
-  }
-
-  function clearStaleSharedRecent(rt = runtime()) {
-    if (isSharedRecentFresh(rt)) return;
-    if (rt?.context) {
-      rt.context.sharedRecentPrompt = "";
-      rt.context.sharedRecentPromptRecords = [];
-    }
-  }
-
-  function withTimeout(promise, ms, label) {
-    return Promise.race([
-      Promise.resolve(promise).then((value) => ({ ok: true, value })),
-      new Promise((resolve) => {
-        setTimeout(() => resolve({ ok: false, timeout: true, label }), ms);
-      })
-    ]);
-  }
-
-  function localNotice(userText, reply, pulseText = "") {
-    appendChat("USER", userText);
-    appendChat("AIDA", reply);
-    window.AIDA_SESSION_CAPTURE?.captureExchange?.(userText, reply);
-    if (pulseText) pulse(pulseText);
-    return false;
+    return /\b(?:project|briefcase|realm|rpg|astra|canon|study|workbench|portfolio|current\s+work|architecture)\b/.test(value);
   }
 
   // AIDA REVIEW BLOCK 4: Gate — ensure spine and provider are ready
@@ -220,22 +180,14 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       pulse("Aida is finishing project shelves before answering that.");
       let fullBoot = null;
       try {
-        const waited = await withTimeout(
-          window.AIDA_DRIVE?.waitForFullDriveBoot?.(),
-          4000,
-          "full_project_context"
-        );
-        fullBoot = waited.ok ? waited.value : { ok: false, reason: "project_context_timeout" };
+        fullBoot = await window.AIDA_DRIVE?.waitForFullDriveBoot?.();
       } catch (error) {
         fullBoot = { ok: false, reason: error.message };
       }
       if (!fullBoot?.ok) {
         log(`LLM SEND: WAIT. Project context unavailable: ${fullBoot?.reason || "full boot incomplete"}.`, "log-amber");
-        return localNotice(
-          text,
-          "I’m still loading the project shelves, so I don’t want to answer that from incomplete context. Give me a moment and ask again.",
-          "Project context is still loading."
-        );
+        pulse("Project context is still loading. Try again in a moment.");
+        return false;
       }
     }
 
@@ -261,30 +213,15 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       await window.AIDA_LIBRARIAN?.prepareArchive?.("conversation_memory_request");
     }
 
-    const recentLoader =
-      window.AIDA_DRIVE?.ensureContinuityRecentPromptContext ||
-      window.AIDA_DRIVE?.loadContinuityRecentPromptContext;
-    if (recentLoader && needsFreshRecentContext(text)) {
-      const checked = await withTimeout(
-        recentLoader({ userText: text, reason: "message_send", force: true }),
-        4000,
-        "shared_recent_refresh"
-      );
-      const result = checked.ok ? checked.value : { ok: false, reason: "shared_recent_timeout" };
-      if (!result?.ok || result.stale) {
-        clearStaleSharedRecent(rt);
-        log(`SHARED RECENT: explicit check unavailable: ${result?.error || result?.reason || "unknown"}.`, "log-amber");
-        return localNotice(
-          text,
-          "I can’t verify the current cross-device continuity right now, so I don’t want to answer from stale RECENT memory. Please try again in a moment.",
-          "Shared RECENT could not be verified."
-        );
+    if (window.AIDA_DRIVE?.ensureContinuityRecentPromptContext || window.AIDA_DRIVE?.loadContinuityRecentPromptContext) {
+      try {
+        const loader =
+          window.AIDA_DRIVE.ensureContinuityRecentPromptContext ||
+          window.AIDA_DRIVE.loadContinuityRecentPromptContext;
+        await loader({ userText: text, reason: "message_send" });
+      } catch (error) {
+        log(`SHARED RECENT: prompt context unavailable: ${error.message}`, "log-amber");
       }
-    } else if (recentLoader) {
-      clearStaleSharedRecent(rt);
-      recentLoader({ userText: text, reason: "message_send" }).catch((error) => {
-        log(`SHARED RECENT: background refresh unavailable: ${error.message}`, "log-amber");
-      });
     }
 
     const built = window.AIDA_LLM_MESSAGES?.build?.(text, { attachment });
