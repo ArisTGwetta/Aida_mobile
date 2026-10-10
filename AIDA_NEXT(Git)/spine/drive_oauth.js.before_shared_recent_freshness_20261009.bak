@@ -29,17 +29,6 @@
     "briefcase_aida_architecture.json",
     "project_aida_architecture.json"
   ];
-  const ESSENTIAL_BOOT_JSON = [
-    "core_identity.json",
-    "memory_summary.json",
-    "facts.json",
-    "insights.json"
-  ];
-  const OPTIONAL_EARLY_BOOT_JSON = [
-    "role_architect_companion.json"
-  ];
-  const ESSENTIAL_FETCH_CONCURRENCY = 4;
-  const BACKGROUND_FETCH_CONCURRENCY = 3;
 
   let tokenClient = null;
   let gisLoading = null;
@@ -405,77 +394,8 @@ async function fetchJsonFile(file) {
     return data;
   }
 
-  async function fetchJsonNamesBounded(names, options = {}) {
-    const requested = (names || []).filter(Boolean);
-    const concurrency = Math.max(1, Number(options.concurrency) || 1);
-    const reason = options.reason || "bounded_fetch";
-    const results = [];
-    let cursor = 0;
-
-    async function worker() {
-      while (cursor < requested.length) {
-        const name = requested[cursor];
-        cursor += 1;
-        try {
-          const data = await fetchJsonByName(name, reason);
-          results.push({ name, ok: true, data });
-        } catch (error) {
-          results.push({ name, ok: false, error: error.message });
-        }
-      }
-    }
-
-    await Promise.all(Array.from({ length: Math.min(concurrency, requested.length) }, worker));
-    return results;
-  }
-
-  function mapEssentialDriveFilesToMind() {
-    const rt = runtime();
-    const files = rt.drive.files || {};
-    rt.mind.identity = files["core_identity.json"] || rt.mind.identity || null;
-    rt.mind.memory = files["memory_summary.json"] || rt.mind.memory || null;
-    rt.mind.facts = files["facts.json"] || rt.mind.facts || null;
-    rt.mind.insights = files["insights.json"] || rt.mind.insights || null;
-    if (files["role_architect_companion.json"]) rt.mind.role = files["role_architect_companion.json"];
-    rt.context.identity = rt.mind.identity;
-    rt.context.role = rt.context.role || rt.mind.role || null;
-    rt.context.memoryWindow = {
-      ...(rt.context.memoryWindow || {}),
-      summary: rt.context.memoryWindow?.summary || rt.mind.memory,
-      facts: rt.mind.facts || null,
-      insights: rt.mind.insights || null
-    };
-    return {
-      identity: Boolean(rt.mind.identity),
-      memory: Boolean(rt.mind.memory),
-      facts: Boolean(rt.mind.facts),
-      insights: Boolean(rt.mind.insights),
-      role: Boolean(rt.mind.role)
-    };
-  }
-
-  function markEssentialMemoryStatus(results) {
-    const rt = runtime();
-    const failed = (results || []).filter((item) => ESSENTIAL_BOOT_JSON.includes(item.name) && !item.ok);
-    const missing = ESSENTIAL_BOOT_JSON.filter((name) => !rt.drive.files?.[name]);
-    const mapped = mapEssentialDriveFilesToMind();
-    const ready = !failed.length && !missing.length && mapped.identity && mapped.memory && mapped.facts && mapped.insights;
-    rt.boot.essentialMemory = {
-      ready,
-      loadedAt: ready ? new Date().toISOString() : null,
-      required: ESSENTIAL_BOOT_JSON.slice(),
-      optional: OPTIONAL_EARLY_BOOT_JSON.slice(),
-      missing,
-      failed
-    };
-    rt.boot.essentialMemoryLoaded = ready;
-    rt.boot.phase = ready ? "essential_memory_loaded" : "essential_memory_failed";
-    return rt.boot.essentialMemory;
-  }
-
   const CONTINUITY_RECENT_FOLDER_NAME = "continuity_recent";
   const CONTINUITY_RECENT_MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
-  const CONTINUITY_RECENT_FRESH_MS = 5 * 60 * 1000;
 
   function continuityHash(value) {
     const text = String(value || "");
@@ -501,40 +421,6 @@ async function fetchJsonFile(file) {
       promptInsertionEnabled: cfg.promptInsertionEnabled === true,
       promptLimit: Number.isFinite(Number(cfg.promptLimit)) ? Math.max(1, Number(cfg.promptLimit)) : 6
     };
-  }
-
-  function sharedRecentFreshness() {
-    const rt = runtime();
-    rt.context = rt.context || {};
-    rt.context.sharedRecentFreshness = rt.context.sharedRecentFreshness || {
-      loadedAt: null,
-      stale: true,
-      refreshError: null,
-      ttlMs: CONTINUITY_RECENT_FRESH_MS
-    };
-    return rt.context.sharedRecentFreshness;
-  }
-
-  function sharedRecentLoadedMs() {
-    const loadedAt = sharedRecentFreshness().loadedAt;
-    const loadedMs = loadedAt ? new Date(loadedAt).getTime() : NaN;
-    return Number.isFinite(loadedMs) ? loadedMs : null;
-  }
-
-  function sharedRecentIsFresh(nowMs = Date.now()) {
-    const loadedMs = sharedRecentLoadedMs();
-    return loadedMs !== null && nowMs - loadedMs < CONTINUITY_RECENT_FRESH_MS;
-  }
-
-  function recentCrossDeviceRequest(text = "") {
-    const value = String(text || "").toLowerCase();
-    return /\b(?:other\s+(?:device|environment|phone|workbench|git|mobile)|cross[-\s]?device|shared\s+recent|recent\s+(?:conversation|chat|context|memory)|where\s+we\s+(?:left\s+off|were)|what\s+we\s+were\s+(?:discussing|talking\s+about))\b/.test(value);
-  }
-
-  function inactiveSinceLastTurn(nowMs = Date.now()) {
-    const lastTurnAt = runtime()?.session?.lastTurnAt || null;
-    const lastTurnMs = lastTurnAt ? new Date(lastTurnAt).getTime() : NaN;
-    return Number.isFinite(lastTurnMs) && nowMs - lastTurnMs > 45 * 60 * 1000;
   }
 
   function formatContinuityRecentRecord(exchange, options = {}) {
@@ -951,10 +837,6 @@ async function fetchJsonFile(file) {
       runtime().context.sharedRecentPrompt = "";
       return { ok: false, skipped: true, reason: "shared_recent_prompt_disabled", prompt: "" };
     }
-    const freshness = sharedRecentFreshness();
-    const now = continuityReceivedAt();
-    freshness.lastAttemptAt = now;
-    freshness.lastAttemptReason = options.reason || (options.force ? "force" : "refresh");
     const limit = options.limit || cfg.promptLimit;
     const files = await listContinuityRecentFiles();
     const records = [];
@@ -986,84 +868,7 @@ async function fetchJsonFile(file) {
       effective_at: record.effective_at,
       drive_name: record.drive_name || null
     }));
-    freshness.loadedAt = now;
-    freshness.stale = false;
-    freshness.refreshError = null;
-    freshness.ttlMs = CONTINUITY_RECENT_FRESH_MS;
-    freshness.recordCount = runtime().context.sharedRecentPromptRecords.length;
-    freshness.promptAvailable = Boolean(prompt);
-    freshness.cachedPrompt = prompt;
-    freshness.cachedRecords = runtime().context.sharedRecentPromptRecords;
     return { ok: true, prompt, records: runtime().context.sharedRecentPromptRecords };
-  }
-
-  async function ensureContinuityRecentPromptContext(options = {}) {
-    const cfg = sharedRecentConfig();
-    const rt = runtime();
-    rt.context = rt.context || {};
-    const freshness = sharedRecentFreshness();
-    const nowMs = Date.now();
-    const needsRefresh = Boolean(
-      options.force ||
-      options.reason === "wake" ||
-      options.reason === "check_in" ||
-      options.reason === "inactivity" ||
-      recentCrossDeviceRequest(options.userText) ||
-      inactiveSinceLastTurn(nowMs) ||
-      !sharedRecentIsFresh(nowMs)
-    );
-
-    if (!cfg.promptInsertionEnabled && options.force !== true) {
-      rt.context.sharedRecentPrompt = "";
-      freshness.stale = true;
-      freshness.refreshError = null;
-      freshness.lastDecision = "disabled";
-      return { ok: false, skipped: true, reason: "shared_recent_prompt_disabled", prompt: "" };
-    }
-
-    if (!needsRefresh) {
-      rt.context.sharedRecentPrompt = freshness.cachedPrompt || rt.context.sharedRecentPrompt || "";
-      rt.context.sharedRecentPromptRecords = freshness.cachedRecords || rt.context.sharedRecentPromptRecords || [];
-      freshness.stale = false;
-      freshness.refreshError = null;
-      freshness.lastDecision = "cache_hit";
-      return {
-        ok: true,
-        cached: true,
-        prompt: rt.context.sharedRecentPrompt,
-        records: rt.context.sharedRecentPromptRecords
-      };
-    }
-
-    try {
-      const result = await loadContinuityRecentPromptContext({
-        ...options,
-        force: options.force,
-        reason: options.reason || (recentCrossDeviceRequest(options.userText) ? "cross_device_request" : inactiveSinceLastTurn(nowMs) ? "inactivity" : "ttl_expired")
-      });
-      freshness.lastDecision = "refreshed";
-      return { ...result, refreshed: true };
-    } catch (error) {
-      freshness.stale = true;
-      freshness.refreshError = error.message;
-      freshness.lastDecision = "refresh_failed";
-      if (sharedRecentIsFresh(Date.now())) {
-        rt.context.sharedRecentPrompt = freshness.cachedPrompt || rt.context.sharedRecentPrompt || "";
-        rt.context.sharedRecentPromptRecords = freshness.cachedRecords || rt.context.sharedRecentPromptRecords || [];
-      } else {
-        rt.context.sharedRecentPrompt = "";
-        rt.context.sharedRecentPromptRecords = [];
-      }
-      return {
-        ok: false,
-        skipped: true,
-        stale: true,
-        reason: "shared_recent_refresh_failed",
-        error: error.message,
-        prompt: rt.context.sharedRecentPrompt,
-        records: rt.context.sharedRecentPromptRecords
-      };
-    }
   }
 
 // AIDA REVIEW BLOCK 26: Function likelyContextFileNames - callable behavior in this runtime organ.
@@ -1480,131 +1285,46 @@ async function fetchJsonFile(file) {
       const allFiles = await listDriveFiles();
       const files = allFiles.filter((file) => file.name.endsWith(".json"));
       const rt = runtime();
-      rt.boot.phase = "essential_memory_fetching";
+      rt.boot.phase = "drive_boot_fetching";
       rt.drive.files = {};
       indexDriveFiles(allFiles);
       rt.drive.loadMode = "boot_lazy";
       rt.drive.loadedNames = [];
-      rt.boot.driveLoaded = false;
-      rt.boot.essentialMemoryLoaded = false;
-
-      const bootNames = files.filter((file) => isCoreBootFile(file.name)).map((file) => file.name);
-      const earlyNames = [...new Set([...ESSENTIAL_BOOT_JSON, ...OPTIONAL_EARLY_BOOT_JSON])]
-        .filter((name) => rt.drive.fileIndex?.[name]);
       rt.drive.deferredNames = files
         .map((file) => file.name)
-        .filter((name) => !earlyNames.includes(name));
+        .filter((name) => !isCoreBootFile(name));
 
-      log(`DRIVE: Essential memory fetching ${earlyNames.length}/${files.length} JSON files. Background boot will fetch the rest.`, "log-amber");
-      const essentialResults = await fetchJsonNamesBounded(earlyNames, {
-        concurrency: ESSENTIAL_FETCH_CONCURRENCY,
-        reason: "essential_boot"
-      });
-      const essential = markEssentialMemoryStatus(essentialResults);
-      if (!essential.ready) {
-        log(`DRIVE: Essential memory incomplete. missing=${essential.missing.join(",") || "none"}.`, "log-amber");
-        return rt.drive.files;
+      const bootFiles = files.filter((file) => isCoreBootFile(file.name));
+      log(`DRIVE: Boot fetching ${bootFiles.length}/${files.length} JSON files. Deferring ${rt.drive.deferredNames.length}.`, "log-amber");
+
+      for (const file of bootFiles) {
+        try {
+          await fetchJsonByName(file.name, "boot");
+        } catch (error) {
+          log(`DRIVE: ${error.message}`, "log-amber");
+        }
       }
 
-      const remainingBootNames = bootNames.filter((name) => !rt.drive.files?.[name]);
-      rt.boot.backgroundBoot = {
-        status: remainingBootNames.length ? "loading" : "complete",
-        startedAt: new Date().toISOString(),
-        remaining: remainingBootNames.slice(),
-        error: null
-      };
-      rt.drive.backgroundBootPromise = fetchRemainingBootDriveJson(remainingBootNames, {
-        allFileCount: allFiles.length,
-        jsonFileCount: files.length
-      }).catch((error) => {
-        log(`DRIVE: Background boot promise recorded failure: ${error.message}`, "log-amber");
-        return { ok: false, error: error.message };
-      });
+      const mapped = mapDriveFilesToMind();
+      if (window.AIDA_EMOTIONS?.applyCurrent) {
+        window.AIDA_EMOTIONS.applyCurrent("drive_state");
+      }
+      rt.boot.driveLoaded = true;
+      rt.boot.phase = "drive_loaded";
+      window.dispatchEvent(new CustomEvent("aida:drive-loaded", {
+        detail: { mode: rt.drive.loadMode, fileCount: allFiles.length, jsonCount: files.length }
+      }));
+
+      log(
+        `DRIVE: Mind mapped. mode=${rt.drive.loadMode}, loaded=${rt.drive.loadedNames.length}, deferred=${rt.drive.deferredNames.length}, identity=${mapped.identity}, facts=${mapped.facts}, memory=${mapped.memory}, realms=${mapped.realms}, roles=${mapped.roles}, projects=${mapped.projects}, ledger=${mapped.projectLedger}, activeProject=${mapped.activeProject}, whileAway=${mapped.whileAway}, llmFragments=${mapped.llmFragments}.`,
+        "log-blue"
+      );
 
       return rt.drive.files;
     } catch (error) {
       log(`DRIVE: ${error.message}`, "log-amber");
       return {};
     }
-  }
-
-  async function fetchRemainingBootDriveJson(names, meta = {}) {
-    const rt = runtime();
-    try {
-      if (names.length) {
-        log(`DRIVE: Background boot fetching ${names.length} remaining boot JSON file(s).`, "log-amber");
-        const results = await fetchJsonNamesBounded(names, {
-          concurrency: BACKGROUND_FETCH_CONCURRENCY,
-          reason: "background_boot"
-        });
-        const failed = results.filter((item) => !item.ok);
-        if (failed.length) {
-          throw new Error(`Background boot failed for ${failed.map((item) => item.name).join(", ")}.`);
-        }
-      }
-
-      const selectedProjectName = rt.context?.projectName || null;
-      const selectedProject = rt.context?.project || null;
-      const selectedMode = rt.context?.projectMode || null;
-      const selectedRole = rt.context?.role || null;
-      const selectedMemoryWindow = rt.context?.memoryWindow || null;
-      const session = rt.session;
-
-      const mapped = mapDriveFilesToMind({ selectDefault: false });
-      rt.session = session;
-      rt.context.projectName = selectedProjectName;
-      rt.context.project = selectedProject;
-      rt.context.projectMode = selectedMode;
-      rt.context.role = selectedRole || rt.context.role;
-      rt.context.memoryWindow = {
-        ...(selectedMemoryWindow || {}),
-        session: rt.mind.session,
-        summary: selectedMemoryWindow?.summary || rt.mind.memory,
-        facts: rt.mind.facts || null,
-        insights: rt.mind.insights || null
-      };
-
-      if (window.AIDA_EMOTIONS?.applyCurrent) {
-        window.AIDA_EMOTIONS.applyCurrent("drive_state");
-      }
-      rt.boot.driveLoaded = true;
-      rt.boot.phase = "drive_loaded";
-      rt.boot.backgroundBoot = {
-        ...(rt.boot.backgroundBoot || {}),
-        status: "complete",
-        completedAt: new Date().toISOString(),
-        remaining: [],
-        error: null
-      };
-      window.dispatchEvent(new CustomEvent("aida:drive-loaded", {
-        detail: { mode: rt.drive.loadMode, fileCount: meta.allFileCount || null, jsonCount: meta.jsonFileCount || null }
-      }));
-
-      log(
-        `DRIVE: Full boot mapped. mode=${rt.drive.loadMode}, loaded=${rt.drive.loadedNames.length}, deferred=${rt.drive.deferredNames.length}, identity=${mapped.identity}, facts=${mapped.facts}, memory=${mapped.memory}, realms=${mapped.realms}, roles=${mapped.roles}, projects=${mapped.projects}, ledger=${mapped.projectLedger}, activeProjectPreserved=${Boolean(selectedProjectName || selectedProject)}, whileAway=${mapped.whileAway}, llmFragments=${mapped.llmFragments}.`,
-        "log-blue"
-      );
-      return rt.drive.files;
-    } catch (error) {
-      rt.boot.backgroundBoot = {
-        ...(rt.boot.backgroundBoot || {}),
-        status: "failed",
-        failedAt: new Date().toISOString(),
-        error: error.message
-      };
-      log(`DRIVE: Background boot failed: ${error.message}`, "log-amber");
-      throw error;
-    }
-  }
-
-  async function waitForFullDriveBoot() {
-    const rt = runtime();
-    if (rt.boot?.driveLoaded) return { ok: true, alreadyLoaded: true };
-    if (rt.drive?.backgroundBootPromise) {
-      await rt.drive.backgroundBootPromise;
-      return { ok: Boolean(rt.boot?.driveLoaded) };
-    }
-    return { ok: false, reason: "background_boot_not_started" };
   }
 
 // AIDA REVIEW BLOCK 45: Function fetchAllDriveJson - callable behavior in this runtime organ.
@@ -1704,7 +1424,6 @@ async function fetchJsonFile(file) {
     smokeListDriveJson,
     fetchAllDriveJson,
     fetchBootDriveJson,
-    waitForFullDriveBoot,
     fetchEveryDriveJson,
     fetchJsonByName,
     fetchBlobUrlByName,
@@ -1714,7 +1433,6 @@ async function fetchJsonFile(file) {
     writeContinuityRecentCanary,
     writeContinuityRecentExchange,
     loadContinuityRecentPromptContext,
-    ensureContinuityRecentPromptContext,
     selectContinuityRecentWindow,
     listContinuityRecentFiles,
     inspectContinuityRecent,

@@ -57,18 +57,15 @@
 // AIDA REVIEW BLOCK 9: Function ensureDriveLoaded - callable behavior in this runtime organ.
   async function ensureDriveLoaded() {
     const rt = runtime();
-    if ((rt.boot?.driveLoaded || rt.boot?.essentialMemoryLoaded) && Object.keys(rt.drive?.files || {}).length) return true;
+    if (rt.boot?.driveLoaded && Object.keys(rt.drive?.files || {}).length) return true;
 
     log("WAKE: Fetching Drive JSON.", "log-amber");
     await window.AIDA_DRIVE?.fetchAllDriveJson?.();
 
-    if (!runtime().boot?.essentialMemoryLoaded) {
-      throw new Error("Essential memory fetch did not complete.");
+    if (!runtime().boot?.driveLoaded) {
+      throw new Error("Drive JSON fetch did not complete.");
     }
 
-    window.AIDA_DRIVE?.ensureContinuityRecentPromptContext?.({ reason: "wake", force: true }).catch((error) => {
-      log(`WAKE: Shared RECENT refresh skipped: ${error.message}`, "log-amber");
-    });
     window.AIDA_WHILE_AWAY?.buildThought?.();
     return true;
   }

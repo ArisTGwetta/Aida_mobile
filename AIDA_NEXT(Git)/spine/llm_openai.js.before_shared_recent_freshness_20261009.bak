@@ -133,17 +133,12 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     return true;
   }
 
-  function needsFullProjectContext(text) {
-    const value = String(text || "").toLowerCase();
-    return /\b(?:project|briefcase|realm|rpg|astra|canon|study|workbench|portfolio|current\s+work|architecture)\b/.test(value);
-  }
-
   // AIDA REVIEW BLOCK 4: Gate — ensure spine and provider are ready
   function gate() {
     const rt = runtime();
     const missing = [];
 
-    if (!rt?.boot?.driveLoaded && !rt?.boot?.essentialMemoryLoaded) missing.push("essential memory fetch");
+    if (!rt?.boot?.driveLoaded) missing.push("Drive JSON fetch");
     if (!rt?.boot?.airlockCleared) missing.push("airlock");
     const providerReady = window.AIDA_LLM_PROVIDER?.readiness?.();
     if (!window.AIDA_LLM_PROVIDER?.callMessages) missing.push("LLM provider dispatcher");
@@ -176,21 +171,6 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     if (await runPendingActionConfirmation(text)) return true;
     if (await runProjectIntent(text)) return true;
 
-    if (!rt?.boot?.driveLoaded && needsFullProjectContext(text)) {
-      pulse("Aida is finishing project shelves before answering that.");
-      let fullBoot = null;
-      try {
-        fullBoot = await window.AIDA_DRIVE?.waitForFullDriveBoot?.();
-      } catch (error) {
-        fullBoot = { ok: false, reason: error.message };
-      }
-      if (!fullBoot?.ok) {
-        log(`LLM SEND: WAIT. Project context unavailable: ${fullBoot?.reason || "full boot incomplete"}.`, "log-amber");
-        pulse("Project context is still loading. Try again in a moment.");
-        return false;
-      }
-    }
-
     const ready = gate();
     if (!ready.pass) {
       log(`LLM SEND: WAIT. Missing ${ready.missing.join(", ")}.`, "log-amber");
@@ -213,12 +193,9 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       await window.AIDA_LIBRARIAN?.prepareArchive?.("conversation_memory_request");
     }
 
-    if (window.AIDA_DRIVE?.ensureContinuityRecentPromptContext || window.AIDA_DRIVE?.loadContinuityRecentPromptContext) {
+    if (window.AIDA_DRIVE?.loadContinuityRecentPromptContext) {
       try {
-        const loader =
-          window.AIDA_DRIVE.ensureContinuityRecentPromptContext ||
-          window.AIDA_DRIVE.loadContinuityRecentPromptContext;
-        await loader({ userText: text, reason: "message_send" });
+        await window.AIDA_DRIVE.loadContinuityRecentPromptContext();
       } catch (error) {
         log(`SHARED RECENT: prompt context unavailable: ${error.message}`, "log-amber");
       }
