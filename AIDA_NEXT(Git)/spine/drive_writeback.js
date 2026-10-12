@@ -179,6 +179,78 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     return base;
   }
 
+  function validReentryDelta(delta) {
+    if (!delta || typeof delta !== "object") return false;
+    if (!delta.id || !delta.sourcePacketId) return false;
+    if (!safeArray(delta.source_refs || delta.sourceRefs).length) return false;
+    if (delta.kind && delta.kind !== "provisional_project_identity") return false;
+    return true;
+  }
+
+  function normalizeReentryDelta(delta, generatedAt) {
+    const sourceRefs = safeArray(delta.source_refs || delta.sourceRefs);
+    const disposition = ["review_only", "defer_review", "needs_review"].includes(delta.boundary?.disposition)
+      ? delta.boundary.disposition
+      : "review_only";
+    return {
+      ...copyJson(delta, {}),
+      kind: "provisional_project_identity",
+      privateContext: true,
+      announceRequired: false,
+      incorporatedIntoContext: Boolean(delta.incorporatedIntoContext),
+      persisted: true,
+      persistedAt: generatedAt,
+      confirmed: false,
+      status: "provisional",
+      source_refs: sourceRefs,
+      boundary: {
+        ...(delta.boundary || {}),
+        durability: "project_identity_hint",
+        disposition,
+        reality_scope: "creative_project"
+      },
+      guidance: {
+        ...(delta.guidance || {}),
+        doNotAnnounceAsReport: true,
+        doNotCreateDuplicateProject: true,
+        treatAsProvisionalUntilReviewed: true
+      }
+    };
+  }
+
+  function runtimeReentryDeltas() {
+    const rt = runtime();
+    return [
+      ...safeArray(rt?.sleep?.whileAwayDeltas),
+      ...safeArray(rt?.context?.whileAway?.updates)
+    ];
+  }
+
+  function mergeWhileAwayStore(existing, deltas, generatedAt) {
+    const base = Array.isArray(existing)
+      ? { legacy_entries: copyJson(existing, []) }
+      : { ...(existing || {}) };
+    const current = [
+      ...safeArray(base.reentryDeltas),
+      ...safeArray(base.updates),
+      ...safeArray(base.deltas),
+      ...safeArray(base.pendingDeltas)
+    ].filter(validReentryDelta).map((delta) => normalizeReentryDelta(delta, delta.persistedAt || generatedAt));
+    const byId = new Map();
+    current.forEach((delta) => byId.set(delta.id, delta));
+    safeArray(deltas)
+      .filter(validReentryDelta)
+      .map((delta) => normalizeReentryDelta(delta, generatedAt))
+      .forEach((delta) => byId.set(delta.id, delta));
+    const reentryDeltas = [...byId.values()].slice(-24);
+    return {
+      ...base,
+      schema: base.schema || "while_away_thoughts_v1",
+      reentryDeltas,
+      last_updated: generatedAt
+    };
+  }
+
 // AIDA REVIEW BLOCK 17: Function mergeProjectSummary - callable behavior in this runtime organ.
   function mergeProjectSummary(existing, listings, generatedAt) {
     const base = { ...(existing || {}) };
@@ -378,6 +450,17 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
         mode: "append",
         merge: (existing) => mergeAppendStore(existing, "items", reviewed.processingBacklogWriteDrafts, generatedAt),
         count: reviewed.processingBacklogWriteDrafts.length
+      });
+    }
+
+    const reentryDeltas = runtimeReentryDeltas().filter(validReentryDelta);
+    if (reentryDeltas.length) {
+      ops.push({
+        target: "while_away_reentry",
+        fileName: "while_away_thoughts.json",
+        mode: "merge",
+        merge: (existing) => mergeWhileAwayStore(existing, reentryDeltas, generatedAt),
+        count: reentryDeltas.length
       });
     }
 
