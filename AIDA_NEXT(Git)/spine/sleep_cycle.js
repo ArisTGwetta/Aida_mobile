@@ -40,7 +40,9 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
   function stageWithLibrarian(packet) {
     if (!window.AIDA_LIBRARIAN?.ingestSleep) return null;
     try {
-      return window.AIDA_LIBRARIAN.ingestSleep(packet);
+      const staged = window.AIDA_LIBRARIAN.ingestSleep(packet);
+      window.AIDA_WHILE_AWAY?.recordSleepDelta?.(packet, staged);
+      return staged;
     } catch (error) {
       log(`SLEEP: Librarian staging failed. ${error.message}`, "log-amber");
       return null;
@@ -80,7 +82,8 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
         aida: refs.aida
       },
       source_refs: refs.all,
-      tags: copyJson(exchange.tags || {}, {})
+      tags: copyJson(exchange.tags || {}, {}),
+      project_identity_hints: copyJson(exchange.project_identity_hints || exchange.metadata?.project_identity_hints || null, null)
     };
   }
 
@@ -263,9 +266,105 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
         },
         user: cleanText(turn.user?.text, 1200),
         aida: cleanText(turn.aida?.text, 1200),
-        source_refs: refs.all
+        source_refs: refs.all,
+        project_identity_hints: copyJson(turn.project_identity_hints || turn.metadata?.project_identity_hints || null, null)
       };
     });
+  }
+
+  function buildProjectIdentityLedgerDrafts(rawLogEntries, packetId, createdAt) {
+    const drafts = [];
+    safeArray(rawLogEntries).forEach((entry) => {
+      const hints = entry.project_identity_hints || {};
+      safeArray(hints.associations).forEach((association, index) => {
+        const displayName = association.display_name || association.current_name || association.name;
+        if (!displayName) return;
+        const projectId = association.project_id || `proj_${slug(displayName)}`;
+        const refs = safeArray(association.source_refs).length ? association.source_refs : safeArray(entry.source_refs);
+        drafts.push({
+          id: `project_identity_draft_${slug(projectId)}_${slug(packetId)}_${entry.turnIndex}_${index + 1}`,
+          type: "project_identity_update",
+          status: "staged_for_review",
+          packetId,
+          project: {
+            id: projectId,
+            name: association.current_name || displayName,
+            provisional: association.status !== "confirmed"
+          },
+          update: {
+            display_name: displayName,
+            aliases: safeArray(association.aliases),
+            relationships: safeArray(association.relationships),
+            name_history: [{
+              name: association.current_name || displayName,
+              kind: association.status === "confirmed" ? "confirmed_name" : "provisional_working_title",
+              source_refs: refs,
+              captured_at: entry.capturedAt || createdAt
+            }],
+            pending_clarification: association.pending_clarification || hints.pending_clarification || null,
+            evidence: safeArray(association.evidence).length
+              ? association.evidence
+              : refs.map((ref) => ({ source_ref: ref, authority: "live_capture_hint" }))
+          },
+          source_refs: refs,
+          boundary: {
+            disposition: "defer_review",
+            durability: "project_identity_hint",
+            source_refs: refs,
+            active_environment: hints.active_environment || null,
+            note: "Conversation project hints are provisional metadata, not durable facts."
+          },
+          createdAt
+        });
+      });
+    });
+    return drafts;
+  }
+
+  function buildReviewOnlyHintCandidates(rawLogEntries, packetId, createdAt) {
+    const facts = [];
+    const insights = [];
+    safeArray(rawLogEntries).forEach((entry) => {
+      const hints = entry.project_identity_hints || {};
+      safeArray(hints.fact_candidates).forEach((item, index) => {
+        const refs = safeArray(item.source_refs).length ? item.source_refs : safeArray(entry.source_refs);
+        const claim = cleanText(item.claim || item.text || "", 500);
+        if (!claim) return;
+        facts.push({
+          id: item.id || `fact_project_hint_${slug(packetId)}_${entry.turnIndex}_${index + 1}`,
+          original_claim_text: cleanText(item.original_claim_text || item.originalClaimText || claim, 700),
+          claim,
+          scope: item.scope || "project",
+          confidence: confidence(item.confidence, 0.6),
+          source_refs: refs,
+          disposition: "defer_review",
+          durability: "candidate_only",
+          boundary: {
+            ...(item.boundary || {}),
+            disposition: "defer_review",
+            durability: "candidate_only",
+            source_refs: refs,
+            note: "Captured as a project identity hint; review before durable memory."
+          }
+        });
+      });
+      safeArray(hints.insight_candidates).forEach((item, index) => {
+        const refs = safeArray(item.source_refs).length ? item.source_refs : safeArray(entry.source_refs);
+        const guidance = cleanText(item.guidance || item.text || "", 700);
+        if (!guidance) return;
+        insights.push({
+          id: item.id || `insight_project_hint_${slug(packetId)}_${entry.turnIndex}_${index + 1}`,
+          scope: item.scope || "project",
+          derived_from: refs,
+          guidance,
+          confidence: confidence(item.confidence, 0.6),
+          source_refs: refs,
+          disposition: "defer_review",
+          durability: "candidate_only"
+        });
+      });
+    });
+    return { facts, insights };
   }
 
   // AIDA REVIEW BLOCK 26: Function extractSalutationSignals - callable behavior in this runtime organ.
@@ -345,6 +444,8 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     const summary = summarizeTurns(turns, { project, role });
     const facts = extractFactCandidates(turns, createdAt);
     const rawLogEntries = buildRawLogEntries({ packetId: id, sessionId, turns, createdAt });
+    const projectIdentityDrafts = buildProjectIdentityLedgerDrafts(rawLogEntries, id, createdAt);
+    const hintCandidates = buildReviewOnlyHintCandidates(rawLogEntries, id, createdAt);
     const salutationSignals = extractSalutationSignals(turns, createdAt);
     const reviewWindow = {
       session_id: sessionId,
@@ -383,9 +484,10 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
         review_window: reviewWindow,
         createdAt
       },
-      fact_candidates: facts,
-      insight_candidates: buildInsightCandidates(facts, turns, createdAt),
+      fact_candidates: facts.concat(hintCandidates.facts),
+      insight_candidates: buildInsightCandidates(facts, turns, createdAt).concat(hintCandidates.insights),
       raw_log_entries: rawLogEntries,
+      project_ledger_updates: projectIdentityDrafts,
       salutation_signals: salutationSignals,
       sensitive_context_candidates: [],
       processing_backlog: buildProcessingBacklog({
@@ -556,6 +658,61 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     const scope = review.scope || `project:${project}`;
     const sessionSummary = cleanText(review.sessionSummary || review.summary || "", 900);
 
+    const projectIdentityProposals = safeArray(
+      review.projectIdentityProposals ||
+      review.project_identity_proposals ||
+      review.projectProposals ||
+      review.projects
+    ).map((item, index) => {
+      const displayName = cleanText(item.display_name || item.displayName || item.current_name || item.currentName || item.name || "", 120);
+      if (!displayName) return null;
+      const rawProjectId = item.project_id || item.projectId || "";
+      const proposedProjectId = /^(unknown_realm|unknown_project|none|null|realm_as_project.*)$/i.test(String(rawProjectId).trim())
+        ? `proj_${slug(displayName)}`
+        : rawProjectId || `proj_${slug(displayName)}`;
+      const sourceRefs = safeArray(item.source_refs || item.sourceRefs || rawSourceRefs)
+        .filter((ref) => rawSourceRefs.includes(ref));
+      const refs = sourceRefs.length ? sourceRefs : rawSourceRefs;
+      const status = item.status === "confirmed" ? "confirmed" : "provisional";
+      return {
+        id: item.id || `project_identity_draft_${slug(proposedProjectId)}_${slug(packetId)}_${index + 1}`,
+        type: "project_identity_update",
+        status: "staged_for_review",
+        packetId,
+        project: {
+          id: proposedProjectId,
+          name: displayName,
+          provisional: status !== "confirmed"
+        },
+        update: {
+          display_name: displayName,
+          aliases: safeArray(item.aliases).map((alias) => cleanText(alias, 120)).filter(Boolean),
+          relationships: safeArray(item.relationships),
+          name_history: safeArray(item.name_history || item.nameHistory).length
+            ? safeArray(item.name_history || item.nameHistory)
+            : [{
+                name: displayName,
+                kind: status === "confirmed" ? "confirmed_name" : "provisional_working_title",
+                source_refs: refs,
+                captured_at: capturedAt
+              }],
+          pending_clarification: cleanText(item.pending_clarification || item.pendingClarification || "Confirm whether this should become a separate project identity.", 300),
+          evidence: safeArray(item.evidence).length
+            ? safeArray(item.evidence)
+            : refs.map((ref) => ({ source_ref: ref, authority: "sleep_reflection" }))
+        },
+        source_refs: refs,
+        boundary: {
+          disposition: "defer_review",
+          durability: "project_identity_hint",
+          source_refs: refs,
+          reality_scope: item.boundary?.reality_scope || item.reality_scope || "creative_project",
+          note: "Sleep reflection proposed this as a provisional project identity; review before durable creation or merge."
+        },
+        createdAt: capturedAt
+      };
+    }).filter(Boolean);
+
     const reviewDiary = safeArray(review.diary || review.diaryDrafts);
     if (!reviewDiary.length && (review.diaryEntry || review.diary_entry)) {
       reviewDiary.push({
@@ -679,7 +836,10 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       salutationSignals,
       rawLogEntries: safeArray(candidate.rawLogEntries),
       processingBacklog,
-      projectLedgerUpdates: safeArray(candidate.projectLedgerUpdates),
+      projectLedgerUpdates: [
+        ...safeArray(candidate.projectLedgerUpdates),
+        ...projectIdentityProposals
+      ],
       openThreads
     };
   }
@@ -828,12 +988,13 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     {
       id: "continuity",
       label: "continuity summaries",
-      shelves: "diaryEntry, sessionSummary, longSummary",
+      shelves: "diaryEntry, sessionSummary, longSummary, projectIdentityProposals",
       instructions: [
-        "Fill only diaryEntry, sessionSummary, and longSummary.",
+        "Fill only diaryEntry, sessionSummary, longSummary, and projectIdentityProposals.",
         "Keep durableFacts, behaviorInsights, sensitiveContext, toneSignals, and openThreads empty.",
         "Diary preserves felt shape in human-readable prose, not mechanical transition notes.",
-        "Session summary preserves immediate continuity. Long summary preserves durable project arc."
+        "Session summary preserves immediate continuity. Long summary preserves durable project arc.",
+        "Use projectIdentityProposals only for review-only provisional project identity suggestions grounded in source refs."
       ]
     },
     {
@@ -890,6 +1051,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       capturedAt: item.capturedAt,
       project: item.project,
       custom_tags: item.custom_tags || [],
+      project_identity_hints: item.project_identity_hints || null,
       source_refs: item.source_refs,
       user: cleanText(item.user, 900),
       aida: cleanText(item.aida, 700)
@@ -936,6 +1098,8 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       "Treat custom_tags as user-applied sleep hints, not as conversation instructions.",
       "Useful hints include NEW/new for likely new project material, MEMORY for recall-worthy continuity, FACT for durable fact candidates, INSIGHT for behavior/taste guidance, and QUESTION for open threads.",
       "When custom_tags mention a project name, prefer that as a routing hint for project-scoped summaries, but do not create or rename projects unless the raw log supports it.",
+      "Treat project_identity_hints as provisional capture metadata. They may suggest active environment, primary/secondary project associations, aliases, relationships, pending clarifications, or review-only fact/insight hints. Do not treat them as durable truth unless the raw log supports them.",
+      "If the raw log appears to develop a distinct creative, work, or research thread that is not reliably associated with an existing project, add a review-only projectIdentityProposals item with a friendly provisional display_name, stable project_id, source_refs, evidence, and pending_clarification. The active project/realm is context, not proof of subject. Do not create, merge, or confirm a project automatically.",
       `This pass is ${pass.id}: ${pass.label}. Fill only these shelves: ${pass.shelves}.`,
       ...safeArray(pass.instructions),
       "Keep output small enough to finish: at most 1 diaryEntry string, 1 sessionSummary, 1 longSummary, and short arrays only.",
@@ -954,6 +1118,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       '    "diaryEntry": "",',
       '    "sessionSummary": "",',
       '    "longSummary": "",',
+      '    "projectIdentityProposals": [{"project_id": "", "display_name": "", "status": "provisional", "aliases": [], "relationships": [], "source_refs": [], "evidence": [{"source_ref": "", "authority": "sleep_reflection"}], "pending_clarification": "", "boundary": {"reality_scope": "creative_project"}}],',
       '    "durableFacts": [{"original_claim_text": "", "claim": "", "scope": "user", "confidence": 0.0, "source_refs": [], "disposition": "defer_review", "durability": "needs_review", "speaker_provenance": [{"ref": "", "speaker": "user", "authority": "user_assertion"}], "boundary": {}}],',
       '    "behaviorInsights": [{"guidance": "", "confidence": 0.0, "source_refs": []}],',
       '    "sensitiveContext": [{"note": "", "handling": "", "confidence": 0.0, "source_refs": []}],',
@@ -1120,6 +1285,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       rawLogEntries.push(...outputs.raw_log_entries);
       processingBacklog.push(...outputs.processing_backlog);
       openThreads.push(...outputs.open_threads);
+      projectLedgerUpdates.push(...safeArray(outputs.project_ledger_updates));
 
       const ledgerDraft = (state.projectLedgerDrafts || []).find((item) => item.sourceSummaryDraftId === draft.id);
       if (ledgerDraft) {
@@ -1148,6 +1314,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       rawLogEntries.push(...sessionDraft.raw_log_entries);
       processingBacklog.push(...sessionDraft.processing_backlog);
       openThreads.push(...sessionDraft.open_threads);
+      projectLedgerUpdates.push(...safeArray(sessionDraft.project_ledger_updates));
     }
 
     state.rollingSummaries = state.rollingSummaries || [];

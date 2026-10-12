@@ -169,7 +169,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     const rollingSummaryIds = usedFallbackRolling ? [] : rolling.map((item) => item.id).filter(Boolean);
     const longSummaryIds = usedFallbackLong ? [] : long.map((item) => item.id).filter(Boolean);
 
-    if (existingLedger.length && preferred.source !== "llm") {
+    if (existingLedger.length) {
       return existingLedger.map((draft, index) => ({
         ...draft,
         id: draft.id || `project_briefcase_draft_${slug(project)}_${preferred.packetId}_${index + 1}`,

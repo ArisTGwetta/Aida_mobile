@@ -89,6 +89,88 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     return [...new Set(tags.map((tag) => cleanTag(tag, "")).filter(Boolean))];
   }
 
+  const PROJECT_HINT_SCHEMA = "project_identity_hints_v0.1";
+
+  function copyJson(value, fallback) {
+    if (value === undefined) return fallback;
+    try {
+      return JSON.parse(JSON.stringify(value));
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  function slug(value, fallback = "project") {
+    return String(value || fallback)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 80) || fallback;
+  }
+
+  function sourceRef(sessionId, turnIndex) {
+    return `${sessionId || "session_unknown"}#turn_${turnIndex}`;
+  }
+
+  function normalizeProjectIdentityHints(snapshot, turnIndex) {
+    const rt = runtime();
+    const source_ref = sourceRef(rt.session?.id, turnIndex);
+    const raw = (
+      rt.context?.projectIdentityHints ||
+      rt.context?.project_identity_hints ||
+      rt.context?.lastLlmResponse?.project_identity_hints ||
+      rt.context?.lastLlmResponse?.projectIdentityHints ||
+      null
+    );
+    const hints = raw && typeof raw === "object" ? copyJson(raw, {}) : {};
+    const associations = Array.isArray(hints.associations) ? hints.associations : [];
+    const factCandidates = Array.isArray(hints.fact_candidates || hints.factCandidates) ? (hints.fact_candidates || hints.factCandidates) : [];
+    const insightCandidates = Array.isArray(hints.insight_candidates || hints.insightCandidates) ? (hints.insight_candidates || hints.insightCandidates) : [];
+    const normalizedAssociations = associations.map((item) => {
+      const display = item.display_name || item.displayName || item.current_name || item.currentName || item.name || "";
+      return {
+        project_id: item.project_id || item.projectId || (display ? `proj_${slug(display)}` : null),
+        display_name: display,
+        current_name: item.current_name || item.currentName || display,
+        status: item.status === "confirmed" ? "confirmed" : "provisional",
+        role: item.role || "related_project",
+        association: item.association || "provisional_association",
+        aliases: Array.isArray(item.aliases) ? item.aliases : [],
+        relationships: Array.isArray(item.relationships) ? item.relationships : [],
+        source_refs: Array.isArray(item.source_refs || item.sourceRefs) && (item.source_refs || item.sourceRefs).length ? (item.source_refs || item.sourceRefs) : [source_ref],
+        evidence: Array.isArray(item.evidence) ? item.evidence : [{ source_ref, authority: "live_capture_hint" }],
+        pending_clarification: item.pending_clarification || item.pendingClarification || null,
+        correction: item.correction || null
+      };
+    }).filter((item) => item.display_name);
+
+    return {
+      schema: PROJECT_HINT_SCHEMA,
+      active_environment: {
+        project: snapshot.project,
+        project_file: snapshot.projectFile,
+        realm: snapshot.realm,
+        source: "runtime_context_not_subject_proof"
+      },
+      associations: normalizedAssociations,
+      fact_candidates: factCandidates.map((item) => ({
+        ...item,
+        source_refs: Array.isArray(item.source_refs || item.sourceRefs) && (item.source_refs || item.sourceRefs).length ? (item.source_refs || item.sourceRefs) : [source_ref],
+        disposition: item.disposition || "defer_review",
+        durability: item.durability || "candidate_only"
+      })),
+      insight_candidates: insightCandidates.map((item) => ({
+        ...item,
+        source_refs: Array.isArray(item.source_refs || item.sourceRefs) && (item.source_refs || item.sourceRefs).length ? (item.source_refs || item.sourceRefs) : [source_ref],
+        disposition: item.disposition || "defer_review",
+        durability: item.durability || "candidate_only"
+      })),
+      pending_clarification: hints.pending_clarification || hints.pendingClarification || null,
+      natural_remark: hints.natural_remark || hints.naturalRemark || null,
+      model_call_required: false
+    };
+  }
+
 // AIDA REVIEW BLOCK 10: Function ensureSession - callable behavior in this runtime organ.
   function ensureSession() {
     const rt = runtime();
@@ -188,6 +270,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     const now = new Date().toISOString();
     const turnIndex = session.currentTurns.length + 1;
     const snapshot = contextSnapshot();
+    const projectIdentityHints = normalizeProjectIdentityHints(snapshot, turnIndex);
 
     const exchange = {
       turnIndex,
@@ -201,6 +284,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
         text: aidaText
       },
       context: snapshot,
+      project_identity_hints: projectIdentityHints,
       tags: {
         ...snapshot.tags,
         turn_index: String(turnIndex),
@@ -218,7 +302,8 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       sessionId: session.id,
       turnIndex,
       capturedAt: now,
-      tags: exchange.tags
+      tags: exchange.tags,
+      project_identity_hints: projectIdentityHints
     });
 
     if (window.AIDA_CONTEXT_EVOLUTION?.ingest) {

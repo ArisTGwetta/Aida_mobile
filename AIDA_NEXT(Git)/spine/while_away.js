@@ -63,6 +63,151 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     return Array.isArray(value) ? value : [];
   }
 
+  // AIDA REVIEW BLOCK 10A: Function copyJson - safe clone for private re-entry metadata.
+  function copyJson(value, fallback) {
+    if (value === undefined) return fallback;
+    try {
+      return JSON.parse(JSON.stringify(value));
+    } catch (error) {
+      return fallback;
+    }
+  }
+
+  // AIDA REVIEW BLOCK 10B: Function slugify - stable compact ids for sleep deltas.
+  function slugify(value, fallback = "untitled") {
+    const slug = String(value || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 72);
+    return slug || fallback;
+  }
+
+  // AIDA REVIEW BLOCK 10C: Function sleepProjectUpdates - extract source-backed project deltas.
+  function sleepProjectUpdates(packet) {
+    const outputs = packet?.distillation?.llm?.output || packet?.distillation?.deterministic?.output || {};
+    const candidates = [
+      ...safeArray(outputs.projectLedgerUpdates),
+      ...safeArray(packet?.projectLedgerDrafts),
+      ...safeArray(packet?.librarian?.projectBriefcaseDrafts)
+    ];
+    const seen = new Set();
+    return candidates.filter((candidate) => {
+      if (!candidate || typeof candidate !== "object") return false;
+      const type = candidate.type || candidate.kind || candidate.update_type || "";
+      const durability = candidate.boundary?.durability || candidate.durability || "";
+      const status = candidate.status || candidate.provisional_status || candidate.project?.status || "";
+      const name = candidate.project?.display_name || candidate.project?.name || candidate.display_name || candidate.name || "";
+      const id = candidate.project?.project_id || candidate.project_id || candidate.id || "";
+      const refs = safeArray(candidate.source_refs || candidate.sourceRefs || candidate.evidence?.source_refs);
+      const isProjectIdentity =
+        type === "project_identity_update" ||
+        durability === "project_identity_hint" ||
+        Boolean(candidate.project?.display_name || candidate.pending_clarification);
+      if (!isProjectIdentity || !name || !refs.length) return false;
+      const key = `${id || slugify(name)}:${refs.join("|")}:${status}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  // AIDA REVIEW BLOCK 10C.1: Function persistedDeltasFromMind - read saved re-entry hints without transcripts.
+  function persistedDeltasFromMind(rt) {
+    const source = rt?.mind?.whileAway || null;
+    if (!source) return [];
+    if (Array.isArray(source)) return source;
+    return [
+      ...safeArray(source.reentryDeltas),
+      ...safeArray(source.updates),
+      ...safeArray(source.deltas),
+      ...safeArray(source.pendingDeltas)
+    ];
+  }
+
+  // AIDA REVIEW BLOCK 10D: Function buildReentryDelta - compact private context from a sleep discovery.
+  function buildReentryDelta(packet, update) {
+    const project = update.project || {};
+    const displayName = project.display_name || project.name || update.display_name || update.name || "Untitled project";
+    const projectId = project.project_id || update.project_id || update.id || `proj_${slugify(displayName)}`;
+    const sourceRefs = safeArray(update.source_refs || update.sourceRefs || update.evidence?.source_refs);
+    const createdAt = update.created_at || update.createdAt || packet?.createdAt || packet?.created_at || nowIso();
+    return {
+      id: `reentry_${packet?.id || "sleep"}_${slugify(projectId || displayName)}`,
+      kind: "provisional_project_identity",
+      privateContext: true,
+      announceRequired: false,
+      incorporatedIntoContext: true,
+      incorporatedAt: nowIso(),
+      userAnnounced: false,
+      sourcePacketId: packet?.id || null,
+      createdAt,
+      changed: "Sleep reflection staged a review-only provisional project identity.",
+      confirmed: false,
+      status: update.status || project.status || "provisional",
+      project: {
+        project_id: projectId,
+        display_name: displayName,
+        aliases: safeArray(project.aliases || update.aliases),
+        name_history: safeArray(project.name_history || update.name_history),
+        relationships: copyJson(project.relationships || update.relationships || {}, {})
+      },
+      source_refs: copyJson(sourceRefs, []),
+      evidence: copyJson(update.evidence || [], []),
+      pending_clarification: update.pending_clarification || update.pendingClarification || null,
+      boundary: copyJson(update.boundary || {
+        durability: "project_identity_hint",
+        disposition: "review_only",
+        reality_scope: "creative_project"
+      }, {}),
+      guidance: {
+        useWhenRelevant: true,
+        doNotAnnounceAsReport: true,
+        doNotCreateDuplicateProject: true,
+        treatAsProvisionalUntilReviewed: true
+      }
+    };
+  }
+
+  // AIDA REVIEW BLOCK 10E: Function refreshContextWhileAway - publish compact re-entry lane.
+  function refreshContextWhileAway(rt) {
+    if (!rt) return null;
+    rt.context = rt.context || {};
+    rt.sleep = rt.sleep || {};
+    hydrateReentryFromMind(rt, { publish: false });
+    const deltas = safeArray(rt.sleep.whileAwayDeltas).slice(-8);
+    const packet = rt.sleep.whileAway || null;
+    const curiositySeeds = safeArray(packet?.seeds?.interests).map((seed) => ({
+      kind: "curiosity_seed",
+      status: "suggestion",
+      completedActivity: false,
+      claimedExternalDiscovery: false,
+      theme: seed.theme || null,
+      hint: cleanText(seed.hint, 220)
+    }));
+    rt.context.whileAway = {
+      schema: "while_away_reentry_v1",
+      ready: true,
+      updatedAt: nowIso(),
+      privateContext: true,
+      announceRequired: false,
+      delivery: {
+        required: false,
+        userAnnounced: false
+      },
+      guidance: {
+        useNaturallyWhenRelevant: true,
+        doNotGiveMandatoryReport: true,
+        verifiedChangesRequireEvidence: true,
+        curiositySeedsAreNotCompletedActivities: true,
+        fictionalImaginingsAreNotRealResearch: true
+      },
+      updates: copyJson(deltas, []),
+      curiositySeeds
+    };
+    return rt.context.whileAway;
+  }
+
   // AIDA REVIEW BLOCK 10: Function dominantValue - simple mode for project/realm/role.
   function dominantValue(turns, reader, fallback = "unknown") {
     const counts = new Map();
@@ -303,6 +448,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     rt.sleep.whileAwaySeeds = safeArray(rt.sleep.whileAwaySeeds);
     rt.sleep.whileAwaySeeds.push(packet);
     rt.sleep.whileAwaySeeds = rt.sleep.whileAwaySeeds.slice(-12);
+    refreshContextWhileAway(rt);
 
     log(
       `WHILE_AWAY: packet=${packet.id}, tier=${packet.tier}, minutesAway=${packet.minutesAway}, exchanges=${packet.session.exchangeCount}.`,
@@ -320,6 +466,109 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       log(`WHILE_AWAY: buildThought failed. ${error.message}`, "log-amber");
       return null;
     }
+  }
+
+  // AIDA REVIEW BLOCK 18A: Function recordSleepDelta - bridge completed sleep discoveries into re-entry context.
+  function recordSleepDelta(packet) {
+    try {
+      const rt = runtime();
+      if (!rt || !packet) return null;
+      rt.sleep = rt.sleep || {};
+      rt.sleep.whileAwayDeltas = safeArray(rt.sleep.whileAwayDeltas);
+      const existingIds = new Set(rt.sleep.whileAwayDeltas.map((item) => item?.id).filter(Boolean));
+      const created = [];
+      packet.whileAway = packet.whileAway || {};
+      packet.whileAway.reentryDeltas = safeArray(packet.whileAway.reentryDeltas);
+      const packetDeltaIds = new Set(packet.whileAway.reentryDeltas.map((item) => item?.id).filter(Boolean));
+      sleepProjectUpdates(packet).forEach((update) => {
+        const delta = buildReentryDelta(packet, update);
+        if (!delta?.id || existingIds.has(delta.id)) return;
+        rt.sleep.whileAwayDeltas.push(delta);
+        existingIds.add(delta.id);
+        if (!packetDeltaIds.has(delta.id)) {
+          packet.whileAway.reentryDeltas.push(copyJson(delta, delta));
+          packetDeltaIds.add(delta.id);
+        }
+        created.push(delta);
+      });
+      rt.sleep.whileAwayDeltas = rt.sleep.whileAwayDeltas.slice(-24);
+      const context = refreshContextWhileAway(rt);
+      if (created.length) {
+        log(`WHILE_AWAY: recorded ${created.length} sleep re-entry delta(s) from ${packet.id || "packet"}.`, "log-blue");
+      }
+      return {
+        recorded: created.length,
+        total: rt.sleep.whileAwayDeltas.length,
+        context
+      };
+    } catch (error) {
+      log(`WHILE_AWAY: sleep delta recording failed. ${error.message}`, "log-amber");
+      return null;
+    }
+  }
+
+  // AIDA REVIEW BLOCK 18B: Function hydrateReentryFromMind - restore saved deltas after boot/restart.
+  function hydrateReentryFromMind(rt = runtime(), options = {}) {
+    if (!rt) return { hydrated: 0, total: 0 };
+    rt.sleep = rt.sleep || {};
+    rt.sleep.whileAwayDeltas = safeArray(rt.sleep.whileAwayDeltas);
+    const existingIds = new Set(rt.sleep.whileAwayDeltas.map((item) => item?.id).filter(Boolean));
+    let hydrated = 0;
+    persistedDeltasFromMind(rt).forEach((delta) => {
+      if (!delta || typeof delta !== "object" || !delta.id || existingIds.has(delta.id)) return;
+      rt.sleep.whileAwayDeltas.push({
+        ...copyJson(delta, {}),
+        persisted: true,
+        incorporatedIntoContext: true
+      });
+      existingIds.add(delta.id);
+      hydrated += 1;
+    });
+    rt.sleep.whileAwayDeltas = rt.sleep.whileAwayDeltas.slice(-24);
+    if (options.publish !== false) {
+      refreshContextWhileAway(rt);
+    }
+    return { hydrated, total: rt.sleep.whileAwayDeltas.length };
+  }
+
+  // AIDA REVIEW BLOCK 18C: Function inspectReentry - safe console view of re-entry delivery state.
+  function inspectReentry() {
+    const rt = runtime();
+    hydrateReentryFromMind(rt);
+    refreshContextWhileAway(rt);
+    const persistedIds = new Set(persistedDeltasFromMind(rt).map((item) => item?.id).filter(Boolean));
+    const contextIds = new Set(safeArray(rt?.context?.whileAway?.updates).map((item) => item?.id).filter(Boolean));
+    const promptText = safeArray(rt?.context?.llmMessages)
+      .map((message) => String(message?.content || ""))
+      .join("\n");
+    const deltas = safeArray(rt?.sleep?.whileAwayDeltas).map((delta) => {
+      const projectName = delta?.project?.display_name || delta?.project?.name || delta?.display_name || delta?.name || null;
+      return {
+        id: delta?.id || null,
+        sourcePacketId: delta?.sourcePacketId || delta?.packetId || null,
+        projectName,
+        persisted: persistedIds.has(delta?.id) || Boolean(delta?.persisted),
+        inContext: contextIds.has(delta?.id),
+        inLastPrompt: Boolean(delta?.id && promptText.includes(delta.id)) || Boolean(projectName && promptText.includes(projectName)),
+        sourceRefCount: safeArray(delta?.source_refs || delta?.sourceRefs).length,
+        reviewStatus: delta?.boundary?.disposition || delta?.status || null,
+        confirmed: delta?.confirmed === true,
+        announceRequired: delta?.announceRequired === true,
+        staleOrMissingHandoff: !contextIds.has(delta?.id) || (!persistedIds.has(delta?.id) && !delta?.sourcePacketId)
+      };
+    });
+    const summary = {
+      schema: "while_away_reentry_inspector_v1",
+      ready: Boolean(rt?.context?.whileAway?.ready),
+      contextSchema: rt?.context?.whileAway?.schema || null,
+      runtimeDeltaCount: safeArray(rt?.sleep?.whileAwayDeltas).length,
+      persistedDeltaCount: persistedIds.size,
+      contextDeltaCount: contextIds.size,
+      lastPromptHasWhileAway: promptText.includes("While-away:"),
+      deltas
+    };
+    log(`WHILE_AWAY REENTRY: deltas=${summary.runtimeDeltaCount}, persisted=${summary.persistedDeltaCount}, context=${summary.contextDeltaCount}.`, "log-blue");
+    return summary;
   }
 
   // AIDA REVIEW BLOCK 19: Function inspect - lightweight debug view of last while-away packet.
@@ -341,7 +590,8 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       minutesAway: packet.minutesAway,
       emotionShape: packet.emotionShape,
       projectSeedCount: safeArray(packet.seeds?.project).length,
-      interestSeedCount: safeArray(packet.seeds?.interests).length
+      interestSeedCount: safeArray(packet.seeds?.interests).length,
+      reentryDeltaCount: safeArray(rt?.sleep?.whileAwayDeltas).length
     };
   }
 
@@ -353,6 +603,9 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
   // AIDA REVIEW BLOCK 21: Browser export AIDA_WHILE_AWAY - exposes this organ to the page runtime.
   window.AIDA_WHILE_AWAY = {
     buildThought,
+    recordSleepDelta,
+    hydrateReentryFromMind,
+    inspectReentry,
     inspect
   };
 
@@ -371,7 +624,9 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       writes: [
         "AIDA_RUNTIME.sleep.whileAway",
         "AIDA_RUNTIME.sleep.whileAwaySeed",
-        "AIDA_RUNTIME.sleep.whileAwaySeeds"
+        "AIDA_RUNTIME.sleep.whileAwaySeeds",
+        "AIDA_RUNTIME.sleep.whileAwayDeltas",
+        "AIDA_RUNTIME.context.whileAway"
       ],
       requires: ["AIDA_RUNTIME"],
       verifies: [

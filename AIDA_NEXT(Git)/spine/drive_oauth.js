@@ -1459,6 +1459,15 @@ async function fetchJsonFile(file) {
     };
   }
 
+  function hydrateWhileAwayReentryFromMind() {
+    try {
+      return window.AIDA_WHILE_AWAY?.hydrateReentryFromMind?.(runtime()) || null;
+    } catch (error) {
+      log(`DRIVE: While-away re-entry hydration skipped: ${error.message}`, "log-amber");
+      return null;
+    }
+  }
+
 // AIDA REVIEW BLOCK 43: Function smokeListDriveJson - callable behavior in this runtime organ.
   async function smokeListDriveJson() {
     try {
@@ -1551,6 +1560,7 @@ async function fetchJsonFile(file) {
       const session = rt.session;
 
       const mapped = mapDriveFilesToMind({ selectDefault: false });
+      hydrateWhileAwayReentryFromMind();
       rt.session = session;
       rt.context.projectName = selectedProjectName;
       rt.context.project = selectedProject;
@@ -1636,6 +1646,7 @@ async function fetchJsonFile(file) {
       }
 
       const mapped = mapDriveFilesToMind();
+      hydrateWhileAwayReentryFromMind();
       if (window.AIDA_EMOTIONS?.applyCurrent) {
         window.AIDA_EMOTIONS.applyCurrent("drive_state");
       }
@@ -1673,6 +1684,7 @@ async function fetchJsonFile(file) {
 
     await fetchJsonByName(fileName, `context:${projectName}`);
     const mapped = mapDriveFilesToMind({ selectDefault: false });
+    hydrateWhileAwayReentryFromMind();
     log(`DRIVE: Context ${fileName} hydrated. realms=${mapped.realms}, projects=${mapped.projects}, ledger=${mapped.projectLedger}.`, "log-blue");
     return runtime().drive.files[fileName] || null;
   }
