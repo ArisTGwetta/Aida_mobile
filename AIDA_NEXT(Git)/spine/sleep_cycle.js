@@ -176,6 +176,13 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     });
   }
 
+  function supplementTurnsFromSharedRecent(rt, turns, range) {
+    const ownerTurns = globalThis?.window?.AIDA_SESSION_CAPTURE?.completedTurnsForSleep?.(range);
+    if (ownerTurns) return ownerTurns;
+    return turnsForCollection(safeArray(turns), range)
+      .sort((a, b) => Number(a.turnIndex || 0) - Number(b.turnIndex || 0));
+  }
+
   // AIDA REVIEW BLOCK 18: Function draftOverlapsCollection - callable behavior in this runtime organ.
   function draftOverlapsCollection(draft, turns, window) {
     const rangedTurns = turnsForRange(turns, draft?.turnStart, draft?.turnEnd);
@@ -267,7 +274,8 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
         user: cleanText(turn.user?.text, 1200),
         aida: cleanText(turn.aida?.text, 1200),
         source_refs: refs.all,
-        project_identity_hints: copyJson(turn.project_identity_hints || turn.metadata?.project_identity_hints || null, null)
+        project_identity_hints: copyJson(turn.project_identity_hints || turn.metadata?.project_identity_hints || null, null),
+        source_transport: copyJson(turn.source_transport || null, null)
       };
     });
   }
@@ -1152,8 +1160,9 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
 
   // AIDA REVIEW BLOCK 47: Function collectSession - callable behavior in this runtime organ.
   function collectSession(session, window) {
+    const rt = runtime();
     const allTurns = session?.currentTurns || [];
-    const turns = turnsForCollection(allTurns, window);
+    const turns = supplementTurnsFromSharedRecent(rt, turnsForCollection(allTurns, window), window);
     return {
       id: session?.id || null,
       startedAt: session?.startedAt || null,
@@ -1173,7 +1182,8 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
 
   // AIDA REVIEW BLOCK 48: Function collectEvolution - callable behavior in this runtime organ.
   function collectEvolution(evolution, session, window) {
-    const turns = session?.currentTurns || [];
+    const rt = runtime();
+    const turns = supplementTurnsFromSharedRecent(rt, turnsForCollection(session?.currentTurns || [], window), window);
     const summaryDrafts = copyJson(evolution?.summaryDrafts || [], [])
       .filter((draft) => draftOverlapsCollection(draft, turns, window));
     const queuedChunks = copyJson(evolution?.queuedChunks || [], [])
@@ -1242,7 +1252,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
 
   // AIDA REVIEW BLOCK 53: Function distillPacket - callable behavior in this runtime organ.
   function distillPacket(packet, rt) {
-    const turns = turnsForCollection(rt.session?.currentTurns || [], packet.collectionWindow);
+    const turns = supplementTurnsFromSharedRecent(rt, turnsForCollection(rt.session?.currentTurns || [], packet.collectionWindow), packet.collectionWindow);
     const createdAt = packet.capturedAt || nowIso();
     const state = rt.contextEvolution || {};
     const diaryDrafts = [];

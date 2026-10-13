@@ -317,6 +317,62 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     return exchange;
   }
 
+  function turnFromSharedRecentRecord(record, sessionId, existingIndexes) {
+    if (!record || typeof record !== "object") return null;
+    if (record.conversation_id && sessionId && record.conversation_id !== sessionId) return null;
+    const turnId = String(record.turn_id || "");
+    const match = turnId.match(/:session_[^:]+:(\d+):/);
+    const sequence = Number(record.sequence || match?.[1] || 0);
+    if (!sequence || existingIndexes.has(sequence)) return null;
+    if (record.status && record.status !== "completed_model_reply") return null;
+    const userText = String(record.user?.text || "").trim();
+    const aidaText = String(record.aida?.text || "").trim();
+    if (!userText || !aidaText) return null;
+    const ctx = record.context || {};
+    const tags = ctx.tags || {};
+    return {
+      turnIndex: sequence,
+      capturedAt: record.effective_at || record.captured_at || new Date().toISOString(),
+      user: { role: "user", text: userText },
+      aida: { role: "assistant", text: aidaText },
+      context: ctx,
+      project_identity_hints: record.project_identity_hints || null,
+      tags: {
+        ...tags,
+        session_id: tags.session_id || sessionId || record.conversation_id || "shared_recent_session",
+        turn_index: String(sequence),
+        captured_at: record.effective_at || record.captured_at || null,
+        source: tags.source || "shared_recent_capture_fallback"
+      },
+      source_transport: {
+        kind: "shared_recent_capture_fallback",
+        turn_id: record.turn_id || null,
+        drive_name: record.drive_name || null
+      }
+    };
+  }
+
+  function completedTurnsForSleep(windowRange = {}) {
+    const rt = runtime();
+    const session = ensureSession();
+    const turns = Array.isArray(session.currentTurns) ? [...session.currentTurns] : [];
+    const existingIndexes = new Set(turns.map((turn) => Number(turn.turnIndex)).filter(Boolean));
+    const additions = (rt.context?.sharedRecentCaptureRecords || [])
+      .map((record) => turnFromSharedRecentRecord(record, session.id, existingIndexes))
+      .filter(Boolean);
+    additions.forEach((turn) => existingIndexes.add(Number(turn.turnIndex)));
+    const sinceMs = Date.parse(windowRange?.since || "");
+    const untilMs = Date.parse(windowRange?.until || "");
+    return [...turns, ...additions]
+      .filter((turn) => {
+        const capturedMs = Date.parse(turn.capturedAt || "");
+        if (Number.isFinite(sinceMs) && Number.isFinite(capturedMs) && capturedMs <= sinceMs) return false;
+        if (Number.isFinite(untilMs) && Number.isFinite(capturedMs) && capturedMs > untilMs) return false;
+        return true;
+      })
+      .sort((a, b) => Number(a.turnIndex || 0) - Number(b.turnIndex || 0));
+  }
+
 // AIDA REVIEW BLOCK 13: Function safeSummary - callable behavior in this runtime organ.
   function safeSummary() {
     const session = ensureSession();
@@ -406,6 +462,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
   window.AIDA_SESSION_CAPTURE = {
     ensureSession,
     captureExchange,
+    completedTurnsForSleep,
     safeSummary,
     inspectSession
   };

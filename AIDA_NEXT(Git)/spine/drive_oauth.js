@@ -949,6 +949,8 @@ async function fetchJsonFile(file) {
     const cfg = sharedRecentConfig();
     if (!cfg.promptInsertionEnabled && options.force !== true) {
       runtime().context.sharedRecentPrompt = "";
+      runtime().context.sharedRecentPromptRecords = [];
+      runtime().context.sharedRecentCaptureRecords = [];
       return { ok: false, skipped: true, reason: "shared_recent_prompt_disabled", prompt: "" };
     }
     const freshness = sharedRecentFreshness();
@@ -986,6 +988,18 @@ async function fetchJsonFile(file) {
       effective_at: record.effective_at,
       drive_name: record.drive_name || null
     }));
+    runtime().context.sharedRecentCaptureRecords = selected.map((record) => ({
+      turn_id: record.turn_id,
+      conversation_id: record.conversation_id || null,
+      host_id: record.host_id,
+      effective_at: record.effective_at || record.captured_at || null,
+      sequence: record.sequence || null,
+      status: record.status || null,
+      user: { text: String(record.user?.text || "").trim() },
+      aida: { text: String(record.aida?.text || "").trim() },
+      context: record.context || null,
+      drive_name: record.drive_name || null
+    }));
     freshness.loadedAt = now;
     freshness.stale = false;
     freshness.refreshError = null;
@@ -994,6 +1008,7 @@ async function fetchJsonFile(file) {
     freshness.promptAvailable = Boolean(prompt);
     freshness.cachedPrompt = prompt;
     freshness.cachedRecords = runtime().context.sharedRecentPromptRecords;
+    freshness.cachedCaptureRecords = runtime().context.sharedRecentCaptureRecords;
     return { ok: true, prompt, records: runtime().context.sharedRecentPromptRecords };
   }
 
@@ -1015,6 +1030,8 @@ async function fetchJsonFile(file) {
 
     if (!cfg.promptInsertionEnabled && options.force !== true) {
       rt.context.sharedRecentPrompt = "";
+      rt.context.sharedRecentPromptRecords = [];
+      rt.context.sharedRecentCaptureRecords = [];
       freshness.stale = true;
       freshness.refreshError = null;
       freshness.lastDecision = "disabled";
@@ -1024,6 +1041,7 @@ async function fetchJsonFile(file) {
     if (!needsRefresh) {
       rt.context.sharedRecentPrompt = freshness.cachedPrompt || rt.context.sharedRecentPrompt || "";
       rt.context.sharedRecentPromptRecords = freshness.cachedRecords || rt.context.sharedRecentPromptRecords || [];
+      rt.context.sharedRecentCaptureRecords = freshness.cachedCaptureRecords || rt.context.sharedRecentCaptureRecords || [];
       freshness.stale = false;
       freshness.refreshError = null;
       freshness.lastDecision = "cache_hit";

@@ -183,29 +183,30 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     if (!delta || typeof delta !== "object") return false;
     if (!delta.id || !delta.sourcePacketId) return false;
     if (!safeArray(delta.source_refs || delta.sourceRefs).length) return false;
-    if (delta.kind && delta.kind !== "provisional_project_identity") return false;
+    if (delta.kind && !["provisional_project_identity", "existing_project_update"].includes(delta.kind)) return false;
     return true;
   }
 
   function normalizeReentryDelta(delta, generatedAt) {
     const sourceRefs = safeArray(delta.source_refs || delta.sourceRefs);
+    const kind = delta.kind === "existing_project_update" ? "existing_project_update" : "provisional_project_identity";
     const disposition = ["review_only", "defer_review", "needs_review"].includes(delta.boundary?.disposition)
       ? delta.boundary.disposition
       : "review_only";
     return {
       ...copyJson(delta, {}),
-      kind: "provisional_project_identity",
+      kind,
       privateContext: true,
       announceRequired: false,
       incorporatedIntoContext: Boolean(delta.incorporatedIntoContext),
       persisted: true,
       persistedAt: generatedAt,
       confirmed: false,
-      status: "provisional",
+      status: kind === "existing_project_update" ? "review_only" : "provisional",
       source_refs: sourceRefs,
       boundary: {
         ...(delta.boundary || {}),
-        durability: "project_identity_hint",
+        durability: kind === "existing_project_update" ? "short_reentry_context" : "project_identity_hint",
         disposition,
         reality_scope: "creative_project"
       },

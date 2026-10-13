@@ -86,10 +86,15 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
   // AIDA REVIEW BLOCK 10C: Function sleepProjectUpdates - extract source-backed project deltas.
   function sleepProjectUpdates(packet) {
     const outputs = packet?.distillation?.llm?.output || packet?.distillation?.deterministic?.output || {};
+    const packetSourceRefs = Array.from(new Set([
+      ...safeArray(packet?.session?.exchanges),
+      ...safeArray(packet?.session?.latestExchanges)
+    ].flatMap((exchange) => safeArray(exchange?.source_refs || exchange?.sourceRefs))));
     const candidates = [
       ...safeArray(outputs.projectLedgerUpdates),
       ...safeArray(packet?.projectLedgerDrafts),
-      ...safeArray(packet?.librarian?.projectBriefcaseDrafts)
+      ...safeArray(packet?.librarian?.projectBriefcaseDrafts),
+      ...safeArray(runtime()?.librarian?.projectBriefcaseDrafts)
     ];
     const seen = new Set();
     return candidates.filter((candidate) => {
@@ -104,8 +109,25 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
         type === "project_identity_update" ||
         durability === "project_identity_hint" ||
         Boolean(candidate.project?.display_name || candidate.pending_clarification);
-      if (!isProjectIdentity || !name || !refs.length) return false;
-      const key = `${id || slugify(name)}:${refs.join("|")}:${status}`;
+      const summaryText = [
+        candidate.update?.latest_summary,
+        candidate.update?.latest_status,
+        candidate.latest_summary,
+        candidate.latest_status
+      ].filter(Boolean).join(" ");
+      const projectRefs = refs.length ? refs : packetSourceRefs;
+      const isMeaningfulExistingProjectUpdate =
+        !isProjectIdentity &&
+        (candidate.type === "project_briefcase_write_draft" || candidate.update?.latest_summary || candidate.update?.latest_status) &&
+        name &&
+        projectRefs.length &&
+        /widget|butterfly|story|creative|project|memory|research|architecture|publish|share|public/i.test(summaryText) &&
+        !/^(hi|hello|hey|good\s+(morning|afternoon|evening|night))[\s!.,-]*$/i.test(summaryText.trim());
+      if (!isProjectIdentity && !isMeaningfulExistingProjectUpdate) return false;
+      if (!name || !projectRefs.length) return false;
+      candidate.source_refs = projectRefs;
+      candidate.reentry_kind = isProjectIdentity ? "provisional_project_identity" : "existing_project_update";
+      const key = `${candidate.reentry_kind}:${id || slugify(name)}:${projectRefs.join("|")}:${status}:${slugify(summaryText || name)}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -132,9 +154,16 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     const projectId = project.project_id || update.project_id || update.id || `proj_${slugify(displayName)}`;
     const sourceRefs = safeArray(update.source_refs || update.sourceRefs || update.evidence?.source_refs);
     const createdAt = update.created_at || update.createdAt || packet?.createdAt || packet?.created_at || nowIso();
+    const kind = update.reentry_kind === "existing_project_update" ? "existing_project_update" : "provisional_project_identity";
+    const updateText = cleanText(update.update?.latest_status || update.update?.latest_summary || update.latest_status || update.latest_summary || "", 520);
+    const exchangeEvidenceText = cleanText(safeArray(packet?.session?.latestExchanges || packet?.session?.exchanges).map((exchange) => [
+      exchange?.userPreview || exchange?.user?.text || "",
+      exchange?.aidaPreview || exchange?.aida?.text || ""
+    ].filter(Boolean).join(" ")).join(" "), 1600);
+    const possibilityNotFact = /someday|maybe|might|possible|could|share|public/i.test(`${updateText} ${exchangeEvidenceText}`);
     return {
       id: `reentry_${packet?.id || "sleep"}_${slugify(projectId || displayName)}`,
-      kind: "provisional_project_identity",
+      kind,
       privateContext: true,
       announceRequired: false,
       incorporatedIntoContext: true,
@@ -142,9 +171,11 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       userAnnounced: false,
       sourcePacketId: packet?.id || null,
       createdAt,
-      changed: "Sleep reflection staged a review-only provisional project identity.",
+      changed: kind === "existing_project_update"
+        ? "Sleep reflection staged a source-backed update to an existing project."
+        : "Sleep reflection staged a review-only provisional project identity.",
       confirmed: false,
-      status: update.status || project.status || "provisional",
+      status: kind === "existing_project_update" ? "review_only" : (update.status || project.status || "provisional"),
       project: {
         project_id: projectId,
         display_name: displayName,
@@ -152,11 +183,17 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
         name_history: safeArray(project.name_history || update.name_history),
         relationships: copyJson(project.relationships || update.relationships || {}, {})
       },
+      update: {
+        summary: updateText,
+        evidence_preview: exchangeEvidenceText,
+        possibility_not_fact: possibilityNotFact,
+        durable_project_creation: false
+      },
       source_refs: copyJson(sourceRefs, []),
       evidence: copyJson(update.evidence || [], []),
       pending_clarification: update.pending_clarification || update.pendingClarification || null,
       boundary: copyJson(update.boundary || {
-        durability: "project_identity_hint",
+        durability: kind === "existing_project_update" ? "short_reentry_context" : "project_identity_hint",
         disposition: "review_only",
         reality_scope: "creative_project"
       }, {}),
