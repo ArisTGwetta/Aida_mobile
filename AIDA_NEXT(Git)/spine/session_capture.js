@@ -352,18 +352,33 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     };
   }
 
+  function stableTurnKey(turn, sessionId) {
+    const index = Number(turn?.turnIndex || turn?.tags?.turn_index || 0);
+    const resolvedSession = turn?.tags?.session_id || sessionId || runtime()?.session?.id || "session_unknown";
+    return index ? `${resolvedSession}#turn_${index}` : null;
+  }
+
   function completedTurnsForSleep(windowRange = {}) {
     const rt = runtime();
     const session = ensureSession();
-    const turns = Array.isArray(session.currentTurns) ? [...session.currentTurns] : [];
-    const existingIndexes = new Set(turns.map((turn) => Number(turn.turnIndex)).filter(Boolean));
-    const additions = (rt.context?.sharedRecentCaptureRecords || [])
-      .map((record) => turnFromSharedRecentRecord(record, session.id, existingIndexes))
-      .filter(Boolean);
-    additions.forEach((turn) => existingIndexes.add(Number(turn.turnIndex)));
+    const selected = [];
+    const seenKeys = new Set();
+    const addTurn = (turn) => {
+      const key = stableTurnKey(turn, session.id);
+      if (!key || seenKeys.has(key)) return;
+      seenKeys.add(key);
+      selected.push(turn);
+    };
+
+    (Array.isArray(session.currentTurns) ? session.currentTurns : []).forEach(addTurn);
+    (rt.context?.sharedRecentCaptureRecords || []).forEach((record) => {
+      const turn = turnFromSharedRecentRecord(record, session.id, new Set());
+      addTurn(turn);
+    });
+
     const sinceMs = Date.parse(windowRange?.since || "");
     const untilMs = Date.parse(windowRange?.until || "");
-    return [...turns, ...additions]
+    return selected
       .filter((turn) => {
         const capturedMs = Date.parse(turn.capturedAt || "");
         if (Number.isFinite(sinceMs) && Number.isFinite(capturedMs) && capturedMs <= sinceMs) return false;
@@ -372,7 +387,6 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       })
       .sort((a, b) => Number(a.turnIndex || 0) - Number(b.turnIndex || 0));
   }
-
 // AIDA REVIEW BLOCK 13: Function safeSummary - callable behavior in this runtime organ.
   function safeSummary() {
     const session = ensureSession();

@@ -49,6 +49,7 @@
 
   function hasWork(rt) {
     return Boolean(
+      rt?.sleep?.lastPacket || rt?.sleep?.committedCollectedAt ||
       rt?.session?.currentTurns?.length ||
       rt?.sleep?.pendingJournal?.length ||
       rt?.contextEvolution?.queuedChunks?.length ||
@@ -69,7 +70,9 @@
       sleep: {
         pendingJournal: copyJson(rt.sleep?.pendingJournal || [], []),
         lastContextCheckpoint: copyJson(rt.sleep?.lastContextCheckpoint || null, null),
-        lastActive: rt.sleep?.lastActive || null
+        lastActive: rt.sleep?.lastActive || null,
+        committedCollectedAt: rt.sleep?.committedCollectedAt || null,
+        lastPacket: copyJson(rt.sleep?.lastPacket || null, null)
       },
       librarian: copyJson(rt.librarian || null, null),
       curator: copyJson(rt.curator || null, null)
@@ -148,6 +151,10 @@
     rt.sleep.pendingJournal = copyJson(snapshot.sleep?.pendingJournal || [], []);
     rt.sleep.lastContextCheckpoint = copyJson(snapshot.sleep?.lastContextCheckpoint || null, null);
     if (snapshot.sleep?.lastActive) rt.sleep.lastActive = snapshot.sleep.lastActive;
+    rt.sleep.committedCollectedAt = snapshot.sleep?.committedCollectedAt || null;
+    rt.sleep.lastCollectedAt = rt.sleep.committedCollectedAt;
+    rt.sleep.lastPacket = copyJson(snapshot.sleep?.lastPacket || null, null);
+    rt.sleep.packets = rt.sleep.lastPacket ? [rt.sleep.lastPacket] : [];
 
     if (snapshot.librarian) {
       rt.librarian = {
@@ -202,6 +209,8 @@
   }
 
   function clear(reason = "manual_clear") {
+    const packet = runtime()?.sleep?.lastPacket;
+    if (packet && packet.status !== "saved_to_drive") return { ok: false, reason: "pending_sleep_packet_retained" };
     const state = ensureState();
     const store = storage();
     if (!store) return { ok: false, reason: "localStorage_unavailable" };

@@ -179,6 +179,30 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     return base;
   }
 
+  function rawSourceIdentity(entry) {
+    const transport = entry?.source_transport;
+    if (transport?.turn_id) return `transport:${transport.host_id || ""}:${transport.turn_id}`;
+    if (!entry?.session_id || !Number.isInteger(Number(entry.turnIndex)) || Number(entry.turnIndex) < 1) return null;
+    return `session:${entry.session_id}:${entry.turnIndex}`;
+  }
+
+  function mergeRawCapture(existing, items, generatedAt) {
+    const base = Array.isArray(existing) ? { entries: existing } : { ...(existing || {}) };
+    const entries = safeArray(base.entries).slice();
+    safeArray(items).forEach((item) => {
+      const identity = rawSourceIdentity(item);
+      const duplicate = identity && entries.some((prior) => rawSourceIdentity(prior) === identity &&
+        prior.user === item.user && prior.aida === item.aida && prior.capturedAt === item.capturedAt &&
+        prior.llm_scope === item.llm_scope);
+      if (!duplicate) {
+        // A conflicting same-ID entry must not overwrite historical evidence.
+        if (entries.some((prior) => prior.id === item.id)) throw new Error("Conflicting raw capture ID");
+        entries.push(item);
+      }
+    });
+    return { ...base, entries, last_updated: generatedAt };
+  }
+
   function validReentryDelta(delta) {
     if (!delta || typeof delta !== "object") return false;
     if (!delta.id || !delta.sourcePacketId) return false;
@@ -523,7 +547,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
         target: "raw_session_log",
         fileName: "raw_session_log.json",
         mode: "append",
-        merge: (existing) => mergeAppendStore(existing, "entries", reviewed.rawLogWriteDrafts, generatedAt),
+        merge: (existing) => mergeRawCapture(existing, reviewed.rawLogWriteDrafts, generatedAt),
         count: reviewed.rawLogWriteDrafts.length
       });
     }
@@ -708,7 +732,19 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
   async function apply(options = {}) {
     const dryRun = options.dryRun !== false;
     const state = ensureState();
+    const pendingPacket = runtime().sleep?.lastPacket;
+    if (!dryRun) state.savedPacketId = null;
     const ops = buildOperations();
+    if (!dryRun && pendingPacket && pendingPacket.status !== "saved_to_drive") {
+      if (pendingPacket.status === "incomplete_deferred" || pendingPacket.captureCompleteness?.status !== "complete") {
+        throw new Error("Sleep capture is deferred; writeback blocked");
+      }
+      const rawDrafts = safeArray(window.AIDA_CURATOR?.getReviewed?.()?.rawLogWriteDrafts);
+      const captured = safeArray(window.AIDA_SLEEP?.getPreferredDistillation?.(pendingPacket)?.output?.rawLogEntries);
+      if (!captured.length || captured.some((item) => !rawDrafts.some((draft) => draft.id === item.id))) {
+        throw new Error("Pending packet raw capture is not fully staged");
+      }
+    }
     if (!ops.length) {
       const result = { ready: false, status: "nothing_to_write", dryRun, operations: [] };
       consoleReport("AIDA_DRIVE_WRITEBACK_APPLY", result);
@@ -775,6 +811,9 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       ? (successCount ? "partial_applied" : (dryRun ? "dry_run_failed" : "apply_failed"))
       : (dryRun ? "dry_run_complete" : "applied");
     state.operations = results;
+    if (!dryRun && failedCount === 0 && pendingPacket && runtime().sleep?.lastPacket?.id === pendingPacket.id) {
+      state.savedPacketId = pendingPacket.id;
+    }
     state.history.push({ appliedAt, dryRun, results });
     state.history = state.history.slice(-20);
     if (!dryRun && successCount) {

@@ -42,6 +42,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     try {
       const staged = window.AIDA_LIBRARIAN.ingestSleep(packet);
       window.AIDA_WHILE_AWAY?.recordSleepDelta?.(packet, staged);
+      window.AIDA_CRASH_BUFFER?.checkpoint?.("sleep_packet_staging_updated");
       return staged;
     } catch (error) {
       log(`SLEEP: Librarian staging failed. ${error.message}`, "log-amber");
@@ -159,8 +160,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
   // AIDA REVIEW BLOCK 16: Function collectionBoundary - callable behavior in this runtime organ.
   function collectionBoundary(rt) {
     const sleep = rt?.sleep || {};
-    const lastPacketAt = sleep.lastPacket?.capturedAt || null;
-    return sleep.lastCollectedAt || sleep.lastActive || lastPacketAt || null;
+    return sleep.committedCollectedAt || null;
   }
 
   // AIDA REVIEW BLOCK 17: Function turnsForCollection - callable behavior in this runtime organ.
@@ -183,6 +183,32 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       .sort((a, b) => Number(a.turnIndex || 0) - Number(b.turnIndex || 0));
   }
 
+  function stableTurnKey(turn, sessionId) {
+    const index = Number(turn?.turnIndex || turn?.tags?.turn_index || 0);
+    const resolvedSession = turn?.tags?.session_id || sessionId || runtime()?.session?.id || "session_unknown";
+    return index ? `${resolvedSession}#turn_${index}` : null;
+  }
+
+  function rawEntryTurnKey(entry, sessionId) {
+    const refs = safeArray(entry?.source_refs);
+    const direct = refs.find((ref) => /#turn_\d+\b/.test(String(ref || "")));
+    if (direct) return direct;
+    return stableTurnKey({ turnIndex: entry?.turnIndex, tags: { session_id: entry?.session_id || sessionId } }, sessionId);
+  }
+
+  function appendDistillationOutputs(outputs, target) {
+    target.diaryDrafts.push(outputs.diary_candidate);
+    target.rollingSummaries.push(outputs.rolling_summary);
+    target.longSummaryCandidates.push(outputs.long_summary_candidate);
+    target.factCandidates.push(...outputs.fact_candidates);
+    target.insightCandidates.push(...outputs.insight_candidates);
+    target.sensitiveContextCandidates.push(...outputs.sensitive_context_candidates);
+    target.salutationSignals.push(...outputs.salutation_signals);
+    target.rawLogEntries.push(...outputs.raw_log_entries);
+    target.processingBacklog.push(...outputs.processing_backlog);
+    target.openThreads.push(...outputs.open_threads);
+    target.projectLedgerUpdates.push(...safeArray(outputs.project_ledger_updates));
+  }
   // AIDA REVIEW BLOCK 18: Function draftOverlapsCollection - callable behavior in this runtime organ.
   function draftOverlapsCollection(draft, turns, window) {
     const rangedTurns = turnsForRange(turns, draft?.turnStart, draft?.turnEnd);
@@ -1305,6 +1331,46 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       }
     });
 
+    const coveredTurnKeys = new Set(
+      rawLogEntries
+        .map((entry) => rawEntryTurnKey(entry, packet.session?.id))
+        .filter(Boolean)
+    );
+    const missingCompletedTurns = filledSummaryDrafts
+      ? turns.filter((turn) => {
+          const key = stableTurnKey(turn, packet.session?.id);
+          return key && !coveredTurnKeys.has(key);
+        })
+      : [];
+    if (missingCompletedTurns.length) {
+      const firstMissing = missingCompletedTurns[0];
+      const lastMissing = missingCompletedTurns[missingCompletedTurns.length - 1];
+      const tags = firstMissing?.tags || turns[0]?.tags || {};
+      const recoveryDraft = buildDistillationForTurns({
+        id: `${packet.id}_complete_capture_recovery_${firstMissing.turnIndex}_${lastMissing.turnIndex}`,
+        sessionId: packet.session.id,
+        turns: missingCompletedTurns,
+        tags,
+        createdAt
+      });
+      appendDistillationOutputs(recoveryDraft, {
+        diaryDrafts,
+        rollingSummaries,
+        longSummaryCandidates,
+        factCandidates,
+        insightCandidates,
+        sensitiveContextCandidates,
+        salutationSignals,
+        rawLogEntries,
+        processingBacklog,
+        openThreads,
+        projectLedgerUpdates
+      });
+      recoveryDraft.raw_log_entries.forEach((entry) => {
+        const key = rawEntryTurnKey(entry, packet.session?.id);
+        if (key) coveredTurnKeys.add(key);
+      });
+    }
     if (!filledSummaryDrafts && turns.length) {
       const tags = turns[0]?.tags || {};
       const sessionDraft = buildDistillationForTurns({
@@ -1332,10 +1398,34 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     rollingSummaries.forEach((item) => upsertById(state.rollingSummaries, item));
     longSummaryCandidates.forEach((item) => upsertById(state.longSummaryDrafts, item));
 
+    const availableTurnRefs = turns.map((turn) => stableTurnKey(turn, packet.session?.id)).filter(Boolean);
+    const rawCapturedTurnRefs = rawLogEntries.map((entry) => rawEntryTurnKey(entry, packet.session?.id)).filter(Boolean);
+    const rawCapturedSet = new Set(rawCapturedTurnRefs);
+    const expectedCount = Number(rt.session?.exchangeCount || packet.session?.totalExchangeCount || 0);
+    const expectedTurnRefs = expectedCount > 0
+      ? Array.from({ length: expectedCount }, (_, index) => `${packet.session?.id || rt.session?.id || "session_unknown"}#turn_${index + 1}`)
+      : [];
+    const availableSet = new Set(supplementTurnsFromSharedRecent(rt, rt.session?.currentTurns || [], {}).map((turn) => stableTurnKey(turn, packet.session?.id)).filter(Boolean));
+    const missingExpectedTurnRefs = expectedTurnRefs.filter((ref) => !availableSet.has(ref));
+    const omittedTurnRefs = availableTurnRefs.filter((ref) => !rawCapturedSet.has(ref));
+    const recoveredTurnRefs = missingCompletedTurns.map((turn) => stableTurnKey(turn, packet.session?.id)).filter(Boolean);
+    const captureCompleteness = {
+      status: omittedTurnRefs.length || missingExpectedTurnRefs.length ? "incomplete_deferred" : "complete",
+      availableTurnRefs,
+      expectedTurnRefs,
+      rawCapturedTurnRefs,
+      recoveredTurnRefs,
+      omittedTurnRefs,
+      missingExpectedTurnRefs,
+      comparison: "stable_session_turn_ref",
+      source: "local_session_plus_available_shared_recent"
+    };
+    packet.captureCompleteness = captureCompleteness;
     packet.distillation = {
       status: "draft_filled",
       method: "deterministic_runtime_draft",
       filledAt: createdAt,
+      captureCompleteness,
       diaryDrafts,
       rollingSummaries,
       longSummaryCandidates,
@@ -1383,7 +1473,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       insightCandidates: llmDraft.insightCandidates.length ? llmDraft.insightCandidates : safeArray(fallback.insightCandidates),
       sensitiveContextCandidates: llmDraft.sensitiveContextCandidates.length ? llmDraft.sensitiveContextCandidates : safeArray(fallback.sensitiveContextCandidates),
       salutationSignals: llmDraft.salutationSignals.length ? llmDraft.salutationSignals : safeArray(fallback.salutationSignals),
-      rawLogEntries: llmDraft.rawLogEntries.length ? llmDraft.rawLogEntries : safeArray(fallback.rawLogEntries),
+      rawLogEntries: safeArray(fallback.rawLogEntries),
       openThreads: llmDraft.openThreads.length ? llmDraft.openThreads : safeArray(fallback.openThreads)
     };
     const llmProducedSemanticMemory = Boolean(
@@ -1652,6 +1742,19 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
   function buildPacket(reason = "manual_sleep") {
     const rt = runtime();
     if (!rt) return null;
+    const pending = rt.sleep?.lastPacket;
+    if (pending && pending.status !== "saved_to_drive" && pending.captureCompleteness?.status === "complete") {
+      const persisted = window.AIDA_CRASH_BUFFER?.checkpoint?.("sleep_retry_pending_packet");
+      if (!persisted?.ok) {
+        pending.status = "incomplete_deferred";
+        pending.incompleteReason = "pending_packet_storage_unavailable";
+        return pending;
+      }
+      pending.status = "ready_for_drive_sync";
+      stageWithLibrarian(pending);
+      window.AIDA_CRASH_BUFFER?.checkpoint?.("sleep_retry_staged");
+      return pending;
+    }
 
     const capturedAt = nowIso();
     const boundary = collectionBoundary(rt);
@@ -1690,12 +1793,29 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     distillPacket(packet, rt);
     stampPacketLlmScope(packet, rt);
 
+    if (packet.captureCompleteness?.status !== "complete") {
+      packet.status = "incomplete_deferred";
+      packet.incompleteReason = "sleep_capture_missing_completed_turns";
+      rt.sleep.lastPacket = packet;
+      rt.sleep.packets = rt.sleep.packets || [];
+      rt.sleep.packets.push(packet);
+      rt.sleep.packets = rt.sleep.packets.slice(-5);
+      log(`SLEEP: Packet ${packet.id} deferred; completed turn capture is incomplete.`, "log-amber");
+      consoleReport("AIDA_SLEEP_CAPTURE_INCOMPLETE", packet.captureCompleteness);
+      window.AIDA_CRASH_BUFFER?.checkpoint?.("sleep_capture_incomplete_deferred");
+      return packet;
+    }
     rt.sleep.lastActive = capturedAt;
-    rt.sleep.lastCollectedAt = capturedAt;
     rt.sleep.lastPacket = packet;
     rt.sleep.packets = rt.sleep.packets || [];
     rt.sleep.packets.push(packet);
     rt.sleep.packets = rt.sleep.packets.slice(-5);
+    const persisted = window.AIDA_CRASH_BUFFER?.checkpoint?.("sleep_pending_packet_created");
+    if (!persisted?.ok) {
+      packet.status = "incomplete_deferred";
+      packet.incompleteReason = "pending_packet_storage_unavailable";
+      return packet;
+    }
     rt.drive.syncQueue = rt.drive.syncQueue || [];
     rt.drive.syncQueue.push({
       type: "sleep_packet",
@@ -1710,6 +1830,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     log(`SLEEP DISTILLATION: diary=${packet.distillation.counts.diaryDrafts}, facts=${packet.distillation.counts.factCandidates}, insights=${packet.distillation.counts.insightCandidates}, method=${packet.distillation.method}.`);
     consoleReport("AIDA_SLEEP_FALLBACK_DISTILLATION", getPreferredDistillation(packet));
     stageWithLibrarian(packet);
+    window.AIDA_CRASH_BUFFER?.checkpoint?.("sleep_pending_packet_staged");
     return packet;
   }
 
@@ -1842,18 +1963,26 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     const rt = runtime();
     const packet = rt?.sleep?.lastPacket;
     if (!packet) return { ok: false, reason: "no_packet" };
+    if (packet.status === "saved_to_drive") return { ok: true, packetId: packet.id, alreadySaved: true };
+    if (packet.captureCompleteness?.status !== "complete" ||
+        rt.driveWriteback?.savedPacketId !== packet.id || rt.driveWriteback?.lastStatus !== "applied") {
+      return { ok: false, reason: "packet_writeback_not_confirmed" };
+    }
 
     packet.status = "saved_to_drive";
     packet.savedAt = nowIso();
     const removedDraftCount = clearPacketStaging(packet.id);
-    rt.session.unsaved = false;
-    rt.sleep.pendingJournal = [];
-    window.AIDA_CRASH_BUFFER?.clear?.("sleep_packet_saved_to_drive");
+    rt.sleep.committedCollectedAt = packet.collectionWindow.until;
+    rt.sleep.lastCollectedAt = rt.sleep.committedCollectedAt;
+    rt.sleep.pendingJournal = safeArray(rt.sleep.pendingJournal).filter((item) => timeMs(item.capturedAt) > timeMs(packet.collectionWindow.until));
+    rt.session.unsaved = rt.sleep.pendingJournal.length > 0;
+    const recovery = window.AIDA_CRASH_BUFFER?.checkpoint?.("sleep_packet_saved_to_drive");
     return {
       ok: true,
       packetId: packet.id,
       savedAt: packet.savedAt,
-      removedDraftCount
+      removedDraftCount,
+      recoveryPersisted: Boolean(recovery?.ok)
     };
   }
 
@@ -1865,7 +1994,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
 
     const packetId = packet.id;
     const removedDraftCount = clearPacketStaging(packetId);
-    const priorBoundary = packet.collectionWindow?.since || null;
+    const priorBoundary = rt.sleep.committedCollectedAt || null;
     rt.sleep.packets = safeArray(rt.sleep.packets).filter((item) => item.id !== packetId);
     rt.sleep.lastPacket = rt.sleep.packets[rt.sleep.packets.length - 1] || null;
     rt.sleep.lastCollectedAt = priorBoundary;
@@ -1884,6 +2013,10 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
   // AIDA REVIEW BLOCK 67: Function sleepNow - callable behavior in this runtime organ.
   function sleepNow(reason = "manual_sleep") {
     const packet = buildPacket(reason);
+    if (packet?.status === "incomplete_deferred") {
+      window.AIDA_BODY?.pulse?.(`Sleep deferred: ${packet.incompleteReason || "capture incomplete"}. Conversation retained.`);
+      return packet;
+    }
     const summary = safeSummary();
     const rt = runtime();
     if (rt?.sleep) {
