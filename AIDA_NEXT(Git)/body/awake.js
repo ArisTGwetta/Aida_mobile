@@ -1397,6 +1397,62 @@
     }, 2500);
   };
 
+  function resumePendingSave() {
+    const fail = (reason) => {
+      appendBios(`Pending save could not reopen: ${reason}. Recovery data retained.`, "log-amber");
+      return { ok: false, reason };
+    };
+    try {
+      const rt = runtime();
+      const packet = rt?.sleep?.lastPacket;
+      if (!packet?.id) return fail("pending packet ID is missing");
+      if (packet.status === "saved_to_drive") return fail("packet is already saved");
+      if (packet.status === "incomplete_deferred" || packet.captureCompleteness?.status !== "complete") {
+        return fail("packet capture is incomplete or deferred");
+      }
+      const raw = packet.distillation?.rawLogEntries;
+      const expected = packet.captureCompleteness.availableTurnRefs;
+      if (!Array.isArray(raw) || !raw.length || !Array.isArray(expected) || !expected.length) {
+        return fail("packet source-turn evidence is missing");
+      }
+      const refs = (items) => [...new Set(items.flatMap((item) => item.source_refs || []))].sort();
+      const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+      if (!same(refs(raw), [...new Set(expected)].sort()) || new Set(raw.map((item) => item.id)).size !== raw.length ||
+          raw.some((item) => !item.id || !Array.isArray(item.source_refs) || !item.source_refs.length)) {
+        return fail("packet raw capture does not match its source-turn identities");
+      }
+      // Read storage directly: the crash-buffer convenience reader probes storage with writes.
+      const key = rt.crashBuffer?.key || "AIDA_SPINE_CRASH_BUFFER_V1";
+      const snapshot = JSON.parse(window.localStorage.getItem(key) || "null");
+      const stored = snapshot?.sleep?.lastPacket;
+      if (stored?.id !== packet.id || stored.status === "saved_to_drive" ||
+          !Object.prototype.hasOwnProperty.call(snapshot.sleep, "committedCollectedAt") ||
+          !same(stored.distillation?.rawLogEntries, raw) ||
+          !same(refs(stored.distillation?.rawLogEntries || []), refs(raw)) ||
+          (snapshot.sleep.committedCollectedAt || null) !== (rt.sleep.committedCollectedAt || null)) {
+        return fail("stored packet or committed checkpoint does not match recovered state");
+      }
+      const staged = window.AIDA_CURATOR?.getReviewed?.()?.rawLogWriteDrafts;
+      if (!Array.isArray(staged) || staged.length !== raw.length || raw.some((item) => !staged.some((draft) =>
+          draft.id === item.id && draft.packetId === packet.id &&
+          same(draft.source_refs, item.source_refs) && draft.user === item.user && draft.aida === item.aida))) {
+        return fail("matching raw writeback records are missing");
+      }
+      if (!window.AIDA_BODY?.showSleepCollected) return fail("Save card is unavailable");
+      showBody();
+      window.AIDA_BODY.showSleepCollected({
+        packetId: packet.id,
+        exchangeCount: packet.session?.exchangeCount,
+        diaryDraftCount: packet.distillation.diaryDrafts?.length || 0,
+        factCandidateCount: packet.distillation.factCandidates?.length || 0,
+        insightCandidateCount: packet.distillation.insightCandidates?.length || 0
+      }, { final: true });
+      return { ok: true, packetId: packet.id };
+    } catch (error) {
+      return fail(`recovery validation failed: ${error.message}`);
+    }
+  }
+
 // AIDA REVIEW BLOCK 43: Browser export AIDA_BODY - exposes this organ to the page runtime.
   window.AIDA_BODY = {
     arrive: window.aida_arrive,
@@ -1432,6 +1488,15 @@
     appendBios("Awake body module loaded.", "log-blue");
 
     const preview = $("boot-preview-btn");
+    const wake = $("wake-aida-btn");
+    if (wake && !$("resume-pending-save-btn")) {
+      const resume = document.createElement("button");
+      resume.id = "resume-pending-save-btn";
+      resume.type = "button";
+      resume.textContent = "Resume Pending Save";
+      resume.addEventListener("click", resumePendingSave);
+      wake.insertAdjacentElement("afterend", resume);
+    }
     if (preview) {
       preview.addEventListener("click", () => {
         showBody();
