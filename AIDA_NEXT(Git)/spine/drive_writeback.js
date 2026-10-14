@@ -340,6 +340,90 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     };
   }
 
+  const STATION_SLEEP_SEED_CATEGORY_KEYWORDS = {
+    reading: ["read", "book", "literature", "story", "research", "paper", "study", "archive"],
+    creative: ["art", "paint", "draw", "creative", "design", "visual", "image", "story"],
+    reflection: ["reflect", "philosophy", "meaning", "memory", "insight", "wonder", "question"],
+    curiosity: ["curious", "discovery", "explore", "interesting", "possibility", "thread"],
+    movement: ["move", "walk", "dance", "play", "pace"],
+    relaxation: ["rest", "sleep", "quiet", "calm", "gentle", "vibe"]
+  };
+
+  const STATION_SLEEP_SEED_ACTIVITY_HINTS = {
+    reading: ["Reading", "Research"],
+    creative: ["Paining", "ooo-shiny", "Butterfly2"],
+    reflection: ["meditating"],
+    curiosity: ["ooo-shiny", "Shiny2", "Butterfly2"],
+    movement: ["Walking2", "dance"],
+    relaxation: ["Vibing", "meditating"]
+  };
+
+// AIDA REVIEW BLOCK 18A: Station sleep seed projection helpers - privacy-limited playlist hints for the desktop station.
+  function stationSeedFragments(value, depth = 0) {
+    if (depth > 4 || value === null || value === undefined) return [];
+    if (typeof value === "string") return value.trim() ? [value] : [];
+    if (Array.isArray(value)) {
+      return value.flatMap((item) => stationSeedFragments(item, depth + 1));
+    }
+    if (typeof value === "object") {
+      return Object.entries(value).flatMap(([key, child]) => {
+        const normalized = String(key || "").toLowerCase();
+        if ([
+          "source_refs",
+          "sourcerefs",
+          "recentexchanges",
+          "recent_exchanges",
+          "conversation",
+          "transcript",
+          "exchange",
+          "exchanges",
+          "user",
+          "aida"
+        ].includes(normalized)) {
+          return [];
+        }
+        return stationSeedFragments(child, depth + 1);
+      });
+    }
+    return [];
+  }
+
+  function stationSleepSeedCategories(packet) {
+    const whileAway = packet?.whileAway || packet?.while_away || null;
+    const sources = [
+      whileAway?.prepared,
+      whileAway?.seed,
+      ...(safeArray(whileAway?.seedQueue))
+    ].filter(Boolean);
+    const fragments = sources.flatMap((source) => stationSeedFragments(source)).join(" ").toLowerCase();
+    if (!fragments) return [];
+    return Object.entries(STATION_SLEEP_SEED_CATEGORY_KEYWORDS)
+      .filter(([, keywords]) => keywords.some((keyword) => fragments.includes(keyword)))
+      .map(([category]) => category)
+      .sort();
+  }
+
+  function buildStationSleepSeedProjection(generatedAt) {
+    const packet = runtime()?.sleep?.lastPacket || null;
+    if (!packet?.whileAway) return null;
+    const categories = stationSleepSeedCategories(packet);
+    if (!categories.length) return null;
+    const whileAway = packet.whileAway || {};
+    const prepared = whileAway.prepared || null;
+    const seed = whileAway.seed || null;
+    const activityHints = Array.from(new Set(categories.flatMap((category) => STATION_SLEEP_SEED_ACTIVITY_HINTS[category] || []))).sort();
+    return {
+      schema: "aida_station_sleep_seed_playlist_v1",
+      updatedAt: generatedAt,
+      source: "AIDA_SLEEP.lastPacket.whileAway",
+      sourcePacketId: packet.id || null,
+      packetCapturedAt: packet.capturedAt || null,
+      whileAwayId: prepared?.id || seed?.id || null,
+      whileAwayCreatedAt: prepared?.createdAt || seed?.createdAt || null,
+      categories,
+      activityHints
+    };
+  }
 // AIDA REVIEW BLOCK 19: Function buildOperations - callable behavior in this runtime organ.
   function buildOperations(reviewed = window.AIDA_CURATOR?.getReviewed?.()) {
     const generatedAt = nowIso();
@@ -465,6 +549,17 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       });
     }
 
+    const stationSleepSeedProjection = buildStationSleepSeedProjection(generatedAt);
+    if (stationSleepSeedProjection) {
+      ops.push({
+        target: "station_sleep_seed_playlist",
+        fileName: "station_sleep_seed_playlist.json",
+        mode: "replace",
+        merge: () => stationSleepSeedProjection,
+        count: stationSleepSeedProjection.categories.length,
+        packetId: stationSleepSeedProjection.sourcePacketId || null
+      });
+    }
     safeArray(runtime()?.driveWriteback?.projectReconciliations)
       .filter((item) => item?.status === "staged")
       .forEach((item) => {
@@ -752,7 +847,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     window.AIDA_MODULES.register({
       id: MODULE_ID,
       phase: "drive_writeback",
-      reads: ["AIDA_CURATOR.getReviewed", "AIDA_RUNTIME.drive.fileIndex", "AIDA_RUNTIME.tokens.drive.accessToken"],
+      reads: ["AIDA_CURATOR.getReviewed", "AIDA_RUNTIME.drive.fileIndex", "AIDA_RUNTIME.sleep.lastPacket", "AIDA_RUNTIME.tokens.drive.accessToken"],
       writes: ["AIDA_RUNTIME.drive.files", "AIDA_RUNTIME.driveWriteback"],
       requires: ["AIDA_RUNTIME", "AIDA_CURATOR", "AIDA_DRIVE"],
       verifies: ["Curator write plans can be previewed, dry-run, and deliberately applied to Drive JSON"]
@@ -762,3 +857,5 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
 // AIDA REVIEW BLOCK 29: Browser event wiring - connects page lifecycle or user actions to this organ.
   document.addEventListener("DOMContentLoaded", install);
 })();
+
+
