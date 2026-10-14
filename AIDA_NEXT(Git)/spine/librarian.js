@@ -146,6 +146,8 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
 
 // AIDA REVIEW BLOCK 19: Function buildProjectBriefcaseDraft - callable behavior in this runtime organ.
   function buildProjectBriefcaseDraft(preferred, ingestedAt, packet = runtime()?.sleep?.lastPacket) {
+    if (packet?.sharedCapture && !safeArray(preferred.output?.diaryDrafts).length &&
+        !safeArray(preferred.output?.rollingSummaries).length) return [];
     const project = projectFromPreferred(preferred);
     const realm = realmFromPreferred(preferred);
     const fileName = packetProjectFile(packet) || `project_briefcase_${slug(project)}.json`;

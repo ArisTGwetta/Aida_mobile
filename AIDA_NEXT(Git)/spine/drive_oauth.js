@@ -945,6 +945,47 @@ async function fetchJsonFile(file) {
     return report;
   }
 
+  async function collectSharedRecentForSleep(until) {
+    // Capture reads the full transport, independent of the prompt cache/window.
+    const files = await listContinuityRecentFiles();
+    const rootFiles = await listJsonFiles();
+    const roots = rootFiles.filter((file) => file.name === "raw_session_log.json");
+    if (roots.length > 1) throw new Error("Ambiguous durable raw log");
+    const store = roots.length ? await fetchJsonFile(roots[0]) : { entries: [] };
+    const entries = Array.isArray(store) ? store : store.entries;
+    if (!Array.isArray(entries)) throw new Error("Invalid durable raw log");
+    runtime().drive.files = runtime().drive.files || {};
+    runtime().drive.files["raw_session_log.json"] = store;
+    if (roots.length) {
+      runtime().drive.fileIndex = runtime().drive.fileIndex || {};
+      runtime().drive.fileIndex["raw_session_log.json"] = roots[0];
+    }
+    const records = [];
+    const seen = new Map();
+    for (const file of files) {
+      const record = await fetchJsonFile(file);
+      if (isDiagnosticContinuityRecentRecord(record)) continue;
+      if (!validateContinuityRecentRecord(record).valid) throw new Error(`Invalid shared RECENT: ${file.name}`);
+      if (record.status !== "completed_model_reply") continue;
+      if (!Number.isFinite(Date.parse(record.effective_at)) || !Number.isInteger(Number(record.sequence)) || Number(record.sequence) < 1) {
+        throw new Error(`Invalid source timestamp or sequence: ${file.name}`);
+      }
+      if (Date.parse(record.effective_at) > Date.parse(until)) continue;
+      const prior = seen.get(record.turn_id);
+      if (prior) {
+        if (JSON.stringify(prior) !== JSON.stringify(record)) throw new Error("Conflicting shared source ID");
+        continue;
+      }
+      seen.set(record.turn_id, record);
+      records.push(record);
+    }
+    records.sort((a,b) => Date.parse(a.effective_at)-Date.parse(b.effective_at) || a.turn_id.localeCompare(b.turn_id));
+    const committed = (r) => entries.some((entry) =>
+      entry.source_transport?.turn_id === r.turn_id ||
+      (r.host_id === "phone" && entry.session_id === r.conversation_id && Number(entry.turnIndex) === Number(r.sequence)));
+    return { records, eligible: records.filter((record) => !committed(record)), until };
+  }
+
   async function loadContinuityRecentPromptContext(options = {}) {
     const cfg = sharedRecentConfig();
     if (!cfg.promptInsertionEnabled && options.force !== true) {
@@ -1743,6 +1784,7 @@ async function fetchJsonFile(file) {
     createContinuityRecentFileOnce,
     writeContinuityRecentCanary,
     writeContinuityRecentExchange,
+    collectSharedRecentForSleep,
     loadContinuityRecentPromptContext,
     ensureContinuityRecentPromptContext,
     selectContinuityRecentWindow,

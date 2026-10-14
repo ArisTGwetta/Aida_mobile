@@ -568,6 +568,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
   // AIDA REVIEW BLOCK 33: Function stampLlmScope - callable behavior in this runtime organ.
   function stampLlmScope(value, scope) {
     if (!value || typeof value !== "object") return value;
+    if (value.source_transport?.kind === "shared_recent_import") return value;
     if (Array.isArray(value)) {
       value.forEach((item) => stampLlmScope(item, scope));
       return value;
@@ -1664,6 +1665,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
   async function refinePacketWithLlm(packet = runtime()?.sleep?.lastPacket) {
     const rt = runtime();
     if (!packet) return null;
+    if (packet.sharedCapture?.importedTurnIds?.length) return packet.distillation;
 
     if (!llmReady(rt)) {
       packet.distillation.llm = {
@@ -1739,7 +1741,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
   }
 
   // AIDA REVIEW BLOCK 60: Function buildPacket - callable behavior in this runtime organ.
-  function buildPacket(reason = "manual_sleep") {
+  function buildPacket(reason = "manual_sleep", sharedCapture = null) {
     const rt = runtime();
     if (!rt) return null;
     const pending = rt.sleep?.lastPacket;
@@ -1760,7 +1762,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     const boundary = collectionBoundary(rt);
     const collectionWindow = {
       since: boundary,
-      until: capturedAt,
+      until: sharedCapture?.until || capturedAt,
       basis: boundary ? "turns_after_last_sleep_collection" : "full_session_no_prior_sleep_collection"
     };
     const packet = {
@@ -1791,6 +1793,63 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     };
 
     distillPacket(packet, rt);
+    if (sharedCapture && packet.captureCompleteness?.status === "complete") {
+      const output = packet.distillation;
+      output.rawLogEntries.forEach((entry) => {
+        const record = sharedCapture.records.find((r) => r.host_id === "phone" &&
+          r.conversation_id === entry.session_id && Number(r.sequence) === Number(entry.turnIndex));
+        if (record) entry.source_transport = {
+          kind: "shared_recent_local", host_id: record.host_id, turn_id: record.turn_id,
+          conversation_id: record.conversation_id, sequence: record.sequence,
+          captured_at: record.captured_at, effective_at: record.effective_at,
+          original_context: copyJson(record.context || {}, {})
+        };
+      });
+      const covered = new Set(output.rawLogEntries.map((entry) => `${entry.session_id}#turn_${entry.turnIndex}`));
+      const imported = sharedCapture.eligible.filter((record) =>
+        !(record.host_id === "phone" && covered.has(`${record.conversation_id}#turn_${record.sequence}`)));
+      imported.forEach((record) => {
+        const context = record.context || {};
+        const tags = context.tags || {};
+        const env = context.project_identity_hints?.active_environment || {};
+        const transport = {
+          kind: "shared_recent_import", host_id: record.host_id,
+          conversation_id: record.conversation_id, turn_id: record.turn_id,
+          sequence: record.sequence, captured_at: record.captured_at,
+          effective_at: record.effective_at, received_at: record.received_at,
+          original_context: copyJson(context, {}), semantic_processing: "deferred"
+        };
+        const scope = {
+          llm_provider: tags.llm_provider || "unknown",
+          llm_scope: tags.llm_scope || tags.llm_provider || "unknown",
+          llm_profile: tags.llm_profile || null, llm_model: tags.llm_model || null
+        };
+        output.rawLogEntries.push({
+          id: `raw_shared_${encodeURIComponent(record.turn_id)}`, packetId: packet.id,
+          session_id: record.conversation_id, turnIndex: record.sequence,
+          capturedAt: record.effective_at, project: tags.project || env.project_name || "unknown_project",
+          realm: tags.realm || env.realm || "unknown_realm", role: tags.role || "unknown_role",
+          user: record.user.text, aida: record.aida.text,
+          source_refs: [record.turn_id], speaker_refs: { user: record.turn_id, aida: record.turn_id },
+          source_transport: transport, ...scope
+        });
+        output.processingBacklog.push({
+          id: `backlog_shared_${encodeURIComponent(record.turn_id)}`, packetId: packet.id,
+          type: "llm_memory_processing_backlog", status: "needs_llm_distillation",
+          reason: "source_faithful_capture_semantics_deferred", source_refs: [record.turn_id],
+          turn_count: 1, session_id: record.conversation_id, createdAt: capturedAt,
+          source_transport: transport, ...scope
+        });
+        packet.captureCompleteness.availableTurnRefs.push(record.turn_id);
+        packet.captureCompleteness.rawCapturedTurnRefs.push(record.turn_id);
+      });
+      output.rawLogEntries.sort((a,b) => Date.parse(a.capturedAt)-Date.parse(b.capturedAt) || a.id.localeCompare(b.id));
+      output.counts.rawLogEntries = output.rawLogEntries.length;
+      output.counts.processingBacklog = output.processingBacklog.length;
+      packet.session.exchangeCount = output.rawLogEntries.length;
+      packet.sharedCapture = { until: sharedCapture.until, importedTurnIds: imported.map((record) => record.turn_id), semanticProcessing: "imported_turns_deferred" };
+      if (!output.diaryDrafts.length) packet.whileAway = { prepared: null, seed: null, seedQueue: [] };
+    }
     stampPacketLlmScope(packet, rt);
 
     if (packet.captureCompleteness?.status !== "complete") {
@@ -2011,14 +2070,43 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
   }
 
   // AIDA REVIEW BLOCK 67: Function sleepNow - callable behavior in this runtime organ.
-  function sleepNow(reason = "manual_sleep") {
-    const packet = buildPacket(reason);
+  async function sleepNow(reason = "manual_sleep") {
+    const rt = runtime();
+    const pending = rt.sleep?.lastPacket;
+    // Resume the persisted packet; a new preflight must never replace its identity.
+    if (pending && pending.status !== "saved_to_drive" && pending.captureCompleteness?.status === "complete") {
+      const packet = buildPacket(reason);
+      if (packet.status !== "incomplete_deferred") window.AIDA_BODY?.showSleepCollected?.(safeSummary(), { final: true });
+      return packet;
+    }
+    if (rt.sleep.sharedCollecting) return null;
+    rt.sleep.sharedCollecting = true;
+    let capture;
+    try {
+      capture = await window.AIDA_DRIVE.collectSharedRecentForSleep(nowIso());
+    } catch (error) {
+      log(`SLEEP deferred: shared capture unavailable: ${error.message}. Conversation retained.`, "log-amber");
+      window.AIDA_BODY?.pulse?.("Sleep deferred: shared RECENT could not be verified. Conversation retained.");
+      return { status: "incomplete_deferred", incompleteReason: "shared_capture_unavailable" };
+    } finally {
+      rt.sleep.sharedCollecting = false;
+    }
+    const previousCache = rt.context.sharedRecentCaptureRecords;
+    const newLocalTurns = turnsForCollection(rt.session?.currentTurns || [], { since: collectionBoundary(rt), until: capture.until });
+    if (!capture.eligible.length && !newLocalTurns.length &&
+        (rt.session?.currentTurns?.length || 0) >= (rt.session?.exchangeCount || 0)) {
+      window.AIDA_BODY?.pulse?.("No new completed turns to save.");
+      return { status: "no_new_turns" };
+    }
+    rt.context.sharedRecentCaptureRecords = capture.records.filter((r) => r.host_id === "phone" && r.conversation_id === rt.session?.id);
+    let packet;
+    try { packet = buildPacket(reason, capture); }
+    finally { rt.context.sharedRecentCaptureRecords = previousCache; }
     if (packet?.status === "incomplete_deferred") {
       window.AIDA_BODY?.pulse?.(`Sleep deferred: ${packet.incompleteReason || "capture incomplete"}. Conversation retained.`);
       return packet;
     }
     const summary = safeSummary();
-    const rt = runtime();
     if (rt?.sleep) {
       rt.sleep.lastVisibleSummary = summary;
       rt.boot.phase = "sleep_packet_collected";
