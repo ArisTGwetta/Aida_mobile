@@ -1397,6 +1397,79 @@
     }, 2500);
   };
 
+  function pendingSaveInspection() {
+    const rt = runtime();
+    const packet = rt?.sleep?.lastPacket;
+    const raw = packet?.distillation?.rawLogEntries || [];
+    const staged = rt?.curator?.rawLogWriteDrafts || [];
+    const key = rt?.crashBuffer?.key || "AIDA_SPINE_CRASH_BUFFER_V1";
+    let snapshot;
+    let storageError = null;
+    try { snapshot = JSON.parse(window.localStorage.getItem(key) || "null"); }
+    catch (error) { storageError = error.message; }
+    const stored = snapshot?.sleep?.lastPacket;
+    const targets = ["e004d89f", "b6c965be", "7938c553"];
+    const imports = raw.filter((entry) => entry.source_transport?.kind === "shared_recent_import");
+    const importRefs = new Set(imports.flatMap((entry) => entry.source_refs || []));
+    const referencesImports = (value) => {
+      if (!value || typeof value !== "object") return false;
+      if (Array.isArray(value.source_refs) && value.source_refs.some((ref) => importRefs.has(ref))) return true;
+      return Object.values(value).some((item) => item && typeof item === "object" &&
+        (Array.isArray(item) ? item.some(referencesImports) : referencesImports(item)));
+    };
+    const diary = rt?.curator?.diaryWriteDrafts || [];
+    const projects = rt?.curator?.projectBriefcaseWriteDrafts || [];
+    return {
+      packetId: packet?.id || null,
+      status: packet?.status || "no_pending_packet",
+      capture: packet?.captureCompleteness?.status || "unknown",
+      rawCount: raw.length, stagedRawCount: staged.length,
+      storedPacketId: stored?.id || null,
+      checkpoint: rt?.sleep?.committedCollectedAt || null,
+      storedCheckpoint: snapshot?.sleep?.committedCollectedAt || null,
+      storageError,
+      targets: targets.map((suffix) => {
+        const found = raw.filter((entry) => entry.source_transport?.turn_id?.endsWith(`:${suffix}`));
+        return { suffix, count: found.length, matches: found.map((entry) => ({
+          turnId: entry.source_transport.turn_id,
+          device: entry.source_transport.host_id,
+          session: entry.session_id, sequence: entry.turnIndex,
+          timestamp: entry.capturedAt, projectContext: entry.project,
+          sourceRefs: entry.source_refs,
+          stagedMatches: staged.filter((draft) => draft.id === entry.id && draft.packetId === packet.id &&
+            JSON.stringify(draft.source_refs) === JSON.stringify(entry.source_refs) &&
+            draft.user === entry.user && draft.aida === entry.aida).length,
+          persistedMatches: (stored?.distillation?.rawLogEntries || []).filter((item) =>
+            item.id === entry.id && item.source_transport?.turn_id === entry.source_transport.turn_id).length
+        })) };
+      }),
+      diaryDrafts: diary.length, projectDrafts: projects.length,
+      diaryDraftsReferencingImports: diary.filter(referencesImports).length,
+      projectDraftsReferencingImports: projects.filter(referencesImports).length,
+      importedSemanticProcessing: packet?.sharedCapture?.semanticProcessing || "unknown"
+    };
+  }
+
+  function showPendingSaveInspection() {
+    let dialog = $("pending-save-inspection");
+    if (!dialog) {
+      dialog = document.createElement("dialog");
+      dialog.id = "pending-save-inspection";
+      dialog.setAttribute("aria-label", "Pending save inspection");
+      dialog.style.cssText = "width:min(92vw,640px);max-height:80vh;box-sizing:border-box;overflow:auto;background:#111;color:#eee;border:1px solid #888;padding:16px;";
+      const close = document.createElement("button");
+      close.type = "button";
+      close.textContent = "Close Inspection";
+      close.addEventListener("click", () => dialog.close());
+      const evidence = document.createElement("pre");
+      evidence.style.cssText = "white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;user-select:text;";
+      dialog.append(close, evidence);
+      document.body.appendChild(dialog);
+    }
+    dialog.querySelector("pre").textContent = JSON.stringify(pendingSaveInspection(), null, 2);
+    if (!dialog.open) dialog.showModal();
+  }
+
   function resumePendingSave() {
     const fail = (reason) => {
       appendBios(`Pending save could not reopen: ${reason}. Recovery data retained.`, "log-amber");
@@ -1489,6 +1562,14 @@
 
     const preview = $("boot-preview-btn");
     const wake = $("wake-aida-btn");
+    if (wake && !$("inspect-pending-save-btn")) {
+      const inspect = document.createElement("button");
+      inspect.id = "inspect-pending-save-btn";
+      inspect.type = "button";
+      inspect.textContent = "Inspect Pending Save";
+      inspect.addEventListener("click", showPendingSaveInspection);
+      wake.insertAdjacentElement("afterend", inspect);
+    }
     if (wake && !$("resume-pending-save-btn")) {
       const resume = document.createElement("button");
       resume.id = "resume-pending-save-btn";
