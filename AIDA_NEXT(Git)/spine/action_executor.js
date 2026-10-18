@@ -3,6 +3,7 @@
   const MODULE_ID = "spine.action.executor";
   const PYODIDE_VERSION = "0.26.4";
   let readyPromise = null;
+  let confirming = false;
 
   function runtime() {
     return window.AIDA_RUNTIME;
@@ -21,7 +22,7 @@
     const target = cleanText(route?.target || route?.value || route?.query, 160);
     const value = cleanText(route?.value, 160);
     if (["create_project", "create", "new_project"].includes(action)) {
-      return { action: "create_project", target, value: "", params: {} };
+      return { action: "create_project", target: cleanText(route?.target, 160), value: "", params: {} };
     }
     if (["rename_project", "rename"].includes(action)) {
       return { action: "rename_project", target, value, params: {} };
@@ -33,13 +34,43 @@
   }
 
   function describe(action) {
-    if (action.action === "create_project") return `create project "${action.target}"`;
+    if (action.action === "create_project") return `create project "${action.target}" in realm "${action.params?.realm || "unspecified"}"`;
     if (action.action === "rename_project") return `rename project "${action.target}" to "${action.value}"`;
     return `move project "${action.target}" to realm "${action.value}"`;
   }
 
-  function propose(route) {
+  // Creation names must come from explicit user syntax, never router context/query fallback.
+  function explicitName(value) {
+    const text = String(value || "").trim();
+    const quoted = text.match(/^(?:"([^"\n]+)"|“([^”\n]+)”|'([^'\n]+)')$/);
+    const name = quoted ? quoted[1] || quoted[2] || quoted[3] : text.replace(/[.!]+$/, "").trim();
+    if (!name || name.length > 160 || !/[\p{L}\p{N}]/u.test(name)) return null;
+    if (!quoted && (!/^[\p{L}\p{N}_-]+$/u.test(name) ||
+        /\b(?:please|create|confirm|confirmed|project|instead|rather|actually|should|want|call|named|but|not|don't|do|it|this|that|and|or|in|realm)\b/i.test(name))) return null;
+    return name;
+  }
+
+  function creationName(text) {
+    const match = String(text || "").trim().match(/^(?:please\s+)?create\s+(?:(?:a\s+)?(?:new\s+)?project\s+(?:(?:called|named)\s+)?)?(.+?)\s*$/i);
+    return match ? explicitName(match[1]) : null;
+  }
+
+  function realmName() {
+    const rt = runtime();
+    const realm = rt.context?.realm || rt.mind?.realm;
+    return typeof realm === "string" ? realm : realm?.realm_name || realm?.name || "rpg";
+  }
+
+  function propose(route, userText) {
+    if (runtime().context.pendingAction) return clarify(runtime().context.pendingAction);
     const action = actionFromRoute(route);
+    if (action?.action === "create_project") {
+      const name = creationName(userText);
+      if (!name) return { ok: false, reply: 'Please give an explicit project name, for example: create project "cooking".' };
+      action.target = name;
+      action.params = { realm: realmName() };
+      action.explicitTarget = true;
+    }
     if (!action?.target || (action.action !== "create_project" && !action.value)) {
       return { ok: false, reply: "I understand this as a project change, but I need the project name and the requested change before I can stage it." };
     }
@@ -52,8 +83,16 @@
     return { ok: true, reply: `I understand that as: ${describe(action)}. Please confirm and I will stage it for Drive writeback.` };
   }
 
-  function isConfirmation(text) {
-    return /^(?:yes|yes please|confirm|do it|go ahead|please proceed|approved|okay|ok)[.! ]*$/i.test(String(text || "").trim());
+  function clarify(pending) {
+    return { ok: false, reply: 'Pending: ' + describe(pending) + '. Confirm this exact action, cancel it, or say: change the name to "new name".' };
+  }
+
+  function confirmation(text, pending) {
+    const value = String(text || "").trim().replace(/[.!]+$/, "").trim();
+    if (/^(?:yes(?: please)?|confirmed?|approved|okay|ok|go ahead|do it|let['’]s do it|(?:please )?proceed)(?:\s*[,!]\s*(?:yes|confirmed?|approved|okay|ok|please proceed))*$/i.test(value)) return true;
+    if (pending.action !== "create_project") return false;
+    const named = value.match(/^(?:yes|confirmed?|approved|okay|ok)[,!]?\s+(?:(?:let['’]s|please)\s+)?(create\s+.+)$/i);
+    return Boolean(named && creationName(named[1]) === pending.target);
   }
 
   function scriptUrl() {
@@ -139,16 +178,44 @@
 
   async function confirm(text) {
     const pending = runtime()?.context?.pendingAction;
-    if (!pending || !isConfirmation(text)) return null;
-    const envelope = { ...pending, approval: "confirmed" };
+    if (!pending) return null;
+    if (confirming) return { ok: false, reply: "The confirmed project action is still being staged. Please wait." };
+    const input = String(text || "").trim();
+    if (/^(?:cancel(?: (?:it|that|the (?:project|proposal|action)))?|never ?mind|stop|no(?: thanks)?)[.!]*$/i.test(input)) {
+      runtime().context.pendingAction = null;
+      return { ok: true, reply: "Project proposal cancelled. No new project write was staged." };
+    }
+    const correction = input.match(/^(?:(?:no|actually|correction)[,:]?\s+)?(?:change (?:the )?(?:project )?name to|(?:please )?call it|(?:the )?(?:project )?name (?:is|should be)|(?:the )?project should be called|rename it to|use the name|I meant)\s+(.+?)(?:,?\s+not\s+(?:"[^"\n]+"|[\p{L}\p{N}_-]+)[.!]?)?$/iu);
+    if (correction && pending.action === "create_project") {
+      const name = explicitName(correction[1]);
+      if (!name) return clarify(pending);
+      const updated = { ...pending, target: name, explicitTarget: true, params: { ...pending.params, realm: pending.params?.realm || realmName() } };
+      runtime().context.pendingAction = updated;
+      return { ok: true, reply: 'Updated proposal: ' + describe(updated) + '. Please confirm this exact target before I stage it.' };
+    }
+    if (!confirmation(input, pending)) return clarify(pending);
+    if (pending.action === "create_project" && !pending.explicitTarget && !explicitName(pending.target)) {
+      return { ok: false, reply: 'The saved proposal does not contain a verified project name. Say: change the name to "exact name", then confirm it.' };
+    }
+    // Legacy proposals lack a saved realm: display and confirm it before staging.
+    if (pending.action === "create_project" && !pending.params?.realm) {
+      const updated = { ...pending, params: { ...pending.params, realm: realmName() } };
+      runtime().context.pendingAction = updated;
+      return clarify(updated);
+    }
+    confirming = true;
+    const envelope = { ...pending, params: { ...pending.params }, approval: "confirmed" };
     try {
       const verdict = await executeInPython(envelope);
       if (!verdict?.ok) throw new Error(verdict?.error || "Python rejected the action.");
+      if (runtime().context.pendingAction !== pending) throw new Error("The proposal changed; please confirm it again.");
       const applied = await applyEffect(verdict.effect);
       runtime().context.pendingAction = null;
       return { ok: true, reply: applied.message, result: applied };
     } catch (error) {
       return { ok: false, reply: `I could not carry out that project action: ${error.message}` };
+    } finally {
+      confirming = false;
     }
   }
 

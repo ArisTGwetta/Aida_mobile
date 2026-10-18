@@ -182,7 +182,8 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     const tokenPart = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "";
     const url = `https://www.googleapis.com/drive/v3/files?q=${query}&pageSize=${pageSize}&fields=${fields}${tokenPart}`;
     const response = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
+      signal: options.signal
     });
 
     if (!response.ok) {
@@ -211,18 +212,19 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
   }
 
 // AIDA REVIEW BLOCK 12: Function listJsonFiles - callable behavior in this runtime organ.
-  async function listJsonFiles() {
-    return (await listDriveFiles()).filter((file) => file.name.endsWith(".json"));
+  async function listJsonFiles(options = {}) {
+    return (await listDriveFiles(options)).filter((file) => file.name.endsWith(".json"));
   }
 
 // AIDA REVIEW BLOCK 13: Function fetchJsonFile - callable behavior in this runtime organ.
 // AIDA PATCH: MIME‑agnostic JSON loader for Google Drive
-async function fetchJsonFile(file) {
+async function fetchJsonFile(file, options = {}) {
   const token = runtime().tokens.drive.accessToken;
   const url = `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`;
 
   const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
+    signal: options.signal
   });
 
   if (!response.ok) {
@@ -578,7 +580,7 @@ async function fetchJsonFile(file) {
     return config().drive?.continuityRecentFolderId || runtime().drive?.continuityRecentFolderId || null;
   }
 
-  async function resolveContinuityRecentFolderId() {
+  async function resolveContinuityRecentFolderId(options = {}) {
     const rt = runtime();
     if (!rt.tokens?.drive?.accessToken) throw new Error("Drive access token is missing.");
     if (!rt.drive?.folderId) throw new Error("Drive JSON folder ID is missing.");
@@ -589,7 +591,7 @@ async function fetchJsonFile(file) {
     }
     const escapedName = CONTINUITY_RECENT_FOLDER_NAME.replace(/'/g, "\\'");
     const query = `'${rt.drive.folderId}' in parents and name = '${escapedName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
-    const folders = await listDriveFiles({ query, pageSize: 10 });
+    const folders = await listDriveFiles({ query, pageSize: 10, signal: options.signal });
     if (!folders.length) {
       throw new Error(`Drive continuity_recent folder was not found under configured JSON folder ${rt.drive.folderId}.`);
     }
@@ -752,10 +754,10 @@ async function fetchJsonFile(file) {
       .slice(-limit);
   }
 
-  async function listContinuityRecentFiles() {
-    const folderId = await resolveContinuityRecentFolderId();
+  async function listContinuityRecentFiles(options = {}) {
+    const folderId = await resolveContinuityRecentFolderId(options);
     const query = `'${folderId}' in parents and trashed = false`;
-    const files = (await listDriveFiles({ query }))
+    const files = (await listDriveFiles({ query, signal: options.signal }))
       .filter((file) => String(file.name || "").startsWith("turn_") && String(file.name || "").endsWith(".json"));
     const rt = runtime();
     rt.drive.continuityRecentFileIndex = {};
@@ -945,25 +947,19 @@ async function fetchJsonFile(file) {
     return report;
   }
 
-  async function collectSharedRecentForSleep(until) {
+  async function collectSharedRecentForSleep(until, options = {}) {
     // Capture reads the full transport, independent of the prompt cache/window.
-    const files = await listContinuityRecentFiles();
-    const rootFiles = await listJsonFiles();
+    const files = await listContinuityRecentFiles(options);
+    const rootFiles = await listJsonFiles(options);
     const roots = rootFiles.filter((file) => file.name === "raw_session_log.json");
     if (roots.length > 1) throw new Error("Ambiguous durable raw log");
-    const store = roots.length ? await fetchJsonFile(roots[0]) : { entries: [] };
+    const store = roots.length ? await fetchJsonFile(roots[0], options) : { entries: [] };
     const entries = Array.isArray(store) ? store : store.entries;
     if (!Array.isArray(entries)) throw new Error("Invalid durable raw log");
-    runtime().drive.files = runtime().drive.files || {};
-    runtime().drive.files["raw_session_log.json"] = store;
-    if (roots.length) {
-      runtime().drive.fileIndex = runtime().drive.fileIndex || {};
-      runtime().drive.fileIndex["raw_session_log.json"] = roots[0];
-    }
     const records = [];
     const seen = new Map();
     for (const file of files) {
-      const record = await fetchJsonFile(file);
+      const record = await fetchJsonFile(file, options);
       if (isDiagnosticContinuityRecentRecord(record)) continue;
       if (!validateContinuityRecentRecord(record).valid) throw new Error(`Invalid shared RECENT: ${file.name}`);
       if (record.status !== "completed_model_reply") continue;
@@ -983,6 +979,13 @@ async function fetchJsonFile(file) {
     const committed = (r) => entries.some((entry) =>
       entry.source_transport?.turn_id === r.turn_id ||
       (r.host_id === "phone" && entry.session_id === r.conversation_id && Number(entry.turnIndex) === Number(r.sequence)));
+    if (options.signal?.aborted) throw new Error("Sleep preflight was cancelled. Retry Sleep; conversation retained.");
+    runtime().drive.files = runtime().drive.files || {};
+    runtime().drive.files["raw_session_log.json"] = store;
+    if (roots.length) {
+      runtime().drive.fileIndex = runtime().drive.fileIndex || {};
+      runtime().drive.fileIndex["raw_session_log.json"] = roots[0];
+    }
     return { records, eligible: records.filter((record) => !committed(record)), until };
   }
 

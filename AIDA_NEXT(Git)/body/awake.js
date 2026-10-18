@@ -1053,14 +1053,43 @@
     realmDrawerBackdrop?.addEventListener("click", closeRealmDrawer);
 
     if (sleep) {
-      sleep.addEventListener("click", () => {
-        if (window.AIDA_SLEEP?.sleepNow) {
-          window.AIDA_SLEEP.sleepNow("manual_sleep_button");
-          return;
+      let collecting = false;
+      sleep.style.touchAction = "manipulation";
+      sleep.style.userSelect = "none";
+      sleep.style.webkitUserSelect = "none";
+      let status = $("sleep-collection-status");
+      if (!status) {
+        status = document.createElement("div");
+        status.id = "sleep-collection-status";
+        status.setAttribute("role", "status");
+        status.setAttribute("aria-live", "polite");
+        sleep.parentElement.insertAdjacentElement("afterend", status);
+      }
+      sleep.addEventListener("click", async () => {
+        if (collecting) return;
+        collecting = true;
+        sleep.disabled = true;
+        sleep.setAttribute("aria-busy", "true");
+        sleep.textContent = "Collecting…";
+        status.textContent = "Collecting complete conversation sources…";
+        let failed = false;
+        try {
+          if (!window.AIDA_SLEEP?.sleepNow) throw new Error("Sleep collector is unavailable. Reload only after checking recovery data.");
+          const result = await window.AIDA_SLEEP.sleepNow("manual_sleep_button");
+          if (!result) throw new Error("Sleep returned no result.");
+          if (result.status === "incomplete_deferred") throw new Error(result.incompleteReason || "Source capture is incomplete; conversation retained.");
+          status.textContent = result.status === "no_new_turns" ? "No new completed turns to save." :
+            result.status === "collecting" ? "Collection is already in progress." : "Sleep collected. Review the pending save.";
+        } catch (error) {
+          failed = true;
+          status.textContent = 'Sleep could not finish: ' + error.message + ' Tap Retry Sleep. Pending save and conversation retained.';
+          pulse(status.textContent);
+        } finally {
+          collecting = false;
+          sleep.disabled = false;
+          sleep.removeAttribute("aria-busy");
+          sleep.textContent = failed ? "Retry Sleep" : "SLEEP";
         }
-
-        pulse("Sleep collector unavailable. Running body departure only.");
-        if (typeof window.aida_depart === "function") window.aida_depart();
       });
     }
 
@@ -1443,6 +1472,10 @@
             item.id === entry.id && item.source_transport?.turn_id === entry.source_transport.turn_id).length
         })) };
       }),
+      pendingProjectAction: rt?.context?.pendingAction || null,
+      stagedProjectHeaderEdits: (rt?.driveWriteback?.briefcaseEdits || [])
+        .filter((item) => item?.status === "staged")
+        .map((item) => ({ id: item.id, fileName: item.fileName, name: item.content?.project_name || item.content?.name, realm: item.content?.realm })),
       diaryDrafts: diary.length, projectDrafts: projects.length,
       diaryDraftsReferencingImports: diary.filter(referencesImports).length,
       projectDraftsReferencingImports: projects.filter(referencesImports).length,
@@ -1535,6 +1568,7 @@
     showSleepCollected,
     finishSleepScreen,
     prepareWakeScreen,
+    resumePendingSave,
     setFace(src) {
       const portrait = $("aida-portrait");
       if (portrait) portrait.src = src || DEFAULT_FACE;

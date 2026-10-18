@@ -2072,60 +2072,71 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
   // AIDA REVIEW BLOCK 67: Function sleepNow - callable behavior in this runtime organ.
   async function sleepNow(reason = "manual_sleep") {
     const rt = runtime();
-    const pending = rt.sleep?.lastPacket;
-    // Resume the persisted packet; a new preflight must never replace its identity.
-    if (pending && pending.status !== "saved_to_drive" && pending.captureCompleteness?.status === "complete") {
-      const packet = buildPacket(reason);
-      if (packet.status !== "incomplete_deferred") window.AIDA_BODY?.showSleepCollected?.(safeSummary(), { final: true });
-      return packet;
-    }
-    if (rt.sleep.sharedCollecting) return null;
+    if (rt.sleep.sharedCollecting) return { status: "collecting" };
     rt.sleep.sharedCollecting = true;
-    let capture;
     try {
-      capture = await window.AIDA_DRIVE.collectSharedRecentForSleep(nowIso());
-    } catch (error) {
-      log(`SLEEP deferred: shared capture unavailable: ${error.message}. Conversation retained.`, "log-amber");
-      window.AIDA_BODY?.pulse?.("Sleep deferred: shared RECENT could not be verified. Conversation retained.");
-      return { status: "incomplete_deferred", incompleteReason: "shared_capture_unavailable" };
+      const pending = rt.sleep?.lastPacket;
+      // Reopen through recovery validation; never rebuild/restage an existing packet here.
+      if (pending && pending.status !== "saved_to_drive") {
+        const resumed = window.AIDA_BODY?.resumePendingSave?.();
+        if (!resumed?.ok) throw new Error(resumed?.reason || "Pending save could not reopen. Use Resume Pending Save; recovery data retained.");
+        return pending;
+      }
+      const controller = new AbortController();
+      let timer;
+      let capture;
+      try {
+        const deadline = new Promise((_, reject) => {
+          timer = setTimeout(() => {
+            controller.abort();
+            reject(new Error("Drive preflight timed out after 45 seconds. Retry Sleep; conversation and recovery data retained."));
+          }, 45000);
+        });
+        capture = await Promise.race([
+          window.AIDA_DRIVE.collectSharedRecentForSleep(nowIso(), { signal: controller.signal }), deadline
+        ]);
+      } finally {
+        clearTimeout(timer);
+        controller.abort();
+      }
+      const previousCache = rt.context.sharedRecentCaptureRecords;
+      const newLocalTurns = turnsForCollection(rt.session?.currentTurns || [], { since: collectionBoundary(rt), until: capture.until });
+      if (!capture.eligible.length && !newLocalTurns.length &&
+          (rt.session?.currentTurns?.length || 0) >= (rt.session?.exchangeCount || 0)) {
+        window.AIDA_BODY?.pulse?.("No new completed turns to save.");
+        return { status: "no_new_turns" };
+      }
+      rt.context.sharedRecentCaptureRecords = capture.records.filter((r) => r.host_id === "phone" && r.conversation_id === rt.session?.id);
+      let packet;
+      try { packet = buildPacket(reason, capture); }
+      finally { rt.context.sharedRecentCaptureRecords = previousCache; }
+      if (packet?.status === "incomplete_deferred") {
+        window.AIDA_BODY?.pulse?.(`Sleep deferred: ${packet.incompleteReason || "capture incomplete"}. Conversation retained.`);
+        return packet;
+      }
+      const summary = safeSummary();
+      if (rt?.sleep) {
+        rt.sleep.lastVisibleSummary = summary;
+        rt.boot.phase = "sleep_packet_collected";
+      }
+      if (window.AIDA_BODY?.pulse) {
+        window.AIDA_BODY.pulse(`Sleep packet ${summary.packetId}: ${summary.exchangeCount} exchange(s), ${summary.pendingJournalCount} journal item(s), ${summary.syncQueueCount} sync draft(s).`);
+      }
+      if (window.AIDA_BODY?.appendChat) {
+        window.AIDA_BODY.appendChat("AIDA", `Sleep packet collected: ${summary.exchangeCount} exchange(s), ${summary.pendingJournalCount} journal item(s), ${summary.syncQueueCount} sync draft(s).`);
+      }
+      const refinement = refinePacketWithLlm(packet);
+      if (typeof window.aida_depart === "function") window.aida_depart();
+      if (window.AIDA_BODY?.showSleepCollected) {
+        setTimeout(() => window.AIDA_BODY.showSleepCollected(summary, { final: false }), 2700);
+        refinement.finally(() => {
+          setTimeout(() => window.AIDA_BODY.showSleepCollected(safeSummary(), { final: true }), 250);
+        });
+      }
+      return packet;
     } finally {
       rt.sleep.sharedCollecting = false;
     }
-    const previousCache = rt.context.sharedRecentCaptureRecords;
-    const newLocalTurns = turnsForCollection(rt.session?.currentTurns || [], { since: collectionBoundary(rt), until: capture.until });
-    if (!capture.eligible.length && !newLocalTurns.length &&
-        (rt.session?.currentTurns?.length || 0) >= (rt.session?.exchangeCount || 0)) {
-      window.AIDA_BODY?.pulse?.("No new completed turns to save.");
-      return { status: "no_new_turns" };
-    }
-    rt.context.sharedRecentCaptureRecords = capture.records.filter((r) => r.host_id === "phone" && r.conversation_id === rt.session?.id);
-    let packet;
-    try { packet = buildPacket(reason, capture); }
-    finally { rt.context.sharedRecentCaptureRecords = previousCache; }
-    if (packet?.status === "incomplete_deferred") {
-      window.AIDA_BODY?.pulse?.(`Sleep deferred: ${packet.incompleteReason || "capture incomplete"}. Conversation retained.`);
-      return packet;
-    }
-    const summary = safeSummary();
-    if (rt?.sleep) {
-      rt.sleep.lastVisibleSummary = summary;
-      rt.boot.phase = "sleep_packet_collected";
-    }
-    if (window.AIDA_BODY?.pulse) {
-      window.AIDA_BODY.pulse(`Sleep packet ${summary.packetId}: ${summary.exchangeCount} exchange(s), ${summary.pendingJournalCount} journal item(s), ${summary.syncQueueCount} sync draft(s).`);
-    }
-    if (window.AIDA_BODY?.appendChat) {
-      window.AIDA_BODY.appendChat("AIDA", `Sleep packet collected: ${summary.exchangeCount} exchange(s), ${summary.pendingJournalCount} journal item(s), ${summary.syncQueueCount} sync draft(s).`);
-    }
-    const refinement = refinePacketWithLlm(packet);
-    if (typeof window.aida_depart === "function") window.aida_depart();
-    if (window.AIDA_BODY?.showSleepCollected) {
-      setTimeout(() => window.AIDA_BODY.showSleepCollected(summary, { final: false }), 2700);
-      refinement.finally(() => {
-        setTimeout(() => window.AIDA_BODY.showSleepCollected(safeSummary(), { final: true }), 250);
-      });
-    }
-    return packet;
   }
 
   // AIDA REVIEW BLOCK 68: Function install - callable behavior in this runtime organ.

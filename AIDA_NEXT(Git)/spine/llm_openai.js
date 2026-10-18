@@ -112,7 +112,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
   async function runProjectIntent(userText) {
     const route = await window.AIDA_INTENT_ROUTER?.infer?.(userText);
     if (!route || !["project_create", "project_update"].includes(route.intent)) return false;
-    const proposal = window.AIDA_ACTION_EXECUTOR?.propose?.(route);
+    const proposal = window.AIDA_ACTION_EXECUTOR?.propose?.(route, userText);
     if (!proposal) return false;
     appendChat("USER", userText);
     appendChat("AIDA", proposal.reply);
@@ -128,8 +128,8 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     appendChat("USER", userText);
     appendChat("AIDA", result.reply);
     window.AIDA_SESSION_CAPTURE?.captureExchange?.(userText, result.reply);
-    pulse(result.ok ? "Project action staged for Drive writeback." : "Project action was not completed.");
-    log(`PROJECT ACTION: ${result.ok ? "executed" : "rejected"}.`, result.ok ? "log-blue" : "log-amber");
+    pulse(result.result ? "Project action staged for Drive writeback." : "Project proposal: " + result.reply);
+    log(`PROJECT ACTION: ${result.result ? "executed" : "handled without staging"}.`, result.ok ? "log-blue" : "log-amber");
     return true;
   }
 

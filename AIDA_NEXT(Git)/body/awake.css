@@ -329,7 +329,13 @@ input:disabled {
   border: 1px solid var(--aida-gold);
   border-left: 5px solid var(--aida-gold);
   background: #000000;
-  color: var(--aida-teal);
+  color: #ffffff;
+  font-size: calc(18px * var(--aida-font-scale));
+  line-height: 1.55;
+}
+
+.line.AIDA .line-speaker {
+  color: #baf7ff;
 }
 
 .line.NARRATOR {
