@@ -2070,7 +2070,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
   }
 
   // AIDA REVIEW BLOCK 67: Function sleepNow - callable behavior in this runtime organ.
-  async function sleepNow(reason = "manual_sleep") {
+  async function sleepNow(reason = "manual_sleep", options = {}) {
     const rt = runtime();
     if (rt.sleep.sharedCollecting) return { status: "collecting" };
     rt.sleep.sharedCollecting = true;
@@ -2083,17 +2083,25 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
         return pending;
       }
       const controller = new AbortController();
+      let progress = { message: "Starting Drive preflight", completed: 0, total: null };
+      const onProgress = (next) => {
+        progress = next;
+        try { options.onProgress?.(next); } catch (_) {}
+      };
+      onProgress(progress);
       let timer;
       let capture;
       try {
         const deadline = new Promise((_, reject) => {
           timer = setTimeout(() => {
+            reject(new Error("Drive preflight reached its 45-second total limit while: " + progress.message +
+              ". Read " + progress.completed + " of " + (progress.total ?? "unknown") +
+              " conversation records. No partial capture will be saved. Conversation and recovery data retained."));
             controller.abort();
-            reject(new Error("Drive preflight timed out after 45 seconds. Retry Sleep; conversation and recovery data retained."));
           }, 45000);
         });
         capture = await Promise.race([
-          window.AIDA_DRIVE.collectSharedRecentForSleep(nowIso(), { signal: controller.signal }), deadline
+          window.AIDA_DRIVE.collectSharedRecentForSleep(nowIso(), { signal: controller.signal, onProgress }), deadline
         ]);
       } finally {
         clearTimeout(timer);

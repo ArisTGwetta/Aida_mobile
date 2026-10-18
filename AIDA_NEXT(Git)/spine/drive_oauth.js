@@ -168,6 +168,49 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
   }
 
 // AIDA REVIEW BLOCK 11: Function listDriveFiles - callable behavior in this runtime organ.
+  // Sleep-only read deadline covers both response headers and the complete JSON body.
+  // Ordinary Drive readers retain their previous behavior when no deadline is supplied.
+  async function readDriveResponse(url, options, label, bodyType) {
+    const controller = options.readTimeoutMs ? new AbortController() : null;
+    const signal = controller?.signal || options.signal;
+    let timer;
+    let cancel;
+    let aborted = false;
+    try {
+      options.onRequest?.(label);
+      const cancellation = new Promise((_, reject) => {
+        cancel = () => {
+          aborted = true;
+          reject(new Error(label + " was cancelled. Conversation retained."));
+          controller?.abort();
+        };
+        if (options.signal?.aborted) cancel();
+        else options.signal?.addEventListener("abort", cancel, { once: true });
+        if (options.readTimeoutMs) timer = setTimeout(() => {
+          aborted = true;
+          reject(new Error(label + " timed out after " + (options.readTimeoutMs / 1000) + " seconds. No partial capture will be saved."));
+          controller.abort();
+        }, options.readTimeoutMs);
+      });
+      if (aborted) return await cancellation;
+      const request = (async () => {
+        const response = await fetch(url, {
+          headers: { Authorization: `Bearer ${runtime().tokens.drive.accessToken}` }, signal
+        });
+        if (!response.ok) throw new Error(label + ": HTTP " + response.status + ".");
+        return bodyType === "json" ? response.json() : response.text();
+      })();
+      return await Promise.race([request, cancellation]);
+    } catch (error) {
+      if (aborted) throw error;
+      throw new Error(label + " failed: " + error.message);
+    } finally {
+      clearTimeout(timer);
+      options.signal?.removeEventListener("abort", cancel);
+      controller?.abort();
+    }
+  }
+
   async function listDriveFilesPage(pageToken = null, options = {}) {
     const rt = runtime();
     const token = rt.tokens.drive.accessToken;
@@ -181,16 +224,8 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     const fields = encodeURIComponent("nextPageToken,files(id,name,mimeType,modifiedTime)");
     const tokenPart = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "";
     const url = `https://www.googleapis.com/drive/v3/files?q=${query}&pageSize=${pageSize}&fields=${fields}${tokenPart}`;
-    const response = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` },
-      signal: options.signal
-    });
-
-    if (!response.ok) {
-      throw new Error(`Drive list failed with HTTP ${response.status}.`);
-    }
-
-    const data = await response.json();
+    const label = (options.progressLabel || "Drive listing") + " — page " + (options.pageNumber || 1);
+    const data = await readDriveResponse(url, options, label, "json");
     return {
       files: data.files || [],
       nextPageToken: data.nextPageToken || null
@@ -202,7 +237,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     let pageToken = null;
     let pageCount = 0;
     do {
-      const page = await listDriveFilesPage(pageToken, options);
+      const page = await listDriveFilesPage(pageToken, { ...options, pageNumber: pageCount + 1 });
       files.push(...page.files);
       pageToken = page.nextPageToken;
       pageCount += 1;
@@ -222,17 +257,8 @@ async function fetchJsonFile(file, options = {}) {
   const token = runtime().tokens.drive.accessToken;
   const url = `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`;
 
-  const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
-    signal: options.signal
-  });
-
-  if (!response.ok) {
-    throw new Error(`Fetch failed for ${file.name}: HTTP ${response.status}.`);
-  }
-
-  // Read raw text instead of relying on MIME type
-  const raw = await response.text();
+  const label = options.progressLabel || ("Reading " + file.name);
+  const raw = await readDriveResponse(url, options, label, "text");
 
   try {
     // Remove BOM if present
@@ -591,7 +617,7 @@ async function fetchJsonFile(file, options = {}) {
     }
     const escapedName = CONTINUITY_RECENT_FOLDER_NAME.replace(/'/g, "\\'");
     const query = `'${rt.drive.folderId}' in parents and name = '${escapedName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
-    const folders = await listDriveFiles({ query, pageSize: 10, signal: options.signal });
+    const folders = await listDriveFiles({ ...options, query, pageSize: 10, progressLabel: "Finding conversation folder" });
     if (!folders.length) {
       throw new Error(`Drive continuity_recent folder was not found under configured JSON folder ${rt.drive.folderId}.`);
     }
@@ -757,7 +783,7 @@ async function fetchJsonFile(file, options = {}) {
   async function listContinuityRecentFiles(options = {}) {
     const folderId = await resolveContinuityRecentFolderId(options);
     const query = `'${folderId}' in parents and trashed = false`;
-    const files = (await listDriveFiles({ query, signal: options.signal }))
+    const files = (await listDriveFiles({ ...options, query }))
       .filter((file) => String(file.name || "").startsWith("turn_") && String(file.name || "").endsWith(".json"));
     const rt = runtime();
     rt.drive.continuityRecentFileIndex = {};
@@ -949,17 +975,29 @@ async function fetchJsonFile(file, options = {}) {
 
   async function collectSharedRecentForSleep(until, options = {}) {
     // Capture reads the full transport, independent of the prompt cache/window.
-    const files = await listContinuityRecentFiles(options);
-    const rootFiles = await listJsonFiles(options);
+    let completed = 0;
+    let total = null;
+    const report = (message) => {
+      if (options.signal?.aborted) return;
+      // A display callback must never change source-capture acceptance.
+      try { options.onProgress?.({ message, completed, total }); } catch (_) {}
+    };
+    const readOptions = (progressLabel) => ({ ...options, readTimeoutMs: 15000, progressLabel, onRequest: report });
+    const files = await listContinuityRecentFiles(readOptions("Listing conversation sources"));
+    total = files.length;
+    const rootFiles = await listJsonFiles(readOptions("Listing saved memory files"));
     const roots = rootFiles.filter((file) => file.name === "raw_session_log.json");
     if (roots.length > 1) throw new Error("Ambiguous durable raw log");
-    const store = roots.length ? await fetchJsonFile(roots[0], options) : { entries: [] };
+    const store = roots.length ? await fetchJsonFile(roots[0], readOptions("Reading saved conversation history (raw_session_log.json)")) : { entries: [] };
     const entries = Array.isArray(store) ? store : store.entries;
     if (!Array.isArray(entries)) throw new Error("Invalid durable raw log");
     const records = [];
     const seen = new Map();
     for (const file of files) {
-      const record = await fetchJsonFile(file, options);
+      const label = "Reading conversation record " + (completed + 1) + " of " + total + " (" + file.name + ")";
+      const record = await fetchJsonFile(file, readOptions(label));
+      completed += 1;
+      report("Read " + completed + " of " + total + " conversation records");
       if (isDiagnosticContinuityRecentRecord(record)) continue;
       if (!validateContinuityRecentRecord(record).valid) throw new Error(`Invalid shared RECENT: ${file.name}`);
       if (record.status !== "completed_model_reply") continue;
@@ -975,6 +1013,7 @@ async function fetchJsonFile(file, options = {}) {
       seen.set(record.turn_id, record);
       records.push(record);
     }
+    report("Validating complete capture: " + completed + " of " + total + " conversation records read");
     records.sort((a,b) => Date.parse(a.effective_at)-Date.parse(b.effective_at) || a.turn_id.localeCompare(b.turn_id));
     const committed = (r) => entries.some((entry) =>
       entry.source_transport?.turn_id === r.turn_id ||

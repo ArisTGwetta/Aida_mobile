@@ -1075,7 +1075,11 @@
         let failed = false;
         try {
           if (!window.AIDA_SLEEP?.sleepNow) throw new Error("Sleep collector is unavailable. Reload only after checking recovery data.");
-          const result = await window.AIDA_SLEEP.sleepNow("manual_sleep_button");
+          const result = await window.AIDA_SLEEP.sleepNow("manual_sleep_button", {
+            onProgress: (progress) => {
+              status.textContent = "Collecting… " + progress.message;
+            }
+          });
           if (!result) throw new Error("Sleep returned no result.");
           if (result.status === "incomplete_deferred") throw new Error(result.incompleteReason || "Source capture is incomplete; conversation retained.");
           status.textContent = result.status === "no_new_turns" ? "No new completed turns to save." :
