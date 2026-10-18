@@ -991,19 +991,52 @@ async function fetchJsonFile(file, options = {}) {
     const store = roots.length ? await fetchJsonFile(roots[0], readOptions("Reading saved conversation history (raw_session_log.json)")) : { entries: [] };
     const entries = Array.isArray(store) ? store : store.entries;
     if (!Array.isArray(entries)) throw new Error("Invalid durable raw log");
+    // Four bounded workers read the full listed source set; ordered validation below
+    // keeps duplicate-source decisions independent of network completion order.
+    const fetched = new Array(files.length);
+    const pool = new AbortController();
+    const cancelPool = () => pool.abort();
+    let next = 0;
+    let firstError = null;
+    const worker = async () => {
+      while (!pool.signal.aborted && next < files.length) {
+        const index = next++;
+        const file = files[index];
+        const label = "Reading conversation record " + (index + 1) + " of " + total + " (" + file.name + ")";
+        try {
+          const record = await fetchJsonFile(file, { ...readOptions(label), signal: pool.signal });
+          if (pool.signal.aborted) return;
+          if (!isDiagnosticContinuityRecentRecord(record)) {
+            if (!validateContinuityRecentRecord(record).valid) throw new Error(`Invalid shared RECENT: ${file.name}`);
+            if (record.status === "completed_model_reply" &&
+                (!Number.isFinite(Date.parse(record.effective_at)) || !Number.isInteger(Number(record.sequence)) || Number(record.sequence) < 1)) {
+              throw new Error(`Invalid source timestamp or sequence: ${file.name}`);
+            }
+          }
+          fetched[index] = record;
+          completed += 1;
+          report("Read " + completed + " of " + total + " conversation records");
+        } catch (error) {
+          if (!firstError) firstError = error;
+          pool.abort();
+        }
+      }
+    };
+    try {
+      if (options.signal?.aborted) pool.abort();
+      else options.signal?.addEventListener("abort", cancelPool, { once: true });
+      await Promise.all(Array.from({ length: Math.min(4, files.length) }, () => worker()));
+      if (firstError) throw firstError;
+      if (pool.signal.aborted || completed !== files.length) throw new Error("Full conversation capture was cancelled or incomplete. Conversation retained.");
+    } finally {
+      options.signal?.removeEventListener("abort", cancelPool);
+      pool.abort();
+    }
     const records = [];
     const seen = new Map();
-    for (const file of files) {
-      const label = "Reading conversation record " + (completed + 1) + " of " + total + " (" + file.name + ")";
-      const record = await fetchJsonFile(file, readOptions(label));
-      completed += 1;
-      report("Read " + completed + " of " + total + " conversation records");
+    for (const record of fetched) {
       if (isDiagnosticContinuityRecentRecord(record)) continue;
-      if (!validateContinuityRecentRecord(record).valid) throw new Error(`Invalid shared RECENT: ${file.name}`);
       if (record.status !== "completed_model_reply") continue;
-      if (!Number.isFinite(Date.parse(record.effective_at)) || !Number.isInteger(Number(record.sequence)) || Number(record.sequence) < 1) {
-        throw new Error(`Invalid source timestamp or sequence: ${file.name}`);
-      }
       if (Date.parse(record.effective_at) > Date.parse(until)) continue;
       const prior = seen.get(record.turn_id);
       if (prior) {
