@@ -16,7 +16,7 @@ function budget(attempts){
 }
 function create(deps){
  const E=RPG_THEATER_ENGINE,roles=RPG_ROLE_FACTORY(),data=deps.storage,ledgerKey=SCOPE+'.accounting',resultKey=role=>SCOPE+'.result.'+role;
- let key=null,access=false,current=null,active=null,last='Check the existing OpenAI route and model first.';
+ let key=null,access=false,current=null,active=null,last='Google sign-in, load the designated credential descriptor, then use the access pad.';
  const runtime={tokens:{llm:{}},context:{}},cfg={maxOutputTokens:300};
  function get(k){const raw=data.getItem(k);if(!raw)return null;try{return JSON.parse(raw);}catch{throw Error('Acceptance recovery data is invalid; do not reset or retry.');}}
  function put(k,x){const text=JSON.stringify(x);data.setItem(k,text);if(data.getItem(k)!==text)throw Error('Durable recovery storage failed. No dispatch allowed.');}
@@ -27,13 +27,13 @@ function create(deps){
  function saveResult(role,r){put(resultKey(role),r);}
  function status(){const attempts=current?.snapshot.hosted_attempts||[];return {message:last,model:MODEL,route_and_model_verified:access,campaign_id:ID,revision:current?.revision??null,event_count:current?.snapshot.core.events.length||0,attempts_reserved:attempts.length,reserved_usd:budget(attempts)/1e9,budget_ceiling_usd:LIMIT/1e9,pending_save:Boolean(deps.store.pending(ID)),ledger:ledger(),replies:['Aida','Rias'].map(role=>({role,text:result(role)?.text||null})),hosted_model:MODEL};}
  async function serialized(fn){if(!deps.locks?.request)throw Error('Web Locks unavailable; cannot verify serialized budget enforcement. No call.');return deps.locks.request(SCOPE,{mode:'exclusive'},fn);}
+ function lock(){key=null;access=false;runtime.tokens.llm={};}
  async function checkAccess(){
-  access=false;key=null;
-  const raw=deps.session.getItem('aida_active_route'),existing=deps.session.getItem('aida_active_key');let route;try{route=raw?JSON.parse(raw):null;}catch{throw Error('Existing Aida route metadata is invalid. Left unchanged.');}
-  if(route?.provider!=='openai'||route.auth&&route.auth!=='bearer'||typeof existing!=='string'||!existing.startsWith('sk-'))throw Error('No verified unlocked OpenAI route in this browser tab/session. Existing credentials were not changed. Stop; no token-sharing workaround.');
-  key=existing;runtime.tokens.llm={provider:'openai',model:MODEL,key,auth:'bearer',profile:'rpg-acceptance-only'};
+  lock();
+  deps.unlock.useRoute(route=>{if(route.provider!=='openai'||route.auth!=='bearer'||typeof route.key!=='string'||!route.key.startsWith('sk-'))throw Error('The access pad has not unlocked an OpenAI route.');key=route.key;});
+  runtime.tokens.llm={provider:'openai',model:MODEL,key,auth:'bearer',profile:'rpg-acceptance-only'};
   const r=await deps.fetch('https://api.openai.com/v1/models/'+MODEL,{method:'GET',headers:{Authorization:'Bearer '+key},redirect:'error',signal:AbortSignal.timeout(15000)});
-  if(!r.ok){key=null;runtime.tokens.llm={};throw Error('Model access check failed: HTTP '+r.status+'. No inference performed.');}
+  if(!r.ok){key=null;runtime.tokens.llm={};deps.unlock.clear();throw Error('Model access check failed: HTTP '+r.status+'. No inference performed.');}
   const j=await r.json();if(j.id!==MODEL){key=null;throw Error('Approved model access was not confirmed. No fallback.');}
   access=true;note('PASS: existing OpenAI route and gpt-6-luna model access verified. No inference yet.');return status();
  }
@@ -88,15 +88,22 @@ function create(deps){
   }finally{active=null;}
  });}
  async function reload(){current=await deps.store.load(ID);validateCurrent();note('Read-only Drive reload verified. No inference.');return status();}
- return Object.freeze({checkAccess,open,run,status,reload,recover:role=>serialized(()=>commit(role)),ledger});
+ return Object.freeze({checkAccess,open,run,status,reload,lock,recover:role=>serialized(()=>commit(role)),ledger});
 }
 window.RPG_LIVE_ACCEPTANCE=Object.freeze({create,usageOf,budget,ID,MODEL,SCOPE});
 if(!document.getElementById('live-status'))return;
 const $=id=>document.getElementById(id);let busy=false;
 const store=RPG_THEATER_STORE.create(window.fetch.bind(window),localStorage,s=>{$('live-status').textContent=s;});
-const controller=create({fetch:window.fetch.bind(window),storage:localStorage,session:sessionStorage,locks:navigator.locks,store,status:s=>{$('live-status').textContent=s;}});
-function render(){const s=controller.status();$('summary').textContent=JSON.stringify(s,null,2);$('aida').disabled=busy||!s.route_and_model_verified||s.event_count!==1||s.attempts_reserved!==0;$('rias').disabled=busy||!s.route_and_model_verified||s.event_count!==3||s.attempts_reserved!==1;for(const id of ['check','google','open','reload','recoverAida','recoverRias'])$(id).disabled=busy;}
+const unlock=createRPGFragmentUnlock({readFragments:()=>store.readCredentialFragments()});
+const controller=create({fetch:window.fetch.bind(window),storage:localStorage,unlock,locks:navigator.locks,store,status:s=>{$('live-status').textContent=s;}});
+let pinBuffer='';
+function clearPin(){pinBuffer='';$('pin-mask').value='';}
+function pad(value){if(value==='CLR'){clearPin();return;}if(!/^\d$/.test(value)||pinBuffer.length>=20)return;if(value!=='0'&&pinBuffer.replace(/0/g,'').length>=3)return;pinBuffer+=value;$('pin-mask').value='*'.repeat(pinBuffer.length);}
+for(const b of document.querySelectorAll('[data-pad]'))b.onclick=()=>pad(b.dataset.pad);
+$('pin-mask').onkeydown=e=>{if(/^\d$/.test(e.key)){e.preventDefault();pad(e.key);}else if(e.key==='Backspace'){e.preventDefault();pinBuffer=pinBuffer.slice(0,-1);$('pin-mask').value='*'.repeat(pinBuffer.length);}else if(e.key==='Enter'){e.preventDefault();$('check').click();}};
+function render(){const s=controller.status();$('summary').textContent=JSON.stringify(s,null,2);$('aida').disabled=busy||!s.route_and_model_verified||s.event_count!==1||s.attempts_reserved!==0;$('rias').disabled=busy||!s.route_and_model_verified||s.event_count!==3||s.attempts_reserved!==1;for(const id of ['check','google','open','reload','recoverAida','recoverRias','load-fragments'])$(id).disabled=busy;for(const b of document.querySelectorAll('[data-pad]'))b.disabled=busy;$('pin-mask').disabled=busy;}
 async function ui(fn){if(busy)return;busy=true;render();try{await fn();}catch(e){$('live-status').textContent='STOP: '+e.message;}finally{busy=false;render();}}
-$('check').onclick=()=>ui(()=>controller.checkAccess());$('google').onclick=()=>store.connect();$('open').onclick=()=>ui(()=>controller.open());$('aida').onclick=()=>ui(()=>controller.run('Aida'));$('rias').onclick=()=>ui(()=>controller.run('Rias'));$('reload').onclick=()=>ui(()=>controller.reload());$('recoverAida').onclick=()=>ui(()=>controller.recover('Aida'));$('recoverRias').onclick=()=>ui(()=>controller.recover('Rias'));
+$('load-fragments').onclick=()=>ui(async()=>{controller.lock();clearPin();await unlock.load();$('pad').open=true;$('live-status').textContent='Credential descriptor loaded in page memory only. Enter your usual access-pad PIN here; never send it in chat.';});
+$('check').onclick=()=>{const supplied=pinBuffer;clearPin();return ui(async()=>{controller.lock();unlock.unlock(supplied);await controller.checkAccess();});};$('google').onclick=()=>store.connect();$('open').onclick=()=>ui(()=>controller.open());$('aida').onclick=()=>ui(()=>controller.run('Aida'));$('rias').onclick=()=>ui(()=>controller.run('Rias'));$('reload').onclick=()=>ui(()=>controller.reload());$('recoverAida').onclick=()=>ui(()=>controller.recover('Aida'));$('recoverRias').onclick=()=>ui(()=>controller.recover('Rias'));
 render();store.prepare().catch(()=>{$('live-status').textContent='Google initialization failed; no inference.';});
 })();
