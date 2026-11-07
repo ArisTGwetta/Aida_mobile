@@ -207,7 +207,7 @@
     if (["not_determined", "other_or_missing"].includes(update.selectedAction) || actions.has(update.selectedAction)) next.selectedAction = update.selectedAction;
     const normalizationStatuses = new Set([
       "accepted · accepted_file_index_action",
-      ...["schema_shape_mismatch", "test_gate_disabled", "query_missing_or_empty", "query_too_long", "invalid_or_unparseable_response", "unsupported_intent", "provider_unavailable", "provider_call_failed"].map(reason => `rejected · ${reason}`),
+      ...["schema_shape_mismatch", "schema_intent_mismatch", "test_gate_disabled", "query_missing_or_empty", "query_too_long", "invalid_or_unparseable_response", "unsupported_intent", "provider_unavailable", "provider_call_failed"].map(reason => `rejected · ${reason}`),
       ...Array.from(intents).map(intent => `accepted_non_index · ordinary_intent_${intent}`),
     ]);
     if (normalizationStatuses.has(update.normalization)) next.normalization = update.normalization;

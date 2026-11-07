@@ -167,7 +167,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       "Your job is to translate natural user wording into a safe deterministic tool intent.",
       "Choose intent only from the supplied capabilities menu. Do not invent intent names.",
       "Use recentExchanges only to resolve underspecified follow-ups. Do not invent missing subjects.",
-      "Supported intents: conversation, web_search, memory_search, show_sources, memory_note, project_create, project_update, external_action, clarify, none.",
+      `Supported intents: conversation, web_search, memory_search, show_sources, memory_note, project_create, project_update, external_action, clarify, none${fileIndexTestEnabled() ? ", file_index_lookup" : ""}.`,
       "Use action for the subtype when helpful, such as create_project, rename_project, move_project, create_reminder, draft_email, or show_memory_refs.",
       "For web_search, rewrite query into a complete search query using the last one or two exchanges when needed.",
       "For show_sources, set query to the thing whose sources are requested; if it refers to the previous answer, use recentExchanges to infer the subject.",
@@ -177,7 +177,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       "Ordinary intent schema: {\"intent\":\"conversation|web_search|memory_search|show_sources|memory_note|project_create|project_update|external_action|clarify|none\",\"action\":\"string\",\"query\":\"string\",\"target\":\"string\",\"value\":\"string\",\"confidence\":0.0,\"reason\":\"short\",\"requiresTool\":boolean,\"requiresConfirmation\":boolean}",
       ...(fileIndexTestEnabled() ? [
         "Routing distinction: use file_index.lookup for a request to find an existing file, document, artifact, or its current location. Prefer INDEX when the user asks where a file is now, even if the file may have come up in an earlier conversation. Use memory_search for questions about past conversations, remembered information, or what was previously decided; do not substitute it for a current file-location lookup. Use conversation for ordinary discussion that asks for neither a file location nor remembered information. Examples: ‘Where is the project brief?’ selects File INDEX; ‘What did we decide about the project brief?’ selects memory_search; ‘Can you help me think through this plan?’ selects conversation.",
-        "File INDEX response schema (use only when the user asks where a file): return exactly {\"action\":\"file_index.lookup\",\"query\":\"1–180 character search query\"}. Do not add intent, confidence, or any other fields. The application validates and executes this action. Do not include catalog data, matching records, locations, or links. Use the ordinary intent schema for every other request."
+        "File INDEX response schema (use only when the user asks where a file): return exactly {\"intent\":\"file_index_lookup\",\"action\":\"file_index.lookup\",\"query\":\"1–180 character search query\"}. All three fields are required; do not add confidence or any other fields. The application validates and executes this action. Do not include catalog data, matching records, locations, or links. Use the ordinary intent schema for every other request."
       ] : [])
     ].join("\n");
   }
@@ -213,14 +213,16 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     const rawQuery = typeof value?.query === "string" ? value.query.trim() : "";
     const actionKeys = Object.keys(value || {}).sort().join(",");
     const validFileIndexShape = isFileIndexAction &&
-      actionKeys === "action,query" &&
+      value?.intent === "file_index_lookup" &&
+      actionKeys === "action,intent,query" &&
       rawQuery.length > 0 && rawQuery.length <= 180;
     let fileIndexReason = "not_file_index_action";
     if (isFileIndexAction) {
       if (!fileIndexTestEnabled()) fileIndexReason = "test_gate_disabled";
-      else if (actionKeys !== "action,query") fileIndexReason = "schema_shape_mismatch";
       else if (typeof value.query !== "string" || !value.query.trim()) fileIndexReason = "query_missing_or_empty";
       else if (rawQuery.length > 180) fileIndexReason = "query_too_long";
+      else if (actionKeys !== "action,intent,query") fileIndexReason = "schema_shape_mismatch";
+      else if (value.intent !== "file_index_lookup") fileIndexReason = "schema_intent_mismatch";
       else fileIndexReason = "accepted_file_index_action";
     } else if (supported.includes(value?.intent)) {
       fileIndexReason = `ordinary_intent_${value.intent}`;
