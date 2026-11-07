@@ -1,0 +1,11 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://accounts.google.com/gsi/client; style-src 'self' https://accounts.google.com; frame-src https://accounts.google.com; connect-src https://www.googleapis.com https://accounts.google.com; img-src https://accounts.google.com https://ssl.gstatic.com; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Aida RPG · STAGING Drive test</title><link rel="stylesheet" href="style.css">
+<main><h1>Aida RPG · STAGING</h1><p><strong>Disposable Drive test only. No model calls. No real campaigns.</strong></p>
+<p>Uses Aida Mobile’s existing Google client and scopes. Authorization stays in this page’s memory. Everyday Aida’s memory boot and API keys are not loaded.</p>
+<p>This creates at most one clearly named staging folder at the top level of your Drive, containing one fixed synthetic record. It never updates or deletes existing files.</p>
+<button id="connect">1. Google sign-in</button><button id="roundtrip">2. Create/read disposable test record</button><button id="verify">3. Verify existing record after reload · read only</button>
+<p>After step 2 succeeds, reload this page, use Google sign-in again if needed, then step 3. No tokens are saved between reloads.</p>
+<pre id="status" role="status" aria-live="polite">Google authorization required. No Drive changes yet.</pre></main>
+<script src="oauth-config.js"></script><script src="mobile-io.js"></script><script src="staging.js"></script></html>
