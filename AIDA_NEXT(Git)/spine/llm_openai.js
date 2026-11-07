@@ -111,6 +111,18 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
 
   async function runProjectIntent(userText) {
     const route = await window.AIDA_INTENT_ROUTER?.infer?.(userText);
+    if (route?.intent === "file_index_lookup" && route.action === "file_index.lookup" && route.autoRun) {
+      const execute = window.AIDA_FILE_INDEX?.executeAction;
+      if (typeof execute !== "function") {
+        pulse("The File INDEX test action is unavailable in this interface.");
+        return true;
+      }
+      await execute.call(window.AIDA_FILE_INDEX, {
+        name: route.action,
+        arguments: { query: route.query },
+      });
+      return true;
+    }
     if (!route || !["project_create", "project_update"].includes(route.intent)) return false;
     const proposal = window.AIDA_ACTION_EXECUTOR?.propose?.(route, userText);
     if (!proposal) return false;

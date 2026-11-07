@@ -62,6 +62,10 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     }));
   }
 
+  function fileIndexTestEnabled() {
+    return window.AIDA_FILE_INDEX?.isTestEnabled?.() === true;
+  }
+
   // AIDA REVIEW BLOCK 8: Function packet - callable behavior in this runtime organ.
   function packet(userText) {
     const rt = runtime();
@@ -98,6 +102,12 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
             "Use for finding something in Aida's indexed private/project memory, logs, or briefcases.",
           autoRun: true
         },
+        ...(fileIndexTestEnabled() ? [{
+          intent: "file_index_lookup",
+          action: "file_index.lookup",
+          description: "Find a file location using a private metadata-only catalog. Return only the bounded search query; never request or describe catalog contents or lookup results.",
+          autoRun: true,
+        }] : []),
         {
           intent: "show_sources",
           description:
@@ -156,7 +166,10 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       "For memory_note, put the note to save in value.",
       "For project_create, project_update, and external_action, set requiresConfirmation true.",
       "If the user is only chatting, return conversation.",
-      "Schema: {\"intent\":\"conversation|web_search|memory_search|show_sources|memory_note|project_create|project_update|external_action|clarify|none\",\"action\":\"string\",\"query\":\"string\",\"target\":\"string\",\"value\":\"string\",\"confidence\":0.0,\"reason\":\"short\",\"requiresTool\":boolean,\"requiresConfirmation\":boolean}"
+      "Schema: {\"intent\":\"conversation|web_search|memory_search|show_sources|memory_note|project_create|project_update|external_action|clarify|none\",\"action\":\"string\",\"query\":\"string\",\"target\":\"string\",\"value\":\"string\",\"confidence\":0.0,\"reason\":\"short\",\"requiresTool\":boolean,\"requiresConfirmation\":boolean}",
+      ...(fileIndexTestEnabled() ? [
+        "When the explicit File INDEX test capability is available and the user asks where a file is, return a structured action with action exactly file_index.lookup and a query of 1–180 characters. Example: {\"action\":\"file_index.lookup\",\"query\":\"citizenship certificate\"}. A confidence number from 0 to 1 may also be included. Do not include catalog data, matching records, locations, or links. Use ordinary supported intents for all other requests."
+      ] : [])
     ].join("\n");
   }
 
@@ -186,21 +199,34 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       "clarify",
       "none"
     ];
-    const intent = supported.includes(value?.intent) ? value.intent : "none";
-    const confidence = Math.max(0, Math.min(1, Number(value?.confidence || 0)));
-    const query = cleanText(value?.query, 400);
+    const action = cleanText(value?.action, 120);
+    const isFileIndexAction = value?.action === "file_index.lookup";
+    const rawQuery = typeof value?.query === "string" ? value.query.trim() : "";
+    const actionKeys = Object.keys(value || {}).sort().join(",");
+    const validFileIndexShape = isFileIndexAction &&
+      ["action,query", "action,confidence,query"].includes(actionKeys) &&
+      (actionKeys === "action,query" || (typeof value.confidence === "number" &&
+        Number.isFinite(value.confidence) && value.confidence >= 0 && value.confidence <= 1)) &&
+      rawQuery.length > 0 && rawQuery.length <= 180;
+    const intent = isFileIndexAction
+      ? (fileIndexTestEnabled() && validFileIndexShape ? "file_index_lookup" : "none")
+      : supported.includes(value?.intent) ? value.intent : "none";
+    const confidence = intent === "file_index_lookup" && value.confidence === undefined
+      ? 1
+      : Math.max(0, Math.min(1, Number(value?.confidence || 0)));
+    const query = cleanText(value?.query, intent === "file_index_lookup" ? 180 : 400);
     const valueText = cleanText(value?.value, 500);
-    const needsText = ["web_search", "memory_search", "show_sources"].includes(intent)
+    const needsText = ["web_search", "memory_search", "show_sources", "file_index_lookup"].includes(intent)
       ? query.length > 0
       : intent === "memory_note"
       ? valueText.length > 0 || query.length > 0
       : true;
-    const canAutoRun = ["web_search", "memory_search", "show_sources", "memory_note"].includes(
+    const canAutoRun = ["web_search", "memory_search", "show_sources", "memory_note", "file_index_lookup"].includes(
       intent
     );
     return {
       intent,
-      action: cleanText(value?.action, 120),
+      action,
       query,
       target: cleanText(value?.target, 160),
       value: valueText,

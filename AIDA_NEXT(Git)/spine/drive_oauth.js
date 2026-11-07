@@ -269,6 +269,32 @@ async function fetchJsonFile(file, options = {}) {
   }
 }
 
+// Explicit File INDEX test read. This deliberately bypasses fetchJsonByName,
+// runtime().drive.files, loadedNames, and all Wake/hydration registries.
+async function fetchFileIndexCatalogById(fileId) {
+  const rt = runtime();
+  const expectedId = "1tq11CcbzgJq8tFIGYDYc7S58CmopgxR-";
+  const expectedName = "aida_file_index_v1.json";
+  const folderId = rt.drive?.folderId;
+  if (!rt.tokens?.drive?.accessToken) throw new Error("Authenticated Drive session required.");
+  if (!folderId) throw new Error("Configured Aida JSON folder is unavailable.");
+  if (fileId !== expectedId) throw new Error("File INDEX test is limited to its approved catalog ID.");
+
+  const metadataUrl = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(expectedId)}?fields=id,name,mimeType,parents,trashed`;
+  const metadata = await readDriveResponse(metadataUrl, {}, "File INDEX metadata check", "json");
+  if (metadata?.id !== expectedId || metadata.name !== expectedName ||
+      metadata.mimeType !== "application/json" || metadata.trashed !== false ||
+      !Array.isArray(metadata.parents) || !metadata.parents.includes(folderId)) {
+    throw new Error("File INDEX catalog failed its exact ID, name, folder, or trash-state check.");
+  }
+
+  // fetchJsonFile uses the existing OAuth token but returns the parsed value
+  // directly; no shared runtime cache or loaded-name bookkeeping is touched.
+  return fetchJsonFile({ id: expectedId, name: expectedName, mimeType: metadata.mimeType }, {
+    progressLabel: "File INDEX catalog retrieval"
+  });
+}
+
 
 // AIDA REVIEW BLOCK 14: Function isProjectFile - callable behavior in this runtime organ.
   function isProjectFile(name) {
@@ -1915,6 +1941,7 @@ async function fetchJsonFile(file, options = {}) {
     waitForFullDriveBoot,
     fetchEveryDriveJson,
     fetchJsonByName,
+    fetchFileIndexCatalogById,
     fetchBlobUrlByName,
     formatContinuityRecentRecord,
     continuityRecentFileName,
