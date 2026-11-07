@@ -103,13 +103,13 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
         {
           intent: "memory_search",
           description:
-            "Use for finding something in Aida's indexed private/project memory, logs, or briefcases.",
+            "Use to recall past conversations, decisions, and information Aida remembers. Do not use this to locate an existing file or its current storage location; use file_index.lookup for that when available, even if the file was discussed before.",
           autoRun: true
         },
         ...(fileIndexTestEnabled() ? [{
           intent: "file_index_lookup",
           action: "file_index.lookup",
-          description: "Find a file location using a private metadata-only catalog. Return only the bounded search query; never request or describe catalog contents or lookup results.",
+          description: "Find an existing file, document, or artifact and its current recorded storage location using a private metadata-only catalog. Prefer this for requests asking where a file is now, even if it may have been discussed previously. Return only the bounded search query; never request or describe catalog contents or lookup results.",
           autoRun: true,
         }] : []),
         {
@@ -176,6 +176,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       "If the user is only chatting, return conversation.",
       "Ordinary intent schema: {\"intent\":\"conversation|web_search|memory_search|show_sources|memory_note|project_create|project_update|external_action|clarify|none\",\"action\":\"string\",\"query\":\"string\",\"target\":\"string\",\"value\":\"string\",\"confidence\":0.0,\"reason\":\"short\",\"requiresTool\":boolean,\"requiresConfirmation\":boolean}",
       ...(fileIndexTestEnabled() ? [
+        "Routing distinction: use file_index.lookup for a request to find an existing file, document, artifact, or its current location. Prefer INDEX when the user asks where a file is now, even if the file may have come up in an earlier conversation. Use memory_search for questions about past conversations, remembered information, or what was previously decided; do not substitute it for a current file-location lookup. Use conversation for ordinary discussion that asks for neither a file location nor remembered information. Examples: ‘Where is the project brief?’ selects File INDEX; ‘What did we decide about the project brief?’ selects memory_search; ‘Can you help me think through this plan?’ selects conversation.",
         "File INDEX response schema (use only when the user asks where a file): return exactly {\"action\":\"file_index.lookup\",\"query\":\"1–180 character search query\"}. Do not add intent, confidence, or any other fields. The application validates and executes this action. Do not include catalog data, matching records, locations, or links. Use the ordinary intent schema for every other request."
       ] : [])
     ].join("\n");
