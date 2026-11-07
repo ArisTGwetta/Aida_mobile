@@ -3,6 +3,7 @@ const E=()=>RPG_THEATER_ENGINE,NS='aida-rpg-hosted-play-v1',ROOTNS='aida-rpg-sta
 const ROOTNAME='Aida RPG STAGING disposable 2026-10-29',DIRNAME='Hosted Play disposable v1';
 // Exact existing credential descriptor only. This is a read capability, never a write target.
 const CREDENTIAL_PARENT='1s-VljHb0SCPLcXvNfQ-wRonIl43jwT7I',CREDENTIAL_NAME='llm_fragments.json';
+const META_FIELDS='id,name,mimeType,parents,appProperties,modifiedTime,version,size,md5Checksum';
 const rootQuery="'root' in parents and name = '"+ROOTNAME+"' and mimeType = 'application/vnd.google-apps.folder' and appProperties has { key='rpg_staging' and value='"+ROOTNS+"' } and trashed = false";
 const safeId=id=>typeof id==='string'&&/^[A-Za-z0-9_-]{4,160}$/.test(id);
 function create(nativeFetch,pendingStorage,onStatus=()=>{}){
@@ -21,7 +22,7 @@ function create(nativeFetch,pendingStorage,onStatus=()=>{}){
   if(!rt.tokens.drive.accessToken||o.headers?.Authorization!=='Bearer '+rt.tokens.drive.accessToken)throw Error('Google authorization is required.');
   let body=o.body;
   if(u.pathname==='/drive/v3/files'&&m==='GET'){
-   if(!query||u.searchParams.get('q')!==query)throw Error('Unscoped Drive listing denied.');u.searchParams.set('fields','nextPageToken,files(id,name,mimeType,parents,appProperties)');
+   if(!query||u.searchParams.get('q')!==query)throw Error('Unscoped Drive listing denied.');u.searchParams.set('fields','nextPageToken,files('+META_FIELDS+')');
   }else if(u.pathname==='/drive/v3/files/generateIds'&&m==='GET'){
    if(u.searchParams.get('count')!=='1'||u.searchParams.get('space')!=='drive')throw Error('Invalid ID allocation.');
   }else if(u.pathname==='/drive/v3/files'&&m==='POST'){
@@ -36,7 +37,7 @@ function create(nativeFetch,pendingStorage,onStatus=()=>{}){
    body=new Blob([`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${text}\r\n--${boundary}--\r\n`],{type:o.headers['Content-Type']});
   }else if(m==='GET'&&credentialReadId&&u.pathname==='/drive/v3/files/'+credentialReadId&&u.searchParams.get('alt')==='media'){
    // Only readCredentialFragments can install this temporary read-only capability.
-  }else if(m==='GET'&&metadataId&&u.pathname==='/drive/v3/files/'+metadataId&&u.searchParams.get('fields')==='id,name,mimeType,parents,appProperties'){
+  }else if(m==='GET'&&metadataId&&u.pathname==='/drive/v3/files/'+metadataId&&u.searchParams.get('fields')===META_FIELDS){
    // Metadata only; content remains forbidden until namespace/parent validation.
   }else if(m==='GET'&&u.searchParams.get('alt')==='media'&&readable.has(u.pathname.slice('/drive/v3/files/'.length))&&u.pathname.startsWith('/drive/v3/files/')){
   }else throw Error('Drive operation denied: no updates, deletes, production files or provider calls.');
@@ -76,7 +77,7 @@ function create(nativeFetch,pendingStorage,onStatus=()=>{}){
   if(!validMeta(m,id))throw Error('Foreign snapshot metadata denied.');metrics.counts.snapshot_read++;readable.add(m.id);rt.drive.fileIndex={[m.name]:m};rt.drive.files={};
   const e=await io.fetchJsonByName(m.name,'RPG-only immutable snapshot');await E().verify(e,id);if(e.hash!==m.appProperties.rpg_hash)throw Error('Snapshot content/metadata hash mismatch.');return e;
  }
- function fingerprint(m){return JSON.stringify({id:m.id,name:m.name,mimeType:m.mimeType,parents:m.parents,appProperties:m.appProperties});}
+ function fingerprint(m){return JSON.stringify({id:m.id,name:m.name,mimeType:m.mimeType,parents:m.parents,appProperties:m.appProperties,modifiedTime:m.modifiedTime,version:m.version,size:m.size,md5Checksum:m.md5Checksum});}
  async function listOwn(id){
   await ensureFolder(false);const files=await list("'"+folder+"' in parents and appProperties has { key='campaign' and value='"+id+"' } and trashed = false");
   const own=[];for(const m of files){if(m.appProperties?.rpg_namespace!==NS)throw Error('Unexpected record in Theater folder; no partial scan.');if(m.appProperties.campaign!==id)continue;if(!validMeta(m,id))throw Error('Invalid snapshot metadata.');own.push(m);}
@@ -122,7 +123,7 @@ function create(nativeFetch,pendingStorage,onStatus=()=>{}){
   metrics.counts.upload++;try{await timed('upload',()=>io.putFile(name,JSON.stringify(e),'application/json'));}
   catch(error){
    // A timed-out upload may have committed. Check only this preallocated ID.
-   metadataId=p.file_id;let r;try{r=await guarded('https://www.googleapis.com/drive/v3/files/'+p.file_id+'?fields=id,name,mimeType,parents,appProperties',{headers:headers()});}finally{metadataId=null;}
+   metadataId=p.file_id;let r;try{r=await guarded('https://www.googleapis.com/drive/v3/files/'+p.file_id+'?fields='+META_FIELDS,{headers:headers()});}finally{metadataId=null;}
    if(!r.ok)throw Error('Save is unresolved; exact pending record and file ID retained. Use Recover pending save.');
    const saved=await read(await r.json(),id);if(saved.hash!==e.hash)throw Error('Preallocated ID returned conflicting content.');
   }finally{upload=null;}
