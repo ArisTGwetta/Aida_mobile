@@ -66,12 +66,16 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     return window.AIDA_FILE_INDEX?.isTestEnabled?.() === true;
   }
 
+  function reportFileIndexDiagnostic(update) {
+    if (fileIndexTestEnabled()) window.AIDA_FILE_INDEX?.reportRoutingDiagnostic?.(update);
+  }
+
   // AIDA REVIEW BLOCK 8: Function packet - callable behavior in this runtime organ.
   function packet(userText) {
     const rt = runtime();
     const context = rt?.context || {};
     const mind = rt?.mind || {};
-    return {
+    const result = {
       userText: cleanText(userText, 1100),
       recentExchanges: recentExchanges(2),
       active: {
@@ -150,6 +154,10 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
         }
       ]
     };
+    reportFileIndexDiagnostic({
+      advertised: result.capabilities.some((item) => item.action === "file_index.lookup"),
+    });
+    return result;
   }
 
   // AIDA REVIEW BLOCK 9: Function systemPrompt - callable behavior in this runtime organ.
@@ -206,6 +214,20 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     const validFileIndexShape = isFileIndexAction &&
       actionKeys === "action,query" &&
       rawQuery.length > 0 && rawQuery.length <= 180;
+    let fileIndexReason = "not_file_index_action";
+    if (isFileIndexAction) {
+      if (!fileIndexTestEnabled()) fileIndexReason = "test_gate_disabled";
+      else if (actionKeys !== "action,query") fileIndexReason = "schema_shape_mismatch";
+      else if (typeof value.query !== "string" || !value.query.trim()) fileIndexReason = "query_missing_or_empty";
+      else if (rawQuery.length > 180) fileIndexReason = "query_too_long";
+      else fileIndexReason = "accepted_file_index_action";
+    } else if (supported.includes(value?.intent)) {
+      fileIndexReason = `ordinary_intent_${value.intent}`;
+    } else if (!value || typeof value !== "object") {
+      fileIndexReason = "invalid_or_unparseable_response";
+    } else {
+      fileIndexReason = "unsupported_intent";
+    }
     const intent = isFileIndexAction
       ? (fileIndexTestEnabled() && validFileIndexShape ? "file_index_lookup" : "none")
       : supported.includes(value?.intent) ? value.intent : "none";
@@ -222,6 +244,12 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     const canAutoRun = ["web_search", "memory_search", "show_sources", "memory_note", "file_index_lookup"].includes(
       intent
     );
+    const normalizationStatus = intent === "file_index_lookup"
+      ? "accepted · accepted_file_index_action"
+      : intent === "none"
+      ? `rejected · ${fileIndexReason}`
+      : `accepted_non_index · ordinary_intent_${intent}`;
+    reportFileIndexDiagnostic({ normalization: normalizationStatus });
     return {
       intent,
       action,
@@ -242,13 +270,34 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     };
   }
 
+  function responseShape(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return "invalid_or_non_object";
+    const keys = Object.keys(value).sort();
+    if (keys.length === 2 && keys[0] === "action" && keys[1] === "query") return "action_plus_query";
+    const expected = ["action", "confidence", "intent", "query", "reason", "requiresConfirmation", "requiresTool", "target", "value"];
+    if (keys.every((key) => expected.includes(key)) && keys.includes("intent")) {
+      return `ordinary_intent_fields_${keys.length}`;
+    }
+    return `unrecognized_object_fields_${keys.length}`;
+  }
+
+  function selectedAction(value) {
+    const allowed = new Set(["file_index.lookup", "conversation", "web_search", "memory_search", "show_sources", "memory_note", "project_create", "project_update", "external_action", "clarify", "none"]);
+    if (typeof value?.action === "string" && allowed.has(value.action)) return value.action;
+    if (typeof value?.intent === "string" && allowed.has(value.intent)) return value.intent;
+    return "other_or_missing";
+  }
+
   // AIDA REVIEW BLOCK 12: Function infer - callable behavior in this runtime organ.
   async function infer(userText, options = {}) {
     if (!window.AIDA_LLM_PROVIDER?.callMessages) {
-      return normalizeIntent({ intent: "none", reason: "provider_unavailable" });
+      const unavailable = normalizeIntent({ intent: "none", reason: "provider_unavailable" });
+      reportFileIndexDiagnostic({ router: "failed", responseShape: "not_received", selectedAction: "other_or_missing", normalization: "rejected · provider_unavailable" });
+      return unavailable;
     }
 
     const input = packet(userText);
+    reportFileIndexDiagnostic({ router: "started", responseShape: "waiting", selectedAction: "not_determined", normalization: "not_determined", dispatch: "not_reached", consumed: false });
     try {
       const text = await window.AIDA_LLM_PROVIDER.callMessages(
         [
@@ -266,7 +315,13 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
         }
       );
 
-      const normalized = normalizeIntent(parseJson(text));
+      const parsed = parseJson(text);
+      const normalized = normalizeIntent(parsed);
+      reportFileIndexDiagnostic({
+        router: "completed",
+        responseShape: responseShape(parsed),
+        selectedAction: selectedAction(parsed),
+      });
       runtime().context.lastIntentRoute = {
         ...normalized,
         routedAt: new Date().toISOString(),
@@ -284,6 +339,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
         reason: error.message,
         routedAt: new Date().toISOString()
       };
+      reportFileIndexDiagnostic({ router: "failed", responseShape: "not_received", selectedAction: "other_or_missing", normalization: "rejected · provider_call_failed" });
       log(`INTENT: router unavailable (${error.message}).`, "log-amber");
       return normalizeIntent({ intent: "none", reason: error.message });
     }

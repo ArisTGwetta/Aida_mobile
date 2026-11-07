@@ -114,15 +114,22 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     if (route?.intent === "file_index_lookup" && route.action === "file_index.lookup" && route.autoRun) {
       const execute = window.AIDA_FILE_INDEX?.executeAction;
       if (typeof execute !== "function") {
+        window.AIDA_FILE_INDEX?.reportRoutingDiagnostic?.({ dispatch: "not_attempted · executor_unavailable", consumed: true });
         pulse("The File INDEX test action is unavailable in this interface.");
         return true;
       }
+      window.AIDA_FILE_INDEX?.reportRoutingDiagnostic?.({ dispatch: "attempted", consumed: false });
       await execute.call(window.AIDA_FILE_INDEX, {
         name: route.action,
         arguments: { query: route.query },
       });
+      window.AIDA_FILE_INDEX?.reportRoutingDiagnostic?.({ dispatch: "completed", consumed: true });
       return true;
     }
+    window.AIDA_FILE_INDEX?.reportRoutingDiagnostic?.({
+      dispatch: "skipped · no validated auto-run INDEX action",
+      consumed: false,
+    });
     if (!route || !["project_create", "project_update"].includes(route.intent)) return false;
     const proposal = window.AIDA_ACTION_EXECUTOR?.propose?.(route, userText);
     if (!proposal) return false;

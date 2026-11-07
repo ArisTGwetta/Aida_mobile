@@ -24,6 +24,8 @@
   let testGateStatus = null;
   let testGateButton = null;
   let testGateReadButton = null;
+  let testDiagnosticOutput = null;
+  let testDiagnosticState = null;
   let resultPanel = null;
 
   function validateAction(action) {
@@ -190,6 +192,42 @@
     return "CATALOG_READ_FAILED";
   }
 
+  function updateRoutingDiagnostic(update = {}) {
+    if (!testEnabled || !testDiagnosticOutput) return false;
+    const intents = new Set(["conversation", "web_search", "memory_search", "show_sources", "memory_note", "project_create", "project_update", "external_action", "clarify", "none"]);
+    const actions = new Set(["file_index.lookup", ...intents]);
+    const next = {};
+    if (typeof update.advertised === "boolean") next.advertised = update.advertised;
+    if (["started", "completed", "failed"].includes(update.router)) next.router = update.router;
+    if (["waiting", "not_received", "action_plus_query", "invalid_or_non_object"].includes(update.responseShape) ||
+        /^ordinary_intent_fields_[0-9]{1,2}$/.test(update.responseShape || "") ||
+        /^unrecognized_object_fields_[0-9]{1,2}$/.test(update.responseShape || "")) {
+      next.responseShape = update.responseShape;
+    }
+    if (["not_determined", "other_or_missing"].includes(update.selectedAction) || actions.has(update.selectedAction)) next.selectedAction = update.selectedAction;
+    const normalizationStatuses = new Set([
+      "accepted · accepted_file_index_action",
+      ...["schema_shape_mismatch", "test_gate_disabled", "query_missing_or_empty", "query_too_long", "invalid_or_unparseable_response", "unsupported_intent", "provider_unavailable", "provider_call_failed"].map(reason => `rejected · ${reason}`),
+      ...Array.from(intents).map(intent => `accepted_non_index · ordinary_intent_${intent}`),
+    ]);
+    if (normalizationStatuses.has(update.normalization)) next.normalization = update.normalization;
+    const dispatchStatuses = ["attempted", "completed", "not_attempted · executor_unavailable", "skipped · no validated auto-run INDEX action"];
+    if (dispatchStatuses.includes(update.dispatch)) next.dispatch = update.dispatch;
+    if (typeof update.consumed === "boolean") next.consumed = update.consumed;
+    testDiagnosticState = { ...(testDiagnosticState || {}), ...next };
+    const state = testDiagnosticState;
+    testDiagnosticOutput.textContent = [
+      `Capability advertised: ${state.advertised === true ? "yes" : state.advertised === false ? "no" : "not checked"}`,
+      `Router call: ${state.router || "not started"}`,
+      `Response shape: ${state.responseShape || "not received"}`,
+      `Selected action: ${state.selectedAction || "not determined"}`,
+      `Normalization: ${state.normalization || "not determined"}`,
+      `Dispatch: ${state.dispatch || "not reached"}`,
+      `Request consumed: ${state.consumed === true ? "yes" : state.consumed === false ? "no" : "not determined"}`,
+    ].join("\n");
+    return true;
+  }
+
   async function verifyCatalogRead() {
     if (!testEnabled) return false;
     if (testGateStatus) testGateStatus.textContent = "Checking the catalog through the authenticated Drive reader…";
@@ -250,6 +288,8 @@
     }
     if (testGateReadButton) testGateReadButton.disabled = true;
     if (testGateStatus) testGateStatus.textContent = "Disabled. No catalog is loaded.";
+    testDiagnosticState = null;
+    if (testDiagnosticOutput) testDiagnosticOutput.textContent = "Diagnostics cleared.";
   }
 
   function mountTestGate() {
@@ -270,7 +310,15 @@
     testGateReadButton.addEventListener("click", verifyCatalogRead);
     testGateStatus = document.createElement("span");
     testGateStatus.textContent = "Enabled by test URL. No catalog is loaded.";
-    gate.append(testGateReadButton, testGateButton, testGateStatus);
+    const diagnostics = document.createElement("details");
+    const diagnosticsSummary = document.createElement("summary");
+    diagnosticsSummary.textContent = "Routing diagnostics";
+    testDiagnosticOutput = document.createElement("pre");
+    testDiagnosticOutput.setAttribute("aria-live", "polite");
+    testDiagnosticOutput.style.cssText = "white-space:pre-wrap;max-width:min(32rem,85vw);margin:.4rem 0 0;font:12px/1.45 ui-monospace,monospace";
+    testDiagnosticOutput.textContent = "Waiting for a routed request.";
+    diagnostics.append(diagnosticsSummary, testDiagnosticOutput);
+    gate.append(testGateReadButton, testGateButton, testGateStatus, diagnostics);
     document.body.append(gate);
   }
 
@@ -279,6 +327,7 @@
     isTestEnabled: () => testEnabled,
     executeAction,
     verifyCatalogRead,
+    reportRoutingDiagnostic: updateRoutingDiagnostic,
     disableTestGate,
   });
 
