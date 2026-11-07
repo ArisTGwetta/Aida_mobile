@@ -329,7 +329,19 @@
     const gate = document.createElement("section");
     gate.id = "aida-file-index-test-gate";
     gate.setAttribute("aria-label", "File INDEX test gate");
-    gate.style.cssText = "position:fixed;z-index:10000;left:1rem;bottom:1rem;display:flex;gap:.5rem;align-items:center;padding:.65rem;background:#eef3f8;color:#18212b;border:1px solid #6a7b90;border-radius:10px;font:13px system-ui,sans-serif";
+    gate.style.cssText = "position:fixed;z-index:10000;left:1rem;bottom:1rem;display:flex;gap:.5rem;align-items:flex-start;padding:.45rem;background:#eef3f8;color:#18212b;border:1px solid #6a7b90;border-radius:10px;font:13px system-ui,sans-serif";
+    const tools = document.createElement("div");
+    tools.hidden = true;
+    tools.style.cssText = "display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;max-width:min(36rem,88vw)";
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.textContent = "INDEX enabled · Show tools";
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.addEventListener("click", () => {
+      tools.hidden = !tools.hidden;
+      toggle.textContent = tools.hidden ? "INDEX enabled · Show tools" : "Hide INDEX tools";
+      toggle.setAttribute("aria-expanded", String(!tools.hidden));
+    });
     testGateButton = document.createElement("button");
     testGateButton.type = "button";
     testGateButton.textContent = "Disable File INDEX test";
@@ -349,7 +361,8 @@
     testDiagnosticOutput.style.cssText = "white-space:pre-wrap;max-width:min(32rem,85vw);margin:.4rem 0 0;font:12px/1.45 ui-monospace,monospace";
     testDiagnosticOutput.textContent = "Waiting for a routed request.";
     diagnostics.append(diagnosticsSummary, testDiagnosticOutput);
-    gate.append(testGateReadButton, testGateButton, testGateStatus, diagnostics);
+    tools.append(testGateReadButton, testGateButton, testGateStatus, diagnostics);
+    gate.append(toggle, tools);
     document.body.append(gate);
   }
 
