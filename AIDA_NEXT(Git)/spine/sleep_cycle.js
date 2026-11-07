@@ -2082,42 +2082,16 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
         if (!resumed?.ok) throw new Error(resumed?.reason || "Pending save could not reopen. Use Resume Pending Save; recovery data retained.");
         return pending;
       }
-      const controller = new AbortController();
-      let progress = { message: "Starting Drive preflight", completed: 0, total: null };
-      const onProgress = (next) => {
-        progress = next;
-        try { options.onProgress?.(next); } catch (_) {}
-      };
-      onProgress(progress);
-      let timer;
-      let capture;
-      try {
-        const deadline = new Promise((_, reject) => {
-          timer = setTimeout(() => {
-            reject(new Error("Drive preflight reached its 45-second total limit while: " + progress.message +
-              ". Read " + progress.completed + " of " + (progress.total ?? "unknown") +
-              " conversation records. No partial capture will be saved. Conversation and recovery data retained."));
-            controller.abort();
-          }, 45000);
-        });
-        capture = await Promise.race([
-          window.AIDA_DRIVE.collectSharedRecentForSleep(nowIso(), { signal: controller.signal, onProgress }), deadline
-        ]);
-      } finally {
-        clearTimeout(timer);
-        controller.abort();
-      }
-      const previousCache = rt.context.sharedRecentCaptureRecords;
-      const newLocalTurns = turnsForCollection(rt.session?.currentTurns || [], { since: collectionBoundary(rt), until: capture.until });
-      if (!capture.eligible.length && !newLocalTurns.length &&
+      // Phone departure captures its own complete session. Shared catch-up happens
+      // at Wake; shared-history consolidation belongs to the home-base run.
+      try { options.onProgress?.({ message: "Preserving this phone conversation", completed: 0, total: null }); } catch (_) {}
+      const newLocalTurns = turnsForCollection(rt.session?.currentTurns || [], { since: collectionBoundary(rt), until: nowIso() });
+      if (!newLocalTurns.length &&
           (rt.session?.currentTurns?.length || 0) >= (rt.session?.exchangeCount || 0)) {
         window.AIDA_BODY?.pulse?.("No new completed turns to save.");
         return { status: "no_new_turns" };
       }
-      rt.context.sharedRecentCaptureRecords = capture.records.filter((r) => r.host_id === "phone" && r.conversation_id === rt.session?.id);
-      let packet;
-      try { packet = buildPacket(reason, capture); }
-      finally { rt.context.sharedRecentCaptureRecords = previousCache; }
+      const packet = buildPacket(reason);
       if (packet?.status === "incomplete_deferred") {
         window.AIDA_BODY?.pulse?.(`Sleep deferred: ${packet.incompleteReason || "capture incomplete"}. Conversation retained.`);
         return packet;
@@ -2133,7 +2107,8 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       if (window.AIDA_BODY?.appendChat) {
         window.AIDA_BODY.appendChat("AIDA", `Sleep packet collected: ${summary.exchangeCount} exchange(s), ${summary.pendingJournalCount} journal item(s), ${summary.syncQueueCount} sync draft(s).`);
       }
-      const refinement = refinePacketWithLlm(packet);
+      // Keep deterministic raw capture/backlog for home base; no model at departure.
+      const refinement = Promise.resolve();
       if (typeof window.aida_depart === "function") window.aida_depart();
       if (window.AIDA_BODY?.showSleepCollected) {
         setTimeout(() => window.AIDA_BODY.showSleepCollected(summary, { final: false }), 2700);

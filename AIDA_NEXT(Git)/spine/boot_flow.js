@@ -66,9 +66,6 @@
       throw new Error("Essential memory fetch did not complete.");
     }
 
-    window.AIDA_DRIVE?.ensureContinuityRecentPromptContext?.({ reason: "wake", force: true }).catch((error) => {
-      log(`WAKE: Shared RECENT refresh skipped: ${error.message}`, "log-amber");
-    });
     window.AIDA_WHILE_AWAY?.buildThought?.();
     return true;
   }
@@ -147,6 +144,11 @@ async function continueWake() {
       log("WAKE: Starting Aida wake flow.", "log-blue");
       await ensureDriveConnected();
       await ensureDriveLoaded();
+      log("WAKE: Catching up on shared conversations.", "log-amber");
+      const recent = await window.AIDA_DRIVE?.ensureContinuityRecentPromptContext?.({ reason: "wake", force: true });
+      if (!recent?.ok || recent.stale) {
+        throw new Error("Conversation catch-up could not finish. Retry Wake Aida. " + (recent?.error || recent?.reason || "Recent reader unavailable."));
+      }
       if (!ensureAirlock()) return false;
       await continueWake();
       return true;

@@ -973,7 +973,63 @@ async function fetchJsonFile(file, options = {}) {
     return report;
   }
 
+  async function refreshRecentReview(options = {}) {
+    const engine = window.AIDA_RECENT_REVIEW?.engine;
+    if (!engine) return null; // Older shells retain the full-source collector.
+    const folderId = await resolveContinuityRecentFolderId(options);
+    const scope = "phone:" + runtime().drive.folderId + ":" + folderId;
+    const safeProgress = progress => { try { options.onProgress?.(progress); } catch (_) {} };
+    const readOptions = label => ({ ...options, readTimeoutMs: 15000, progressLabel: label,
+      onRequest: message => safeProgress({ message, completed: 0, total: null }) });
+    const base = "https://www.googleapis.com/drive/v3/changes";
+    return engine.refresh({ scope, signal: options.signal, fullReconcile: options.fullReconcile,
+      getStartToken: async () => {
+        const data = await readDriveResponse(base + "/startPageToken?fields=startPageToken", readOptions("Starting complete conversation catch-up"), "Starting complete conversation catch-up", "json");
+        if (!data.startPageToken) throw new Error("Drive did not provide a review bookmark.");
+        return data.startPageToken;
+      },
+      listBaseline: () => listContinuityRecentFiles(readOptions("Listing complete conversation baseline")),
+      listChanges: async token => {
+        const fields = "nextPageToken,newStartPageToken,changes(fileId,removed,file(id,name,parents,trashed,modifiedTime,md5Checksum))";
+        const url = base + "?pageToken=" + encodeURIComponent(token) + "&pageSize=1000&fields=" + encodeURIComponent(fields);
+        try { return await readDriveResponse(url, readOptions("Checking new conversation arrivals"), "Checking new conversation arrivals", "json"); }
+        catch (error) { if (/HTTP 410\b/.test(error.message)) error.status = 410; throw error; }
+      },
+      isSource: file => (file.parents || []).includes(folderId) && /^turn_.*\.json$/.test(file.name || ""),
+      fetchRecord: (file, signal, completed, total) => fetchJsonFile(file, { ...readOptions("Reading new or changed conversation " + file.name), signal }),
+      isDiagnostic: isDiagnosticContinuityRecentRecord,
+      validate: (record, file) => {
+        if (isDiagnosticContinuityRecentRecord(record)) return;
+        if (!validateContinuityRecentRecord(record).valid) throw new Error("Invalid shared RECENT: " + file.name);
+        if (record.status === "completed_model_reply" && (!Number.isFinite(Date.parse(record.effective_at)) || !Number.isInteger(Number(record.sequence)) || Number(record.sequence) < 1)) throw new Error("Invalid source timestamp or sequence: " + file.name);
+      }, onProgress: safeProgress
+    });
+  }
+
+  async function collectReviewedRecentForSleep(until, options) {
+    const review = await refreshRecentReview(options);
+    const roots = (await listJsonFiles({ ...options, readTimeoutMs: 15000, progressLabel: "Checking durable saved conversation history" })).filter(file => file.name === "raw_session_log.json");
+    if (roots.length > 1) throw new Error("Ambiguous durable raw log");
+    const store = roots.length ? await fetchJsonFile(roots[0], { ...options, readTimeoutMs: 15000, progressLabel: "Reading durable saved conversation history" }) : { entries: [] };
+    const entries = Array.isArray(store) ? store : store.entries;
+    if (!Array.isArray(entries)) throw new Error("Invalid durable raw log");
+    const records = review.pending.filter(record => Date.parse(record.effective_at) <= Date.parse(until));
+    const committed = record => entries.some(entry => entry.source_transport?.turn_id === record.turn_id ||
+      (record.host_id === "phone" && entry.session_id === record.conversation_id && Number(entry.turnIndex) === Number(record.sequence)));
+    const eligible = records.filter(record => !committed(record));
+    if (options.signal?.aborted) throw new Error("Conversation collection cancelled; recovery retained.");
+    // Prune only receipts proven present in the freshly read durable raw log.
+    await window.AIDA_RECENT_REVIEW.engine.pruneCommitted(review.scope, records.filter(committed).map(record => record.turn_id));
+    if (options.signal?.aborted) throw new Error("Conversation collection cancelled; recovery retained.");
+    runtime().drive.files = runtime().drive.files || {};
+    runtime().drive.fileIndex = runtime().drive.fileIndex || {};
+    runtime().drive.files["raw_session_log.json"] = store;
+    if (roots.length) runtime().drive.fileIndex["raw_session_log.json"] = roots[0];
+    return { records, eligible, until, reviewBookmark: review.meta.token, newlyReviewed: review.reviewed };
+  }
+
   async function collectSharedRecentForSleep(until, options = {}) {
+    if (window.AIDA_RECENT_REVIEW?.engine) return collectReviewedRecentForSleep(until, options);
     // Capture reads the full transport, independent of the prompt cache/window.
     let completed = 0;
     let total = null;
@@ -1074,8 +1130,13 @@ async function fetchJsonFile(file, options = {}) {
     freshness.lastAttemptAt = now;
     freshness.lastAttemptReason = options.reason || (options.force ? "force" : "refresh");
     const limit = options.limit || cfg.promptLimit;
+    let records;
+    if (window.AIDA_RECENT_REVIEW?.engine) {
+      const review = await refreshRecentReview(options);
+      records = review.meta.window;
+    } else {
     const files = await listContinuityRecentFiles();
-    const records = [];
+    records = [];
     for (const file of files) {
       try {
         const record = await fetchJsonFile(file);
@@ -1085,6 +1146,7 @@ async function fetchJsonFile(file, options = {}) {
       } catch (error) {
         log(`SHARED RECENT: Skipped ${file?.name || "record"} for prompt context: ${error.message}`, "log-amber");
       }
+    }
     }
     const selected = selectContinuityRecentWindow(records, limit);
     const prompt = selected.length
@@ -1860,6 +1922,7 @@ async function fetchJsonFile(file, options = {}) {
     writeContinuityRecentCanary,
     writeContinuityRecentExchange,
     collectSharedRecentForSleep,
+    refreshRecentReview,
     loadContinuityRecentPromptContext,
     ensureContinuityRecentPromptContext,
     selectContinuityRecentWindow,
