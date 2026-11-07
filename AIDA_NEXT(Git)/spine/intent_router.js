@@ -210,19 +210,22 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     ];
     const action = cleanText(value?.action, 120);
     const isFileIndexAction = value?.action === "file_index.lookup";
+    const isFileIndexIntent = value?.intent === "file_index_lookup";
+    const isFileIndexCandidate = isFileIndexAction || isFileIndexIntent;
     const rawQuery = typeof value?.query === "string" ? value.query.trim() : "";
     const actionKeys = Object.keys(value || {}).sort().join(",");
-    const validFileIndexShape = isFileIndexAction &&
+    const validFileIndexShape = isFileIndexAction && isFileIndexIntent &&
       value?.intent === "file_index_lookup" &&
       actionKeys === "action,intent,query" &&
       rawQuery.length > 0 && rawQuery.length <= 180;
     let fileIndexReason = "not_file_index_action";
-    if (isFileIndexAction) {
+    if (isFileIndexCandidate) {
       if (!fileIndexTestEnabled()) fileIndexReason = "test_gate_disabled";
+      else if (!isFileIndexAction) fileIndexReason = "action_not_allowlisted";
       else if (typeof value.query !== "string" || !value.query.trim()) fileIndexReason = "query_missing_or_empty";
       else if (rawQuery.length > 180) fileIndexReason = "query_too_long";
       else if (actionKeys !== "action,intent,query") fileIndexReason = "schema_shape_mismatch";
-      else if (value.intent !== "file_index_lookup") fileIndexReason = "schema_intent_mismatch";
+      else if (!isFileIndexIntent) fileIndexReason = "schema_intent_mismatch";
       else fileIndexReason = "accepted_file_index_action";
     } else if (supported.includes(value?.intent)) {
       fileIndexReason = `ordinary_intent_${value.intent}`;
@@ -231,8 +234,8 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     } else {
       fileIndexReason = "unsupported_intent";
     }
-    const intent = isFileIndexAction
-      ? (fileIndexTestEnabled() && validFileIndexShape ? "file_index_lookup" : "none")
+    const intent = isFileIndexCandidate
+      ? (fileIndexTestEnabled() ? "file_index_lookup" : "none")
       : supported.includes(value?.intent) ? value.intent : "none";
     const confidence = intent === "file_index_lookup" && value.confidence === undefined
       ? 1
@@ -248,7 +251,9 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       intent
     );
     const normalizationStatus = intent === "file_index_lookup"
-      ? "accepted · accepted_file_index_action"
+      ? validFileIndexShape
+        ? "accepted · accepted_file_index_action"
+        : `rejected · ${fileIndexReason}`
       : intent === "none"
       ? `rejected · ${fileIndexReason}`
       : `accepted_non_index · ordinary_intent_${intent}`;
@@ -269,7 +274,8 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
         canAutoRun &&
         !value?.requiresConfirmation &&
         confidence >= CONFIDENCE_AUTO_RUN &&
-        needsText
+        needsText &&
+        (intent !== "file_index_lookup" || validFileIndexShape)
     };
   }
 

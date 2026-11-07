@@ -207,11 +207,11 @@
     if (["not_determined", "other_or_missing"].includes(update.selectedAction) || actions.has(update.selectedAction)) next.selectedAction = update.selectedAction;
     const normalizationStatuses = new Set([
       "accepted · accepted_file_index_action",
-      ...["schema_shape_mismatch", "schema_intent_mismatch", "test_gate_disabled", "query_missing_or_empty", "query_too_long", "invalid_or_unparseable_response", "unsupported_intent", "provider_unavailable", "provider_call_failed"].map(reason => `rejected · ${reason}`),
+      ...["schema_shape_mismatch", "schema_intent_mismatch", "action_not_allowlisted", "test_gate_disabled", "query_missing_or_empty", "query_too_long", "invalid_or_unparseable_response", "unsupported_intent", "provider_unavailable", "provider_call_failed"].map(reason => `rejected · ${reason}`),
       ...Array.from(intents).map(intent => `accepted_non_index · ordinary_intent_${intent}`),
     ]);
     if (normalizationStatuses.has(update.normalization)) next.normalization = update.normalization;
-    const dispatchStatuses = ["attempted", "completed", "not_attempted · executor_unavailable", "skipped · no validated auto-run INDEX action"];
+    const dispatchStatuses = ["attempted", "completed", "completed · executed", "not_attempted · executor_unavailable", "failed · executor_unavailable", "failed · executor_threw", "failed · action_execution_failed", "failed · ACTION_VALIDATION_FAILED", "failed · OAUTH_REQUIRED_OR_EXPIRED", "failed · DRIVE_ACCESS_DENIED", "failed · CATALOG_NOT_FOUND_OR_INACCESSIBLE", "failed · CATALOG_INVALID_JSON", "failed · CATALOG_METADATA_MISMATCH", "failed · CATALOG_SCHEMA_INVALID", "failed · DRIVE_CONFIGURATION_MISSING", "failed · DRIVE_NETWORK_OR_SERVICE_UNAVAILABLE", "failed · CATALOG_READ_FAILED", "skipped · validation_rejected", "skipped · no validated auto-run INDEX action"];
     if (dispatchStatuses.includes(update.dispatch)) next.dispatch = update.dispatch;
     if (typeof update.consumed === "boolean") next.consumed = update.consumed;
     testDiagnosticState = { ...(testDiagnosticState || {}), ...next };
@@ -259,9 +259,33 @@
     panel.append(close);
   }
 
+  function showRoutingFailure(reason = "validation_failed") {
+    if (!testEnabled) return false;
+    clearResults();
+    const panel = ensureResultPanel();
+    panel.replaceChildren();
+    const title = document.createElement("h3");
+    title.textContent = "File INDEX could not complete";
+    const message = document.createElement("p");
+    const messages = {
+      validation_failed: "Aida recognized a file-location request, but the action or search text did not pass validation. Please repeat the request and include the file name.",
+      executor_unavailable: "Aida recognized the file-location request, but File INDEX is unavailable on this page.",
+      execution_failed: "Aida recognized the file-location request, but File INDEX could not complete it. Please retry.",
+    };
+    message.textContent = messages[reason] || messages.execution_failed;
+    panel.append(title, message);
+    const close = document.createElement("button");
+    close.type = "button";
+    close.textContent = "Close";
+    close.addEventListener("click", clearResults, { once: true });
+    panel.append(close);
+    return true;
+  }
+
   async function executeAction(action) {
     if (!testEnabled) return false;
     let query;
+    let succeeded = false;
     try {
       query = validateAction(action);
       if (typeof window.AIDA_DRIVE?.fetchFileIndexCatalogById !== "function") {
@@ -271,12 +295,19 @@
       const device = currentDevice();
       const results = searchCatalog(catalog, query, device);
       showResults(query, device, results);
+      updateRoutingDiagnostic({ dispatch: "completed · executed", consumed: true });
+      succeeded = true;
     } catch (_) {
       showError();
+      const message = String(_?.message || "");
+      const reason = /Invalid File INDEX action|File INDEX query must contain/i.test(message)
+        ? "ACTION_VALIDATION_FAILED"
+        : readErrorCategory(_);
+      updateRoutingDiagnostic({ dispatch: `failed · ${reason}`, consumed: true });
     }
-    // Consume the routed action so no INDEX query falls through to ordinary
-    // chat or the LLM Speaker if retrieval or validation fails.
-    return true;
+    // Report execution status; the dispatcher consumes this selected action
+    // even when validation or retrieval fails, so it cannot fall through.
+    return succeeded;
   }
 
   function disableTestGate() {
@@ -328,6 +359,7 @@
     executeAction,
     verifyCatalogRead,
     reportRoutingDiagnostic: updateRoutingDiagnostic,
+    showRoutingFailure,
     disableTestGate,
   });
 

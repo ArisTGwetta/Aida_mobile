@@ -111,19 +111,39 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
 
   async function runProjectIntent(userText) {
     const route = await window.AIDA_INTENT_ROUTER?.infer?.(userText);
-    if (route?.intent === "file_index_lookup" && route.action === "file_index.lookup" && route.autoRun) {
-      const execute = window.AIDA_FILE_INDEX?.executeAction;
+    const fileIndex = window.AIDA_FILE_INDEX;
+    const indexTestEnabled = fileIndex?.isTestEnabled?.() === true;
+    const selectedFileIndex = indexTestEnabled &&
+      (route?.intent === "file_index_lookup" || route?.action === "file_index.lookup");
+    if (selectedFileIndex) {
+      if (route?.intent !== "file_index_lookup" || route.action !== "file_index.lookup" || route.autoRun !== true) {
+        fileIndex?.reportRoutingDiagnostic?.({ dispatch: "skipped · validation_rejected", consumed: true });
+        fileIndex?.showRoutingFailure?.("validation_failed");
+        return true;
+      }
+      const execute = fileIndex?.executeAction;
       if (typeof execute !== "function") {
-        window.AIDA_FILE_INDEX?.reportRoutingDiagnostic?.({ dispatch: "not_attempted · executor_unavailable", consumed: true });
-        pulse("The File INDEX test action is unavailable in this interface.");
+        fileIndex?.reportRoutingDiagnostic?.({ dispatch: "failed · executor_unavailable", consumed: true });
+        fileIndex?.showRoutingFailure?.("executor_unavailable");
+        pulse("File INDEX could not complete the recognized request.");
         return true;
       }
       window.AIDA_FILE_INDEX?.reportRoutingDiagnostic?.({ dispatch: "attempted", consumed: false });
-      await execute.call(window.AIDA_FILE_INDEX, {
-        name: route.action,
-        arguments: { query: route.query },
-      });
-      window.AIDA_FILE_INDEX?.reportRoutingDiagnostic?.({ dispatch: "completed", consumed: true });
+      try {
+        const executionResult = await execute.call(fileIndex, {
+          name: route.action,
+          arguments: { query: route.query },
+        });
+        if (executionResult !== true) {
+          fileIndex?.reportRoutingDiagnostic?.({ consumed: true });
+          fileIndex?.showRoutingFailure?.("execution_failed");
+        } else {
+          fileIndex?.reportRoutingDiagnostic?.({ dispatch: "completed · executed", consumed: true });
+        }
+      } catch (_) {
+        fileIndex?.reportRoutingDiagnostic?.({ dispatch: "failed · executor_threw", consumed: true });
+        fileIndex?.showRoutingFailure?.("execution_failed");
+      }
       return true;
     }
     window.AIDA_FILE_INDEX?.reportRoutingDiagnostic?.({
