@@ -7,12 +7,15 @@ const rootQuery="'root' in parents and name = '"+ROOTNAME+"' and mimeType = 'app
 const safeId=id=>typeof id==='string'&&/^[A-Za-z0-9_-]{4,160}$/.test(id);
 function create(nativeFetch,pendingStorage,onStatus=()=>{}){
  const rt={tokens:{drive:{}},boot:{},drive:{folderId:'theater-discovery-only',fileIndex:{},files:{}}},cfg={google:RPG_STAGE_GOOGLE,drive:{jsonFolderId:null}};
- let root=null,folder=null,query=null,folderUpload=null,upload=null,metadataId=null,credentialReadId=null,busy=false,wasReady=false;
+ let root=null,folder=null,folderToken=null,query=null,folderUpload=null,upload=null,metadataId=null,credentialReadId=null,busy=false,wasReady=false,cacheToken=null;
+ const chainCache=new Map(),metrics={counts:{list:0,full_load:0,revision_check:0,snapshot_read:0,upload:0,write_verification:0,folder_cache_hit:0,folder_cache_miss:0},elapsed_ms:{}};
  const readable=new Set();
  const prefix=NS+'.pending.',folderKey=NS+'.folder-create';
  function jsonGet(key){const raw=pendingStorage.getItem(key);if(!raw)return null;try{return JSON.parse(raw);}catch{throw Error('RPG pending save is unreadable; retained without reset.');}}
  function jsonSet(key,x){pendingStorage.setItem(key,JSON.stringify(x));}
  function headers(extra={}){return {...extra,Authorization:'Bearer '+rt.tokens.drive.accessToken};}
+ function invalidate(){root=folder=folderToken=cacheToken=null;chainCache.clear();}
+ function timed(name,fn){const start=performance.now();return Promise.resolve().then(fn).finally(()=>{metrics.elapsed_ms[name]=(metrics.elapsed_ms[name]||0)+(performance.now()-start);});}
  async function guarded(url,o={}){
   const u=new URL(url),m=o.method||'GET';if(u.origin!=='https://www.googleapis.com'||u.hash||u.username||u.password)throw Error('Only scoped Google Drive requests are permitted.');
   if(!rt.tokens.drive.accessToken||o.headers?.Authorization!=='Bearer '+rt.tokens.drive.accessToken)throw Error('Google authorization is required.');
@@ -37,17 +40,19 @@ function create(nativeFetch,pendingStorage,onStatus=()=>{}){
    // Metadata only; content remains forbidden until namespace/parent validation.
   }else if(m==='GET'&&u.searchParams.get('alt')==='media'&&readable.has(u.pathname.slice('/drive/v3/files/'.length))&&u.pathname.startsWith('/drive/v3/files/')){
   }else throw Error('Drive operation denied: no updates, deletes, production files or provider calls.');
-  return nativeFetch(u.toString(),{...o,body,redirect:'error',signal:AbortSignal.timeout(25000)});
+  let response;try{response=await nativeFetch(u.toString(),{...o,body,redirect:'error',signal:AbortSignal.timeout(25000)});}catch(e){invalidate();throw e;}
+  if(response.status===401||response.status===403)invalidate();return response;
  }
  const io=createStagingMobileIO({runtime:rt,config:cfg,fetch:guarded,log:message=>{
   if(rt.boot.driveConnected&&!wasReady){wasReady=true;onStatus('Google authorized. Open the disposable campaign.');}
   else if(String(message).includes('failed')||String(message).includes('cancel'))onStatus('Google sign-in failed or cancelled. No storage fallback.');
  }});
  function requireAuth(){if(!rt.tokens.drive.accessToken)throw Error('Use Google sign-in first.');}
- async function list(q){query=q;rt.drive.folderId=folder||'theater-discovery-only';try{const rows=await io.listDriveFiles({query:q,readTimeoutMs:25000});if(rows.length>1000)throw Error('Prototype file bound exceeded; no partial load.');return rows;}finally{query=null;}}
+ async function list(q){query=q;rt.drive.folderId=folder||'theater-discovery-only';metrics.counts.list++;try{const rows=await io.listDriveFiles({query:q,readTimeoutMs:25000});if(rows.length>1000)throw Error('Prototype file bound exceeded; no partial load.');return rows;}finally{query=null;}}
  async function allocate(){const r=await guarded('https://www.googleapis.com/drive/v3/files/generateIds?count=1&space=drive&fields=ids',{headers:headers()});if(!r.ok)throw Error('Drive ID allocation failed: HTTP '+r.status);const j=await r.json();if(j.ids?.length!==1||!safeId(j.ids[0]))throw Error('Invalid generated file ID.');return j.ids[0];}
  async function ensureFolder(createIfMissing){
-  requireAuth();const roots=await list(rootQuery);
+  requireAuth();const token=rt.tokens.drive.accessToken;if(folder&&root&&folderToken===token){metrics.counts.folder_cache_hit++;rt.drive.folderId=folder;return folder;}metrics.counts.folder_cache_miss++;root=folder=folderToken=null;
+  const roots=await list(rootQuery);
   if(roots.length!==1||!safeId(roots[0].id)||roots[0].name!==ROOTNAME||roots[0].mimeType!=='application/vnd.google-apps.folder'||roots[0].appProperties?.rpg_staging!==ROOTNS)throw Error('Verified RPG staging root unavailable/ambiguous. No root or production fallback.');
   root=roots[0].id;
   const q="'"+root+"' in parents and name = '"+DIRNAME+"' and mimeType = 'application/vnd.google-apps.folder' and appProperties has { key='rpg_namespace' and value='"+NS+"' } and trashed = false";
@@ -64,17 +69,22 @@ function create(nativeFetch,pendingStorage,onStatus=()=>{}){
    rows=await list(q);if(rows.length!==1)throw Error('Created folder not independently verified; retry state retained.');
   }
   const f=rows[0];if(!safeId(f.id)||f.name!==DIRNAME||f.mimeType!=='application/vnd.google-apps.folder'||!f.parents?.includes(root)||f.appProperties?.rpg_namespace!==NS)throw Error('Invalid Theater folder metadata.');
-  folder=f.id;rt.drive.folderId=folder;pendingStorage.removeItem(folderKey);return folder;
+  folder=f.id;folderToken=token;rt.drive.folderId=folder;pendingStorage.removeItem(folderKey);return folder;
  }
  function validMeta(m,id){return safeId(m?.id)&&m.name?.match(/^save_\d{2,4}_[0-9a-f-]{36}\.json$/)&&m.mimeType==='application/json'&&m.parents?.length===1&&m.parents[0]===folder&&m.appProperties?.rpg_namespace===NS&&m.appProperties?.campaign===id&&/^[a-f0-9]{64}$/.test(m.appProperties?.rpg_hash||'');}
  async function read(m,id){
-  if(!validMeta(m,id))throw Error('Foreign snapshot metadata denied.');readable.add(m.id);rt.drive.fileIndex={[m.name]:m};rt.drive.files={};
+  if(!validMeta(m,id))throw Error('Foreign snapshot metadata denied.');metrics.counts.snapshot_read++;readable.add(m.id);rt.drive.fileIndex={[m.name]:m};rt.drive.files={};
   const e=await io.fetchJsonByName(m.name,'RPG-only immutable snapshot');await E().verify(e,id);if(e.hash!==m.appProperties.rpg_hash)throw Error('Snapshot content/metadata hash mismatch.');return e;
  }
- async function loadUnlocked(id){
-  E().definition(id);await ensureFolder(false);const files=await list("'"+folder+"' in parents and appProperties has { key='campaign' and value='"+id+"' } and trashed = false");
+ function fingerprint(m){return JSON.stringify({id:m.id,name:m.name,mimeType:m.mimeType,parents:m.parents,appProperties:m.appProperties});}
+ async function listOwn(id){
+  await ensureFolder(false);const files=await list("'"+folder+"' in parents and appProperties has { key='campaign' and value='"+id+"' } and trashed = false");
   const own=[];for(const m of files){if(m.appProperties?.rpg_namespace!==NS)throw Error('Unexpected record in Theater folder; no partial scan.');if(m.appProperties.campaign!==id)continue;if(!validMeta(m,id))throw Error('Invalid snapshot metadata.');own.push(m);}
-  if(own.length>1000)throw Error('1000-save safety bound reached; no partial history.');
+  if(own.length>1000)throw Error('1000-save safety bound reached; no partial history.');return own;
+ }
+ async function loadUnlocked(id){
+  E().definition(id);metrics.counts.full_load++;return timed('full_load',async()=>{
+  const own=await listOwn(id);
   const records=[];for(const m of own)records.push(await read(m,id));records.sort((a,b)=>a.revision-b.revision);
   let previous=null;
   for(let i=0;i<records.length;i++){
@@ -82,12 +92,24 @@ function create(nativeFetch,pendingStorage,onStatus=()=>{}){
    if(previous&&(JSON.stringify(e.snapshot.core.events.slice(0,previous.snapshot.core.events.length))!==JSON.stringify(previous.snapshot.core.events)||JSON.stringify(e.snapshot.applied_ops.slice(0,-1))!==JSON.stringify(previous.snapshot.applied_ops)))throw Error('Saved history was rewritten.');
    previous=e;
   }
-  return previous;
+  cacheToken=rt.tokens.drive.accessToken;chainCache.set(id,{head:previous,files:new Map(own.map(m=>[m.id,fingerprint(m)]))});return previous;
+  });
+ }
+ async function refreshUnlocked(id){
+  E().definition(id);metrics.counts.revision_check++;return timed('revision_check',async()=>{
+   const cached=chainCache.get(id);if(!cached||cacheToken!==rt.tokens.drive.accessToken)return loadUnlocked(id);
+   const own=await listOwn(id),seen=new Map(own.map(m=>[m.id,fingerprint(m)]));
+   if(seen.size<cached.files.size||[...cached.files].some(([file,fp])=>seen.get(file)!==fp))return loadUnlocked(id);
+   const additions=own.filter(m=>!cached.files.has(m.id)).sort((a,b)=>Number(a.name.match(/^save_(\d+)_/)[1])-Number(b.name.match(/^save_(\d+)_/)[1]));
+   let head=cached.head;
+   for(const m of additions){const e=await read(m,id),expected=(head?.revision??-1)+1;if(e.revision!==expected||e.parent_hash!==(head?.hash||null))throw Error('Conflicting or incomplete save chain. Stop; no automatic merge/rewrite.');if(head&&(JSON.stringify(e.snapshot.core.events.slice(0,head.snapshot.core.events.length))!==JSON.stringify(head.snapshot.core.events)||JSON.stringify(e.snapshot.applied_ops.slice(0,-1))!==JSON.stringify(head.snapshot.applied_ops)))throw Error('Saved history was rewritten.');head=e;}
+   chainCache.set(id,{head,files:seen});cacheToken=rt.tokens.drive.accessToken;return head;
+  });
  }
  function pending(id){E().definition(id);const p=jsonGet(prefix+id);if(!p)return null;if(p.namespace!==NS||p.envelope?.campaign_id!==id||!safeId(p.folder)||p.file_id!==null&&!safeId(p.file_id))throw Error('Invalid pending save; retained.');return p;}
- async function finish(p){
+ async function finish(p,recovery=false){
   const e=p.envelope,id=e.campaign_id;await E().verify(e,id);await ensureFolder(false);if(p.folder!==folder)throw Error('Pending save belongs to another Drive account/folder.');
-  const current=await loadUnlocked(id);
+  const current=recovery?await loadUnlocked(id):await refreshUnlocked(id);
   if(current?.snapshot.applied_ops.includes(e.operation_id)){
    const files=await list("'"+folder+"' in parents and trashed = false"),match=files.find(m=>m.id===p.file_id);
    if(!match|| (await read(match,id)).hash!==e.hash)throw Error('Operation ID conflicts with existing save.');
@@ -97,17 +119,17 @@ function create(nativeFetch,pendingStorage,onStatus=()=>{}){
   if(!p.file_id){p.file_id=await allocate();jsonSet(prefix+id,p);}
   const name='save_'+String(e.revision).padStart(2,'0')+'_'+e.operation_id+'.json';
   upload={id:p.file_id,name,envelope:e};rt.drive.fileIndex={theater_sentinel:{id:'never-used'}};
-  try{await io.putFile(name,JSON.stringify(e),'application/json');}
+  metrics.counts.upload++;try{await timed('upload',()=>io.putFile(name,JSON.stringify(e),'application/json'));}
   catch(error){
    // A timed-out upload may have committed. Check only this preallocated ID.
    metadataId=p.file_id;let r;try{r=await guarded('https://www.googleapis.com/drive/v3/files/'+p.file_id+'?fields=id,name,mimeType,parents,appProperties',{headers:headers()});}finally{metadataId=null;}
    if(!r.ok)throw Error('Save is unresolved; exact pending record and file ID retained. Use Recover pending save.');
    const saved=await read(await r.json(),id);if(saved.hash!==e.hash)throw Error('Preallocated ID returned conflicting content.');
   }finally{upload=null;}
-  const saved=await loadUnlocked(id);if(!saved?.snapshot.applied_ops.includes(e.operation_id))throw Error('Save not fully verified; pending data retained.');
+  metrics.counts.write_verification++;const saved=await timed('write_verification',()=>refreshUnlocked(id));if(!saved?.snapshot.applied_ops.includes(e.operation_id))throw Error('Save not fully verified; pending data retained.');
   pendingStorage.removeItem(prefix+id);return saved;
  }
- async function exclusive(fn){if(busy)throw Error('A Drive operation is already running.');busy=true;try{return await fn();}finally{busy=false;}}
+ async function exclusive(fn){if(busy)throw Error('A Drive operation is already running.');busy=true;try{return await fn();}catch(e){invalidate();throw e;}finally{busy=false;}}
  return Object.freeze({prepare:()=>io.initTokenClient(),connect:()=>io.requestDriveToken(),ready:()=>Boolean(rt.tokens.drive.accessToken),pending,
   readCredentialFragments:()=>exclusive(async()=>{
    requireAuth();
@@ -124,8 +146,11 @@ function create(nativeFetch,pendingStorage,onStatus=()=>{}){
   }),
   open:id=>exclusive(async()=>{E().definition(id);await ensureFolder(true);const existing=await loadUnlocked(id);if(existing)return existing;if(pending(id))throw Error('Recover pending save before opening an empty campaign.');const e=await E().envelope(E().seed(id,crypto.randomUUID()));const p={namespace:NS,folder,file_id:null,envelope:e};jsonSet(prefix+id,p);return finish(p);}),
   load:id=>exclusive(()=>loadUnlocked(id)),
+  refresh:id=>exclusive(()=>refreshUnlocked(id)),
+  invalidate,
+  diagnostics:()=>JSON.parse(JSON.stringify(metrics)),
   save:e=>exclusive(async()=>{E().definition(e.campaign_id);await E().verify(e,e.campaign_id);if(pending(e.campaign_id))throw Error('Recover the existing pending save first.');await ensureFolder(false);const p={namespace:NS,folder,file_id:null,envelope:e};jsonSet(prefix+e.campaign_id,p);return finish(p);}),
-  recover:id=>exclusive(async()=>{const p=pending(id);if(!p)throw Error('No pending RPG save.');return finish(p);})});
+  recover:id=>exclusive(async()=>{const p=pending(id);if(!p)throw Error('No pending RPG save.');return finish(p,true);})});
 }
 window.RPG_THEATER_STORE=Object.freeze({create});
 })();
