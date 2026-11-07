@@ -23,6 +23,7 @@
   let testEnabled = false;
   let testGateStatus = null;
   let testGateButton = null;
+  let testGateReadButton = null;
   let resultPanel = null;
 
   function validateAction(action) {
@@ -176,6 +177,36 @@
     resultPanel = null;
   }
 
+  function readErrorCategory(error) {
+    const message = String(error?.message || "");
+    if (/authenticated drive session|required|access token is missing|http 401/i.test(message)) return "OAUTH_REQUIRED_OR_EXPIRED";
+    if (/http 403/i.test(message)) return "DRIVE_ACCESS_DENIED";
+    if (/http 404/i.test(message)) return "CATALOG_NOT_FOUND_OR_INACCESSIBLE";
+    if (/json parse failed/i.test(message)) return "CATALOG_INVALID_JSON";
+    if (/exact id, name, folder|metadata check failed/i.test(message)) return "CATALOG_METADATA_MISMATCH";
+    if (/unsupported file index catalog|malformed file index/i.test(message)) return "CATALOG_SCHEMA_INVALID";
+    if (/configured aida json folder|drive json folder id is missing|missing google oauth client id/i.test(message)) return "DRIVE_CONFIGURATION_MISSING";
+    if (/timed out|network|failed to fetch|load failed/i.test(message)) return "DRIVE_NETWORK_OR_SERVICE_UNAVAILABLE";
+    return "CATALOG_READ_FAILED";
+  }
+
+  async function verifyCatalogRead() {
+    if (!testEnabled) return false;
+    if (testGateStatus) testGateStatus.textContent = "Checking the catalog through the authenticated Drive reader…";
+    try {
+      const catalog = validateCatalog(await window.AIDA_DRIVE.fetchFileIndexCatalogById(CATALOG_FILE_ID));
+      const matches = searchCatalog(catalog, "citizenship certificate", "phone");
+      const matched = matches.some(record => normalize(record.title) === "citizenship certificate");
+      if (!matched) throw new Error("Synthetic title metadata did not match the direct-read check.");
+      if (testGateStatus) testGateStatus.textContent = "Direct read PASS: catalog JSON validated and synthetic title is searchable.";
+      return true;
+    } catch (error) {
+      const category = readErrorCategory(error);
+      if (testGateStatus) testGateStatus.textContent = `Direct read FAIL · ${category}.`;
+      return false;
+    }
+  }
+
   function showError() {
     showResults("lookup", currentDevice(), []);
     const panel = ensureResultPanel();
@@ -210,34 +241,36 @@
     return true;
   }
 
-  function enableFromTestGate() {
-    if (testEnabled || !testGateButton) return;
-    if (!window.confirm("Enable the File INDEX test for this tab? This is a temporary UI discretion gate, not authentication.")) return;
-    testEnabled = true;
-    testGateButton.textContent = "Disable File INDEX test";
-    if (testGateStatus) testGateStatus.textContent = "Enabled for this tab until page reload.";
-  }
-
   function disableTestGate() {
     testEnabled = false;
     clearResults();
-    if (testGateButton) testGateButton.textContent = "Enable File INDEX test";
+    if (testGateButton) {
+      testGateButton.textContent = "Disabled until page reload";
+      testGateButton.disabled = true;
+    }
+    if (testGateReadButton) testGateReadButton.disabled = true;
     if (testGateStatus) testGateStatus.textContent = "Disabled. No catalog is loaded.";
   }
 
   function mountTestGate() {
     if (new URLSearchParams(window.location.search).get("aida_file_index_test") !== "1") return;
+    testEnabled = true;
     const gate = document.createElement("section");
     gate.id = "aida-file-index-test-gate";
     gate.setAttribute("aria-label", "File INDEX test gate");
     gate.style.cssText = "position:fixed;z-index:10000;left:1rem;bottom:1rem;display:flex;gap:.5rem;align-items:center;padding:.65rem;background:#eef3f8;color:#18212b;border:1px solid #6a7b90;border-radius:10px;font:13px system-ui,sans-serif";
     testGateButton = document.createElement("button");
     testGateButton.type = "button";
-    testGateButton.textContent = "Enable File INDEX test";
-    testGateButton.addEventListener("click", () => testEnabled ? disableTestGate() : enableFromTestGate());
+    testGateButton.textContent = "Disable File INDEX test";
+    testGateButton.addEventListener("click", disableTestGate);
+    testGateReadButton = document.createElement("button");
+    testGateReadButton.type = "button";
+    testGateReadButton.id = "aida-file-index-direct-read";
+    testGateReadButton.textContent = "Verify catalog read";
+    testGateReadButton.addEventListener("click", verifyCatalogRead);
     testGateStatus = document.createElement("span");
-    testGateStatus.textContent = "Disabled. No catalog is loaded.";
-    gate.append(testGateButton, testGateStatus);
+    testGateStatus.textContent = "Enabled by test URL. No catalog is loaded.";
+    gate.append(testGateReadButton, testGateButton, testGateStatus);
     document.body.append(gate);
   }
 
@@ -245,6 +278,7 @@
     actionSchema: ACTION_SCHEMA,
     isTestEnabled: () => testEnabled,
     executeAction,
+    verifyCatalogRead,
     disableTestGate,
   });
 

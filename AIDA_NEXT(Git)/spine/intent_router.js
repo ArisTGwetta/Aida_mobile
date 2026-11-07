@@ -166,9 +166,9 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
       "For memory_note, put the note to save in value.",
       "For project_create, project_update, and external_action, set requiresConfirmation true.",
       "If the user is only chatting, return conversation.",
-      "Schema: {\"intent\":\"conversation|web_search|memory_search|show_sources|memory_note|project_create|project_update|external_action|clarify|none\",\"action\":\"string\",\"query\":\"string\",\"target\":\"string\",\"value\":\"string\",\"confidence\":0.0,\"reason\":\"short\",\"requiresTool\":boolean,\"requiresConfirmation\":boolean}",
+      "Ordinary intent schema: {\"intent\":\"conversation|web_search|memory_search|show_sources|memory_note|project_create|project_update|external_action|clarify|none\",\"action\":\"string\",\"query\":\"string\",\"target\":\"string\",\"value\":\"string\",\"confidence\":0.0,\"reason\":\"short\",\"requiresTool\":boolean,\"requiresConfirmation\":boolean}",
       ...(fileIndexTestEnabled() ? [
-        "When the explicit File INDEX test capability is available and the user asks where a file is, return a structured action with action exactly file_index.lookup and a query of 1–180 characters. Example: {\"action\":\"file_index.lookup\",\"query\":\"citizenship certificate\"}. A confidence number from 0 to 1 may also be included. Do not include catalog data, matching records, locations, or links. Use ordinary supported intents for all other requests."
+        "File INDEX response schema (use only when the user asks where a file): return exactly {\"action\":\"file_index.lookup\",\"query\":\"1–180 character search query\"}. Do not add intent, confidence, or any other fields. The application validates and executes this action. Do not include catalog data, matching records, locations, or links. Use the ordinary intent schema for every other request."
       ] : [])
     ].join("\n");
   }
@@ -204,9 +204,7 @@ log(`ORGAN LOAD: ${MODULE_ID}`, "log-white");
     const rawQuery = typeof value?.query === "string" ? value.query.trim() : "";
     const actionKeys = Object.keys(value || {}).sort().join(",");
     const validFileIndexShape = isFileIndexAction &&
-      ["action,query", "action,confidence,query"].includes(actionKeys) &&
-      (actionKeys === "action,query" || (typeof value.confidence === "number" &&
-        Number.isFinite(value.confidence) && value.confidence >= 0 && value.confidence <= 1)) &&
+      actionKeys === "action,query" &&
       rawQuery.length > 0 && rawQuery.length <= 180;
     const intent = isFileIndexAction
       ? (fileIndexTestEnabled() && validFileIndexShape ? "file_index_lookup" : "none")
