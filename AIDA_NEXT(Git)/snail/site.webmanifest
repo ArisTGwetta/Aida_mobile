@@ -1,0 +1,15 @@
+{
+  "name": "Snail — Private File Finder",
+  "short_name": "Snail",
+  "description": "Read-only search of your private Snail catalog.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f1f5f1",
+  "theme_color": "#062e26",
+  "icons": [
+    {"src": "icons/snail-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icons/snail-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}
+  ]
+}

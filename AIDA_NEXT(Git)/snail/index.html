@@ -4,99 +4,87 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="color-scheme" content="light">
-  <title>Snail — Aida's Private File Finder</title>
+  <meta name="theme-color" content="#062e26">
+  <meta name="application-name" content="Snail Search">
+  <meta name="apple-mobile-web-app-title" content="Snail">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Snail Search — Private File Finder</title>
+  <!-- iOS Home Screen, Chromium desktop/mobile PWA, and ordinary browser shortcut icons. -->
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/snail-180.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/snail-32.png">
+  <link rel="shortcut icon" type="image/x-icon" href="icons/snail.ico">
+  <link rel="manifest" href="site.webmanifest">
   <style>
     *{box-sizing:border-box}
     :root{font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:#243e36;background:#f1f5f1}
-    body{margin:0;padding:26px 16px 60px}
+    body{margin:0;padding:25px 16px 60px}
     main{max-width:860px;margin:0 auto}
     a{color:#25634f}
     a:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid #75ac95;outline-offset:3px}
-    .eyebrow{font-size:.76rem;letter-spacing:.11em;text-transform:uppercase;color:#587266;font-weight:700}
-    h1{font-size:clamp(2rem,5vw,3rem);letter-spacing:-.045em;line-height:1.1;margin:9px 0 10px}
-    .intro{color:#537166;max-width:670px;margin:0 0 20px}
-    .card{background:white;border:1px solid #d4e2d9;border-radius:15px;padding:20px;box-shadow:0 9px 30px rgba(19,50,35,.05)}
+    .back{display:inline-block;margin-bottom:18px}
+    .eyebrow{font-size:.76rem;letter-spacing:.1em;text-transform:uppercase;color:#587266;font-weight:700}
+    .header{display:flex;align-items:center;gap:17px}
+    .hero-icon{width:76px;height:76px;border-radius:17px;box-shadow:0 5px 15px #123d3035;flex:none}
+    h1{font-size:clamp(1.8rem,5vw,2.7rem);letter-spacing:-.035em;line-height:1.1;margin:3px 0 10px}
+    .intro{color:#4d6a60;max-width:670px;margin:15px 0 20px}
+    .card{background:white;border:1px solid #d4e2d9;border-radius:15px;padding:20px;box-shadow:0 9px 30px rgba(19,50,35,.05);margin-bottom:16px}
     button{background:#1d6650;color:white;border:0;padding:11px 17px;border-radius:9px;font:inherit;font-weight:600;cursor:pointer}
     button:disabled{opacity:.5;cursor:not-allowed}
-    #auth-status{font-size:.88rem;color:#526d60;display:block;margin-top:11px}
-    .footnote{font-size:.84rem;color:#5a7467;margin:24px auto;max-width:860px}
-    #snail-index-private-test{position:static!important;left:auto!important;bottom:auto!important;z-index:auto!important;max-width:860px!important;width:100%!important;max-height:none!important;overflow:visible!important;margin:20px auto!important;padding:20px!important;border:1px solid #d4e2d9!important;background:white!important;color:#243e36!important;border-radius:15px!important;box-shadow:0 9px 30px rgba(19,50,35,.05)!important;font:inherit!important}
-    #snail-index-private-test summary{font-weight:700;font-size:1.15rem;cursor:pointer;margin-bottom:12px}
-    #snail-index-private-test input{width:min(480px,100%);padding:11px;border:1px solid #b9cfbf;border-radius:9px;color:#243e36;background:white;font:inherit;vertical-align:middle}
-    #snail-index-private-test button{margin:8px 0;padding:11px 17px;border:0;border-radius:9px;background:#1d6650;color:white;font:inherit;cursor:pointer}
-    #snail-index-private-test button:disabled{opacity:.5;cursor:not-allowed}
-    #snail-index-private-test section{overflow-wrap:anywhere}
-    #snail-index-private-test p{overflow-wrap:anywhere}
-    @media(max-width:560px){body{padding:18px 12px 40px}.card,#snail-index-private-test{padding:15px!important}#snail-index-private-test button{display:block;width:100%}}
+    .secondary{background:#eff7f1;color:#22513d;border:1px solid #b6d3c0;font-size:.9rem;padding:7px 11px}
+    #auth-status,#search-status{font-size:.92rem;color:#526d60}
+    #auth-status{display:block;margin-top:10px}
+    #search-form{margin-top:12px}#search-inputs{display:flex;align-items:stretch;gap:10px;margin-top:9px}
+    #query{flex:1;min-width:0;padding:11px 13px;border:1px solid #b9cfbf;border-radius:9px;color:#243e36;background:white;font:inherit}
+    .hint,.footnote{font-size:.87rem;color:#5a7467}
+    .result-heading{font-weight:600;margin:4px 0 18px}
+    .result{border:1px solid #d4e2d9;background:#fff;border-radius:13px;padding:18px;margin:12px 0;box-shadow:0 6px 18px #16362109}
+    .result h3{margin:0 0 13px;font-size:1.05rem;overflow-wrap:anywhere}
+    .loc{margin:11px 0 0;border-top:1px solid #e1eae4;padding-top:12px}
+    .loc strong{font-weight:600;font-size:.87rem;display:block;color:#435e53;margin-bottom:7px}
+    .loc.historical strong{color:#886b43}
+    .loc code{display:block;font: .91rem/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere;color:#2b4039}
+    .location-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:8px}
+    .location-actions a{display:inline-block;padding:6px 10px;border:1px solid #b6d3c0;border-radius:8px}
+    .footnote{max-width:860px;margin:17px auto}
+    .manual-copy{display:block;width:100%;font-size:.9rem;margin-top:8px;border:1px solid #b6d3c0;padding:7px;border-radius:6px}
+    @media(max-width:560px){body{padding:16px 12px 40px}.card{padding:15px}#search-inputs{flex-direction:column}#search-form button{width:100%}.hero-icon{width:62px;height:62px}}
   </style>
 </head>
 <body>
   <main>
     <header>
-      <a href="../index.html">← Back to Aida</a>
-      <p class="eyebrow">Private INDEX · v1.0</p>
-      <h1>🐌 Find what we have</h1>
-      <p class="intro">Snail's catalog of files, projects, old bookmarks, and recorded locations. Search the private Google Drive INDEX without loading Aida's memories or sending results to an LLM.</p>
+      <a class="back" href="../index.html">← Back to Aida</a>
+      <div class="header">
+        <img class="hero-icon" src="icons/snail-192.png" width="76" height="76" alt="Snail icon">
+        <div>
+          <p class="eyebrow">Private file finder · v1.0</p>
+          <h1>Find files with Snail</h1>
+        </div>
+      </div>
+      <p class="intro"><strong>Read-only search.</strong> Snail checks your private file catalog when you ask. Search results stay in this browser page; they aren't added to Aida's memory or sent to an LLM.</p>
     </header>
-    <section class="card" aria-label="Connect private index">
+    <section class="card" aria-label="Private Google Drive sign-in">
       <button id="connect" type="button" disabled>Loading Google sign-in…</button>
-      <span id="auth-status" role="status">Not connected. The private catalog has not been loaded.</span>
+      <span id="auth-status" role="status">Not connected. No private catalog loaded.</span>
     </section>
+    <section class="card" aria-label="Search private catalog">
+      <form id="search-form">
+        <label for="query"><strong>Find a file</strong></label>
+        <div id="search-inputs">
+          <input id="query" type="search" maxlength="180" value="Watson" autocomplete="off" placeholder="A filename, project, or keyword">
+          <button id="find" type="submit" disabled>Find in Snail</button>
+        </div>
+      </form>
+      <p class="hint">The first search verifies all private index segments. File paths are addresses, not guaranteed live links. Use <strong>Copy address</strong> to keep an exact location.</p>
+      <p id="search-status" role="status">Connect Google Drive to search.</p>
+    </section>
+    <div id="results" aria-live="polite"></div>
   </main>
-  <p class="footnote">The first search checks the catalog's 19 private segments, including SHA-256 integrity. Windows and G: paths refer to Sparks; they are not phone-openable links. Older paths may be unobserved rather than deleted. Related copies under different names are planned for the Axe Swing Edition, v1.1.</p>
-  <script>
-    // The existing, proven Snail reader is test-gated. This standalone page explicitly enables it.
-    const snailParams = new URLSearchParams(window.location.search);
-    if (snailParams.get('aida_file_index_test') !== '1') {
-      snailParams.set('aida_file_index_test','1');
-      history.replaceState(null,'',`${location.pathname}?${snailParams}${location.hash}`);
-    }
-    // A minimal in-page token holder; this does not boot Aida or her memory machinery.
-    window.AIDA_RUNTIME = {tokens:{drive:{accessToken:null}}};
-  </script>
+  <p class="footnote">Sparks local and G: paths aren't directly openable on a phone. “Previously seen” means not observed in the most recent scan, not necessarily deleted. The Axe Swing Edition will add verified duplicate families in the catalog builder.</p>
   <script src="../spine/config.js?v=20261108-snail1"></script>
   <script src="../spine/snail_index_core.js?v=20261108a"></script>
-  <script src="../spine/snail_index_test.js?v=20261108a"></script>
-  <script>
-    (function () {
-      'use strict';
-      const button = document.getElementById('connect');
-      const message = document.getElementById('auth-status');
-      let client = null;
-      function setStatus(s) { message.textContent = s; }
-      window.snailGoogleLoaded = function () {
-        if (!window.google?.accounts?.oauth2?.initTokenClient || !window.AIDA_CONFIG?.google?.clientId) {
-          setStatus('Google sign-in is unavailable.'); return;
-        }
-        client = window.google.accounts.oauth2.initTokenClient({
-          client_id: window.AIDA_CONFIG.google.clientId,
-          scope: 'https://www.googleapis.com/auth/drive.readonly',
-          include_granted_scopes: false,
-          callback: response => {
-            if (!response?.access_token) { setStatus('Google sign-in did not complete.'); return; }
-            window.AIDA_RUNTIME.tokens.drive.accessToken = response.access_token;
-            setStatus('Connected with a read-only Google Drive token. Search below.');
-            button.textContent = 'Reconnect Drive';
-          },
-          error_callback: error => setStatus(`Google sign-in error: ${String(error?.type || 'unknown')}.`)
-        });
-        button.disabled = false;
-        button.textContent = 'Connect Google Drive (read only)';
-        setStatus('Ready to connect. No private catalog loaded.');
-      };
-      window.snailGoogleFailed = () => setStatus('Google sign-in script failed to load.');
-      button.addEventListener('click', () => { if (client) { setStatus('Opening Google sign-in…'); client.requestAccessToken({prompt:''}); } });
-      document.addEventListener('DOMContentLoaded', () => {
-        const panel = document.getElementById('snail-index-private-test');
-        const details = panel?.querySelector('details');
-        if (details) {
-          const summary = details.querySelector('summary');
-          if (summary) summary.textContent = 'Search the private catalog';
-          details.open = true;
-        }
-      });
-    })();
-  </script>
-  <script src="https://accounts.google.com/gsi/client" async defer onload="window.snailGoogleLoaded && window.snailGoogleLoaded()" onerror="window.snailGoogleFailed && window.snailGoogleFailed()"></script>
+  <script src="snail_app.js?v=20261108b"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer onload="window.snailGoogleLoaded &amp;&amp; window.snailGoogleLoaded()" onerror="window.snailGoogleFailed &amp;&amp; window.snailGoogleFailed()"></script>
 </body>
 </html>
